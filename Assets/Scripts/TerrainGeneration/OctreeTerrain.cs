@@ -7,6 +7,7 @@ using UnityEngine.Profiling;
 using Arterra.Configuration;
 using Arterra.Core.Storage;
 using Arterra.Core;
+using Arterra.Engine.Rendering;
 
 namespace Arterra.Engine.Terrain{
     /// <summary>
@@ -67,7 +68,12 @@ namespace Arterra.Engine.Terrain{
 #if UNITY_EDITOR
         public static void OnDrawGizmos() {
             UnityEditor.SceneView sceneView = UnityEditor.SceneView.lastActiveSceneView;
-            float3 sceneViewPos = sceneView.camera.transform.position;
+            Camera octreeCamera = sceneView != null ? sceneView.camera : Camera.main;
+            if (octreeCamera == null) {
+                return;
+            }
+
+            float3 sceneViewPos = octreeCamera.transform.position;
             int3 GCoord = (int3)CPUMapManager.WSToGS(math.floor(sceneViewPos));
             BalancedOctree.Node node = new() { };
             for (int depth = s.MaxDepth; depth >= 0; depth--) {
@@ -81,6 +87,12 @@ namespace Arterra.Engine.Terrain{
 
             Gizmos.color = Color.white;
             Gizmos.DrawWireCube(CPUMapManager.GSToWS(node.origin + (float3)node.size / 2), (float3)node.size * s.lerpScale);
+
+            Vector3 lightDirection = RenderSettings.sun == null ? Vector3.up : -RenderSettings.sun.transform.forward;
+            float atmosphereRadius = s.lerpScale * s.mapChunkSize * GPUMapManager.numChunksRadius;
+            Camera gameCamera = Camera.main != null ? Camera.main : octreeCamera;
+            FrustumLightVolumeBuilder.DrawFrustumShadowFootprintGizmos(gameCamera, lightDirection, atmosphereRadius, Color.yellow);
+
             //Debug.Log(node.origin/s.mapChunkSize);
             Indicators.OnDrawGizmos();
         }

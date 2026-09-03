@@ -107,6 +107,8 @@ namespace Arterra.Engine.Rendering
             {
                 UniversalLightData lightData = frameData.Get<UniversalLightData>();
                 passData.atmosphereSettings = AtmosphereSettings;
+                passData.lightDirection = Vector3.up;
+                passData.lightColor = Color.white;
                 if (lightData.mainLightIndex >= 0 && lightData.mainLightIndex < lightData.visibleLights.Length)
                 {
                     var mainLight = lightData.visibleLights[lightData.mainLightIndex];
@@ -122,7 +124,7 @@ namespace Arterra.Engine.Rendering
                 {
                     CommandBuffer cmd = CommandBufferHelpers.GetNativeCommandBuffer(context.cmd);
                     SetGlobalLightProperties(cmd, data);
-                    data.atmosphereSettings.Execute(cmd);
+                    data.atmosphereSettings.Execute(cmd, data.lightDirection);
                 });
             }
 

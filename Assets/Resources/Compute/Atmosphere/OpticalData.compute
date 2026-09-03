@@ -7,6 +7,8 @@
 #include "Assets/Resources/Compute/Utility/GetIndex.hlsl"
 #include "Assets/Resources/Compute/MapData/WSDensitySampler.hlsl"
 #include "Assets/Resources/Compute/MapData/WSLightSampler.hlsl"
+#include "Assets/Resources/Compute/Atmosphere/FrustumLightSpaceHelper.hlsl"
+#define LUMINANCE_CACHE
 const static float StaticLightIntensity = 0.01f;
 
 struct ScatterData{
@@ -18,6 +20,8 @@ struct ScatterData{
 RWStructuredBuffer<ScatterData> mapData;
 RWStructuredBuffer<uint> treeLocks;
 StructuredBuffer<float3> rayInfo;
+StructuredBuffer<float3> sunLuminance;
+StructuredBuffer<float> sunRayLengths;
 uint screenHeight;
 uint screenWidth;
 
@@ -94,6 +98,52 @@ float3 opticalDepth(float3 rayOrigin, float3 rayDir, float rayLength){
     return opticalDepth * stepSize;
 }
 
+float3 SampleSunDepthColumn(uint sampleX, uint sampleY, float fsDepth){
+    uint maxDepth = max(_NumInScatterPoints, 1u) - 1u;
+    float maxDepthF = max((float)_NumInScatterPoints - 1.0f, 0.0f);
+
+    uint sampleIndex = indexFromCoord2DManual(sampleX, sampleY, screenHeight);
+    float sunRayLength = max(sunRayLengths[sampleIndex], 1e-6);
+    float fsDepth01 = 1.0 - (fsDepth / sunRayLength);
+    float zf = saturate(fsDepth01) * maxDepthF;
+    float zFloor = floor(zf);
+    uint z0 = min((uint)zFloor, maxDepth);
+    uint z1 = min(z0 + 1u, maxDepth);
+    float zBlend = zf - zFloor;
+
+    uint index0 = indexFromCoordIrregular(sampleX, sampleY, z0, screenHeight, _NumInScatterPoints);
+    uint index1 = indexFromCoordIrregular(sampleX, sampleY, z1, screenHeight, _NumInScatterPoints);
+    return lerp(sunLuminance[index0], sunLuminance[index1], zBlend);
+}
+
+//Does a bilinear interp on a linear interped column: Thus performs trilinear interp
+//We use custom trilinear blending here instead of the standard helper because depth is non normalizable between rays
+float3 SampleSunOpticalDepth(float3 worldPos){
+    float3 fsPos = WSPosToFSPos(worldPos);
+    uint maxX = max(screenWidth, 1u) - 1u;
+    uint maxY = max(screenHeight, 1u) - 1u;
+
+    float2 fsScaled = saturate(fsPos.xy) * float2((float)screenWidth, (float)screenHeight) - 0.5;
+    fsScaled = clamp(fsScaled, 0.0, float2((float)maxX, (float)maxY));
+    float2 fsFloor = floor(fsScaled);
+    uint x0 = min((uint)fsFloor.x, maxX);
+    uint y0 = min((uint)fsFloor.y, maxY);
+    uint x1 = min(x0 + 1u, maxX);
+    uint y1 = min(y0 + 1u, maxY);
+    float xBlend = fsScaled.x - fsFloor.x;
+    float yBlend = fsScaled.y - fsFloor.y;
+
+    // Blend in requested order: z first per XY column, then x, then y.
+    float3 c00 = SampleSunDepthColumn(x0, y0, fsPos.z);
+    float3 c10 = SampleSunDepthColumn(x1, y0, fsPos.z);
+    float3 c01 = SampleSunDepthColumn(x0, y1, fsPos.z);
+    float3 c11 = SampleSunDepthColumn(x1, y1, fsPos.z);
+
+    float3 row0 = lerp(c00, c10, xBlend);
+    float3 row1 = lerp(c01, c11, xBlend);
+    return lerp(row0, row1, yBlend);
+}
+
 void ConstructSampleTree(ScatterData cNode, uint pixelIndex, uint depth){
     depth += _NumInScatterPoints; uint parent = depth >> 1;
     uint numTreeLocks = ceil(_NumInScatterPoints / 32.0f);
@@ -134,14 +184,19 @@ void Bake (uint3 id : SV_DispatchThreadID)
 
     float stepSize = _AtmosphereRadius / (_NumInScatterPoints - 1);
     float3 inScatterPoint = _WorldSpaceCameraPos + direction * stepSize * depth;
-    float sunRayLength = raySphere(_WorldSpaceCameraPos, _AtmosphereRadius, inScatterPoint, _LightDirection).y; 
+
 
     ScatterData scatterData = (ScatterData)0;
     OpticalInfo opticalInfo = CumulativeMapInfo(inScatterPoint, direction, stepSize); 
     float4 staticLight = CumulativeStaticLight(inScatterPoint, direction, stepSize);
 
-    //Calculate Scatter Data
+
+#ifdef LUMINANCE_CACHE 
+    float3 sunDepth = SampleSunOpticalDepth(inScatterPoint);
+#else
+    float sunRayLength = raySphere(_WorldSpaceCameraPos, _AtmosphereRadius, inScatterPoint, _LightDirection).y; 
     float3 sunDepth = opticalDepth(inScatterPoint, _LightDirection, sunRayLength);
+#endif
     float3 cameraDepth = opticalDepth(inScatterPoint, -direction, stepSize * depth); 
     float3 transmittance =  exp(-(sunDepth + cameraDepth)); // exp(-t(PPc, lambda)-t(PPa, lambda)) 
     float3 emissionColor = _MainLightColor.xyz;

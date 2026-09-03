@@ -214,7 +214,11 @@ public class InidcatorsBehavior : SpeciesBehavior {
 
     private void OnAddBehavior(object source, object behavior) {
         if (behavior is not IEffect behaviorEffect) return;
-        AddEffect(behaviorEffect);
+        try {
+            AddEffect(behaviorEffect);   
+        } catch(System.Exception e) {
+            Debug.Log(Config.CURRENT.Generation.Entities.RetrieveName((int)self.info.entityType));
+        }
     }
 
     private void OnRemoveBehavior(object source, object behavior) {

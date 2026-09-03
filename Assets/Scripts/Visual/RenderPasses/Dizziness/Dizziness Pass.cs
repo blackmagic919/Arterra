@@ -43,6 +43,7 @@ namespace Arterra.Engine.Rendering {
 
         private class PassData {
             public TextureHandle source;
+            public TextureHandle destination;
             public TextureHandle history1;
             public TextureHandle history2;
             public Material material;
@@ -151,6 +152,7 @@ namespace Arterra.Engine.Rendering {
             TextureHandle destination = UniversalRenderer.CreateRenderGraphTexture(renderGraph, descriptor, "Dizziness Temporary", false);
             using (var builder = renderGraph.AddUnsafePass<PassData>(ProfilerTag, out var passData)) {
                 passData.source = source;
+                passData.destination = destination;
                 passData.history1 = renderGraph.ImportTexture(history1Buffer);
                 passData.history2 = renderGraph.ImportTexture(history2Buffer);
                 passData.material = material;
@@ -159,7 +161,9 @@ namespace Arterra.Engine.Rendering {
                 builder.UseTexture(passData.history2, AccessFlags.Read);
                 builder.UseTexture(destination, AccessFlags.Write);
                 builder.SetRenderFunc((PassData data, UnsafeGraphContext context) => {
-                    Blitter.BlitTexture(context.cmd, data.source, new Vector4(1f, 1f, 0f, 0f), data.material, 0);
+                    CommandBuffer cmd = CommandBufferHelpers.GetNativeCommandBuffer(context.cmd);
+                    context.cmd.SetRenderTarget(data.destination, 0, CubemapFace.Unknown, -1);
+                    Blitter.BlitTexture(cmd, data.source, new Vector4(1f, 1f, 0f, 0f), data.material, 0);
                 });
             }
 

@@ -41,8 +41,11 @@ namespace Arterra.Engine.Rendering {
         private ComputeBuffer treeLocks;
         private ComputeBuffer rayInfo;
         private ComputeBuffer OpticalInfo;
+        private ComputeBuffer sunLuminance;
+        private ComputeBuffer sunRayLengths;
 
         private ComputeShader RaySetupCompute;
+        private ComputeShader LuminanceCompute;
         private ComputeShader OpticalDataCompute;
         private Arterra.Configuration.Quality.Atmosphere settings;
         public int NumInScatterPoints => 1 << settings.InScatterDetail;
@@ -55,10 +58,13 @@ namespace Arterra.Engine.Rendering {
             this.atmosphereRadius = atmosphereRadius;
 
             RaySetupCompute = Resources.Load<ComputeShader>("Compute/Atmosphere/RayMarchSetup");
+            LuminanceCompute = Resources.Load<ComputeShader>("Compute/Atmosphere/Luminance");
             OpticalDataCompute = Resources.Load<ComputeShader>("Compute/Atmosphere/OpticalData");
 
             int numPixels = settings.BakedTextureSizePX * settings.BakedTextureSizePX;
             rayInfo = new ComputeBuffer(numPixels, sizeof(float) * 3, ComputeBufferType.Structured, ComputeBufferMode.Immutable); //Floating point 3 channel
+            sunLuminance = new ComputeBuffer(numPixels * NumInScatterPoints, sizeof(float) * 3, ComputeBufferType.Structured, ComputeBufferMode.Immutable);
+            sunRayLengths = new ComputeBuffer(numPixels, sizeof(float), ComputeBufferType.Structured, ComputeBufferMode.Immutable);
 
             //3D texture to store SunRayOpticalDepth
             //We can't use RenderTexture-Texture2DArray because SAMPLER2DARRAY does not terminate in a timely fashion
@@ -74,10 +80,12 @@ namespace Arterra.Engine.Rendering {
             initialized = false;
             rayInfo?.Release();
             OpticalInfo?.Release();
+            sunLuminance?.Release();
+            sunRayLengths?.Release();
             treeLocks?.Release();
         }
 
-        public void Execute(CommandBuffer cmd) {
+        public void Execute(CommandBuffer cmd, Vector3 lightDirection) {
             if (!GPUMapManager.initialized)
                 return;
             if (!initialized)
@@ -85,12 +93,16 @@ namespace Arterra.Engine.Rendering {
             if (settings.BakedTextureSizePX == 0)
                 return;
 
+            UpdateFrustumLightVolumeData(lightDirection);
+
             CalculateRayData(cmd);
+            ExecuteLuminanceMarch(cmd);
             ExecuteOpticalMarch(cmd);
         }
 
         public void SetupData() {
             SetupRayData();
+            SetupLuminanceMarch();
             SetupOpticalMarch();
             initialized = true;
         }
@@ -114,8 +126,44 @@ namespace Arterra.Engine.Rendering {
 
             RaySetupCompute.SetBuffer(0, "rayInfo", rayInfo);
         }
+
+        void SetupLuminanceMarch() {
+            var tSettings = Config.CURRENT.Quality.Terrain.value;
+            int IsoValue = Mathf.RoundToInt(tSettings.IsoLevel * 255.0f);
+
+            LuminanceCompute.SetFloat("_AtmosphereRadius", atmosphereRadius);
+
+            LuminanceCompute.SetInt("_NumInScatterPoints", NumInScatterPoints);
+
+            LuminanceCompute.SetInt("screenHeight", settings.BakedTextureSizePX);
+            LuminanceCompute.SetInt("screenWidth", settings.BakedTextureSizePX);
+            LuminanceCompute.SetInt("IsoLevel", IsoValue);
+
+            LuminanceCompute.SetBuffer(0, "luminance", sunLuminance);
+            LuminanceCompute.SetBuffer(0, "sunRayLengths", sunRayLengths);
+
+            GPUMapManager.SetDensitySampleData(LuminanceCompute);
+        }
+
+        void UpdateFrustumLightVolumeData(Vector3 lightDirection) {
+            Camera camera = Camera.main;
+            if (camera == null)
+                return;
+
+            FrustumLightVolumeCpuData volume = FrustumLightVolumeBuilder.Build(camera, lightDirection, atmosphereRadius);
+            ApplyFrustumLightVolumeData(LuminanceCompute, volume);
+            ApplyFrustumLightVolumeData(OpticalDataCompute, volume);
+        }
+
+        static void ApplyFrustumLightVolumeData(ComputeShader compute, FrustumLightVolumeCpuData volume) {
+            compute.SetMatrix("_FrustumLightWSToFS", volume.wsToFs);
+            compute.SetMatrix("_FrustumLightFSToWS", volume.fsToWs);
+        }
+
         void SetupOpticalMarch() {
-            Arterra.Configuration.Quality.Terrain rSettings = Config.CURRENT.Quality.Terrain.value;
+            var tSettings = Config.CURRENT.Quality.Terrain.value;
+            int IsoValue = Mathf.RoundToInt(tSettings.IsoLevel * 255.0f);
+
             OpticalDataCompute.SetFloat("_AtmosphereRadius", atmosphereRadius);
 
             OpticalDataCompute.SetInt("_NumInScatterPoints", NumInScatterPoints);
@@ -123,10 +171,13 @@ namespace Arterra.Engine.Rendering {
 
             OpticalDataCompute.SetInt("screenHeight", settings.BakedTextureSizePX);
             OpticalDataCompute.SetInt("screenWidth", settings.BakedTextureSizePX);
+            OpticalDataCompute.SetInt("IsoLevel", IsoValue);
 
             OpticalDataCompute.SetBuffer(0, "treeLocks", treeLocks);
             OpticalDataCompute.SetBuffer(0, "rayInfo", rayInfo);
             OpticalDataCompute.SetBuffer(0, "mapData", OpticalInfo);
+            OpticalDataCompute.SetBuffer(0, "sunLuminance", sunLuminance);
+            OpticalDataCompute.SetBuffer(0, "sunRayLengths", sunRayLengths);
 
             LightBaker.SetupLightSampler(OpticalDataCompute, 0);
             GPUMapManager.SetDensitySampleData(OpticalDataCompute);
@@ -146,6 +197,13 @@ namespace Arterra.Engine.Rendering {
             int numThreadsPerAxisY = Mathf.CeilToInt(settings.BakedTextureSizePX / (float)threadGroupSize);
             int numThreadsPerAxisZ = Mathf.CeilToInt(NumInScatterPoints / (float)threadGroupSize);
             cmd.DispatchCompute(OpticalDataCompute, 0, numThreadsPerAxisX, numThreadsPerAxisY, numThreadsPerAxisZ);
+        }
+
+        void ExecuteLuminanceMarch(CommandBuffer cmd) {
+            LuminanceCompute.GetKernelThreadGroupSizes(0, out uint threadGroupSize, out _, out _);
+            int numThreadsPerAxisX = Mathf.CeilToInt(settings.BakedTextureSizePX / (float)threadGroupSize);
+            int numThreadsPerAxisY = Mathf.CeilToInt(settings.BakedTextureSizePX / (float)threadGroupSize);
+            cmd.DispatchCompute(LuminanceCompute, 0, numThreadsPerAxisX, numThreadsPerAxisY, 1);
         }
 
     }
