@@ -113,9 +113,9 @@ MonoBehaviour:
             height: 0
         - value:
             Material: 8
-            genSize: 0.889
-            genShape: 0.199
-            frequency: 0.667
+            genSize: 0.672
+            genShape: 0.351
+            frequency: 0.25
             height: 0
       Structures:
         value:

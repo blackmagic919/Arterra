@@ -13,13 +13,14 @@ RWStructuredBuffer<float3> luminance;
 RWStructuredBuffer<float> sunRayLengths;
 
 const static uint numThreads = 8;
-uint screenHeight;
-uint screenWidth;
+uint sunHeight;
+uint sunWidth;
 
 float3 _LightDirection; //Global Variable
 
 float _AtmosphereRadius;
-uint _NumInScatterPoints;
+uint _NumSunDepthPoints;
+uint _NumLuminanceOpticalDepthPoints;
 
 float2 raySphere(float3 s0, float sr, float3 r0, float3 rd) {
     float a = dot(rd, rd);
@@ -43,12 +44,12 @@ void Bake (uint3 id : SV_DispatchThreadID)
     uint viewX = id.x;
     uint viewY = id.y;
 
-    if(viewX >= screenWidth || viewY >= screenHeight || id.z > 0)
+    if(viewX >= sunWidth || viewY >= sunHeight || id.z > 0)
         return;
 
-    float2 fsUV = (float2(viewX, viewY) + 0.5f) / float2(max(screenWidth, 1u), max(screenHeight, 1u));
+    float2 fsUV = (float2(viewX, viewY) + 0.5f) / float2(max(sunWidth, 1u), max(sunHeight, 1u));
     float3 frustumOriginWS = FSUVToWSPos(fsUV);
-    uint pixelIndex = indexFromCoord2DManual(viewX, viewY, screenHeight);
+    uint pixelIndex = indexFromCoord2DManual(viewX, viewY, sunHeight);
 
     float3 lightDir = normalize(_LightDirection);
     float sunRayLength = raySphere(_WorldSpaceCameraPos, _AtmosphereRadius, frustumOriginWS, lightDir).y;
@@ -59,32 +60,31 @@ void Bake (uint3 id : SV_DispatchThreadID)
     float3 rayDir = -lightDir;
 
 
-    float layers = max((float)(_NumInScatterPoints - 1), 1.0f);
-    float stepSize = sunRayLength / layers;
+    float segments = max((float)(_NumSunDepthPoints - 1u), 1.0f);
+    float stepSize = sunRayLength / segments;
 
+    uint opticalSampleCount = max(_NumLuminanceOpticalDepthPoints, 1u);
+    float invOpticalSampleCount = 1.0f / (float)opticalSampleCount;
     float isoScale = max((float)IsoLevel, 1.0f);
     float3 cumulativeDepth = 0;
-    float3 samplePointWS = rayStartWS;
-    float3 currentSample = 0;
 
-    if(_NumInScatterPoints > 1u) {
-        OpticalDepth sampleData = SampleOpticalDepth(samplePointWS);
-        currentSample = sampleData.scatterCoeffs * (sampleData.opticalDensity / isoScale);
-    }
-
-    for(uint depth = 0; depth < _NumInScatterPoints; depth++){
-        uint texelIndex = indexFromCoordIrregular(viewX, viewY, depth, screenHeight, _NumInScatterPoints);
+    for(uint depth = 0; depth < _NumSunDepthPoints; depth++){
+        uint texelIndex = indexFromCoordIrregular(viewX, viewY, depth, sunHeight, _NumSunDepthPoints);
         luminance[texelIndex] = cumulativeDepth;
 
-        if(depth + 1u >= _NumInScatterPoints)
+        if(depth + 1u >= _NumSunDepthPoints)
             break;
 
-        samplePointWS += rayDir * stepSize;
-        OpticalDepth nextSampleData = SampleOpticalDepth(samplePointWS);
-        float3 nextSample = nextSampleData.scatterCoeffs * (nextSampleData.opticalDensity / isoScale);
+        float3 segmentOpticalAccum = 0;
+        for(uint opticalSample = 0u; opticalSample < opticalSampleCount; opticalSample++) {
+            float intervalT = ((float)opticalSample + 0.5f) * invOpticalSampleCount;
+            float3 samplePointWS = rayStartWS + rayDir * (stepSize * ((float)depth + intervalT));
+            OpticalDepth sampleData = SampleOpticalDepth(samplePointWS);
+            segmentOpticalAccum += sampleData.scatterCoeffs * (sampleData.opticalDensity / isoScale);
+        }
 
-        cumulativeDepth += (currentSample + nextSample) * (0.5f * stepSize);
-        currentSample = nextSample;
+        float3 segmentOpticalAverage = segmentOpticalAccum * invOpticalSampleCount;
+        cumulativeDepth += segmentOpticalAverage * stepSize;
     }
     
 }

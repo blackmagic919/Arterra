@@ -75,44 +75,44 @@ MonoBehaviour:
           value:
           - value:
               value:
-                rid: 5295427305076687021
+                rid: 5295427305076687102
           - value:
               value:
-                rid: 5295427305076687022
+                rid: 5295427305076687103
           - value:
               value:
-                rid: 5295427305076687023
+                rid: 5295427305076687104
           - value:
               value:
-                rid: 5295427305076687024
+                rid: 5295427305076687105
           - value:
               value:
-                rid: 5295427305076687025
+                rid: 5295427305076687106
           - value:
               value:
-                rid: 5295427305076687026
+                rid: 5295427305076687107
           - value:
               value:
-                rid: 5295427305076687027
+                rid: 5295427305076687108
           - value:
               value:
-                rid: 5295427305076687028
+                rid: 5295427305076687109
           - value:
               value:
-                rid: 5295427305076687029
+                rid: 5295427305076687110
           - value:
               value:
-                rid: 5295427305076687030
+                rid: 5295427305076687111
       _prevBehaviorCount: 13
   references:
     version: 2
     RefIds:
-    - rid: 5295427305076687021
+    - rid: 5295427305076687102
       type: {class: ColliderUpdateSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
         interactType: 0
         UseGravity: 1
-    - rid: 5295427305076687022
+    - rid: 5295427305076687103
       type: {class: PhysicalitySetting, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
         weight: 50
@@ -121,21 +121,21 @@ MonoBehaviour:
         MaxHealth: 20
         NaturalRegen: 0.01
         InvincTime: 0.25
-    - rid: 5295427305076687023
+    - rid: 5295427305076687104
       type: {class: Decomposition, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
         LootTable:
           value:
           - ItemName: Meat
             DropAmount: 0.075
-    - rid: 5295427305076687024
+    - rid: 5295427305076687105
       type: {class: MapInteractorSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
         interactType: 0
         HoldBreathTime: 10
         Bouyancy: -1
         UseFallDamage: 1
-    - rid: 5295427305076687025
+    - rid: 5295427305076687106
       type: {class: PlayerInventorySettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
         PrimarySlotCount: 5
@@ -143,7 +143,7 @@ MonoBehaviour:
         RecoverSpeedMultiplier: 25
         SelectedColor: {r: 0.6792453, g: 0.5261536, b: 0.33641866, a: 0.39215687}
         BaseColor: {r: 0.6862745, g: 0.6862745, b: 0.6862745, a: 0.39215687}
-    - rid: 5295427305076687026
+    - rid: 5295427305076687107
       type: {class: PlayerCameraSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
         Sensitivity: 2
@@ -152,7 +152,7 @@ MonoBehaviour:
         MaximumX: 90
         smooth: 0
         smoothTime: 5
-    - rid: 5295427305076687027
+    - rid: 5295427305076687108
       type: {class: PlayerMovementSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
         walkSpeed: 3
@@ -160,7 +160,7 @@ MonoBehaviour:
         jumpForce: 5
         groundStickDist: 0.05
         flightSpeedMultiplier: 3
-    - rid: 5295427305076687028
+    - rid: 5295427305076687109
       type: {class: PlayerInteractionSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
         TerraformRadius: 1
@@ -175,11 +175,11 @@ MonoBehaviour:
         AttackDamage: 2
         AttackFrequency: 0.25
         KnockBackStrength: 10
-    - rid: 5295427305076687029
+    - rid: 5295427305076687110
       type: {class: PlayerEffectsSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
         AnimatorPath: Player
-    - rid: 5295427305076687030
+    - rid: 5295427305076687111
       type: {class: HungerSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
         MaxHungerHealthColor: {r: 1, g: 0, b: 0, a: 1}
@@ -395,7 +395,7 @@ MonoBehaviour:
             name: 4
             behavior:
               value:
-                rid: 5295427305076687031
+                rid: 5295427305076687112
         Exercises:
           value:
           - trigger: 3017
@@ -413,7 +413,7 @@ MonoBehaviour:
         startingPercent: 1.5
         baseStarveRate: 0.0001
         feedMultiplier: 0.1
-    - rid: 5295427305076687031
+    - rid: 5295427305076687112
       type: {class: DizzinessEffect, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
         Strength: 1

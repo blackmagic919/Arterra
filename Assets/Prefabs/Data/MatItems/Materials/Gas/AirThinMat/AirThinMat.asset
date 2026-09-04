@@ -27,8 +27,8 @@ MonoBehaviour:
     GeoShaderIndex:
       data: 0
   AtmosphereScatter:
-    InScatterCoeffs: {x: 0.000625, y: 0.00125, z: 0.0025}
-    OutScatterCoeffs: {x: 0.000625, y: 0.00125, z: 0.0025}
+    InScatterCoeffs: {x: 0.0005, y: 0.001, z: 0.002}
+    OutScatterCoeffs: {x: 0.0005, y: 0.001, z: 0.002}
     GroundExtinction: {x: 0.005, y: 0.01, z: 0.02}
     LightIntensity: 0
   liquidData:
@@ -40,7 +40,7 @@ MonoBehaviour:
     waveScale: {x: 0, y: 0}
     waveSpeed: {x: 0, y: 0}
   Roughness: 0.2
-  Logic: {fileID: 11400000, guid: 2a37c22a11b7a406da4fbaf59dceb18b, type: 2}
+  Logic: {fileID: 0}
   looter:
     SolidLootTable:
       value: []

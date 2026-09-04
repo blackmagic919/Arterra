@@ -21,6 +21,9 @@ MonoBehaviour:
             BakedTextureSizePX: 128
             InScatterDetail: 6
             NumOpticalDepthPoints: 8
+            LuminanceTextureSizePX: 256
+            LuminanceDetail: 64
+            LuminanceOpticalDepthPoints: 4
         Lighting:
           value:
             SubChunkDivisions: 8
@@ -471,6 +474,8 @@ MonoBehaviour:
           - {fileID: 11400000, guid: 2977fb8fddbc84e3abe40e445ba1a2a1, type: 2}
           - {fileID: 11400000, guid: 0fbaa1f53b28b4cde96f4ef2fb4b4a07, type: 2}
           - {fileID: 11400000, guid: 58a66d271143c4316882e9fb5a9904a6, type: 2}
+          - {fileID: 11400000, guid: 7f01baaf54f2a4fdbb39a4dd1afd379a, type: 2}
+          - {fileID: 11400000, guid: 67eca2243dbd14838bc0ad2d283f406b, type: 2}
           - {fileID: 11400000, guid: b93e529ab4a0447df9029c36ce57b29f, type: 2}
           - {fileID: 11400000, guid: 19b4d39f5c3ff4b40b5eb1cfc96d2cd8, type: 2}
           - {fileID: 11400000, guid: 4b2c7b3caf00243c3960274e481e513d, type: 2}
@@ -594,6 +599,7 @@ MonoBehaviour:
           - {fileID: 11400000, guid: e9f3751a2610641ad8b47153c91f164a, type: 2}
           - {fileID: 11400000, guid: 9a736bfb9c6994d91a502d2108e49505, type: 2}
           - {fileID: 11400000, guid: 10ce51679490e46a5ac8234bc5b668c0, type: 2}
+          - {fileID: 11400000, guid: 4f5ab6feb95ae4032acc130622c5674c, type: 2}
           - {fileID: 11400000, guid: 8526fc578677a4af2aa5dc95540702d8, type: 2}
           - {fileID: 11400000, guid: f2dbd2e4d689f436b9f190bf4975fed4, type: 2}
           - {fileID: 11400000, guid: c939daf84875147ea8d8bf15522a1e03, type: 2}
@@ -605,14 +611,15 @@ MonoBehaviour:
           - {fileID: 11400000, guid: fbefc0aaf31c5423588d6e239cd790ec, type: 2}
           - {fileID: 11400000, guid: 1d7a6debf646449788fd04b39ff5306e, type: 2}
           - {fileID: 11400000, guid: 9cef17ace9ac648258fea389169240c0, type: 2}
-          - {fileID: 11400000, guid: 113b6e9010faf40ed9549c22ffbaba03, type: 2}
+          - {fileID: 11400000, guid: 56baabfb38ecb41949aaf57428997cbc, type: 2}
+          - {fileID: 11400000, guid: 279d62c7054754c6a91b4412bdd7699a, type: 2}
           - {fileID: 11400000, guid: fa068e762a66cb74baa6fec4c39e7823, type: 2}
-          - {fileID: 11400000, guid: 5c920ae50cce6478bbab175bb0bee909, type: 2}
-          - {fileID: 11400000, guid: 23d4539cd0e5849f88d32a59d7b36f1c, type: 2}
-          - {fileID: 11400000, guid: b7110e616e5c44cf39646c42f4752c0a, type: 2}
-          - {fileID: 11400000, guid: 9550c6dd391db47ea81c2679193d1d5c, type: 2}
-          - {fileID: 11400000, guid: 3cbe206fab08b4b8282e38b8b0bb1e5b, type: 2}
-          - {fileID: 11400000, guid: 30a52affd554b4f039e68811b9d69c38, type: 2}
+          - {fileID: 11400000, guid: 77e00515cb17c4a8199e72cc8cc3f437, type: 2}
+          - {fileID: 11400000, guid: 922f021e7a9ae45e19e524fe784facae, type: 2}
+          - {fileID: 11400000, guid: ba57b9e7c030f4279b1c515fe7c7c968, type: 2}
+          - {fileID: 11400000, guid: 361af8bab3f604237a3584478ad35be1, type: 2}
+          - {fileID: 11400000, guid: d50918b4c8efe4f69949df7a4934ab37, type: 2}
+          - {fileID: 11400000, guid: c7060d0b13520428cacb37fbd9ccc6fb, type: 2}
         Textures:
           Category:
             value: {fileID: 11400000, guid: 1029725a4bcd94359824a099055020ea, type: 2}
@@ -744,10 +751,12 @@ MonoBehaviour:
           - {fileID: 11400000, guid: 296309212484540678d9d48afcec2988, type: 2}
           - {fileID: 11400000, guid: 63c2ed201fc6c43c08de0b3edf82c4fd, type: 2}
           - {fileID: 11400000, guid: 3c3c319f8119644aca8ce4e965d3ab3e, type: 2}
-          - {fileID: 11400000, guid: b4f4a1eebd184415d9de574b9f761382, type: 2}
+          - {fileID: 11400000, guid: b016644c133e44de9aa6412b78809a67, type: 2}
           - {fileID: 11400000, guid: c1b1ffa7e15e4423197324a6bd92d9d1, type: 2}
-          - {fileID: 11400000, guid: 6bc930470f38b457e86aec00637d3e45, type: 2}
-          - {fileID: 11400000, guid: 644c497ea2dd04d2f8cf469d67bb6414, type: 2}
+          - {fileID: 11400000, guid: a43eedaff7b91438caec33c664dcf8b1, type: 2}
+          - {fileID: 11400000, guid: 592914cf0946840edae50b726efa5b46, type: 2}
+          - {fileID: 11400000, guid: 41485aeb782d64507962ac85412a950b, type: 2}
+          - {fileID: 11400000, guid: 026f7f929ef164f8ab4cb4dc7af04782, type: 2}
           - {fileID: 11400000, guid: 071e11533a031410a8709cac0ff178b2, type: 2}
           - {fileID: 11400000, guid: 5da1873ed991744f1a071d9c5a834943, type: 2}
           - {fileID: 11400000, guid: 27090e495931c4c71a14ec337860ef86, type: 2}
@@ -805,6 +814,11 @@ MonoBehaviour:
           - {fileID: 11400000, guid: b2fd97453d8f44467b4699e6b36de96e, type: 2}
           - {fileID: 11400000, guid: 69daa9dbede9743d5a25e3429d924eae, type: 2}
           - {fileID: 11400000, guid: b2d8ded799f334c44a4c94fe3107d574, type: 2}
+          - {fileID: 11400000, guid: 0cc6f3cd688d34dd3a26d3c4e1573af4, type: 2}
+          - {fileID: 11400000, guid: fb5818ae5e91b4db1b29f84f829b5c01, type: 2}
+          - {fileID: 11400000, guid: cfa110cd824654fe79f54e45ce6c8a23, type: 2}
+          - {fileID: 11400000, guid: 5e9a45033d73c44a2bb7f5da0869c90d, type: 2}
+          - {fileID: 11400000, guid: 226cc2d2d657749308c3f33c9f7e209b, type: 2}
   references:
     version: 2
     RefIds:
@@ -880,6 +894,12 @@ MonoBehaviour:
       type: {class: PlayerEffectsSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
         AnimatorPath: Player
+    - rid: 5295427305076687090
+      type: {class: DizzinessEffect, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        Strength: 1
+        Duration: Infinity
+        EffectIcon: DizzinessIcon
     - rid: 5778504564777156723
       type: {class: HungerSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
@@ -1095,7 +1115,8 @@ MonoBehaviour:
             partition: 1
             name: 4
             behavior:
-              rid: 5778504564777156785
+              value:
+                rid: 5295427305076687090
         Exercises:
           value:
           - trigger: 3017
@@ -1113,9 +1134,3 @@ MonoBehaviour:
         startingPercent: 1.5
         baseStarveRate: 0.0001
         feedMultiplier: 0.1
-    - rid: 5778504564777156785
-      type: {class: DizzinessEffect, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
-      data:
-        Strength: 0.5
-        Duration: Infinity
-        EffectIcon: DizzinessIcon

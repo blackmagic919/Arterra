@@ -68,11 +68,11 @@ MonoBehaviour:
       type: {class: ConvertibleTag, ns: Arterra.Configuration, asm: Assembly-CSharp}
       data:
         _convertBounds:
-          data: 0
+          data: 4286611200
         _neighborBounds:
           bounds:
-            data: 0
-          flags: 0
+            data: 2130771712
+          flags: 2
         GivesItem: 0
     - rid: 5778504664064983181
       type: {class: ConverterToolTag, ns: Arterra.Configuration, asm: Assembly-CSharp}

@@ -8,7 +8,6 @@
 #include "Assets/Resources/Compute/MapData/WSDensitySampler.hlsl"
 #include "Assets/Resources/Compute/MapData/WSLightSampler.hlsl"
 #include "Assets/Resources/Compute/Atmosphere/FrustumLightSpaceHelper.hlsl"
-#define LUMINANCE_CACHE
 const static float StaticLightIntensity = 0.01f;
 
 struct ScatterData{
@@ -18,91 +17,30 @@ struct ScatterData{
 
 
 RWStructuredBuffer<ScatterData> mapData;
-RWStructuredBuffer<uint> treeLocks;
-StructuredBuffer<float3> rayInfo;
 StructuredBuffer<float3> sunLuminance;
 StructuredBuffer<float> sunRayLengths;
 uint screenHeight;
 uint screenWidth;
-
-float3 _LightDirection; //Global Variable
+uint sunHeight;
+uint sunWidth;
 
 float _AtmosphereRadius;
 uint _NumInScatterPoints;
 uint _NumOpticalDepthPoints;
+uint _NumSunDepthPoints;
 
-float2 raySphere(float3 s0, float sr, float3 r0, float3 rd) {
-    float a = dot(rd, rd);
-    float3 s0_r0 = r0 - s0;
-    float b = 2.0 * dot(rd, s0_r0);
-    float c = dot(s0_r0, s0_r0) - (sr * sr);
-	float disc = b * b - 4.0 * a* c;
-                    
-    if (disc < 0.0) {
-        return float2(-1.0, -1.0);
-    }else{
-        float t1 = max((-b - sqrt(disc)) / (2.0 * a), 0);
-        float t2 = max((-b + sqrt(disc)) / (2.0 * a), 0);
-        return float2(t1, t2-t1);
-	}
-}
-
-
-float4 CumulativeStaticLight(float3 rayOrigin, float3 rayDir, float rayLength){
-    float stepSize = rayLength / (_NumOpticalDepthPoints - 1);
-    uint4 CumStaticLight = 0; //xyz -> rgb, w -> shadow
-    for(uint i = 0; i < _NumOpticalDepthPoints; i++){
-        uint light = SampleLightFast(rayOrigin);
-        CumStaticLight.x += (light & 0x3FF);
-        CumStaticLight.y += (light >> 10 & 0x3FF);
-        CumStaticLight.z += (light >> 20 & 0x3FF);
-        CumStaticLight.w += (light >> 30 & 0x3);
-        rayOrigin += rayDir * stepSize;
-    }
-    float4 ObjLight = CumStaticLight;
-    ObjLight /= _NumOpticalDepthPoints;
-    ObjLight.xyz /= 1023.0f;
-    ObjLight.w = 1.0f - (ObjLight.w / 3.0f); //1 means in shadow means No Light(0)
-    return ObjLight;
-}
-
-
-OpticalInfo CumulativeMapInfo(float3 rayOrigin, float3 rayDir, float rayLength){
-    float stepSize = rayLength / (_NumOpticalDepthPoints - 1);
-    OpticalInfo info = (OpticalInfo)0;
-
-    for(uint i = 0; i < _NumOpticalDepthPoints; i++){
-        OpticalInfo sampleData = SampleMapData(rayOrigin);
-        info.opticalDensity += sampleData.opticalDensity / ((float)IsoLevel);
-        info.scatterCoeffs += sampleData.scatterCoeffs;
-        info.extinctionCoeff += sampleData.extinctionCoeff;
-        rayOrigin += rayDir * stepSize;
-    }
-    info.opticalDensity /= _NumOpticalDepthPoints;
-    info.scatterCoeffs /= _NumOpticalDepthPoints;
-    info.extinctionCoeff /= _NumOpticalDepthPoints;
-    return info;
-}
-
-float3 opticalDepth(float3 rayOrigin, float3 rayDir, float rayLength){
-    float3 densitySamplePoint = rayOrigin;
-    float stepSize = rayLength / (_NumOpticalDepthPoints - 1);
-    float3 opticalDepth = 0;
-
-    for(uint i = 0; i < _NumOpticalDepthPoints; i++){
-        OpticalDepth mapData = SampleOpticalDepth(densitySamplePoint);
-        opticalDepth += mapData.scatterCoeffs * (mapData.opticalDensity / ((float)IsoLevel));
-        densitySamplePoint += rayDir * stepSize;
-    }
-
-    return opticalDepth * stepSize;
+float3 GetRayDirectionWS(uint viewX, uint viewY) {
+    float2 screenSize = float2(max(screenWidth - 1u, 1u), max(screenHeight - 1u, 1u));
+    float2 screenUV = float2(viewX, viewY) / screenSize;
+    float3 viewVectorCS = mul(unity_CameraInvProjection, float4(screenUV * 2.0 - 1.0, 0.0, -1.0)).xyz;
+    return normalize(mul(unity_CameraToWorld, float4(viewVectorCS, 0.0)).xyz);
 }
 
 float3 SampleSunDepthColumn(uint sampleX, uint sampleY, float fsDepth){
-    uint maxDepth = max(_NumInScatterPoints, 1u) - 1u;
-    float maxDepthF = max((float)_NumInScatterPoints - 1.0f, 0.0f);
+    uint maxDepth = max(_NumSunDepthPoints, 1u) - 1u;
+    float maxDepthF = max((float)_NumSunDepthPoints - 1.0f, 0.0f);
 
-    uint sampleIndex = indexFromCoord2DManual(sampleX, sampleY, screenHeight);
+    uint sampleIndex = indexFromCoord2DManual(sampleX, sampleY, sunHeight);
     float sunRayLength = max(sunRayLengths[sampleIndex], 1e-6);
     float fsDepth01 = 1.0 - (fsDepth / sunRayLength);
     float zf = saturate(fsDepth01) * maxDepthF;
@@ -111,8 +49,8 @@ float3 SampleSunDepthColumn(uint sampleX, uint sampleY, float fsDepth){
     uint z1 = min(z0 + 1u, maxDepth);
     float zBlend = zf - zFloor;
 
-    uint index0 = indexFromCoordIrregular(sampleX, sampleY, z0, screenHeight, _NumInScatterPoints);
-    uint index1 = indexFromCoordIrregular(sampleX, sampleY, z1, screenHeight, _NumInScatterPoints);
+    uint index0 = indexFromCoordIrregular(sampleX, sampleY, z0, sunHeight, _NumSunDepthPoints);
+    uint index1 = indexFromCoordIrregular(sampleX, sampleY, z1, sunHeight, _NumSunDepthPoints);
     return lerp(sunLuminance[index0], sunLuminance[index1], zBlend);
 }
 
@@ -120,10 +58,10 @@ float3 SampleSunDepthColumn(uint sampleX, uint sampleY, float fsDepth){
 //We use custom trilinear blending here instead of the standard helper because depth is non normalizable between rays
 float3 SampleSunOpticalDepth(float3 worldPos){
     float3 fsPos = WSPosToFSPos(worldPos);
-    uint maxX = max(screenWidth, 1u) - 1u;
-    uint maxY = max(screenHeight, 1u) - 1u;
+    uint maxX = max(sunWidth, 1u) - 1u;
+    uint maxY = max(sunHeight, 1u) - 1u;
 
-    float2 fsScaled = saturate(fsPos.xy) * float2((float)screenWidth, (float)screenHeight) - 0.5;
+    float2 fsScaled = saturate(fsPos.xy) * float2((float)sunWidth, (float)sunHeight) - 0.5;
     fsScaled = clamp(fsScaled, 0.0, float2((float)maxX, (float)maxY));
     float2 fsFloor = floor(fsScaled);
     uint x0 = min((uint)fsFloor.x, maxX);
@@ -144,67 +82,101 @@ float3 SampleSunOpticalDepth(float3 worldPos){
     return lerp(row0, row1, yBlend);
 }
 
-void ConstructSampleTree(ScatterData cNode, uint pixelIndex, uint depth){
-    depth += _NumInScatterPoints; uint parent = depth >> 1;
-    uint numTreeLocks = ceil(_NumInScatterPoints / 32.0f);
-    uint lockHandle = 0xFFFFFFFF;
-
-    //Parallel Binary Index Tree Construction
-    while(depth != 0){//>> 5 means / 32
-        uint lockIndex = pixelIndex * numTreeLocks + (parent >> 5);
-        uint texelIndex = pixelIndex * _NumInScatterPoints * 2 + depth;
-        mapData[texelIndex] = cNode;
-
-        InterlockedXor(treeLocks[lockIndex], 1 << (parent & 0x1F), lockHandle);
-        if((lockHandle >> (parent & 0x1F)) & 0x1 == 0) return; 
-        //If lock bit is 0, its sibling is second and has not completed yet
-        //If lock bit is 1, its sibling is first, so we can safely access it 
-
-        ScatterData sibling = mapData[texelIndex ^ 0x1];
-        cNode.inScatteredLight += sibling.inScatteredLight;
-        cNode.extinction += sibling.extinction;
-        depth >>= 1; parent >>= 1;
-    }
-}
-
-
-const static uint numThreads = 8;
-[numthreads(numThreads,numThreads,numThreads)]
-void Bake (uint3 id : SV_DispatchThreadID)
-{
-    uint viewX = id.x;
-    uint viewY = id.y;
-    uint depth = id.z;
-
-    if(viewX >= screenWidth || viewY >= screenHeight || depth >= _NumInScatterPoints)
-        return;
-    
-    uint pixelIndex = indexFromCoord2DManual(viewX, viewY, screenHeight);
-    float3 direction = rayInfo[pixelIndex];
-
-    float stepSize = _AtmosphereRadius / (_NumInScatterPoints - 1);
-    float3 inScatterPoint = _WorldSpaceCameraPos + direction * stepSize * depth;
-
-
+ScatterData ComputeScatterDensity(float3 inScatterPoint, float3 cameraDepth, OpticalInfo opticalInfo, float4 staticLight) {
     ScatterData scatterData = (ScatterData)0;
-    OpticalInfo opticalInfo = CumulativeMapInfo(inScatterPoint, direction, stepSize); 
-    float4 staticLight = CumulativeStaticLight(inScatterPoint, direction, stepSize);
 
-
-#ifdef LUMINANCE_CACHE 
     float3 sunDepth = SampleSunOpticalDepth(inScatterPoint);
-#else
-    float sunRayLength = raySphere(_WorldSpaceCameraPos, _AtmosphereRadius, inScatterPoint, _LightDirection).y; 
-    float3 sunDepth = opticalDepth(inScatterPoint, _LightDirection, sunRayLength);
-#endif
-    float3 cameraDepth = opticalDepth(inScatterPoint, -direction, stepSize * depth); 
-    float3 transmittance =  exp(-(sunDepth + cameraDepth)); // exp(-t(PPc, lambda)-t(PPa, lambda)) 
+
+    float3 transmittance = exp(-(sunDepth + cameraDepth));
     float3 emissionColor = _MainLightColor.xyz;
 
     scatterData.inScatteredLight = emissionColor * opticalInfo.scatterCoeffs * transmittance * staticLight.w;
     scatterData.inScatteredLight += staticLight.xyz * exp(-cameraDepth) * StaticLightIntensity;
     scatterData.inScatteredLight *= opticalInfo.opticalDensity;
     scatterData.extinction = opticalInfo.extinctionCoeff * opticalInfo.opticalDensity;
-   
-    ConstructSampleTree(scatterData, pixelIndex, depth);
+    return scatterData;
+}
+
+void AccumulateOpticalAndStatic(float3 samplePoint, float isoScale, inout OpticalInfo opticalAccum, inout uint4 staticLightAccum) {
+    OpticalInfo mapSample = SampleMapData(samplePoint);
+    opticalAccum.opticalDensity += mapSample.opticalDensity / isoScale;
+    opticalAccum.scatterCoeffs += mapSample.scatterCoeffs;
+    opticalAccum.extinctionCoeff += mapSample.extinctionCoeff;
+
+    uint light = SampleLightFast(samplePoint);
+    staticLightAccum.x += (light & 0x3FF);
+    staticLightAccum.y += (light >> 10 & 0x3FF);
+    staticLightAccum.z += (light >> 20 & 0x3FF);
+    staticLightAccum.w += (light >> 30 & 0x3);
+}
+
+void BuildDepthSampleAverages(
+    float3 inScatterPoint,
+    float3 direction,
+    float sampleStep,
+    float isoScale,
+    out OpticalInfo opticalInfo,
+    out float4 staticLight
+) {
+    uint sampleCount = max(_NumOpticalDepthPoints, 1u);
+    float invSampleCount = 1.0f / (float)sampleCount;
+
+    OpticalInfo opticalAccum = (OpticalInfo)0;
+    uint4 staticLightAccum = 0;
+
+    for(uint depthSample = 0u; depthSample < sampleCount; depthSample++) {
+        float3 samplePoint = inScatterPoint + direction * (sampleStep * depthSample);
+        AccumulateOpticalAndStatic(samplePoint, isoScale, opticalAccum, staticLightAccum);
+    }
+
+    opticalInfo = (OpticalInfo)0;
+    opticalInfo.opticalDensity = opticalAccum.opticalDensity * invSampleCount;
+    opticalInfo.scatterCoeffs = opticalAccum.scatterCoeffs * invSampleCount;
+    opticalInfo.extinctionCoeff = opticalAccum.extinctionCoeff * invSampleCount;
+
+    staticLight = float4(staticLightAccum) * invSampleCount;
+    staticLight.xyz /= 1023.0f;
+    staticLight.w = 1.0f - (staticLight.w / 3.0f);
+}
+
+
+const static uint numThreads = 8;
+[numthreads(numThreads,numThreads,1)]
+void Bake (uint3 id : SV_DispatchThreadID)
+{
+    uint viewX = id.x;
+    uint viewY = id.y;
+
+    if(viewX >= screenWidth || viewY >= screenHeight || id.z > 0)
+        return;
+
+    if(_NumInScatterPoints == 0u)
+        return;
+
+    uint sampleCount = max(_NumOpticalDepthPoints, 1u);
+    float sampleDist = _AtmosphereRadius / max((float)(_NumInScatterPoints - 1u), 1.0f);
+    float sampleStep = sampleDist / max((float)sampleCount - 1.0f, 1.0f);
+    float3 direction = GetRayDirectionWS(viewX, viewY);
+    float isoScale = max((float)IsoLevel, 1.0f);
+    float3 cameraPos = _WorldSpaceCameraPos;
+
+    ScatterData cumulative = (ScatterData)0;
+    float3 cameraDepth = 0;
+
+    for(uint depth = 0u; depth < _NumInScatterPoints; depth++) {
+        float3 inScatterPoint = cameraPos + direction * (sampleDist * depth);
+        OpticalInfo opticalInfo = (OpticalInfo)0;
+        float4 staticLight = 0;
+        BuildDepthSampleAverages(inScatterPoint, direction, sampleStep, isoScale, opticalInfo, staticLight);
+
+        ScatterData curDensity = ComputeScatterDensity(inScatterPoint, cameraDepth, opticalInfo, staticLight);
+        uint texelIndex = indexFromCoordIrregular(viewX, viewY, depth, screenHeight, _NumInScatterPoints);
+        float3 cameraDepthStep = (opticalInfo.scatterCoeffs * opticalInfo.opticalDensity) * sampleDist;
+
+        cumulative.inScatteredLight += curDensity.inScatteredLight * sampleDist;
+        cumulative.extinction += curDensity.extinction * sampleDist;
+        mapData[texelIndex] = cumulative;
+
+        cameraDepth += cameraDepthStep;
+    }
 }

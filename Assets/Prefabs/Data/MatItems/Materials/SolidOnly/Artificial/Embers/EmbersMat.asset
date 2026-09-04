@@ -31,7 +31,7 @@ MonoBehaviour:
     InScatterCoeffs: {x: 0, y: 0, z: 0}
     OutScatterCoeffs: {x: 0, y: 0, z: 0}
     GroundExtinction: {x: 0, y: 0, z: 0}
-    LightIntensity: 0
+    LightIntensity: 25372
   liquidData:
     shallowCol: {r: 0, g: 0, b: 0, a: 0}
     deepCol: {r: 0, g: 0, b: 0, a: 0}
@@ -41,7 +41,7 @@ MonoBehaviour:
     waveScale: {x: 0, y: 0}
     waveSpeed: {x: 0, y: 0}
   Roughness: 0.2
-  Logic: {fileID: 11400000, guid: fcd2aed15d3f44eb89b806eeaf4ef595, type: 2}
+  Logic: {fileID: 0}
   looter:
     SolidLootTable:
       value: []

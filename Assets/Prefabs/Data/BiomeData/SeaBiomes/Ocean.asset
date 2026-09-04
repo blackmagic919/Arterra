@@ -82,11 +82,11 @@ MonoBehaviour:
             genSize: 0.305
             genShape: 0.63
             frequency: 1
-            height: 0
+            height: 0.5
         - value:
             Material: 6
             genSize: 0.5
-            genShape: 0.8
+            genShape: 0.2
             frequency: 0.1
             height: 0.5
       Structures:
@@ -114,6 +114,8 @@ MonoBehaviour:
         - value:
             Entity: 12
             ChancePerCoord: 0.00000002
+      StructureSystems:
+        value: []
   BiomeConditions:
     value:
       CaveFreqStart: 0

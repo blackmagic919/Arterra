@@ -95,35 +95,28 @@ Shader "Hidden/Fog"
 	            }
             }
 
-            ScatterData SampleScatterTree(float rayLength, float sampleDist, uint2 tCoord){
-                uint depth = clamp(floor(rayLength / sampleDist) + 1, 1, _NumInScatterPoints - 1) 
-                              + _NumInScatterPoints;
-                //Get precision for last point
-                ScatterData scatterData =  _OpticalInfo[GetTextureIndex(tCoord, depth)];
-                scatterData.inScatteredLight *= fmod(rayLength, sampleDist);
-                scatterData.extinction *= fmod(rayLength, sampleDist);
-                depth--; 
-
-                while(depth > 0){ //Operator precedence is == then & 
-                    if((depth & 0x1) == 0) {
-                        ScatterData cScatter = _OpticalInfo[GetTextureIndex(tCoord, depth)];
-                        scatterData.inScatteredLight += cScatter.inScatteredLight * sampleDist; //256
-                        scatterData.extinction += cScatter.extinction * sampleDist; //256 
-                        depth--;
-                    };
-                    depth >>= 1;
-                }
-                return scatterData;
-            }
-
-            ScatterData CalculateScatterData(float rayLength, float sampleDist, Influences2D blend){
+            ScatterData SampleScatterVolume(float rayLength, float sampleDist, Influences2D blend){
                 ScatterData scatterData = (ScatterData)0;
+                float maxDepth = max((float)(_NumInScatterPoints - 1), 0.0);
+                float depthf = clamp(rayLength / max(sampleDist, 1e-6), 0.0, maxDepth);
+                float depthFloor = floor(depthf);
+                uint z0 = (uint)depthFloor;
+                uint z1 = min(z0 + 1u, (uint)maxDepth);
+                float zBlend = depthf - depthFloor;
+
                 [unroll]for(uint i = 0; i < 4; i++){
                     if(blend.corner[i] == 0) continue;
-                    ScatterData cScatter = SampleScatterTree(rayLength, sampleDist, blend.origin + uint2(i & 1u, (i >> 1) & 1u));
-                    scatterData.inScatteredLight += cScatter.inScatteredLight * blend.corner[i]; //4
-                    scatterData.extinction += cScatter.extinction * blend.corner[i]; //4
+
+                    uint2 sampleCoord = blend.origin + uint2(i & 1u, (i >> 1) & 1u);
+                    ScatterData s0 = _OpticalInfo[GetTextureIndex(sampleCoord, z0)];
+                    ScatterData s1 = _OpticalInfo[GetTextureIndex(sampleCoord, z1)];
+
+                    float3 blendedInScatter = lerp(s0.inScatteredLight, s1.inScatteredLight, zBlend);
+                    float3 blendedExtinction = lerp(s0.extinction, s1.extinction, zBlend);
+                    scatterData.inScatteredLight += blendedInScatter * blend.corner[i];
+                    scatterData.extinction += blendedExtinction * blend.corner[i];
                 }
+
                 return scatterData;
             }
 
@@ -137,10 +130,10 @@ Shader "Hidden/Fog"
                 //Assume atmosphere originates at viewer
                 float dstThroughAtmosphere = min(_AtmosphereRadius, linearDepth);
                 Influences2D rayInfluences = GetLookupBlend(IN.uv);
-                float sampleDist = _AtmosphereRadius / (_NumInScatterPoints - 1);
+                float sampleDist = _AtmosphereRadius / max((float)(_NumInScatterPoints - 1), 1.0);
 
                 if(dstThroughAtmosphere > 0){
-                    ScatterData atmosphereData = CalculateScatterData(dstThroughAtmosphere, sampleDist, rayInfluences);
+                    ScatterData atmosphereData = SampleScatterVolume(dstThroughAtmosphere, sampleDist, rayInfluences);
                     return half4(atmosphereData.inScatteredLight + originalColor.xyz * exp(-atmosphereData.extinction), 0);
                 }
                 return originalColor;
