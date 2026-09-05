@@ -13,6 +13,9 @@ MonoBehaviour:
   m_Name: Cirrus
   m_EditorClassIdentifier: 
   Name: Cirrus
+  Tags:
+    Reg:
+      value: []
   info:
     value:
       Names:
@@ -54,6 +57,8 @@ MonoBehaviour:
         value: []
       Entities:
         value: []
+      StructureSystems:
+        value: []
   BiomeConditions:
     value:
       CaveFreqStart: 0
@@ -65,3 +70,6 @@ MonoBehaviour:
       CaveShapeEnd: 1
       HeightEnd: 0.8
       biome: 0
+  references:
+    version: 2
+    RefIds: []

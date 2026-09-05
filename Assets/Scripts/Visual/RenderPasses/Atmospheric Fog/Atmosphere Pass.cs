@@ -24,11 +24,12 @@ namespace Arterra.Engine.Rendering
         static Material material;
         static bool initialized = false;
         static CopyDepthPass depthCopyPass;
+        const string DeferredKeyword = "ATMOSPHERE_DEFERRED";
 
         private class PassData
         {
             public AtmosphereBake atmosphereSettings;
-            public Vector4 lightDirection;
+            public Vector3 lightDirection;
             public Vector4 lightColor;
         }
 
@@ -70,10 +71,40 @@ namespace Arterra.Engine.Rendering
         {
             if (material != null) UnityEngine.Object.Destroy(material);
             material = null;
+            Shader.DisableKeyword(DeferredKeyword);
             depthCopyPass?.Dispose();
             depthCopyPass = null;
             AtmosphereSettings?.ReleaseData();
             initialized = false;
+        }
+
+        internal static bool ShouldEnableDeferredForCamera(Camera camera)
+        {
+            return initialized &&
+                   camera != null &&
+                   Camera.main != null &&
+                   camera == Camera.main &&
+                   GPUMapManager.initialized &&
+                   AtmosphereSettings != null &&
+                   AtmosphereSettings.initialized;
+        }
+
+        internal static void EnableDeferredState(CommandBuffer cmd, Vector3 lightDirection, Vector4 lightColor)
+        {
+            if (!ShouldEnableDeferredForCamera(Camera.main))
+            {
+                DisableDeferredState(cmd);
+                return;
+            }
+
+            cmd.EnableShaderKeyword(DeferredKeyword);
+            SetGlobalLightProperties(cmd, lightDirection, lightColor);
+            AtmosphereSettings.ExecuteLuminance(cmd, lightDirection);
+        }
+
+        internal static void DisableDeferredState(CommandBuffer cmd)
+        {
+            cmd.DisableShaderKeyword(DeferredKeyword);
         }
 
         public override void RecordRenderGraph(RenderGraph renderGraph, ContextContainer frameData)
@@ -124,7 +155,7 @@ namespace Arterra.Engine.Rendering
                 {
                     CommandBuffer cmd = CommandBufferHelpers.GetNativeCommandBuffer(context.cmd);
                     SetGlobalLightProperties(cmd, data);
-                    data.atmosphereSettings.Execute(cmd, data.lightDirection);
+                    data.atmosphereSettings.ExecuteOptical(cmd, data.lightDirection);
                 });
             }
 
@@ -137,6 +168,13 @@ namespace Arterra.Engine.Rendering
             cmd.SetGlobalVector("_LightDirection", passData.lightDirection);
             cmd.SetGlobalVector("_MainLightColor", passData.lightColor);
             cmd.SetGlobalVector("_MainLightPosition", passData.lightDirection);
+        }
+
+        private static void SetGlobalLightProperties(CommandBuffer cmd, Vector3 lightDirection, Vector4 lightColor)
+        {
+            cmd.SetGlobalVector("_LightDirection", lightDirection);
+            cmd.SetGlobalVector("_MainLightColor", lightColor);
+            cmd.SetGlobalVector("_MainLightPosition", lightDirection);
         }
     }
 }

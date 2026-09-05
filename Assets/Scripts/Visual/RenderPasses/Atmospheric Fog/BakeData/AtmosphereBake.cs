@@ -90,7 +90,21 @@ namespace Arterra.Engine.Rendering {
             sunRayLengths?.Release();
         }
 
-        public void Execute(CommandBuffer cmd, Vector3 lightDirection) {
+        public void ExecuteLuminance(CommandBuffer cmd, Vector3 lightDirection) {
+            if (!GPUMapManager.initialized)
+                return;
+            if (!initialized)
+                return;
+            if (settings.BakedTextureSizePX == 0)
+                return;
+
+            UpdateFrustumLightVolumeData(lightDirection);
+            SetSunLuminanceGlobalData();
+
+            ExecuteLuminanceMarch(cmd);
+        }
+
+        public void ExecuteOptical(CommandBuffer cmd, Vector3 lightDirection) {
             if (!GPUMapManager.initialized)
                 return;
             if (!initialized)
@@ -100,13 +114,13 @@ namespace Arterra.Engine.Rendering {
 
             UpdateFrustumLightVolumeData(lightDirection);
 
-            ExecuteLuminanceMarch(cmd);
             ExecuteOpticalMarch(cmd);
         }
 
         public void SetupData() {
             SetupLuminanceMarch();
             SetupOpticalMarch();
+            SetSunLuminanceGlobalData();
             initialized = true;
         }
 
@@ -148,6 +162,17 @@ namespace Arterra.Engine.Rendering {
             FrustumLightVolumeCpuData volume = FrustumLightVolumeBuilder.Build(camera, lightDirection, atmosphereRadius);
             ApplyFrustumLightVolumeData(LuminanceCompute, volume);
             ApplyFrustumLightVolumeData(OpticalDataCompute, volume);
+
+            Shader.SetGlobalMatrix("_FrustumLightWSToFS", volume.wsToFs);
+            Shader.SetGlobalMatrix("_FrustumLightFSToWS", volume.fsToWs);
+        }
+
+        void SetSunLuminanceGlobalData() {
+            Shader.SetGlobalBuffer("sunLuminance", sunLuminance);
+            Shader.SetGlobalBuffer("sunRayLengths", sunRayLengths);
+            Shader.SetGlobalInt("sunHeight", LuminanceTextureSizePX);
+            Shader.SetGlobalInt("sunWidth", LuminanceTextureSizePX);
+            Shader.SetGlobalInt("_NumSunDepthPoints", NumLuminancePoints);
         }
 
         static void ApplyFrustumLightVolumeData(ComputeShader compute, FrustumLightVolumeCpuData volume) {

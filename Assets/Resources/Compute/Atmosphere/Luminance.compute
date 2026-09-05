@@ -5,7 +5,7 @@
 
 #include "Assets/Resources/Compute/Utility/GetIndex.hlsl"
 #include "Assets/Resources/Compute/MapData/WSDensitySampler.hlsl"
-#include "Assets/Resources/Compute/Atmosphere/FrustumLightSpaceHelper.hlsl"
+#include "Assets/Resources/Compute/Atmosphere/FrustumLightSpace.hlsl"
 
 // Create a RenderTexture with enableRandomWrite flag and set it
 // with cs.SetTexture

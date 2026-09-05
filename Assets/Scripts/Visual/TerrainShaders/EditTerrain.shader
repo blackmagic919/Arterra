@@ -25,6 +25,7 @@ Shader "Unlit/EditTerrain"
             #pragma fragment frag
             #pragma multi_compile _ INDIRECT  //Try to use shader_feature--doesn't work with material instances, but less variants
             #pragma multi_compile _ NO_EDITORLIGHTING
+            #pragma multi_compile _ ATMOSPHERE_DEFERRED
 
             #include "Assets/Resources/Compute/Utility/LambertShade.hlsl"
 

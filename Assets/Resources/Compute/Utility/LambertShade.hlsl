@@ -2,9 +2,14 @@
 #define LMBT_SHADE
 #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
 #include "Assets/Resources/Compute/MapData/WSLightSampler.hlsl"
+#include "Assets/Resources/Compute/Atmosphere/FrustumLightSpace.hlsl"
 
 static const float MinBrightness = 0.25f;
 float3 _LightDirection; //Global Variable
+
+#ifdef ATMOSPHERE_DEFERRED
+#include "Assets/Resources/Compute/Atmosphere/FrustumSunLuminance.hlsl"
+#endif
 
 float3 AddUnityBaseLights(float3 baseAlbedo, float3 normal, float3 positionWS){
     // Add main directional light
@@ -26,7 +31,7 @@ float3 AddUnityBaseLights(float3 baseAlbedo, float3 normal, float3 positionWS){
 
 
 
-float4 LambertShadeInternal(float3 baseAlbedo, uint light, float3 BaseIllumination){
+float4 LambertShadeInternal(float3 baseAlbedo, float3 positionWS, uint light, float3 BaseIllumination){
     float shadow = 1.0 - (light >> 30 & 0x3) / 3.0f;
     float3 ObjectLight = float3(light & 0x3FF, (light >> 10) & 0x3FF, (light >> 20) & 0x3FF) / 1023.0f;
     ObjectLight = mad((1 - ObjectLight), unity_AmbientGround, ObjectLight * 2.5f); //linear interpolation
@@ -34,6 +39,11 @@ float4 LambertShadeInternal(float3 baseAlbedo, uint light, float3 BaseIlluminati
 
     float3 MinShadow = baseAlbedo * MinBrightness;
     float3 DynamicLight = BaseIllumination * shadow + MinShadow * (1-shadow);
+
+#ifdef ATMOSPHERE_DEFERRED
+    float3 sunDepth = SampleFrustumSunOpticalDepthAtWS(positionWS);
+    DynamicLight *= exp(-sunDepth);
+#endif
     
     return float4(max(DynamicLight, ObjectLight), 1);
 }
@@ -41,7 +51,7 @@ float4 LambertShadeInternal(float3 baseAlbedo, uint light, float3 BaseIlluminati
 float4 LambertShade(float3 baseAlbedo, float3 normal, float3 positionWS){
     uint light = SampleLight(positionWS);
     float3 BaseIllumination = AddUnityBaseLights(baseAlbedo, normal, positionWS);
-    return LambertShadeInternal(baseAlbedo, light, BaseIllumination);
+    return LambertShadeInternal(baseAlbedo, positionWS, light, BaseIllumination);
 }
 
 

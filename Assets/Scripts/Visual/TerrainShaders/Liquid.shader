@@ -24,6 +24,7 @@ Shader "Unlit/LiquidShader"
             #define _SPECULAR_COLOR
             #pragma multi_compile _ INDIRECT 
             #pragma multi_compile _ NO_EDITORLIGHTING
+            #pragma multi_compile _ ATMOSPHERE_DEFERRED
             
             #include "LiquidShader.hlsl"
             ENDHLSL

@@ -23,6 +23,7 @@ Shader "Unlit/MiniMesh"
             #pragma vertex Vertex
             #pragma fragment Fragment
             #pragma multi_compile _ NO_EDITORLIGHTING
+            #pragma multi_compile _ ATMOSPHERE_DEFERRED
 
             #include "MiniMesh.hlsl"
             ENDHLSL

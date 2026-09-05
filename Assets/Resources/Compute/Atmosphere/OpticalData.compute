@@ -7,7 +7,8 @@
 #include "Assets/Resources/Compute/Utility/GetIndex.hlsl"
 #include "Assets/Resources/Compute/MapData/WSDensitySampler.hlsl"
 #include "Assets/Resources/Compute/MapData/WSLightSampler.hlsl"
-#include "Assets/Resources/Compute/Atmosphere/FrustumLightSpaceHelper.hlsl"
+#include "Assets/Resources/Compute/Atmosphere/FrustumLightSpace.hlsl"
+#include "Assets/Resources/Compute/Atmosphere/FrustumSunLuminance.hlsl"
 const static float StaticLightIntensity = 0.01f;
 
 struct ScatterData{
@@ -17,17 +18,12 @@ struct ScatterData{
 
 
 RWStructuredBuffer<ScatterData> mapData;
-StructuredBuffer<float3> sunLuminance;
-StructuredBuffer<float> sunRayLengths;
 uint screenHeight;
 uint screenWidth;
-uint sunHeight;
-uint sunWidth;
 
 float _AtmosphereRadius;
 uint _NumInScatterPoints;
 uint _NumOpticalDepthPoints;
-uint _NumSunDepthPoints;
 
 float3 GetRayDirectionWS(uint viewX, uint viewY) {
     float2 screenSize = float2(max(screenWidth - 1u, 1u), max(screenHeight - 1u, 1u));
@@ -36,56 +32,10 @@ float3 GetRayDirectionWS(uint viewX, uint viewY) {
     return normalize(mul(unity_CameraToWorld, float4(viewVectorCS, 0.0)).xyz);
 }
 
-float3 SampleSunDepthColumn(uint sampleX, uint sampleY, float fsDepth){
-    uint maxDepth = max(_NumSunDepthPoints, 1u) - 1u;
-    float maxDepthF = max((float)_NumSunDepthPoints - 1.0f, 0.0f);
-
-    uint sampleIndex = indexFromCoord2DManual(sampleX, sampleY, sunHeight);
-    float sunRayLength = max(sunRayLengths[sampleIndex], 1e-6);
-    float fsDepth01 = 1.0 - (fsDepth / sunRayLength);
-    float zf = saturate(fsDepth01) * maxDepthF;
-    float zFloor = floor(zf);
-    uint z0 = min((uint)zFloor, maxDepth);
-    uint z1 = min(z0 + 1u, maxDepth);
-    float zBlend = zf - zFloor;
-
-    uint index0 = indexFromCoordIrregular(sampleX, sampleY, z0, sunHeight, _NumSunDepthPoints);
-    uint index1 = indexFromCoordIrregular(sampleX, sampleY, z1, sunHeight, _NumSunDepthPoints);
-    return lerp(sunLuminance[index0], sunLuminance[index1], zBlend);
-}
-
-//Does a bilinear interp on a linear interped column: Thus performs trilinear interp
-//We use custom trilinear blending here instead of the standard helper because depth is non normalizable between rays
-float3 SampleSunOpticalDepth(float3 worldPos){
-    float3 fsPos = WSPosToFSPos(worldPos);
-    uint maxX = max(sunWidth, 1u) - 1u;
-    uint maxY = max(sunHeight, 1u) - 1u;
-
-    float2 fsScaled = saturate(fsPos.xy) * float2((float)sunWidth, (float)sunHeight) - 0.5;
-    fsScaled = clamp(fsScaled, 0.0, float2((float)maxX, (float)maxY));
-    float2 fsFloor = floor(fsScaled);
-    uint x0 = min((uint)fsFloor.x, maxX);
-    uint y0 = min((uint)fsFloor.y, maxY);
-    uint x1 = min(x0 + 1u, maxX);
-    uint y1 = min(y0 + 1u, maxY);
-    float xBlend = fsScaled.x - fsFloor.x;
-    float yBlend = fsScaled.y - fsFloor.y;
-
-    // Blend in requested order: z first per XY column, then x, then y.
-    float3 c00 = SampleSunDepthColumn(x0, y0, fsPos.z);
-    float3 c10 = SampleSunDepthColumn(x1, y0, fsPos.z);
-    float3 c01 = SampleSunDepthColumn(x0, y1, fsPos.z);
-    float3 c11 = SampleSunDepthColumn(x1, y1, fsPos.z);
-
-    float3 row0 = lerp(c00, c10, xBlend);
-    float3 row1 = lerp(c01, c11, xBlend);
-    return lerp(row0, row1, yBlend);
-}
-
 ScatterData ComputeScatterDensity(float3 inScatterPoint, float3 cameraDepth, OpticalInfo opticalInfo, float4 staticLight) {
     ScatterData scatterData = (ScatterData)0;
 
-    float3 sunDepth = SampleSunOpticalDepth(inScatterPoint);
+    float3 sunDepth = SampleFrustumSunOpticalDepthAtWS(inScatterPoint);
 
     float3 transmittance = exp(-(sunDepth + cameraDepth));
     float3 emissionColor = _MainLightColor.xyz;

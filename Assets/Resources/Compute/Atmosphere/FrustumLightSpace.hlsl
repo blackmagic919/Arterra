@@ -1,5 +1,5 @@
-#ifndef FRUSTUM_LIGHT_SPACE_HELPER
-#define FRUSTUM_LIGHT_SPACE_HELPER
+#ifndef FRUSTUM_LIGHT_SPACE_INCLUDED
+#define FRUSTUM_LIGHT_SPACE_INCLUDED
 
 // Matrix-based frustum-space frame for the camera footprint volume.
 // wsToFs maps WS -> FS where FS.xy are footprint UVs and FS.z is light-axis depth.

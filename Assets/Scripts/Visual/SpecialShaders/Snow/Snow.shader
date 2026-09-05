@@ -27,6 +27,7 @@ Shader "Unlit/Snow"
             // make fog work
             #pragma skip_variants SHADOWS_*
             #pragma multi_compile _ NO_EDITORLIGHTING
+            #pragma multi_compile _ ATMOSPHERE_DEFERRED
 
             #include "Assets/Resources/Compute/GeoShader/VertexPacker.hlsl"
             #include "Assets/Resources/Compute/Utility/LambertShade.hlsl"

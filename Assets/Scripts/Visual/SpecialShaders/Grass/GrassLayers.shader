@@ -21,6 +21,7 @@ Shader "Grass/GrassLayers" {
             #pragma vertex Vertex
             #pragma fragment Fragment
             #pragma multi_compile _ NO_EDITORLIGHTING
+            #pragma multi_compile _ ATMOSPHERE_DEFERRED
 
             // Incude our logic file
             #include "GrassLayers.hlsl"    

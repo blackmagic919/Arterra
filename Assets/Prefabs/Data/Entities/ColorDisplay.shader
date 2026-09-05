@@ -18,6 +18,7 @@ Shader "Unlit/ColorDisplay"
             #pragma vertex vert
             #pragma fragment frag
             #pragma multi_compile _ NO_EDITORLIGHTING
+            #pragma multi_compile _ ATMOSPHERE_DEFERRED
             
             #include "Assets/Resources/Compute/Utility/LambertShade.hlsl"
 

@@ -22,6 +22,7 @@ Shader "Unlit/EditLiquid"
             #define _SPECULAR_COLOR
             #pragma multi_compile _ INDIRECT 
             #pragma multi_compile _ NO_EDITORLIGHTING
+            #pragma multi_compile _ ATMOSPHERE_DEFERRED
             
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/DeclareDepthTexture.hlsl"
