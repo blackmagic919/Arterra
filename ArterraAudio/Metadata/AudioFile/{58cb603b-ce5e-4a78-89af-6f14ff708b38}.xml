@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<objects serializationModel="Studio.02.03.00">
+	<object class="AudioFile" id="{58cb603b-ce5e-4a78-89af-6f14ff708b38}">
+		<property name="assetPath">
+			<value>SFX/Animal/Whale/song1.mp3</value>
+		</property>
+		<property name="frequencyInKHz">
+			<value>48</value>
+		</property>
+		<property name="channelCount">
+			<value>2</value>
+		</property>
+		<property name="length">
+			<value>1.4159999999999999</value>
+		</property>
+		<relationship name="masterAssetFolder">
+			<destination>{ebd3a6d2-c20e-4b93-8949-f0d9802991d6}</destination>
+		</relationship>
+	</object>
+</objects>

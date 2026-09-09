@@ -27,8 +27,8 @@ namespace Arterra.Data.Material
         public virtual bool OnPlacing(int3 GCoord, Entity.Entity caller)  => false;
         public virtual Item.IItem OnRemoved(int3 GCoord, in MapData amount) => null;
         public virtual void OnPlaced(int3 GCoord, in MapData amount){}
-        public virtual void OnEntityTouchSolid(Entity.Entity entity){}
-        public virtual void OnEntityTouchLiquid(Entity.Entity entity){}
+        public virtual void OnEntityTouchSolid(int3 GCoord, Entity.Entity entity){}
+        public virtual void OnEntityTouchLiquid(int3 GCoord, Entity.Entity entity){}
         public virtual object ConstructMetaData(int3 GCoord, MaterialData.MetaConstructor constructor) => null;
     }
 
@@ -82,14 +82,14 @@ namespace Arterra.Data.Material
                 material.Value.OnPlaced(GCoord, amount);
         }
 
-        public override void OnEntityTouchSolid(Entity.Entity entity) {
+        public override void OnEntityTouchSolid(int3 GCoord, Entity.Entity entity) {
             foreach (var material in Behaviors.Reg)
-                material.Value.OnEntityTouchSolid(entity);
+                material.Value.OnEntityTouchSolid(GCoord, entity);
         }
 
-        public override void OnEntityTouchLiquid(Entity.Entity entity) {
+        public override void OnEntityTouchLiquid(int3 GCoord, Entity.Entity entity) {
             foreach (var material in Behaviors.Reg)
-                material.Value.OnEntityTouchLiquid(entity);
+                material.Value.OnEntityTouchLiquid(GCoord, entity);
         }
 
         public override object ConstructMetaData(int3 GCoord, MetaConstructor constructor) {

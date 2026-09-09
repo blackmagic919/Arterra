@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<objects serializationModel="Studio.02.03.00">
+	<object class="AudioFile" id="{fb4c7165-99d0-47c3-b637-ace4d0a7a3c5}">
+		<property name="assetPath">
+			<value>SFX/Animal/Hawk/cry1.mp3</value>
+		</property>
+		<property name="frequencyInKHz">
+			<value>44.0999985</value>
+		</property>
+		<property name="channelCount">
+			<value>2</value>
+		</property>
+		<property name="length">
+			<value>1.0971428571428572</value>
+		</property>
+		<relationship name="masterAssetFolder">
+			<destination>{ebd3a6d2-c20e-4b93-8949-f0d9802991d6}</destination>
+		</relationship>
+	</object>
+</objects>

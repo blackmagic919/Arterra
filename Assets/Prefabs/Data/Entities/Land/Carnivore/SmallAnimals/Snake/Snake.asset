@@ -87,7 +87,7 @@ MonoBehaviour:
           y: 0.5
           z: 1
       BehaviorList:
-        value: 05000000000000000300000006000000ea030000ed03000001000000e8030000e9030000eb030000ec030000102700001a2700002427000038270000422700004c27000056270000602700006a270000742700007e27000088270000f2030000
+        value: 05000000000000000300000006000000ea030000ed03000001000000e8030000e9030000eb030000ec030000102700001a2700002427000038270000422700004c27000056270000602700006a270000742700007e27000088270000f203000007000000
       Settings:
         value:
           value:
@@ -172,7 +172,10 @@ MonoBehaviour:
           - value:
               value:
                 rid: 1481107571315572932
-      _prevBehaviorCount: 24
+          - value:
+              value:
+                rid: 5295427382668427377
+      _prevBehaviorCount: 25
   references:
     version: 2
     RefIds:
@@ -459,83 +462,148 @@ MonoBehaviour:
           value:
           - name: 1004
             var: 0.35
-            geneWeight: 7.1280945e-37
+            geneWeight: 0.4
           - name: 1006
             var: 0.25
-            geneWeight: 3.5640473e-37
+            geneWeight: 0.2
           - name: 1007
             var: 0.1
-            geneWeight: 4.455059e-38
+            geneWeight: 0.025
           - name: 1005
             var: 0.3
-            geneWeight: 1.7820236e-37
+            geneWeight: 0.1
           - name: 1000
             var: 0.25
-            geneWeight: 3.5640473e-37
+            geneWeight: 0.2
           - name: 1001
             var: 0.5
-            geneWeight: 1.06921405e-36
+            geneWeight: 0.6
           - name: 1002
             var: 0.5
-            geneWeight: 5.3460702e-37
+            geneWeight: 0.3
           - name: 1003
             var: 0.5
-            geneWeight: 1.7820236e-37
+            geneWeight: 0.1
           - name: 4002
             var: 0.25
-            geneWeight: 3.5640473e-37
+            geneWeight: 0.2
           - name: 4001
             var: 0.4
-            geneWeight: 2.6730351e-37
+            geneWeight: 0.15
           - name: 2039
             var: 0.5
-            geneWeight: 4.455059e-38
+            geneWeight: 0.025
           - name: 2040
             var: 1
-            geneWeight: 4.455059e-38
+            geneWeight: 0.01
           - name: 2044
             var: 0.3
-            geneWeight: 4.455059e-38
+            geneWeight: 0.025
           - name: 2045
             var: 0
-            geneWeight: 0
+            geneWeight: 0.01
           - name: 2035
             var: 0.125
-            geneWeight: 1.7820236e-37
+            geneWeight: 0.1
           - name: 2036
             var: 0.25
-            geneWeight: 3.5640473e-37
+            geneWeight: 0.2
           - name: 2037
             var: 0.25
-            geneWeight: 2.6730351e-37
+            geneWeight: 0.15
           - name: 2002
             var: 0.25
-            geneWeight: 1.7820236e-37
+            geneWeight: 0.1
           - name: 2003
             var: 0.05
-            geneWeight: 8.910118e-38
+            geneWeight: 0.05
           - name: 2038
             var: 0.25
-            geneWeight: 3.5640473e-37
+            geneWeight: 0.2
           - name: 4000
             var: 0.25
-            geneWeight: 5.3460702e-37
+            geneWeight: 0.3
           - name: 2031
             var: 0.25
-            geneWeight: 3.5640473e-37
+            geneWeight: 0.2
           - name: 2030
             var: 0.25
-            geneWeight: 5.3460702e-37
+            geneWeight: 0.3
           - name: 1012
             var: 0.2
-            geneWeight: 1.7820231e-38
+            geneWeight: 0.01
           - name: 1008
             var: 0.3
-            geneWeight: 1.7820236e-37
+            geneWeight: 0.2
           - name: 1009
             var: 0.35
-            geneWeight: 6.2370813e-37
+            geneWeight: 0.35
           - name: 4003
             var: 0.75
-            geneWeight: 8.910118e-38
-        NormalizeWeights: 1
+            geneWeight: 0.05
+    - rid: 5295427382668427377
+      type: {class: AnimalSoundBehaviorSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        EventSounds:
+          value:
+          - trigger: 23
+            effect:
+              sound: 3132
+              chance: 1
+          - trigger: 32
+            effect:
+              sound: 3131
+              chance: 1
+        StateSounds:
+          value:
+          - state: 0
+            frequency: 2
+            effect:
+              sound: 3131
+              chance: 0.5
+          - state: 20100
+            frequency: 2
+            effect:
+              sound: 3130
+              chance: 1
+          - state: 30200
+            frequency: 2
+            effect:
+              sound: 3130
+              chance: 1
+          - state: 30300
+            frequency: 2
+            effect:
+              sound: 3130
+              chance: 1
+          - state: 40000
+            frequency: 2
+            effect:
+              sound: 3130
+              chance: 1
+          - state: 50000
+            frequency: 2
+            effect:
+              sound: 3130
+              chance: 1
+          - state: 50100
+            frequency: 2
+            effect:
+              sound: 3130
+              chance: 1
+          - state: 200
+            frequency: 2
+            effect:
+              sound: 3130
+              chance: 1
+          - state: 30500
+            frequency: 0.75
+            effect:
+              sound: 4003
+              chance: 1
+          - state: 30400
+            frequency: 0.75
+            effect:
+              sound: 4003
+              chance: 1
+        triggerMode: 2

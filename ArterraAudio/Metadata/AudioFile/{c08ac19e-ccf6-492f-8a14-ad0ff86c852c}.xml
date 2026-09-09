@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<objects serializationModel="Studio.02.03.00">
+	<object class="AudioFile" id="{c08ac19e-ccf6-492f-8a14-ad0ff86c852c}">
+		<property name="assetPath">
+			<value>SFX/Animal/Fox/grunt5.mp3</value>
+		</property>
+		<property name="frequencyInKHz">
+			<value>48</value>
+		</property>
+		<property name="channelCount">
+			<value>2</value>
+		</property>
+		<property name="length">
+			<value>0.57599999999999996</value>
+		</property>
+		<relationship name="masterAssetFolder">
+			<destination>{ebd3a6d2-c20e-4b93-8949-f0d9802991d6}</destination>
+		</relationship>
+	</object>
+</objects>

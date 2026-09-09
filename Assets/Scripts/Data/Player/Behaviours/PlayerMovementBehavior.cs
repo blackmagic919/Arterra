@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using Arterra.Core.Events;
 using Arterra.Configuration;
 using Arterra.Core.Storage;
-using Arterra.GamePlay;
 using Arterra.GamePlay.Interaction;
 using Newtonsoft.Json;
 using Unity.Mathematics;
@@ -269,7 +268,10 @@ namespace Arterra.Data.Entity.Behavior {
 
             public void Initialize() {
                 InputPoller.AddStackPoll(new ActionBind(GroundMove1Name, _ => owner.UpdateGround()), "Movement::Update");
-                InputPoller.AddStackPoll(new ActionBind(GroundMove2Name, _ => owner.self.Collider.useGravity = true), "Movement::Gravity");
+                InputPoller.AddStackPoll(new ActionBind(GroundMove2Name, _ => owner.self.Collider.SetGravityState(
+                    GroundMove2Name, GamePlay.Interaction.TerrainCollider.GravityPriority.Movement,
+                    true
+                )), "Movement::Gravity");
 
                 if (hasJumpBinding) return;
                 hasJumpBinding = true;
@@ -279,6 +281,7 @@ namespace Arterra.Data.Entity.Behavior {
             public void Disable() {
                 InputPoller.RemoveStackPoll(GroundMove1Name, "Movement::Update");
                 InputPoller.RemoveStackPoll(GroundMove2Name, "Movement::Gravity");
+                owner.self.Collider.RemoveGravityState(GroundMove2Name);
                 InputPoller.RemoveBinding(PlayerJumpName, "4.0::Movement");
             }
 
@@ -340,7 +343,10 @@ namespace Arterra.Data.Entity.Behavior {
 
             private void AddHandles() {
                 InputPoller.AddStackPoll(new ActionBind(SwimMove1Name, _ => Update()), "Movement::Update");
-                InputPoller.AddStackPoll(new ActionBind(SwimMove2Name, _ => owner.self.Collider.useGravity = true), "Movement::Gravity");
+                InputPoller.AddStackPoll(new ActionBind(SwimMove2Name, _ => owner.self.Collider.SetGravityState(
+                    SwimMove2Name, GamePlay.Interaction.TerrainCollider.GravityPriority.Movement,
+                    true
+                )), "Movement::Gravity");
                 InputPoller.AddBinding(new ActionBind("Ascend", _ => {
                     owner.AddVelocity3D(Vector3.up, owner.MoveSpeed2D, owner.MoveEvent);
                 }), SwimAscendName, "4.0::Movement");
@@ -353,6 +359,7 @@ namespace Arterra.Data.Entity.Behavior {
             private void RemoveHandles() {
                 InputPoller.RemoveStackPoll(SwimMove1Name, "Movement::Update");
                 InputPoller.RemoveStackPoll(SwimMove2Name, "Movement::Gravity");
+                owner.self.Collider.RemoveGravityState(SwimMove2Name);
                 InputPoller.RemoveBinding(SwimAscendName, "4.0::Movement");
                 InputPoller.RemoveBinding(SwimDescendName, "4.0::Movement");
                 
@@ -426,7 +433,10 @@ namespace Arterra.Data.Entity.Behavior {
                 isFlying = true;
 
                 InputPoller.AddStackPoll(new ActionBind(FlightMove1Name, _ => Update()), "Movement::Update");
-                InputPoller.AddStackPoll(new ActionBind(FlightMove2Name, _ => owner.self.Collider.useGravity = false), "Movement::Gravity");
+                InputPoller.AddStackPoll(new ActionBind(FlightMove2Name, _ => owner.self.Collider.SetGravityState(
+                    FlightMove2Name, GamePlay.Interaction.TerrainCollider.GravityPriority.Movement,
+                    false
+                )), "Movement::Gravity");
                 InputPoller.AddBinding(new ActionBind("Ascend", _ => {
                     owner.AddVelocity3D(Vector3.up, owner.FlightMoveSpeed, owner.MoveEvent);
                 }), FlightAscendName, "4.0::Movement");
@@ -440,6 +450,7 @@ namespace Arterra.Data.Entity.Behavior {
                 isFlying = false;
                 InputPoller.RemoveStackPoll(FlightMove1Name, "Movement::Update");
                 InputPoller.RemoveStackPoll(FlightMove2Name, "Movement::Gravity");
+                owner.self.Collider.RemoveGravityState(FlightMove2Name);
                 InputPoller.RemoveBinding(FlightAscendName, "4.0::Movement");
                 InputPoller.RemoveBinding(FlightDescendName, "4.0::Movement");
                 
@@ -491,7 +502,10 @@ namespace Arterra.Data.Entity.Behavior {
                 }
 
                 owner.self.velocity = float3.zero;
-                InputPoller.AddStackPoll(new ActionBind(RideMove2Name, _ => owner.self.Collider.useGravity = false), "Movement::Gravity");
+                InputPoller.AddStackPoll(new ActionBind(RideMove2Name, _ => owner.self.Collider.SetGravityState(
+                    RideMove2Name, GamePlay.Interaction.TerrainCollider.GravityPriority.Movement,
+                    false
+                )), "Movement::Gravity");
                 InputPoller.AddStackPoll(new ActionBind(RideMove1Name, _ => Update()), "Movement::Update");
                 owner.self.eventCtrl.RaiseEvent(GameEvent.Action_MountRideable, owner.self, mount);               
                 InputPoller.AddContextFence(RideFenceName, "4.0::Movement", ActionBind.Exclusion.ExcludeLayer);
@@ -505,6 +519,7 @@ namespace Arterra.Data.Entity.Behavior {
                 IRidable oldMount = mount;
                 InputPoller.RemoveStackPoll(RideMove1Name, "Movement::Update");
                 InputPoller.RemoveStackPoll(RideMove2Name, "Movement::Gravity");
+                owner.self.Collider.RemoveGravityState(RideMove2Name);
                 owner.self.eventCtrl.RaiseEvent(GameEvent.Action_DismountRideable, owner.self, oldMount);
 
                 Transform subTransform = owner.GetRiderSubTransform();

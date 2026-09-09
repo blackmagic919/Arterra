@@ -18,14 +18,15 @@ namespace Arterra.Data.Entity.Behavior {
         public float OnRivalMateAffection = -14f;
 
         public float OnAttackAffection = -18f;
-        public float ForgetFalloff = 0.2f; 
-        public float BaseForgetRate = 0.05f;
+        public float ForgetFalloff = 0.1f; 
+        public float BaseForgetRate = 0.025f;
         public float SuppressInstinctAffection = 10.0f;
 
         public float GossipCooldown = 5f; 
         public float GossipRadius = 8f; 
+        //Formula for total forget time: y=\frac{e^{bx}-1}{ab}
         //Higher falloff means friends are more likely to gossip with one another
-        public float GossipCloseness = 0.1f; 
+        public float GossipCloseness = 0.025f; 
         // The influence on a friend's affection of the affection of our relation (factoring in closeness between us)
         public float GossipStrength = 0.2f; 
         //The max amount of stuff that can be gossiped at one time
@@ -215,14 +216,17 @@ namespace Arterra.Data.Entity.Behavior {
             void DiscussNewTopics(Entity self, Entity friend, List<(Guid, float)> topics, float closeness) {
                 if (topics == null) return;
                 if (!friend.Is(out RelationsBehavior friendRelations)) return;
-                foreach(var topic in topics) {
+                for (int i = 0; i < topics.Count; i++) {
+                    var topic = topics[i];
                     Guid subject = topic.Item1;
                     float gossipAmount = topic.Item2;
                     //brag about your friend to that friend lol
                     if (subject == friend.info.rtEntityId) continue; 
                     gossipAmount = math.sign(gossipAmount) * math.min(math.abs(gossipAmount), GossipAmount);
                     gossipAmount *= closeness;
-                    
+
+                    //Decrease gossipAmount by amount we're talking. This condition tightens convergence
+                    topics[i] = (subject, topic.Item2 - gossipAmount);
                     float dAffection = gossipAmount * GossipStrength;
                     friendRelations.AddAffection(subject, dAffection);
                     

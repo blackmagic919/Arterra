@@ -15,11 +15,20 @@ MonoBehaviour:
   Name: C:Liquid
   Tags:
     Reg:
-      value: []
+      value:
+      - Tag: 9100
+        value:
+          value:
+            rid: 5295427382668427439
   Children:
     value:
     - value: {fileID: 11400000, guid: 899961033ba4241878d7ecbcd2c181bc, type: 2}
     - value: {fileID: 11400000, guid: 6f0c9c88c15647d020493a245670021f, type: 2}
   references:
     version: 2
-    RefIds: []
+    RefIds:
+    - rid: 5295427382668427439
+      type: {class: ContactSoundTag, ns: Arterra.Configuration, asm: Assembly-CSharp}
+      data:
+        OnTouchEvent: 4004
+        OnRemoveEvent: 0

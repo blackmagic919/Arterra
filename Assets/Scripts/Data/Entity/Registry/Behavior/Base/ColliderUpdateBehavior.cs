@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using Arterra.Configuration;
 using Arterra.GamePlay.Interaction;
+using Arterra.Utils;
 using Newtonsoft.Json;
 using Unity.Mathematics;
 using UnityEngine;
@@ -31,6 +32,8 @@ namespace Arterra.Data.Entity.Behavior {
         }
     }
     public class ColliderUpdateBehavior : SpeciesBehavior, IMultiCollider {
+        private const string GravityStateName = "ColliderUpdateBehavior::Base";
+
         [JsonIgnore] public ColliderUpdateSettings settings;
         public ColliderUpdateSettings.InteractType Interaction;
         public HashSet<Guid> IgnoredEntities;
@@ -80,7 +83,7 @@ namespace Arterra.Data.Entity.Behavior {
             if (!setting.Is(out settings))
                 throw new System.Exception("Entity: MapInteractBehavior Requires AnimalSettings to have MapInteractorSettings");
             this.collider = new TerrainCollider(setting.collider, GCoord);
-            this.collider.useGravity = settings.UseGravity;
+            this.collider.SetGravityState(GravityStateName, TerrainCollider.GravityPriority.Default, settings.UseGravity);
             self.Register<IMultiCollider>(this);
             ResetInteractionType();
         }
@@ -90,7 +93,7 @@ namespace Arterra.Data.Entity.Behavior {
                 throw new System.Exception("Entity: MapInteractBehavior Requires AnimalSettings to have MapInteractorSettings");
             
             GCoord = (int3)math.floor(Collider.transform.position);
-            this.collider.useGravity = settings.UseGravity;
+            this.collider.SetGravityState(GravityStateName, TerrainCollider.GravityPriority.Default, settings.UseGravity);
             self.Register<IMultiCollider>(this);
             ResetInteractionType();
         }

@@ -139,6 +139,9 @@ MonoBehaviour:
           - value:
               value:
                 rid: 3097083922518114535
+          - value:
+              value:
+                rid: 5295427349367226875
       _prevBehaviorCount: 23
   references:
     version: 2
@@ -333,7 +336,6 @@ MonoBehaviour:
         walkSpeed: 2
         runSpeed: 3.5
         pathDistance: 24
-        acceleration: 200
         rotSpeed: 180
     - rid: 3097084037468258397
       type: {class: Decomposition, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
@@ -437,7 +439,7 @@ MonoBehaviour:
             geneWeight: 0.025
           - name: 2045
             var: 0
-            geneWeight: 0
+            geneWeight: 0.01
           - name: 2035
             var: 0.125
             geneWeight: 0.1
@@ -481,3 +483,7 @@ MonoBehaviour:
             var: 0.75
             geneWeight: 0.05
         NormalizeWeights: 1
+    - rid: 5295427349367226875
+      type: {class: StepSoundBehaviorSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        StepDistance: 1.5

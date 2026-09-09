@@ -2,7 +2,7 @@
 <objects serializationModel="Studio.02.03.00">
 	<object class="AudioFile" id="{28eaa95a-7095-4fcd-aee2-8f8d32c46d12}">
 		<property name="assetPath">
-			<value>Arrow Swish 1.mp3</value>
+			<value>SFX/Arrow/Arrow Swish 1.mp3</value>
 		</property>
 		<property name="frequencyInKHz">
 			<value>44.0999985</value>

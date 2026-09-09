@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<objects serializationModel="Studio.02.03.00">
+	<object class="MixerGroup" id="{0c8327da-2f0c-45ad-9253-5b349db2bcc7}">
+		<property name="name">
+			<value>Whale</value>
+		</property>
+		<relationship name="effectChain">
+			<destination>{8bf412e6-8446-4c92-ab46-96881c1d882d}</destination>
+		</relationship>
+		<relationship name="panner">
+			<destination>{42abcb83-193b-4fab-98e9-1749d03a760f}</destination>
+		</relationship>
+		<relationship name="output">
+			<destination>{11040329-8379-4768-b0cc-4d7992176ff6}</destination>
+		</relationship>
+	</object>
+	<object class="MixerBusEffectChain" id="{8bf412e6-8446-4c92-ab46-96881c1d882d}">
+		<relationship name="effects">
+			<destination>{61dd68e6-b2ef-448d-838c-af7d7971dafa}</destination>
+		</relationship>
+	</object>
+	<object class="MixerBusPanner" id="{42abcb83-193b-4fab-98e9-1749d03a760f}" />
+	<object class="MixerBusFader" id="{61dd68e6-b2ef-448d-838c-af7d7971dafa}" />
+</objects>

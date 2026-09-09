@@ -39,10 +39,10 @@ namespace Arterra.Data.Material
         public override void OnPlaced(int3 GCoord, in MapData amount) 
            => Logic?.OnPlaced(GCoord, amount);
 
-        public override void OnEntityTouchSolid(Entity.Entity entity) 
-            => Logic?.OnEntityTouchSolid(entity);
-        public override void OnEntityTouchLiquid(Entity.Entity entity)
-            => Logic?.OnEntityTouchLiquid(entity);
+        public override void OnEntityTouchSolid(int3 GCoord, Entity.Entity entity) 
+            => Logic?.OnEntityTouchSolid(GCoord, entity);
+        public override void OnEntityTouchLiquid(int3 GCoord, Entity.Entity entity)
+            => Logic?.OnEntityTouchLiquid(GCoord, entity);
 
         public override object ConstructMetaData(int3 GCoord, MetaConstructor constructor) 
             => Logic?.ConstructMetaData(GCoord, constructor);

@@ -9,6 +9,7 @@ using Arterra.Data.Entity;
 using System.Collections.Generic;
 using Arterra.Data.Entity.Behavior;
 using Arterra.Core.Events;
+using Arterra.Utils;
 
 /*
 Future Note: Make this done on a job system
@@ -22,8 +23,41 @@ namespace Arterra.GamePlay.Interaction {
         private const int TerrainCubeSampleCount = 8;
         private const int TerrainQuadSampleCount = 4;
         public static readonly float3 VerticalCollisionBias = new(0, 0.0f, 0);
+        public const string DefaultGravityState = "TerrainCollider::Default";
         public Transform transform;
-        public bool useGravity;
+        public StateStack<bool> gravityStack;
+
+        [JsonIgnore]
+        public bool UseGravity => gravityStack?.CurrentState ?? true;
+
+        public bool useGravity {
+            get => UseGravity;
+            set => SetGravityState(DefaultGravityState, GravityPriority.Default, value);
+        }
+
+        public static class GravityPriority {
+            public const int Default = 0;
+            public const int StateMachine = 100;
+            public const int Movement = 200;
+            public const int Environment = 300;
+            public const int Override = 400;
+        }
+
+        public void SetGravityState(string name, int priority, bool state) {
+            EnsureGravityStack();
+            gravityStack.Set(name, priority, state);
+        }
+
+        public bool RemoveGravityState(string name) {
+            if (gravityStack == null) return false;
+            return gravityStack.Remove(name);
+        }
+
+        private void EnsureGravityStack() {
+            if (gravityStack != null) return;
+            gravityStack = new StateStack<bool>(true, 8);
+            gravityStack.Set(DefaultGravityState, GravityPriority.Default, true);
+        }
 
         [BurstCompile]
         private unsafe static void SampleTerrainCube(in int3 lower, in MapContext cxt, int* samples) {
@@ -405,7 +439,8 @@ namespace Arterra.GamePlay.Interaction {
 
             transform.position += displacement;
             float3 nVelocity = CancelVel(transform.velocity, displacement);
-            self?.eventCtrl.RaiseEvent(Core.Events.GameEvent.Entity_HitGround, self, null, (useGravity, nVelocity.y - transform.velocity.y));
+            bool useGravityNow = UseGravity;
+            self?.eventCtrl.RaiseEvent(Core.Events.GameEvent.Entity_HitGround, self, null, (useGravityNow, nVelocity.y - transform.velocity.y));
             transform.velocity = nVelocity;
             return true;
         }
@@ -483,10 +518,11 @@ namespace Arterra.GamePlay.Interaction {
             else transform.position += deltaPosition;
             
             float friction = TerrainInteractor.IsTouching(contactMask) ? maxFriction : baseFriction;
-            if (useGravity) transform.velocity.xz *= 1 - friction;
+            bool useGravityNow = UseGravity;
+            if (useGravityNow) transform.velocity.xz *= 1 - friction;
             else transform.velocity *= 1 - friction;
 
-            if (useGravity) transform.velocity += cxt.gravity * timeStep;
+            if (useGravityNow) transform.velocity += cxt.gravity * timeStep;
         }
 
 
@@ -558,9 +594,11 @@ namespace Arterra.GamePlay.Interaction {
 
         public TerrainCollider(in Settings settings, double3 position) {
             this.transform = new Transform(position, 0, settings.size, Quaternion.identity);
-            this.useGravity = true;
+            this.gravityStack = new StateStack<bool>(true, 8);
+            this.gravityStack.Set(DefaultGravityState, GravityPriority.Default, true);
         }
 
+        [Serializable]
         public struct Transform {
             public double3 position;
             public Quaternion rotation;

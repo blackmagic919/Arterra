@@ -20,6 +20,10 @@ MonoBehaviour:
         value:
           value:
             rid: 6432723101265428557
+      - Tag: 9100
+        value:
+          value:
+            rid: 5295427349367226537
   Children:
     value:
     - value: {fileID: 11400000, guid: b493391d201244912aaf7878674f7571, type: 2}
@@ -30,6 +34,11 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
+    - rid: 5295427349367226537
+      type: {class: ContactSoundTag, ns: Arterra.Configuration, asm: Assembly-CSharp}
+      data:
+        OnTouchEvent: 4105
+        OnRemoveEvent: 0
     - rid: 6432723101265428557
       type: {class: ConverterToolTag, ns: Arterra.Configuration, asm: Assembly-CSharp}
       data:

@@ -190,7 +190,7 @@ namespace Arterra.GamePlay.Interaction {
         }
 
         private static KeyBinder Binder;
-        private static StateStack SStack;
+        private static ActionStack SStack;
         //Getter is ref otherwise modification would be impossible as we have copy
         private static TwoWayDict<string, uint> TaskBindingDict;
         private static Dictionary<string, (float trigTime, uint trigCount)> LastTrigger;
@@ -205,12 +205,12 @@ namespace Arterra.GamePlay.Interaction {
 
         private static bool CursorLock = false;
         private static bool IsAnswering = false;
-        private const int MaxActionBinds = 10000;
+        private const int MaxActionBinds = 1000;
         private const float TriggerResetTime = 0.25f;
 
         public static void Initialize() {
             Binder = new KeyBinder();
-            SStack = new StateStack();
+            SStack = new ActionStack();
             KeyBindChanges = new Queue<Action>();
             AddStackPoll(new ActionBind("BASE", (float _) => SetCursorLock(true)), "CursorLock");
             eventTask = new ArterraRuntime.IndirectUpdate(Update);
@@ -397,89 +397,13 @@ namespace Arterra.GamePlay.Interaction {
             return LayerHeads.Retrieve(layer);
         }
 
-        public struct SharedLinkedList<T> {
-            /*
-            Multiple linked list contained in one array
-            The caller provides the head of the array when enqueueing
-            */
-
-            public LListNode[] array;
-            private int _length;
-            public readonly int Length { get { return _length; } }
-            public SharedLinkedList(int length) {
-                //We Need Clear Memory Here
-                array = new LListNode[length + 1];
-                array[0].next = 1;
-
-                _length = 0;
-            }
-
-            public uint Enqueue(T node, uint head = 0) {
-                if (_length >= array.Length - 2)
-                    return head; //Just Ignore it
-
-                uint freeNode = array[0].next; //Free Head Node
-                uint nextNode = array[freeNode].next == 0 ? freeNode + 1 : array[freeNode].next;
-                array[0].next = nextNode;
-
-                array[freeNode].value = node;
-                if (head == 0) {
-                    array[freeNode].next = freeNode;
-                    array[freeNode].previous = freeNode;
-                } else {
-                    uint tailNode = array[head].previous; //Tail Node
-                    array[tailNode].next = freeNode;
-                    array[head].previous = freeNode;
-                    array[freeNode].previous = tailNode;
-                    array[freeNode].next = head;
-                    _length++;
-                }
-
-                return (uint)freeNode;
-            }
-
-            public void Remove(uint index) {
-                uint nextNode = array[index].next;
-                uint prevNode = array[index].previous;
-                array[prevNode].next = nextNode;
-                array[nextNode].previous = prevNode;
-
-                array[index].next = array[0].next;
-                array[0].next = index;
-                _length--;
-            }
-
-            public readonly T Value(uint index) {
-                return array[index].value;
-            }
-
-            public readonly ref T RefVal(uint index) {
-                return ref array[index].value;
-            }
-
-            public readonly uint Next(uint index) {
-                return array[index].next;
-            }
-
-            public readonly uint Previous(uint index) {
-                return array[index].previous;
-            }
-
-
-            public struct LListNode {
-                public uint previous;
-                public uint next;
-                public T value;
-            }
-        }
-
-        public class StateStack {
+        public class ActionStack {
             private SharedLinkedList<ActionBind> StackBinds;
             private Registry<uint> LayerHeads;
             private Registry<uint> StackEntries;
-            private const int MaxStackBinds = 5000;
+            private const int MaxStackBinds = 200;
 
-            public StateStack() {
+            public ActionStack() {
                 StackBinds = new(MaxStackBinds);
                 LayerHeads = new Registry<uint>();
                 StackEntries = new Registry<uint>();

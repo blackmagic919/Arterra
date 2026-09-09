@@ -15,7 +15,11 @@ MonoBehaviour:
   Name: C:Artificial
   Tags:
     Reg:
-      value: []
+      value:
+      - Tag: 9100
+        value:
+          value:
+            rid: 5295427349367226539
   Children:
     value:
     - value: {fileID: 11400000, guid: 2455ac7490f864286a7c62e00bb9ed04, type: 2}
@@ -27,4 +31,9 @@ MonoBehaviour:
     - value: {fileID: 11400000, guid: fc6aed1bc6fa9eebdbbb6e950a568961, type: 2}
   references:
     version: 2
-    RefIds: []
+    RefIds:
+    - rid: 5295427349367226539
+      type: {class: ContactSoundTag, ns: Arterra.Configuration, asm: Assembly-CSharp}
+      data:
+        OnTouchEvent: 4103
+        OnRemoveEvent: 0

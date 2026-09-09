@@ -28,6 +28,10 @@ MonoBehaviour:
         value:
           value:
             rid: 5778504664064983162
+      - Tag: 9100
+        value:
+          value:
+            rid: 5295427349367226527
   Names:
     value:
     - Ash:Solid
@@ -53,7 +57,7 @@ MonoBehaviour:
     waveScale: {x: 0, y: 0}
     waveSpeed: {x: 0, y: 0}
   Roughness: 0.2
-  Logic: {fileID: 11400000, guid: 7b57b4e08c05c4ff386c642fd205567a, type: 2}
+  Logic: {fileID: 0}
   looter:
     SolidLootTable:
       value: []
@@ -68,6 +72,11 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
+    - rid: 5295427349367226527
+      type: {class: ContactSoundTag, ns: Arterra.Configuration, asm: Assembly-CSharp}
+      data:
+        OnTouchEvent: 4107
+        OnRemoveEvent: 0
     - rid: 5778504664064983160
       type: {class: ToolTag, ns: Arterra.Configuration, asm: Assembly-CSharp}
       data:

@@ -175,6 +175,8 @@ namespace Arterra.Data.Entity.Behavior
 
 
         private class TailSegment : LeadHeadBehavior.Appendage, IAttackable {
+            private const string TailGravityStateName = "SnakeTailBehavior::Tail";
+
             [JsonIgnore]
             private SnakeTailBehavior st;
             [JsonIgnore]
@@ -207,7 +209,7 @@ namespace Arterra.Data.Entity.Behavior
             public override void Initialize(BehaviorEntity.Animal self, LeadHeadBehavior.AppendageSettings settings, Transform root) {
                 this.settings = settings as SnakeTailSettings.SegmentSettings;
                 this.collider = new TerrainCollider(settings.collider, self.position);
-                collider.useGravity = false;
+                collider.SetGravityState(TailGravityStateName, TerrainCollider.GravityPriority.Override, false);
 
                 base.Initialize(self, settings, root);
                 SetConstraint<MultiParentConstraint>();

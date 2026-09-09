@@ -36,6 +36,10 @@ MonoBehaviour:
         value:
           value:
             rid: 5778504664064983172
+      - Tag: 9100
+        value:
+          value:
+            rid: 5295427349367226528
   Names:
     value:
     - Wood:Solid
@@ -61,7 +65,7 @@ MonoBehaviour:
     waveScale: {x: 0, y: 0}
     waveSpeed: {x: 0, y: 0}
   Roughness: 0.2
-  Logic: {fileID: 11400000, guid: 72eb2a86f07ef473ca5c536aeec133ce, type: 2}
+  Logic: {fileID: 0}
   looter:
     SolidLootTable:
       value: []
@@ -76,30 +80,35 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
+    - rid: 5295427349367226528
+      type: {class: ContactSoundTag, ns: Arterra.Configuration, asm: Assembly-CSharp}
+      data:
+        OnTouchEvent: 4104
+        OnRemoveEvent: 0
     - rid: 5778504664064983168
       type: {class: ToolTag, ns: Arterra.Configuration, asm: Assembly-CSharp}
       data:
-        TerraformSpeed: 0
-        ToolDamage: 0
-        GivesItem: 0
+        TerraformSpeed: 100
+        ToolDamage: 1
+        GivesItem: 1
     - rid: 5778504664064983169
       type: {class: ToolTag, ns: Arterra.Configuration, asm: Assembly-CSharp}
       data:
-        TerraformSpeed: 0
-        ToolDamage: 0
-        GivesItem: 0
+        TerraformSpeed: 150
+        ToolDamage: 1
+        GivesItem: 1
     - rid: 5778504664064983170
       type: {class: ToolTag, ns: Arterra.Configuration, asm: Assembly-CSharp}
       data:
-        TerraformSpeed: 0
-        ToolDamage: 0
-        GivesItem: 0
+        TerraformSpeed: 250
+        ToolDamage: 1
+        GivesItem: 1
     - rid: 5778504664064983171
       type: {class: ToolTag, ns: Arterra.Configuration, asm: Assembly-CSharp}
       data:
-        TerraformSpeed: 0
-        ToolDamage: 0
-        GivesItem: 0
+        TerraformSpeed: 200
+        ToolDamage: 1
+        GivesItem: 1
     - rid: 5778504664064983172
       type: {class: TooltipTag, ns: Arterra.Configuration, asm: Assembly-CSharp}
       data:

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<objects serializationModel="Studio.02.03.00">
+	<object class="MixerGroup" id="{6724d06f-865d-4d22-83bf-c60dc5133d69}">
+		<property name="name">
+			<value>Coyote</value>
+		</property>
+		<relationship name="effectChain">
+			<destination>{83d57ea6-e741-48c7-bb47-f9486b4ef982}</destination>
+		</relationship>
+		<relationship name="panner">
+			<destination>{c4130b50-d301-4d9e-a7b8-512c9fe7b3e8}</destination>
+		</relationship>
+		<relationship name="output">
+			<destination>{11040329-8379-4768-b0cc-4d7992176ff6}</destination>
+		</relationship>
+	</object>
+	<object class="MixerBusEffectChain" id="{83d57ea6-e741-48c7-bb47-f9486b4ef982}">
+		<relationship name="effects">
+			<destination>{4d9d9401-c62b-42d5-8f75-83bb0d98b199}</destination>
+		</relationship>
+	</object>
+	<object class="MixerBusPanner" id="{c4130b50-d301-4d9e-a7b8-512c9fe7b3e8}" />
+	<object class="MixerBusFader" id="{4d9d9401-c62b-42d5-8f75-83bb0d98b199}" />
+</objects>

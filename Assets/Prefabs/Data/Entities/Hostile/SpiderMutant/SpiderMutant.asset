@@ -273,80 +273,83 @@ MonoBehaviour:
           y: 4.5
           z: 3.5
       BehaviorList:
-        value: 050000000000000003000000ea030000ed03000001000000e8030000e9030000eb030000102700001a27000043270000602700006a270000742700007e270000882700008a1300008b130000891300008c1300006f270000
+        value: 05000000000000000300000006000000ea030000ed03000001000000e8030000e9030000eb030000102700001a27000043270000602700006a270000742700007e270000882700008a1300008b130000891300008c1300006f27000002000000
       Settings:
         value:
           value:
           - value:
               value:
-                  rid: 5205636866482634847
+                rid: 5205636866482634847
           - value:
               value:
-                  rid: 3097084098772992145
+                rid: 3097084098772992145
           - value:
               value:
-                  rid: 3097083922518114515
+                rid: 5205636903624769611
           - value:
               value:
-                  rid: 3097084037468258397
+                rid: 3097083922518114515
           - value:
               value:
-                  rid: 3097083922518114516
+                rid: 3097084037468258397
           - value:
               value:
-                  rid: 3097083922518114517
+                rid: 3097083922518114516
           - value:
               value:
-                  rid: 3097083922518114518
+                rid: 3097083922518114517
           - value:
               value:
-                  rid: 3097083922518114520
+                rid: 3097083922518114518
           - value:
               value:
-                  rid: 3097083922518114521
+                rid: 3097083922518114520
           - value:
               value:
-                  rid: 3097083922518114639
+                rid: 3097083922518114521
           - value:
               value:
-                  rid: 5205636866482634848
+                rid: 3097083922518114639
           - value:
               value:
-                  rid: 3097083922518114530
+                rid: 5205636866482634848
           - value:
               value:
-                  rid: 3097083922518114531
+                rid: 3097083922518114530
           - value:
               value:
-                  rid: 3097083922518114532
+                rid: 3097083922518114531
           - value:
               value:
-                  rid: 3097083922518114533
+                rid: 3097083922518114532
           - value:
               value:
-                  rid: 3097083922518114534
+                rid: 3097083922518114533
           - value:
               value:
-                  rid: 3097083922518114535
+                rid: 3097083922518114534
           - value:
               value:
-                  rid: 5205636901062049865
+                rid: 3097083922518114535
           - value:
               value:
-                  rid: 5205636903624769609
+                rid: 5205636901062049865
           - value:
               value:
-                  rid: 5205636901300338763
+                rid: 5205636903624769609
           - value:
               value:
-                  rid: 5205636901300338764
+                rid: 5205636901300338763
           - value:
               value:
-                  rid: 5205636903624769610
+                rid: 5205636901300338764
           - value:
               value:
-                  rid: 5205636903624769611
-        _prevBehaviorCount: 22
+                rid: 5205636903624769610
+          - value:
+              value:
+                rid: 5295427349367226868
+      _prevBehaviorCount: 24
   references:
     version: 2
     RefIds:
@@ -364,6 +367,7 @@ MonoBehaviour:
       data:
         interactType: 0
         HoldBreathTime: 10
+        Bouyancy: 0
         UseFallDamage: 0
     - rid: 3097083922518114517
       type: {class: StateMachineManagerSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
@@ -420,7 +424,9 @@ MonoBehaviour:
         OverridableStates: 30500
         OnFinishRunning: 100
         Predators:
-          value: []
+          value:
+            AllowList:
+              value: []
     - rid: 3097083922518114533
       type: {class: FleeBehaviorSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
@@ -431,7 +437,6 @@ MonoBehaviour:
       type: {class: RunFromAttackerSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
         TaskName: 50000
-        OverridableStates: 30600
         OnLostAttacker: 100
     - rid: 3097083922518114535
       type: {class: DeathSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
@@ -445,7 +450,6 @@ MonoBehaviour:
         walkSpeed: 2.1
         runSpeed: 5.5
         pathDistance: 32
-        acceleration: 200
         rotSpeed: 180
     - rid: 3097084037468258397
       type: {class: Decomposition, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
@@ -496,12 +500,12 @@ MonoBehaviour:
         Variants:
           value:
           - TriggerAnim: AttackR
-            AttackChance: 0.16666666
+            AttackChance: 0.027777785
             AttackDuration: 0.25
             AttackDamage: 7.5
             Knockback: 10
           - TriggerAnim: AttackL
-            AttackChance: 1
+            AttackChance: 0.99999994
             AttackDuration: 0.25
             AttackDamage: 7.5
             Knockback: 10
@@ -758,7 +762,7 @@ MonoBehaviour:
             geneWeight: 0.025
           - name: 2045
             var: 0
-            geneWeight: 0
+            geneWeight: 0.01
           - name: 2031
             var: 0.25
             geneWeight: 0.2
@@ -792,7 +796,8 @@ MonoBehaviour:
           - name: 1010
             var: 0.25
             geneWeight: 0.025
-
-
-
         NormalizeWeights: 1
+    - rid: 5295427349367226868
+      type: {class: StepSoundBehaviorSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        StepDistance: 5

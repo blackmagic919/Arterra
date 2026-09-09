@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using UnityEngine;
-using Arterra.Engine.Rendering;
 
 namespace Arterra.Data.Intrinsic {
     /// <summary> Settings for the readback system. 
@@ -11,8 +10,6 @@ namespace Arterra.Data.Intrinsic {
         /// <summary> The list of all materials normally used to render the terrain. </summary>
         [Header("Indirectly Drawn Shader")]
         public List<UnityEngine.Material> TerrainMats;
-        /// <summary> List of other materials that depend on the game's custom lit shading to work </summary>
-        public List<UnityEngine.Material> LitShadedMats;
         /// <summary> Variants of all normal materials used to intermediately draw the terrain
         /// directly from the GPU. Each material in <see cref="TerrainMats"/> should define a compiler
         /// keyword that creates a variant allowing it to render information directly from a custom buffer. </summary>
@@ -26,13 +23,6 @@ namespace Arterra.Data.Intrinsic {
                 if (indirectTerrainMats[i] != null) continue;
                 indirectTerrainMats[i] = Object.Instantiate(TerrainMats[i]);
                 indirectTerrainMats[i].EnableKeyword("INDIRECT");
-
-                LightBaker.SetupLightSampler(indirectTerrainMats[i]);
-                LightBaker.SetupLightSampler(TerrainMats[i]);
-            }
-
-            foreach (UnityEngine.Material mat in LitShadedMats) {
-                LightBaker.SetupLightSampler(mat);
             }
         }
 

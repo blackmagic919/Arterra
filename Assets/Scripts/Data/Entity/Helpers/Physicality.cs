@@ -13,6 +13,8 @@ using Arterra.Editor;
 using Arterra.Data.Entity.Behavior;
 
 public class MinimalVitality {
+    private const string AquaticGravityStateName = "MinimalVitality::Aquatic";
+
     [Serializable]
     public class Stats {
         [Range(0, 1)]
@@ -104,7 +106,7 @@ public class MinimalVitality {
         self.eventCtrl.RaiseEvent(Arterra.Core.Events.GameEvent.Entity_InLiquid, self, null, density);
         breath = math.max(breath - EntityJob.cxt.deltaTime, 0);
         tCollider.transform.velocity += EntityJob.cxt.deltaTime * -EntityJob.cxt.gravity;
-        tCollider.useGravity = false;
+        tCollider.SetGravityState(AquaticGravityStateName, TerrainCollider.GravityPriority.Environment, false);
         if (breath > 0) return;
         //If dead don't process suffocation
         if (self.Is(out IAttackable target) && target.IsDead) return;
@@ -116,7 +118,7 @@ public class MinimalVitality {
 
         const float Epsilon = 0.001f;
         breath = math.min(breath + EntityJob.cxt.deltaTime, -Epsilon);
-        tCollider.useGravity = false;
+        tCollider.SetGravityState(AquaticGravityStateName, TerrainCollider.GravityPriority.Environment, false);
 
         if (self.Is(out IAttackable target) && target.IsDead) { //If dead float to the surface
             tCollider.transform.velocity += EntityJob.cxt.deltaTime * -EntityJob.cxt.gravity;
@@ -129,7 +131,7 @@ public class MinimalVitality {
     public void ProcessInGasAquatic(Entity self, ref TerrainCollider tCollider, float density) {
         if (breath < 0) breath = HoldBreathTime;
         breath = math.max(breath - EntityJob.cxt.deltaTime, 0);
-        tCollider.useGravity = true;
+        tCollider.RemoveGravityState(AquaticGravityStateName);
 
         if (self.Is(out IAttackable target) && target.IsDead) return; //If dead don't process suffocation
         if (breath <= 0) ProcessSuffocation(self, density);

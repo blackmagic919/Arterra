@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<objects serializationModel="Studio.02.03.00">
+	<object class="MixerGroup" id="{8c0db6ca-b0ff-454c-b297-0d6348336e56}">
+		<property name="name">
+			<value>Elephant</value>
+		</property>
+		<relationship name="effectChain">
+			<destination>{596bb69a-dc2d-403c-af9e-aa93c67e649e}</destination>
+		</relationship>
+		<relationship name="panner">
+			<destination>{5804e294-b03b-488d-90e4-f5776930baa7}</destination>
+		</relationship>
+		<relationship name="output">
+			<destination>{11040329-8379-4768-b0cc-4d7992176ff6}</destination>
+		</relationship>
+	</object>
+	<object class="MixerBusEffectChain" id="{596bb69a-dc2d-403c-af9e-aa93c67e649e}">
+		<relationship name="effects">
+			<destination>{2a1e875a-9523-4348-afd4-5bb55150968f}</destination>
+		</relationship>
+	</object>
+	<object class="MixerBusPanner" id="{5804e294-b03b-488d-90e4-f5776930baa7}" />
+	<object class="MixerBusFader" id="{2a1e875a-9523-4348-afd4-5bb55150968f}" />
+</objects>

@@ -281,7 +281,6 @@ public static class EntityManager
         entityGenShader.SetInt(ShaderIDProps.StartBiome, biomeStart);
         entityGenShader.SetInt(ShaderIDProps.NumPointsPerAxis, numPointsAxes);
         entityGenShader.SetInts(ShaderIDProps.CCoord, new int[] { CCoord.x, CCoord.y, CCoord.z });
-        GPUMapManager.SetCCoordHash(entityGenShader);
 
         entityGenShader.GetKernelThreadGroupSizes(kernel, out uint threadGroupSize, out _, out _);
         int numThreadsPerAxis = Mathf.CeilToInt(numPointsAxes / (float)threadGroupSize);

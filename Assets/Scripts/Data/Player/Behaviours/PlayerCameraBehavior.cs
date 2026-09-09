@@ -117,7 +117,7 @@ namespace Arterra.Data.Entity.Behavior {
             if (!self.Is(out mod)) mod = null;
             if (!self.Is(out baseCollider))
                 throw new Exception("Entity: PlayerCameraBehavior requires ColliderUpdateBehavior");
-
+            
             InitPerspectives();
             self.Register<IMultiCollider>(this);
             self.Register(this);

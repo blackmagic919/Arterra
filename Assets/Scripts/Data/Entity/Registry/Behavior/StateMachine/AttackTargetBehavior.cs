@@ -57,8 +57,8 @@ namespace Arterra.Data.Entity.Behavior {
                 return;
             }
 
-            float3 atkDir = math.normalize(target.position - self.position); atkDir.y = 0;
-            if (math.any(atkDir != 0)) self.Rotation = Quaternion.RotateTowards(self.Rotation,
+            float3 atkDir = math.normalizesafe(target.position - self.position); atkDir.y = 0;
+            if (Vector3.Magnitude(atkDir) > 1E-05f) self.Rotation = Quaternion.RotateTowards(self.Rotation,
             Quaternion.LookRotation(atkDir), movement.rotSpeed * self.DeltaTime);
 
             if (atkTarget.IsDead) {

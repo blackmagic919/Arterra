@@ -2,7 +2,7 @@
 <objects serializationModel="Studio.02.03.00">
 	<object class="AudioFile" id="{619ecaa4-ab49-4f2a-ba95-55369291345b}">
 		<property name="assetPath">
-			<value>Synthesizer Progression.ogg</value>
+			<value>Music/Wind/Synthesizer Progression.ogg</value>
 		</property>
 		<property name="isStreaming">
 			<value>true</value>

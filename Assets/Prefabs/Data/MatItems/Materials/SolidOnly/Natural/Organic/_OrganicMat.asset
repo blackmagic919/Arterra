@@ -36,6 +36,10 @@ MonoBehaviour:
         value:
           value:
             rid: 5273703469288783977
+      - Tag: 9100
+        value:
+          value:
+            rid: 5295427349367226526
   Children:
     value:
     - value: {fileID: 11400000, guid: 1471a3ce72283487c8625fe6783bedb0, type: 2}
@@ -64,6 +68,11 @@ MonoBehaviour:
         TerraformSpeed: 200
         ToolDamage: 2
         GivesItem: 1
+    - rid: 5295427349367226526
+      type: {class: ContactSoundTag, ns: Arterra.Configuration, asm: Assembly-CSharp}
+      data:
+        OnTouchEvent: 4106
+        OnRemoveEvent: 0
     - rid: 6083762182251610188
       type: {class: ToolTag, ns: Arterra.Configuration, asm: Assembly-CSharp}
       data:

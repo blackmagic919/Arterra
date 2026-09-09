@@ -141,13 +141,13 @@ namespace Arterra.Data.Material
         /// Specifically, when an entity's collider overlaps a point that <see cref="MapData.IsSolid"/>
         /// and this material is the main contributor to that point's density </summary>
         /// <param name="entity">The entity that is touching the solid ground</param>
-        public virtual void OnEntityTouchSolid(Entity.Entity entity) { }
+        public virtual void OnEntityTouchSolid(int3 GCoord, Entity.Entity entity) { }
 
         /// <summary> Called whenever an entity touches the liquid form of this material.
         /// Specifically, when an entity's collider overlaps a point that <see cref="MapData.IsLiquid"/>
         /// and this material is the main contributor to that point's density </summary>
         /// <param name="entity">The entity that is touching the solid ground</param>
-        public virtual void OnEntityTouchLiquid(Entity.Entity entity) { }
+        public virtual void OnEntityTouchLiquid(int3 GCoord, Entity.Entity entity) { }
 
         /// <summary>Called to generate material-specific meta data at the given location
         /// based on the specifications given within <paramref name="constructor"/> </summary>

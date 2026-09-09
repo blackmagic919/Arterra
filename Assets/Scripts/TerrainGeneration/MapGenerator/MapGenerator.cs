@@ -297,7 +297,6 @@ public static class Generator
         meshInfoCollector.SetInts(ShaderIDProps.CCoord, new int[]{CCoord.x, CCoord.y, CCoord.z});
         meshInfoCollector.SetInt(ShaderIDProps.NumPointsPerAxis, fChunkSize);
         meshInfoCollector.SetInt(ShaderIDProps.MapChunkSize, chunkSize);
-        GPUMapManager.SetCCoordHash(meshInfoCollector);
 
         int kernel = meshInfoCollector.FindKernel("CollectReal");
         meshInfoCollector.GetKernelThreadGroupSizes(kernel, out uint threadGroupSize, out _, out _);
@@ -326,7 +325,6 @@ public static class Generator
         meshInfoCollector.SetInt(ShaderIDProps.MapChunkSize, chunkSize);
         meshInfoCollector.SetInt(ShaderIDProps.DefaultAddress, defaultAddress);
         meshInfoCollector.SetInt(ShaderIDProps.SkipInc, skipInc);
-        GPUMapManager.SetCCoordHash(meshInfoCollector);
 
         int kernel = meshInfoCollector.FindKernel("CollectVisual");
         meshInfoCollector.GetKernelThreadGroupSizes(kernel, out uint threadGroupSize, out _, out _);
@@ -644,7 +642,6 @@ public ComputeBuffer GetAdjacentDensity(GPUMapManager densityManager, Vector3 CC
 
     neighborDensitySampler.SetBuffer(0, "_MemoryBuffer", densityManager.AccessStorage());
     neighborDensitySampler.SetBuffer(0, "_AddressDict", densityManager.AccessAddresses());
-    densityManager.SetCCoordHash(neighborDensitySampler);
 
     neighborDensitySampler.SetInts("CCoord", new int[] { (int)CCoord.x, (int)CCoord.y, (int)CCoord.z });
     neighborDensitySampler.SetInt("numPointsPerAxis", numPointsAxes);

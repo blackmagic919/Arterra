@@ -2,7 +2,7 @@
 <objects serializationModel="Studio.02.03.00">
 	<object class="AudioFile" id="{6b473976-af9e-43e4-84e2-0b8c92988a37}">
 		<property name="assetPath">
-			<value>Sunshine - Arterra Soundtrack.mp3</value>
+			<value>Music/Sunshine - Arterra Soundtrack.mp3</value>
 		</property>
 		<property name="isStreaming">
 			<value>true</value>

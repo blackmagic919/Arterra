@@ -1,12 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Linq;
-using System.Runtime;
-using Arterra.Data.Entity;
-using Unity.Mathematics;
-using UnityEditor;
-using UnityEngine;
 
 namespace Arterra.Core.Events {
     public static class GameEventBases {
@@ -37,13 +30,6 @@ namespace Arterra.Core.Events {
         Entity_ExertHunger = GameEventBases.Entity_Base + 12,
         Entity_FlushHungerDelta = GameEventBases.Entity_Base + 13,
 
-
-        Entity_ItemEnterPrimaryInventory = GameEventBases.Entity_Base + 9,
-        Entity_ItemEnterSecondaryInventory = GameEventBases.Entity_Base + 10,
-
-        Entity_ItemHeld = GameEventBases.Entity_Base + 11,
-        Entity_TouchMaterial = GameEventBases.Entity_Base + 12,
-        Entity_InteractMaterial = GameEventBases.Entity_Base + 13,
         Entity_InLiquid = GameEventBases.Entity_Base + 14,
         Entity_InSolid = GameEventBases.Entity_Base + 15,
         Entity_InGas = GameEventBases.Entity_Base + 16,
@@ -59,6 +45,12 @@ namespace Arterra.Core.Events {
         Entity_MergeAbsorb = GameEventBases.Entity_Base + 26,
         Entity_MergeAbsorbed = GameEventBases.Entity_Base + 27,
         Entity_AttemptMerge = GameEventBases.Entity_Base + 28,
+
+        Entity_ItemHeld = GameEventBases.Entity_Base + 29,
+        Entity_TouchMatSolid = GameEventBases.Entity_Base + 30,
+        Entity_TouchMatLiquid = GameEventBases.Entity_Base + 31,
+        Entity_DamageIndication = GameEventBases.Entity_Base + 32,
+
         
         Item_ConsumeFood = GameEventBases.Item_Base + 0,
         Item_HoldTool = GameEventBases.Item_Base + 1,
@@ -215,6 +207,20 @@ namespace Arterra.Core.Events {
                 node.Value.Item2?.Invoke(actor, target, ctx);
                 node = next;
             }
+        }
+
+        /// <summary> Cache the event callback to avoid repeated dictionary lookups. </summary>
+        public Action<object, object, object> GetRaiseEventAction(GameEvent type) {
+            if (!events.TryGetValue((int)type, out var handlers))
+                return null;
+            return (actor, target, ctx) => {
+                var node = handlers.First;
+                while (node != null) {
+                    var next = node.Next;
+                    node.Value.Item2?.Invoke(actor, target, ctx);
+                    node = next;
+                }
+            };
         }
     }
 

@@ -4,6 +4,7 @@ using Arterra.Utils;
 using Newtonsoft.Json;
 using Unity.Mathematics;
 using UnityEngine;
+using TerrainCollider = Arterra.GamePlay.Interaction.TerrainCollider;
 
 namespace Arterra.Data.Entity.Behavior {
     [Serializable]
@@ -68,6 +69,8 @@ namespace Arterra.Data.Entity.Behavior {
     }
 
     public class StateMachineManagerBehavior : SpeciesBehavior {
+        private const string GravityStateName = "StateMachineManagerBehavior::Task";
+
         [JsonIgnore] public StateMachineManagerSettings settings;
         private ColliderUpdateBehavior collider;
         private MMove mmove;
@@ -116,9 +119,14 @@ namespace Arterra.Data.Entity.Behavior {
 
         private void CoreUpdate(BehaviorEntity.Animal self) {
             TaskDuration -= self.DeltaTime;
-            self.Collider.useGravity = MMove.UseGravity(mmove, 
-                collider == null || collider.settings.UseGravity,
-                TaskIndex
+            self.Collider.SetGravityState(
+                GravityStateName,
+                TerrainCollider.GravityPriority.StateMachine,
+                MMove.UseGravity(
+                    mmove,
+                    collider == null || collider.settings.UseGravity,
+                    TaskIndex
+                )
             );
         }
 

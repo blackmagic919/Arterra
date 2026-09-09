@@ -17,6 +17,9 @@ namespace Arterra.GamePlay.Interaction {
         public static bool TouchLiquid(byte data) => (data & Liquid) != 0;
         public static bool TouchGas(byte data) => (data & Gas) != 0;
         private static Catalogue<MaterialData> matInfo => Config.CURRENT.Generation.Materials.value.MaterialDictionary;
+        private static int3x3 XZPlane => new(1, 0, 0, 0, 0, 1, 0, 1, 0); //xzy
+        private static int3x3 XYPlane => new(1, 0, 0, 0, 1, 0, 0, 0, 1); //xyz
+        private static int3x3 YZPlane => new(0, 0, 1, 1, 0, 0, 0, 1, 0); //zxy
         private static bool TrilinearBlend(ref Span<int> c, float3 d, out int corner) {
             float c00 = c[0] * (1 - d.x) + c[4] * d.x;
             float c01 = c[1] * (1 - d.x) + c[5] * d.x;
@@ -49,24 +52,32 @@ namespace Arterra.GamePlay.Interaction {
             float3 d = posGS - l;
             byte contact = 0;
 
+            Action<object, object, object> touchMatL = null;
+            Action<object, object, object> touchMatS = null;
+            static int3 ccoord(int3 origin, int cI) => origin + new int3(cI & 0x4, cI & 0x2, cI & 0x1);
+
             Span<MapData> m = stackalloc MapData[8] {
-            SampleMap(l),                       SampleMap(new int3(l.x, l.y, u.z)), SampleMap(new int3(l.x, u.y, l.z)),
-            SampleMap(new int3(l.x, u.y, u.z)), SampleMap(new int3(u.x, l.y, l.z)), SampleMap(new int3(u.x, l.y, u.z)),
-            SampleMap(new int3(u.x, u.y, l.z)), SampleMap(u)
-        };
+                SampleMap(l),                       SampleMap(new int3(l.x, l.y, u.z)), SampleMap(new int3(l.x, u.y, l.z)),
+                SampleMap(new int3(l.x, u.y, u.z)), SampleMap(new int3(u.x, l.y, l.z)), SampleMap(new int3(u.x, l.y, u.z)),
+                SampleMap(new int3(u.x, u.y, l.z)), SampleMap(u)
+            };
 
             Span<int> c = stackalloc int[8] {
-            m[0].LiquidDensity, m[1].LiquidDensity, m[2].LiquidDensity,
-            m[3].LiquidDensity, m[4].LiquidDensity, m[5].LiquidDensity,
-            m[6].LiquidDensity, m[7].LiquidDensity
-        };
+                m[0].LiquidDensity, m[1].LiquidDensity, m[2].LiquidDensity,
+                m[3].LiquidDensity, m[4].LiquidDensity, m[5].LiquidDensity,
+                m[6].LiquidDensity, m[7].LiquidDensity
+            };
 
             if (TrilinearBlend(ref c, d, out int corner)) {
                 contact |= Liquid; //Collide with barrier(null)
                 if (!m[corner].IsNull) {
+                    int3 coord = ccoord(l, corner);
                     MaterialData mat = matInfo.Retrieve(m[corner].material);
+                    mat.OnEntityTouchLiquid(coord, caller);
                     friction = math.max(mat.Roughness, friction);
-                    mat.OnEntityTouchLiquid(caller);
+
+                    touchMatL ??= caller?.eventCtrl.GetRaiseEventAction(Core.Events.GameEvent.Entity_TouchMatLiquid);
+                    touchMatL?.Invoke(caller, m[corner], coord);
                 }
             }
 
@@ -78,9 +89,13 @@ namespace Arterra.GamePlay.Interaction {
             if (TrilinearBlend(ref c, d, out corner)) {
                 contact |= Solid; //Collide with barrier(null)
                 if (!m[corner].IsNull) {
+                    int3 coord = ccoord(l, corner);
                     MaterialData mat = matInfo.Retrieve(m[corner].material);
                     friction = math.max(mat.Roughness, friction);
-                    mat.OnEntityTouchSolid(caller);
+                    mat.OnEntityTouchSolid(coord, caller);
+
+                    touchMatS ??= caller?.eventCtrl.GetRaiseEventAction(Core.Events.GameEvent.Entity_TouchMatSolid);
+                    touchMatS?.Invoke(caller, m[corner], coord);
                 }
             } 
 
@@ -107,29 +122,42 @@ namespace Arterra.GamePlay.Interaction {
             return true;
         }
 
-        private static byte BilinearContact(float2 posGS, Func<int2, MapData> SampleMap, Entity caller, ref float friction) {
+        private static byte BilinearContact(float2 posGS, in int3x3 transform, int axis, Entity caller, ref float friction) {
             int2 l; int2 u;
             l.x = (int)Math.Floor(posGS.x); u.x = l.x + 1;
             l.y = (int)Math.Floor(posGS.y); u.y = l.y + 1;
             float2 d = posGS - l;
             byte contact = 0;
 
+            Action<object, object, object> touchMatL = null;
+            Action<object, object, object> touchMatS = null;
+
+            Span<int3> coords = stackalloc int3[4] {
+                math.mul(transform, new int3(l.x, l.y, axis)),
+                math.mul(transform, new int3(l.x, u.y, axis)),
+                math.mul(transform, new int3(u.x, l.y, axis)),
+                math.mul(transform, new int3(u.x, u.y, axis))
+            };
+
             Span<MapData> m = stackalloc MapData[4] {
-            SampleMap(l), SampleMap(new int2(l.x, u.y)),
-            SampleMap(new int2(u.x, l.y)), SampleMap(u)
-        };
+                SampleMap(coords[0]), SampleMap(coords[1]),
+                SampleMap(coords[2]), SampleMap(coords[3])
+            };
 
             Span<int> c = stackalloc int[4] {
-            m[0].LiquidDensity, m[1].LiquidDensity,
-            m[2].LiquidDensity, m[3].LiquidDensity
-        };
+                m[0].LiquidDensity, m[1].LiquidDensity,
+                m[2].LiquidDensity, m[3].LiquidDensity
+            };
 
             if (BilinearBlend(ref c, d, out int corner)) {
                 contact |= Liquid; //Collide with barrier(null)
                 if (!m[corner].IsNull) {
                     MaterialData mat = matInfo.Retrieve(m[corner].material);
                     friction = math.max(mat.Roughness, friction);
-                    mat.OnEntityTouchLiquid(caller);
+                    mat.OnEntityTouchLiquid(coords[corner], caller);
+
+                    touchMatL ??= caller?.eventCtrl.GetRaiseEventAction(Core.Events.GameEvent.Entity_TouchMatLiquid);
+                    touchMatL?.Invoke(caller, m[corner], coords[corner]);
                 }
             }
 
@@ -141,7 +169,10 @@ namespace Arterra.GamePlay.Interaction {
                 if (!m[corner].IsNull) {
                     MaterialData mat = matInfo.Retrieve(m[corner].material);
                     friction = math.max(mat.Roughness, friction);
-                    mat.OnEntityTouchSolid(caller);
+                    mat.OnEntityTouchSolid(coords[corner], caller);
+
+                    touchMatS ??= caller?.eventCtrl.GetRaiseEventAction(Core.Events.GameEvent.Entity_TouchMatSolid);
+                    touchMatS?.Invoke(caller, m[corner], coords[corner]);
                 }
             }
 
@@ -158,31 +189,39 @@ namespace Arterra.GamePlay.Interaction {
             else corner = 1;
             return true;
         }
-        private static byte LinearContact(float posGS, Func<int, MapData> SampleMap, Entity caller, ref float friction) {
+        private static byte LinearContact(float posGS, in int3x3 transform, in int2 plane, Entity caller, ref float friction) {
             int t0 = (int)Math.Floor(posGS);
             int t1 = t0 + 1;
 
-            MapData m0 = SampleMap(t0);
-            MapData m1 = SampleMap(t1);
+            int3 c0 = math.mul(transform, new int3(plane.x, plane.y, t0));
+            int3 c1 = math.mul(transform, new int3(plane.x, plane.y, t1));
+            MapData m0 = SampleMap(c0);
+            MapData m1 = SampleMap(c1);
             float td = posGS - t0;
             byte contact = 0;
 
             if (LinearBlend(m0.LiquidDensity, m1.LiquidDensity, td, out int corner)) {
                 MapData pt = corner != 0 ? m1 : m0;
+                int3 c = corner != 0 ? c1 : c0;
                 contact |= Liquid;
 
                 if (pt.IsNull) return contact;
                 MaterialData mat = matInfo.Retrieve(pt.material);
                 friction = math.max(mat.Roughness, friction);
-                mat.OnEntityTouchLiquid(caller);
+                mat.OnEntityTouchLiquid(c, caller);
+
+                caller?.eventCtrl.RaiseEvent(Core.Events.GameEvent.Entity_TouchMatLiquid, caller, pt, c);
             } else if (LinearBlend(m0.SolidDensity, m1.SolidDensity, td, out corner)) {
                 MapData pt = corner != 0 ? m1 : m0;
+                int3 c = corner != 0 ? c1 : c0;
                 contact |= Solid;
 
                 if (pt.IsNull) return contact;
                 MaterialData mat = matInfo.Retrieve(pt.material);
                 friction = math.max(mat.Roughness, friction);
-                mat.OnEntityTouchSolid(caller);
+                mat.OnEntityTouchSolid(c, caller);
+
+                caller?.eventCtrl.RaiseEvent(Core.Events.GameEvent.Entity_TouchMatSolid, caller, pt, c);
             }
 
             contact |= IsTouching(contact) ? (byte)0 : Gas;
@@ -195,13 +234,17 @@ namespace Arterra.GamePlay.Interaction {
                 if (m.IsNull) return Liquid;
                 MaterialData mat = matInfo.Retrieve(m.material);
                 friction = math.max(mat.Roughness, friction);
-                mat.OnEntityTouchLiquid(caller);
+                mat.OnEntityTouchLiquid(posGS, caller);
+
+                caller?.eventCtrl.RaiseEvent(Core.Events.GameEvent.Entity_TouchMatSolid, caller, m, posGS);
                 return Liquid;
             } else if (m.SolidDensity >= IsoValue) {
                 if (m.IsNull) return Solid;
                 MaterialData mat = matInfo.Retrieve(m.material);
                 friction = math.max(mat.Roughness, friction);
-                mat.OnEntityTouchSolid(caller);
+                mat.OnEntityTouchSolid(posGS, caller);
+
+                caller?.eventCtrl.RaiseEvent(Core.Events.GameEvent.Entity_TouchMatSolid, caller, m, posGS);
                 return Solid;
             }
             return 0;
@@ -236,22 +279,22 @@ namespace Arterra.GamePlay.Interaction {
             //3*2 = 6 faces
             for (int x = minC.x; x <= maxC.x; x++) {
                 for (int y = minC.y; y <= maxC.y; y++) {
-                    contacted |= LinearContact(min.z, (int z) => SampleMap(new int3(x, y, z)), caller, ref friction);
-                    contacted |= LinearContact(max.z, (int z) => SampleMap(new int3(x, y, z)), caller, ref friction);
+                    contacted |= LinearContact(min.z, XYPlane, new int2(x, y), caller, ref friction);
+                    contacted |= LinearContact(max.z, XYPlane, new int2(x, y), caller, ref friction);
                 }
             }
 
             for (int x = minC.x; x <= maxC.x; x++) {
                 for (int z = minC.z; z <= maxC.z; z++) {
-                    contacted |= LinearContact(min.y, (int y) => SampleMap(new int3(x, y, z)), caller, ref friction);
-                    contacted |= LinearContact(max.y, (int y) => SampleMap(new int3(x, y, z)), caller, ref friction);
+                    contacted |= LinearContact(min.y, XZPlane, new int2(x, z), caller, ref friction);
+                    contacted |= LinearContact(max.y, XZPlane, new int2(x, z), caller, ref friction);
                 }
             }
 
             for (int y = minC.y; y <= maxC.y; y++) {
                 for (int z = minC.z; z <= maxC.z; z++) {
-                    contacted |= LinearContact(min.x, (int x) => SampleMap(new int3(x, y, z)), caller, ref friction);
-                    contacted |= LinearContact(max.x, (int x) => SampleMap(new int3(x, y, z)), caller, ref friction);
+                    contacted |= LinearContact(min.x, YZPlane, new int2(y, z), caller, ref friction);
+                    contacted |= LinearContact(max.x, YZPlane, new int2(y, z), caller, ref friction);
                 }
             }
             return contacted;
@@ -269,7 +312,7 @@ namespace Arterra.GamePlay.Interaction {
                 for (int i = 0; i < 4; i++) {
                     int2 index = new(i % 2, i / 2 % 2);
                     float2 corner = min.yz * index + max.yz * (1 - index);
-                    contacted |= BilinearContact(corner, c => SampleMap(new int3(x, c.x, c.y)), caller, ref friction);
+                    contacted |= BilinearContact(corner, YZPlane, x, caller, ref friction);
                 }
             }
 
@@ -277,7 +320,7 @@ namespace Arterra.GamePlay.Interaction {
                 for (int i = 0; i < 4; i++) {
                     int2 index = new(i % 2, i / 2 % 2);
                     float2 corner = min.xz * index + max.xz * (1 - index);
-                    contacted |= BilinearContact(corner, c => SampleMap(new int3(c.x, y, c.y)), caller, ref friction);
+                    contacted |= BilinearContact(corner, XZPlane, y, caller, ref friction);
                 }
             }
 
@@ -285,7 +328,7 @@ namespace Arterra.GamePlay.Interaction {
                 for (int i = 0; i < 4; i++) {
                     int2 index = new(i % 2, i / 2 % 2);
                     float2 corner = min.xy * index + max.xy * (1 - index);
-                    contacted |= BilinearContact(corner, c => SampleMap(new int3(c.x, c.y, z)), caller, ref friction);
+                    contacted |= BilinearContact(corner, XYPlane, z, caller, ref friction);
                 }
             }
             return contacted;

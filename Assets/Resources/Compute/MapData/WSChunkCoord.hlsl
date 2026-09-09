@@ -1,23 +1,23 @@
 #ifndef WSCHUNKCOORD_HELPER
 #define WSCHUNKCOORD_HELPER
-float lerpScale;
-uint mapChunkSize;
+float WorldLerpScale;
+uint WorldMapChunkSize;
 
 
 //object space to chuck space
-int3 WSToCS(float3 positionWS){ return round(positionWS / lerpScale / mapChunkSize); }
+int3 WSToCS(float3 positionWS){ return round(positionWS / WorldLerpScale / WorldMapChunkSize); }
 
 //object space to map space, equal to (GSToMS o WSToGS) ()
 float3 WSToMS(float3 positionWS){
-    float3 positionMS = positionWS / lerpScale + mapChunkSize / 2;
-    return fmod((mapChunkSize + fmod(positionMS, mapChunkSize)), mapChunkSize);
+    float3 positionMS = positionWS / WorldLerpScale + WorldMapChunkSize / 2;
+    return fmod((WorldMapChunkSize + fmod(positionMS, WorldMapChunkSize)), WorldMapChunkSize);
 }
 
 float3 GSToMS(float3 positionGS) {
-    return fmod((mapChunkSize + fmod(positionGS, mapChunkSize)), mapChunkSize);
+    return fmod((WorldMapChunkSize + fmod(positionGS, WorldMapChunkSize)), WorldMapChunkSize);
 }
 
 float3 WSToGS(float3 positionWS){
-    return positionWS / lerpScale + mapChunkSize / 2;
+    return positionWS / WorldLerpScale + WorldMapChunkSize / 2;
 }
 #endif

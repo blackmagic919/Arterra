@@ -481,12 +481,12 @@ MonoBehaviour:
         OnBetrayalAffection: -2.5
         OnRivalMateAffection: -14
         OnAttackAffection: -16
-        ForgetFalloff: 0.2
-        BaseForgetRate: 0.05
+        ForgetFalloff: 0.1
+        BaseForgetRate: 0.025
         SuppressInstinctAffection: 10
         GossipCooldown: 5
         GossipRadius: 8
-        GossipCloseness: 0.1
+        GossipCloseness: 0.025
         GossipStrength: 0.2
         GossipAmount: 2.5
         EscapingTargetStates:

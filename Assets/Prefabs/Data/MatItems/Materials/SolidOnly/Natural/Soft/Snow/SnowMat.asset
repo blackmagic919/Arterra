@@ -15,7 +15,11 @@ MonoBehaviour:
   Name: Snow
   Tags:
     Reg:
-      value: []
+      value:
+      - Tag: 9100
+        value:
+          value:
+            rid: 5295427349367226536
   Names:
     value:
     - Snow:Solid
@@ -43,7 +47,7 @@ MonoBehaviour:
     waveScale: {x: 0, y: 0}
     waveSpeed: {x: 0, y: 0}
   Roughness: 0.2
-  Logic: {fileID: 11400000, guid: 648f75c635cbb4686a0e32aae0a17df7, type: 2}
+  Logic: {fileID: 0}
   looter:
     SolidLootTable:
       value: []
@@ -57,4 +61,9 @@ MonoBehaviour:
       DropMultiplier: 0
   references:
     version: 2
-    RefIds: []
+    RefIds:
+    - rid: 5295427349367226536
+      type: {class: ContactSoundTag, ns: Arterra.Configuration, asm: Assembly-CSharp}
+      data:
+        OnTouchEvent: 4102
+        OnRemoveEvent: 0

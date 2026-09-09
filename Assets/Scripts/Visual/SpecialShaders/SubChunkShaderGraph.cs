@@ -164,8 +164,6 @@ namespace Arterra.Engine.Rendering
                     offsets.fBaseGeoStart, offsets.matSizeCStart + i,
                     offsets.baseGeoCounter, offsets.shadGeoStart, i
                 );
-                Material mat = shader.GetMaterial();
-                LightBaker.SetupLightSampler(mat);
             }
         }
 

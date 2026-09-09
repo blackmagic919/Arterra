@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<objects serializationModel="Studio.02.03.00">
+	<object class="MixerGroup" id="{b8aeafcd-a64f-4fc6-9fcc-1ec73342bdc4}">
+		<property name="name">
+			<value>Zebra</value>
+		</property>
+		<relationship name="effectChain">
+			<destination>{ff1f9f4a-6e92-4feb-bc35-5d6f6a083247}</destination>
+		</relationship>
+		<relationship name="panner">
+			<destination>{b4d0c90b-4485-4212-859f-72b4228e808f}</destination>
+		</relationship>
+		<relationship name="output">
+			<destination>{11040329-8379-4768-b0cc-4d7992176ff6}</destination>
+		</relationship>
+	</object>
+	<object class="MixerBusEffectChain" id="{ff1f9f4a-6e92-4feb-bc35-5d6f6a083247}">
+		<relationship name="effects">
+			<destination>{5592ac4e-5a75-4cf6-ba44-11acafd78600}</destination>
+		</relationship>
+	</object>
+	<object class="MixerBusPanner" id="{b4d0c90b-4485-4212-859f-72b4228e808f}" />
+	<object class="MixerBusFader" id="{5592ac4e-5a75-4cf6-ba44-11acafd78600}" />
+</objects>

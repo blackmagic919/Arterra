@@ -199,7 +199,18 @@ namespace Arterra.Configuration {
                 Tooltips = cloneTooltips
             };
         }
+    }
 
+    [Serializable]
+    public struct ContactSoundTag : ICloneable{
+        public AudioEvents OnTouchEvent;
+        public AudioEvents OnRemoveEvent;
+        public object Clone() {
+            return new ContactSoundTag {
+                OnTouchEvent = OnTouchEvent,
+                OnRemoveEvent = OnRemoveEvent
+            };
+        }
     }
 
     [Serializable]
@@ -367,10 +378,11 @@ namespace Arterra.Configuration {
             { Tags.GargantuanAnimal, null }, { Tags.LargeAnimal, null }, { Tags.MidSizedAnimal, null },
             { Tags.SmallAnimal, null }, { Tags.TinyAnimal, null },
             { Tags.Carnivore, null }, { Tags.Herbivore, null }, { Tags.SelectDiet, null },
-            //Interaction Type
+            //Interaction 
             { Tags.FocusedPlace, null },
             { Tags.Tooltip, new TooltipTag() },
             { Tags.TooltipDismissor, new TooltipDismissorTag() },
+            { Tags.ContactSound, new ContactSoundTag() },
             // Projectiles
             { Tags.ArrowTag, new ProjectileTag() },
             { Tags.BaitTag, null },
@@ -403,11 +415,12 @@ namespace Arterra.Configuration {
 
             //Interactions
             FocusedPlace = 9000, Tooltip = 9001, TooltipDismissor = 9002,
+            ContactSound = 9100,
             // Projectiles 
             ArrowTag = 10000, BaitTag = 10001,
 
             //Entities
-            Butterflies = 21000, Lions = 21001
+            Butterflies = 21000, Lions = 21001,
         }
 
         public Option<List<Pair>> Reg;

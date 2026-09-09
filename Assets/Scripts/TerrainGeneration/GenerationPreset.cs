@@ -223,7 +223,6 @@ public static class GenerationPreset
         ComputeBuffer terrainData;
         ComputeBuffer liquidData;
         ComputeBuffer atmosphericData;
-        ComputeBuffer metaProperties;
 
         /// <summary> Initializes the <see cref="MaterialHandle" />. Deserializes and copies all information to 
             /// the GPU for use in the terrain generation process. Information is stored in global GPU buffers 

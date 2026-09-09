@@ -141,7 +141,7 @@ MonoBehaviour:
           y: 2.5
           z: 2
       BehaviorList:
-        value: 05000000000000000300000006000000ea030000ed03000001000000e8030000e9030000eb030000ec030000102700001a2700002427000038270000422700004c27000056270000602700006a270000742700007e27000088270000ee030000ef0300001f2700000400000033270000f0030000
+        value: 05000000000000000300000006000000ea030000ed03000001000000e8030000e9030000eb030000ec030000102700001a2700002427000038270000422700004c27000056270000602700006a270000742700007e27000088270000ee030000ef0300001f2700000400000033270000f00300000200000007000000
       Settings:
         value:
           value:
@@ -241,7 +241,13 @@ MonoBehaviour:
           - value:
               value:
                 rid: 3097084052764622975
-      _prevBehaviorCount: 29
+          - value:
+              value:
+                rid: 5295427349367226878
+          - value:
+              value:
+                rid: 5295427382668427417
+      _prevBehaviorCount: 31
   references:
     version: 2
     RefIds:
@@ -466,6 +472,7 @@ MonoBehaviour:
       type: {class: FeedableBehaviorSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
         CanEat: 1
+        ConsumeRate: 1
     - rid: 3097084037468258414
       type: {class: RelationsBehaviorSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
@@ -476,12 +483,12 @@ MonoBehaviour:
         OnBetrayalAffection: -2.5
         OnRivalMateAffection: -14
         OnAttackAffection: -16
-        ForgetFalloff: 0.2
-        BaseForgetRate: 0.05
+        ForgetFalloff: 0.1
+        BaseForgetRate: 0.025
         SuppressInstinctAffection: 10
         GossipCooldown: 5
         GossipRadius: 8
-        GossipCloseness: 0.1
+        GossipCloseness: 0.025
         GossipStrength: 0.2
         GossipAmount: 2.5
         EscapingTargetStates:
@@ -598,13 +605,13 @@ MonoBehaviour:
             geneWeight: 0.025
           - name: 2040
             var: 0
-            geneWeight: 0
+            geneWeight: 0.01
           - name: 2044
             var: 0.3
             geneWeight: 0.025
           - name: 2045
             var: 0
-            geneWeight: 0
+            geneWeight: 0.01
           - name: 2035
             var: 0.125
             geneWeight: 0.1
@@ -716,4 +723,88 @@ MonoBehaviour:
           - name: 2001
             var: 0.5
             geneWeight: 0.1
-        NormalizeWeights: 1
+    - rid: 5295427349367226878
+      type: {class: StepSoundBehaviorSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        StepDistance: 2
+    - rid: 5295427382668427417
+      type: {class: AnimalSoundBehaviorSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        EventSounds:
+          value:
+          - trigger: 23
+            effect:
+              sound: 3150
+              chance: 1
+          - trigger: 32
+            effect:
+              sound: 3151
+              chance: 1
+        StateSounds:
+          value:
+          - state: 20300
+            frequency: 2
+            effect:
+              sound: 3153
+              chance: 0.5
+          - state: 0
+            frequency: 2
+            effect:
+              sound: 3153
+              chance: 0.25
+          - state: 100
+            frequency: 3
+            effect:
+              sound: 3153
+              chance: 0.25
+          - state: 200
+            frequency: 3
+            effect:
+              sound: 3153
+              chance: 0.25
+          - state: 300
+            frequency: 3
+            effect:
+              sound: 3153
+              chance: 0.25
+          - state: 50100
+            frequency: 3
+            effect:
+              sound: 3153
+              chance: 0.5
+          - state: 30300
+            frequency: 3
+            effect:
+              sound: 3153
+              chance: 0.5
+          - state: 20200
+            frequency: 1.5
+            effect:
+              sound: 3152
+              chance: 0.75
+          - state: 0
+            frequency: 5
+            effect:
+              sound: 3152
+              chance: 0.5
+          - state: 40000
+            frequency: 3
+            effect:
+              sound: 3152
+              chance: 0.5
+          - state: 50000
+            frequency: 3
+            effect:
+              sound: 3152
+              chance: 0.5
+          - state: 30500
+            frequency: 0.75
+            effect:
+              sound: 4003
+              chance: 1
+          - state: 30400
+            frequency: 0.75
+            effect:
+              sound: 4003
+              chance: 1
+        triggerMode: 2

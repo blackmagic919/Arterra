@@ -624,7 +624,7 @@ MonoBehaviour:
           y: 3
           z: 6
       BehaviorList:
-        value: 05000000000000000300000006000000ea030000ed030000e803000001000000e9030000eb030000ec030000102700002427000038270000422700004c27000056270000602700006a270000742700007e27000088270000ee030000ef0300001f270000f003000083270000212700001a270000
+        value: 05000000000000000300000006000000ea030000ed030000e803000001000000e9030000eb030000ec030000102700002427000038270000422700004c27000056270000602700006a270000742700007e27000088270000ee030000ef0300001f270000f003000083270000212700001a2700000700000002000000
       Settings:
         value:
           value:
@@ -726,8 +726,14 @@ MonoBehaviour:
                 rid: 5205636740273930335
           - value:
               value:
+                rid: 5295427382668427378
+          - value:
+              value:
+                rid: 5295427382668427440
+          - value:
+              value:
                 rid: 3097084119023353994
-      _prevBehaviorCount: 29
+      _prevBehaviorCount: 31
   references:
     version: 2
     RefIds:
@@ -938,6 +944,7 @@ MonoBehaviour:
       type: {class: FeedableBehaviorSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
         CanEat: 0
+        ConsumeRate: 1
     - rid: 3097084037468258407
       type: {class: RelationsBehaviorSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
@@ -948,12 +955,12 @@ MonoBehaviour:
         OnBetrayalAffection: -2.5
         OnRivalMateAffection: -14
         OnAttackAffection: -16
-        ForgetFalloff: 0.2
-        BaseForgetRate: 0.05
+        ForgetFalloff: 0.1
+        BaseForgetRate: 0.025
         SuppressInstinctAffection: 10
         GossipCooldown: 5
         GossipRadius: 8
-        GossipCloseness: 0.1
+        GossipCloseness: 0.025
         GossipStrength: 0.2
         GossipAmount: 2.5
         EscapingTargetStates:
@@ -1023,7 +1030,6 @@ MonoBehaviour:
         walkSpeed: 2
         runSpeed: 2.5
         pathDistance: 32
-        acceleration: 200
         rotSpeed: 180
     - rid: 3097084119023353994
       type: {class: MMove, ns: , asm: Assembly-CSharp}
@@ -1321,7 +1327,7 @@ MonoBehaviour:
             geneWeight: 0.2
           - name: 1009
             var: 0.35
-            geneWeight: 0
+            geneWeight: 0.35
           - name: 2044
             var: 0.5
             geneWeight: 0.01
@@ -1343,4 +1349,95 @@ MonoBehaviour:
           - name: 2049
             var: 0.25
             geneWeight: 0.075
-        NormalizeWeights: 1
+    - rid: 5295427382668427378
+      type: {class: AnimalSoundBehaviorSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        EventSounds:
+          value:
+          - trigger: 23
+            effect:
+              sound: 3203
+              chance: 1
+          - trigger: 32
+            effect:
+              sound: 3201
+              chance: 1
+        StateSounds:
+          value:
+          - state: 0
+            frequency: 4
+            effect:
+              sound: 3200
+              chance: 0.5
+          - state: 200
+            frequency: 4
+            effect:
+              sound: 3200
+              chance: 0.5
+          - state: 300
+            frequency: 4
+            effect:
+              sound: 3200
+              chance: 0.5
+          - state: 400
+            frequency: 4
+            effect:
+              sound: 3200
+              chance: 0.5
+          - state: 405
+            frequency: 4
+            effect:
+              sound: 3200
+              chance: 0.5
+          - state: 20100
+            frequency: 4
+            effect:
+              sound: 3200
+              chance: 0.5
+          - state: 30200
+            frequency: 4
+            effect:
+              sound: 3200
+              chance: 0.5
+          - state: 30300
+            frequency: 4
+            effect:
+              sound: 3200
+              chance: 0.5
+          - state: 50100
+            frequency: 4
+            effect:
+              sound: 3200
+              chance: 0.5
+          - state: 50000
+            frequency: 4
+            effect:
+              sound: 3200
+              chance: 0.5
+          - state: 40000
+            frequency: 4
+            effect:
+              sound: 3200
+              chance: 0.5
+          - state: 30400
+            frequency: 1.5
+            effect:
+              sound: 4003
+              chance: 1
+          - state: 30500
+            frequency: 1.5
+            effect:
+              sound: 4003
+              chance: 1
+          - state: 51000
+            frequency: 2
+            effect:
+              sound: 3204
+              chance: 0.5
+        triggerMode: 2
+    - rid: 5295427382668427440
+      type: {class: StepSoundBehaviorSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        StepDistance: 4
+        TouchState: 1
+        entityStepSound: 0

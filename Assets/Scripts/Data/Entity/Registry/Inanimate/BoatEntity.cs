@@ -41,6 +41,9 @@ public class BoatEntity : Arterra.Data.Entity.Authoring {
     //NOTE: Do not Release Resources Here, Mark as Released and let Controller handle it
     //**If you release here the controller might still be accessing it
     public class Boat : Entity, IRidable, IAttackable {
+        private const string BaseGravityStateName = "BoatEntity::Base";
+        private const string LiquidGravityStateName = "BoatEntity::Liquid";
+
         [JsonProperty]
         private MinimalVitality vitality;
         [JsonProperty]
@@ -125,7 +128,7 @@ public class BoatEntity : Arterra.Data.Entity.Authoring {
             if (vitality == null) vitality = new MinimalVitality(settings.durability);
             else vitality.Deserialize(settings.durability);
 
-            tCollider.useGravity = true;
+            tCollider.SetGravityState(BaseGravityStateName, TerrainCollider.GravityPriority.Default, true);
             GCoord = this.GCoord;
 
             if (RiderTarget == Guid.Empty) return;
@@ -139,16 +142,20 @@ public class BoatEntity : Arterra.Data.Entity.Authoring {
         public override void Update() {
             if (!active) return;
 
-            tCollider.useGravity = true;
+            tCollider.SetGravityState(BaseGravityStateName, TerrainCollider.GravityPriority.Default, true);
 
             vitality.Update(this);
+            bool inLiquid = false;
             TerrainInteractor.DetectMapInteraction(position,
                 OnInSolid: (dens) => eventCtrl.RaiseEvent(Arterra.Core.Events.GameEvent.Entity_InSolid, this, null, dens),
                 OnInLiquid: (dens) => {
+                    inLiquid = true;
                     eventCtrl.RaiseEvent(Arterra.Core.Events.GameEvent.Entity_InLiquid, this, null, dens);
                     velocity += EntityJob.cxt.deltaTime * -EntityJob.cxt.gravity;
-                    tCollider.useGravity = false;
                 }, OnInGas: (dens) => eventCtrl.RaiseEvent(Arterra.Core.Events.GameEvent.Entity_InGas, this, null, dens));
+
+            if (inLiquid) tCollider.SetGravityState(LiquidGravityStateName, TerrainCollider.GravityPriority.Environment, false);
+            else tCollider.RemoveGravityState(LiquidGravityStateName);
 
             if (RiderTarget != Guid.Empty) {
                 float3 aim = math.normalize(new float3(velocity.x, 0, velocity.z));

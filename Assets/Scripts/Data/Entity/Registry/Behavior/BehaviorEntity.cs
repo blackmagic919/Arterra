@@ -59,10 +59,12 @@ namespace Arterra.Data.Entity.Behavior {
         None = -1,
         Animator = BehaviorTypes.Base + 0,
         MapInteraction = BehaviorTypes.Base + 1,
+        StepSound = BehaviorTypes.Base + 2,
         Indicators = BehaviorTypes.Base + 3,
         Rideable = BehaviorTypes.Base + 4,
         Collider = BehaviorTypes.Base + 5,
         Modifiers = BehaviorTypes.Base + 6,
+        AnimalSound = BehaviorTypes.Base + 7,
         PlayerRoot = BehaviorTypes.Base + 100,
         PlayerMovement = BehaviorTypes.Base + 101,
         PlayerCamera = BehaviorTypes.Base + 102,
@@ -145,10 +147,12 @@ namespace Arterra.Data.Entity.Behavior {
         public static Dictionary<Behaviors, Func<Behavior>> BehaviorTemplates = new Dictionary<Behaviors, Func<Behavior>> {
             { Behaviors.Animator, () => new AnimatedBehavior() },
             { Behaviors.MapInteraction, () => new MapInteractBehavior() },
+            { Behaviors.StepSound, () => new StepSoundBehavior() },
             { Behaviors.Indicators, () => new InidcatorsBehavior() },
             { Behaviors.Rideable, () => new RidableBehavior() },
             { Behaviors.Collider, () => new ColliderUpdateBehavior() },
             { Behaviors.Modifiers, () => new Modifier() },
+            { Behaviors.AnimalSound, () => new AnimalSoundBehavior() },
 
             { Behaviors.PlayerRoot, () => new PlayerBehavior() },
             { Behaviors.PlayerMovement, () => new PlayerMovementBehavior() },
@@ -274,7 +278,9 @@ namespace Arterra.Data.Entity.Behavior {
                 typeof(PlayerCameraSettings),
                 typeof(PlayerEffectsSettings),
                 typeof(PlayerInteractionSettings),
-                typeof(PlayerInventorySettings)
+                typeof(PlayerInventorySettings),
+                typeof(StepSoundBehaviorSettings),
+                typeof(AnimalSoundBehaviorSettings)
             )]
             public DirtyOption<List<DirtyReferenceOption<IBehaviorSetting>>> Settings;
 
@@ -516,8 +522,10 @@ namespace Arterra.Data.Entity.Behavior {
 
             public void UpdateBehaviors() {
                 if (!active || !controller.active) return;
-                if (controller.gameObject == null) return;
-                if (context != UpdateContext.Job) controller.Update();
+                if (context != UpdateContext.Job) {
+                    if (controller.gameObject == null) return;
+                    controller.Update();
+                }
 
                 foreach(Behavior behavior in Behaviors) {
                     Profiler.BeginSample(behavior.GetType().Name);

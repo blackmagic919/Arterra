@@ -24,6 +24,10 @@ MonoBehaviour:
         value:
           value:
             rid: 5778504664064983181
+      - Tag: 9100
+        value:
+          value:
+            rid: 5295427349367226533
   Names:
     value:
     - Dirt:Solid
@@ -64,6 +68,11 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
+    - rid: 5295427349367226533
+      type: {class: ContactSoundTag, ns: Arterra.Configuration, asm: Assembly-CSharp}
+      data:
+        OnTouchEvent: 4105
+        OnRemoveEvent: 0
     - rid: 5778504664064983180
       type: {class: ConvertibleTag, ns: Arterra.Configuration, asm: Assembly-CSharp}
       data:

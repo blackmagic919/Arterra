@@ -60,7 +60,7 @@ MonoBehaviour:
           y: 0.75
           z: 0.75
       BehaviorList:
-        value: 05000000000000000300000006000000ea030000ed030000e803000001000000e9030000eb030000ec030000102700002427000038270000422700004c270000562700006027000088270000ee030000832700001b270000
+        value: 05000000000000000300000006000000ea030000ed030000e803000001000000e9030000eb030000ec030000102700002427000038270000422700004c270000562700006027000088270000ee030000832700001b27000002000000
       Settings:
         value:
           value:
@@ -138,8 +138,11 @@ MonoBehaviour:
                 rid: 5205636745612492874
           - value:
               value:
+                rid: 5295427382668427449
+          - value:
+              value:
                 rid: 3097084119023353994
-      _prevBehaviorCount: 22
+      _prevBehaviorCount: 23
   references:
     version: 2
     RefIds:
@@ -292,6 +295,7 @@ MonoBehaviour:
       type: {class: FeedableBehaviorSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
         CanEat: 0
+        ConsumeRate: 1
     - rid: 3097084119023353985
       type: {class: AnimatedSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
@@ -342,7 +346,6 @@ MonoBehaviour:
         walkSpeed: 0.5
         runSpeed: 0.75
         pathDistance: 32
-        acceleration: 100
         rotSpeed: 60
     - rid: 3097084119023353994
       type: {class: MMove, ns: , asm: Assembly-CSharp}
@@ -509,95 +512,100 @@ MonoBehaviour:
           value:
           - name: 1004
             var: 0.35
-            geneWeight: 0.0002753882
+            geneWeight: 0.4
           - name: 1006
             var: 0.25
-            geneWeight: 0.0001376941
+            geneWeight: 0.2
           - name: 1007
             var: 0.1
-            geneWeight: 0.000017211763
+            geneWeight: 0.025
           - name: 1005
             var: 0.3
-            geneWeight: 0.00006884705
+            geneWeight: 0.1
           - name: 1000
             var: 0.25
-            geneWeight: 0.0001376941
+            geneWeight: 0.2
           - name: 1001
             var: 0.5
-            geneWeight: 0.00041308234
+            geneWeight: 0.6
           - name: 1002
             var: 0.5
-            geneWeight: 0.00020654117
+            geneWeight: 0.3
           - name: 1003
             var: 0.5
-            geneWeight: 0.00006884705
+            geneWeight: 0.1
           - name: 4002
             var: 0.25
-            geneWeight: 0.0001376941
+            geneWeight: 0.2
           - name: 4001
             var: 0.4
-            geneWeight: 0.000103270584
+            geneWeight: 0.15
           - name: 2039
             var: 0.5
-            geneWeight: 0.000017211763
+            geneWeight: 0.025
           - name: 2040
             var: 0.75
-            geneWeight: 0.0000068847053
+            geneWeight: 0.01
           - name: 2035
             var: 0.125
-            geneWeight: 0.00006884705
+            geneWeight: 0.1
           - name: 2036
             var: 0.25
-            geneWeight: 0.0001376941
+            geneWeight: 0.2
           - name: 2037
             var: 0.25
-            geneWeight: 0.000103270584
+            geneWeight: 0.15
           - name: 2002
             var: 0.25
-            geneWeight: 0.00006884705
+            geneWeight: 0.1
           - name: 2003
             var: 0.05
-            geneWeight: 0.000034423527
+            geneWeight: 0.05
           - name: 2038
             var: 0.25
-            geneWeight: 0.0001376941
+            geneWeight: 0.2
           - name: 4000
             var: 0.25
-            geneWeight: 0.00020654117
+            geneWeight: 0.3
           - name: 1012
             var: 0.35
-            geneWeight: 0.0000068847053
+            geneWeight: 0.01
           - name: 4003
             var: 0.75
-            geneWeight: 0.000034423527
+            geneWeight: 0.05
           - name: 1008
             var: 0.25
-            geneWeight: 0.0001376941
+            geneWeight: 0.2
           - name: 1009
             var: 0.35
-            geneWeight: 0
+            geneWeight: 0.35
           - name: 1013
             var: 0.5
-            geneWeight: 0.00006884705
+            geneWeight: 0.1
           - name: 1014
             var: 0
-            geneWeight: 0
+            geneWeight: 0.05
           - name: 2018
             var: 0.5
-            geneWeight: 0.00006884705
+            geneWeight: 0.1
           - name: 2019
             var: 0.5
-            geneWeight: 0.000034423527
+            geneWeight: 0.05
           - name: 2020
             var: 0.5
-            geneWeight: 0.000034423527
+            geneWeight: 0.05
           - name: 2021
             var: 0.5
-            geneWeight: 0.000034423527
+            geneWeight: 0.05
           - name: 2022
             var: 0.75
-            geneWeight: 0.000034423527
+            geneWeight: 0.05
           - name: 2023
             var: 0.3
-            geneWeight: 0.00006884705
-        NormalizeWeights: 1
+            geneWeight: 0.1
+    - rid: 5295427382668427449
+      type: {class: StepSoundBehaviorSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        StepDistance: 0.75
+        TouchState: 1
+        entityStepSound: 0

@@ -15,7 +15,11 @@ MonoBehaviour:
   Name: Fire
   Tags:
     Reg:
-      value: []
+      value:
+      - Tag: 9100
+        value:
+          value:
+            rid: 5295427349367226531
   Names:
     value:
     - Void
@@ -57,4 +61,9 @@ MonoBehaviour:
       DropMultiplier: 0
   references:
     version: 2
-    RefIds: []
+    RefIds:
+    - rid: 5295427349367226531
+      type: {class: ContactSoundTag, ns: Arterra.Configuration, asm: Assembly-CSharp}
+      data:
+        OnTouchEvent: 4106
+        OnRemoveEvent: 0

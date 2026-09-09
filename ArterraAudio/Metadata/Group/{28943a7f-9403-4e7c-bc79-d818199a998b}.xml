@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<objects serializationModel="Studio.02.03.00">
+	<object class="MixerGroup" id="{28943a7f-9403-4e7c-bc79-d818199a998b}">
+		<property name="name">
+			<value>Sparrow</value>
+		</property>
+		<relationship name="effectChain">
+			<destination>{a121eec9-9ba5-457a-9faa-6288fad3a262}</destination>
+		</relationship>
+		<relationship name="panner">
+			<destination>{4c9563e1-7316-4310-a4d5-361a5781bb9a}</destination>
+		</relationship>
+		<relationship name="output">
+			<destination>{11040329-8379-4768-b0cc-4d7992176ff6}</destination>
+		</relationship>
+	</object>
+	<object class="MixerBusEffectChain" id="{a121eec9-9ba5-457a-9faa-6288fad3a262}">
+		<relationship name="effects">
+			<destination>{80ef1a62-a5f8-4887-8af7-2d6303a5d11a}</destination>
+		</relationship>
+	</object>
+	<object class="MixerBusPanner" id="{4c9563e1-7316-4310-a4d5-361a5781bb9a}" />
+	<object class="MixerBusFader" id="{80ef1a62-a5f8-4887-8af7-2d6303a5d11a}" />
+</objects>

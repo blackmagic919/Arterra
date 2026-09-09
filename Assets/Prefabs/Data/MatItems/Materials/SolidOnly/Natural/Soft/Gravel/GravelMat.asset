@@ -15,7 +15,11 @@ MonoBehaviour:
   Name: Gravel
   Tags:
     Reg:
-      value: []
+      value:
+      - Tag: 9100
+        value:
+          value:
+            rid: 5295427349367226534
   Names:
     value:
     - Gravel:Solid
@@ -41,7 +45,7 @@ MonoBehaviour:
     waveScale: {x: 0, y: 0}
     waveSpeed: {x: 0, y: 0}
   Roughness: 0.2
-  Logic: {fileID: 11400000, guid: 76b3bb95abd574c2db8fe40648a02a3a, type: 2}
+  Logic: {fileID: 0}
   looter:
     SolidLootTable:
       value: []
@@ -55,4 +59,9 @@ MonoBehaviour:
       DropMultiplier: 0
   references:
     version: 2
-    RefIds: []
+    RefIds:
+    - rid: 5295427349367226534
+      type: {class: ContactSoundTag, ns: Arterra.Configuration, asm: Assembly-CSharp}
+      data:
+        OnTouchEvent: 4107
+        OnRemoveEvent: 0

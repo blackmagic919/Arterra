@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<objects serializationModel="Studio.02.03.00">
+	<object class="MixerGroup" id="{2128d517-fe5e-4d5d-9fad-fefe7d49923f}">
+		<property name="name">
+			<value>Hawk</value>
+		</property>
+		<relationship name="effectChain">
+			<destination>{a16de5be-c8c7-4668-af77-0bd88615a65c}</destination>
+		</relationship>
+		<relationship name="panner">
+			<destination>{cbfbe617-2534-4635-a5bb-d76e63186914}</destination>
+		</relationship>
+		<relationship name="output">
+			<destination>{11040329-8379-4768-b0cc-4d7992176ff6}</destination>
+		</relationship>
+	</object>
+	<object class="MixerBusEffectChain" id="{a16de5be-c8c7-4668-af77-0bd88615a65c}">
+		<relationship name="effects">
+			<destination>{950dca23-20a2-4484-90c1-e33634d37385}</destination>
+		</relationship>
+	</object>
+	<object class="MixerBusPanner" id="{cbfbe617-2534-4635-a5bb-d76e63186914}" />
+	<object class="MixerBusFader" id="{950dca23-20a2-4484-90c1-e33634d37385}" />
+</objects>

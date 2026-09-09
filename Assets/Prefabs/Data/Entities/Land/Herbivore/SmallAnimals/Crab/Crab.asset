@@ -145,7 +145,7 @@ MonoBehaviour:
           y: 1
           z: 1
       BehaviorList:
-        value: 05000000000000000300000006000000ea030000ed03000001000000e8030000e9030000eb030000ec030000102700001a2700002427000038270000422700004c27000056270000602700006a270000742700007e270000882700008227000021270000
+        value: 05000000000000000300000006000000ea030000ed03000001000000e8030000e9030000eb030000ec030000102700001a2700002427000038270000422700004c27000056270000602700006a270000742700007e27000088270000822700002127000002000000
       Settings:
         value:
           value:
@@ -235,8 +235,11 @@ MonoBehaviour:
                 rid: 5205636776373518492
           - value:
               value:
+                rid: 5295427349367226881
+          - value:
+              value:
                 rid: 5205636776373518519
-      _prevBehaviorCount: 25
+      _prevBehaviorCount: 26
   references:
     version: 2
     RefIds:
@@ -646,7 +649,7 @@ MonoBehaviour:
             geneWeight: 0.025
           - name: 2045
             var: 0
-            geneWeight: 0
+            geneWeight: 0.01
           - name: 2035
             var: 0.125
             geneWeight: 0.1
@@ -712,8 +715,12 @@ MonoBehaviour:
             geneWeight: 0.1
           - name: 2048
             var: 0
-            geneWeight: 0
+            geneWeight: 0.075
           - name: 2049
             var: 0.25
             geneWeight: 0.075
         NormalizeWeights: 1
+    - rid: 5295427349367226881
+      type: {class: StepSoundBehaviorSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        StepDistance: 0.5

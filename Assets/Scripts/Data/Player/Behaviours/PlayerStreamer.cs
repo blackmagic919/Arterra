@@ -38,7 +38,8 @@ namespace Arterra.Data.Entity.Behavior {
                 Behaviors.PlayerRoot,
                 Behaviors.PlayerBaseLogicHandler,
                 Behaviors.Modifiers,
-                Behaviors.Hunger
+                Behaviors.Hunger,
+                Behaviors.StepSound
             },
             Settings = new List<DirtyReferenceOption<IBehaviorSetting>> {
                 new() {
@@ -76,6 +77,9 @@ namespace Arterra.Data.Entity.Behavior {
                 new() {
                     value = new HungerSettings(),
                 },
+                new () {
+                    value = new StepSoundBehaviorSettings(),
+                }
             },
         };
 
@@ -88,6 +92,7 @@ namespace Arterra.Data.Entity.Behavior {
         public override void AddBehaviorDependencies(Dictionary<Behaviors, int> hierarchy) {
             hierarchy.TryAdd(Behaviors.Collider, hierarchy.Count);
             hierarchy.TryAdd(Behaviors.MapInteraction, hierarchy.Count);
+            hierarchy.TryAdd(Behaviors.StepSound, hierarchy.Count);
             hierarchy.TryAdd(Behaviors.Vitality, hierarchy.Count);
             hierarchy.TryAdd(Behaviors.PlayerInventories, hierarchy.Count);
             hierarchy.TryAdd(Behaviors.PlayerCamera, hierarchy.Count);

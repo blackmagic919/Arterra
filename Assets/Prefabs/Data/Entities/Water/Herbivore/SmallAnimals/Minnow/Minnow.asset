@@ -60,7 +60,7 @@ MonoBehaviour:
           y: 0.5
           z: 0.5
       BehaviorList:
-        value: 05000000000000000300000006000000ea030000ed030000e803000001000000e9030000eb030000ec030000102700002427000038270000422700004c27000056270000602700006a270000742700007e27000088270000ee030000ef0300001f270000f0030000832700001b270000
+        value: 05000000000000000300000006000000ea030000ed030000e803000001000000e9030000eb030000ec030000102700002427000038270000422700004c27000056270000602700006a270000742700007e27000088270000ee030000ef0300001f270000f0030000832700001b27000002000000
       Settings:
         value:
           value:
@@ -159,8 +159,11 @@ MonoBehaviour:
                 rid: 5205636745612492874
           - value:
               value:
+                rid: 5295427382668427447
+          - value:
+              value:
                 rid: 3097084119023353994
-      _prevBehaviorCount: 28
+      _prevBehaviorCount: 29
   references:
     version: 2
     RefIds:
@@ -365,6 +368,7 @@ MonoBehaviour:
       type: {class: FeedableBehaviorSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
         CanEat: 0
+        ConsumeRate: 1
     - rid: 3097084037468258407
       type: {class: RelationsBehaviorSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
@@ -375,12 +379,12 @@ MonoBehaviour:
         OnBetrayalAffection: -2.5
         OnRivalMateAffection: -14
         OnAttackAffection: -16
-        ForgetFalloff: 0.2
-        BaseForgetRate: 0.05
+        ForgetFalloff: 0.1
+        BaseForgetRate: 0.025
         SuppressInstinctAffection: 10
         GossipCooldown: 5
         GossipRadius: 8
-        GossipCloseness: 0.1
+        GossipCloseness: 0.025
         GossipStrength: 0.2
         GossipAmount: 2.5
         EscapingTargetStates:
@@ -450,7 +454,6 @@ MonoBehaviour:
         walkSpeed: 2.4
         runSpeed: 2.8
         pathDistance: 32
-        acceleration: 200
         rotSpeed: 180
     - rid: 3097084119023353994
       type: {class: MMove, ns: , asm: Assembly-CSharp}
@@ -749,7 +752,7 @@ MonoBehaviour:
             geneWeight: 0.2
           - name: 1009
             var: 0.35
-            geneWeight: 0
+            geneWeight: 0.35
           - name: 1013
             var: 0.5
             geneWeight: 0.1
@@ -774,4 +777,9 @@ MonoBehaviour:
           - name: 2023
             var: 0.3
             geneWeight: 0.1
-        NormalizeWeights: 1
+    - rid: 5295427382668427447
+      type: {class: StepSoundBehaviorSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        StepDistance: 1
+        TouchState: 1
+        entityStepSound: 0

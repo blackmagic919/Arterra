@@ -2,7 +2,7 @@
 <objects serializationModel="Studio.02.03.00">
 	<object class="AudioFile" id="{575023d3-7af6-493a-b5fb-e02e25476b16}">
 		<property name="assetPath">
-			<value>Arrow Twang 2.mp3</value>
+			<value>SFX/Arrow/Arrow Twang 2.mp3</value>
 		</property>
 		<property name="frequencyInKHz">
 			<value>44.0999985</value>

@@ -446,7 +446,7 @@ MonoBehaviour:
             geneWeight: 0.025
           - name: 2045
             var: 0
-            geneWeight: 0
+            geneWeight: 0.01
           - name: 2035
             var: 0.125
             geneWeight: 0.1

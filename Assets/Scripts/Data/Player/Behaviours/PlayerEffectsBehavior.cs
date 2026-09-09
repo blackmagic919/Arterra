@@ -8,6 +8,7 @@ using Arterra.Core;
 using Newtonsoft.Json;
 using Unity.Mathematics;
 using UnityEngine;
+using Arterra.Engine.Audio;
 
 namespace Arterra.Data.Entity.Behavior {
     /// <summary>
@@ -38,6 +39,7 @@ namespace Arterra.Data.Entity.Behavior {
         private GameObject heldItem;
         private bool isSwimming;
         private bool isShaking;
+        private FMOD.Studio.EventInstance SubmergedSound;
 
         public override void AddSettingsDependencies(Dictionary<Type, IBehaviorSetting> hierarchy) {
             hierarchy.TryAdd(typeof(PlayerEffectsSettings), new PlayerEffectsSettings());
@@ -175,7 +177,8 @@ namespace Arterra.Data.Entity.Behavior {
             if (isSwimming) return;
             isSwimming = true;
 
-            Indicators.PlayWaterSplash(entity, physicality.weight);
+            AudioManager.StopEvent(SubmergedSound, false);
+            SubmergedSound = AudioManager.CreateEvent(AudioEvents.Action_WaterSubmerged);
         }
 
         private void PlayStopSwim(object source, object target, object density) {
@@ -184,10 +187,9 @@ namespace Arterra.Data.Entity.Behavior {
                 return;
             SetBool("IsSwimming", false);
 
+            AudioManager.StopEvent(SubmergedSound, false);
             if (!isSwimming) return;
             isSwimming = false;
-
-            Indicators.PlayWaterSplash(entity, physicality.weight);
         }
 
         private void PlayTouchdown(object source, object target, object cxt) {

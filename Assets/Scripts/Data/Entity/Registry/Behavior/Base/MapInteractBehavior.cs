@@ -33,6 +33,8 @@ namespace Arterra.Data.Entity.Behavior {
         }
     }
     public class MapInteractBehavior : SpeciesBehavior {
+        private const string LiquidGravityStateName = "MapInteractBehavior::Liquid";
+
         [JsonIgnore] public MapInteractorSettings settings;
         public MapInteractorSettings.InteractType Interaction;
         private Modifier mod;
@@ -82,6 +84,7 @@ namespace Arterra.Data.Entity.Behavior {
         }
 
         public void ProcessInSolid(BehaviorEntity.Animal self, float density) {
+            self.Collider.RemoveGravityState(LiquidGravityStateName);
             self.eventCtrl.RaiseEvent(Core.Events.GameEvent.Entity_InSolid, self, null, density);
             ProcessSuffocation(self, density);
         }
@@ -94,6 +97,7 @@ namespace Arterra.Data.Entity.Behavior {
         }
 
         public void ProcessInGas(BehaviorEntity.Animal self, float density) {
+            self.Collider.RemoveGravityState(LiquidGravityStateName);
             self.eventCtrl.RaiseEvent(Arterra.Core.Events.GameEvent.Entity_InGas, self, null, density);
             breath = maxHoldBreathTime;
         }
@@ -102,7 +106,7 @@ namespace Arterra.Data.Entity.Behavior {
             self.eventCtrl.RaiseEvent(Arterra.Core.Events.GameEvent.Entity_InLiquid, self, null, density);
             breath = math.max(breath - self.DeltaTime, 0);
             tCollider.transform.velocity += self.DeltaTime * settings.Bouyancy * -EntityJob.cxt.gravity;
-            tCollider.useGravity = false;
+            tCollider.SetGravityState(LiquidGravityStateName, TerrainCollider.GravityPriority.Environment, false);
             if (breath > 0) return;
             //If dead don't process suffocation
             if (self.Is(out IAttackable target) && target.IsDead) return;
@@ -122,12 +126,14 @@ namespace Arterra.Data.Entity.Behavior {
             ProcessSuffocation(self, density);
         }
 
-        public void ProcessInGasAquatic(Entity self, TerrainCollider tCollider, float density) {
+        public void ProcessInGasAquatic(BehaviorEntity.Animal self, TerrainCollider tCollider, float density) {
+            tCollider.RemoveGravityState(LiquidGravityStateName);
             self.eventCtrl.RaiseEvent(Arterra.Core.Events.GameEvent.Entity_InGas, self, null, density);
             breath = maxHoldBreathTime;
         }
 
-        public void ProcessInSolidSubterraneal(Entity self, float density) {
+        public void ProcessInSolidSubterraneal(BehaviorEntity.Animal self, float density) {
+            self.Collider.RemoveGravityState(LiquidGravityStateName);
             self.eventCtrl.RaiseEvent(Core.Events.GameEvent.Entity_InSolid, self, null, density);
             //Just don't take damage
         }

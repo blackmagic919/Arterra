@@ -79,6 +79,7 @@ namespace Arterra.Engine.Rendering
             int mapFullSize = mapSize + (terrain.mapChunkSize + 3) * (terrain.mapChunkSize + 3) * 9;
             int lightMapSize = Mathf.CeilToInt(mapSize / 2.0f);
             int IsoValue = Mathf.RoundToInt(terrain.IsoLevel * 255.0f);
+            SetGlobalLightSamplerData(IsoValue, mapFullSize);
 
             int kernel = LightSetupPrimer.FindKernel("PrimeSubchunks");
             LightSetupPrimer.SetBuffer(kernel, "_MemoryBuffer", GPUMapManager.Storage);
@@ -97,7 +98,6 @@ namespace Arterra.Engine.Rendering
             LightSetupPrimer.SetInt("ShadowUpdateCount", Settings.MaxShadowSubChunkUpdatesPerTick);
             LightSetupPrimer.SetInt("ObjectUpdateCount", Settings.MaxObjectSubChunkUpdatesPerTick);
             LightSetupPrimer.SetInt("QueueSize", SubChunkCount);
-            GPUMapManager.SetCCoordHash(LightSetupPrimer);
 
             kernel = ObjectLightShader.FindKernel("BakeLights");
             ObjectLightShader.SetBuffer(kernel, "_MemoryBuffer", GPUMapManager.Storage);
@@ -114,7 +114,6 @@ namespace Arterra.Engine.Rendering
             ObjectLightShader.SetInt("IsoLevel", IsoValue);
             ObjectLightShader.SetInt("mapChunkSize", terrain.mapChunkSize); //as int
             ObjectLightShader.SetInt("numPointsPerAxis", terrain.mapChunkSize); //as uint
-            GPUMapManager.SetCCoordHash(ObjectLightShader);
 
             kernel = ShadowShader.FindKernel("BakeLights");
             ShadowShader.SetBuffer(kernel, "_MemoryBuffer", GPUMapManager.Storage);
@@ -131,7 +130,6 @@ namespace Arterra.Engine.Rendering
             ShadowShader.SetInt("IsoLevel", IsoValue);
             ShadowShader.SetInt("mapChunkSize", terrain.mapChunkSize); //as int
             ShadowShader.SetInt("numPointsPerAxis", terrain.mapChunkSize); //as uint
-            GPUMapManager.SetCCoordHash(ShadowShader);
 
             kernel = ChunkLightPrimer.FindKernel("CopyHash");
             ChunkLightPrimer.SetBuffer(kernel, "_MemoryBuffer", GPUMapManager.Storage);
@@ -155,7 +153,6 @@ namespace Arterra.Engine.Rendering
             ChunkLightPrimer.SetInt("QueueSize", SubChunkCount);
             ChunkLightPrimer.SetInt("numPointsPerAxis", terrain.mapChunkSize); //as uint
             ChunkLightPrimer.SetInt("IsoLevel", IsoValue); //as int
-            GPUMapManager.SetCCoordHash(ChunkLightPrimer);
 
             ArterraRuntime.MainLateUpdateTasks.Enqueue(new ArterraRuntime.IndirectUpdate(IterateLightUpdate));
         }
@@ -165,6 +162,11 @@ namespace Arterra.Engine.Rendering
             DirtyShadowSubChunks?.Dispose();
             DirtyObjectSubChunks?.Dispose();
             SubChunkUpdateBuffer?.Dispose();
+
+            Shader.SetGlobalBuffer(ShaderIDProps.BakedLightChunkAddressDict, (ComputeBuffer)null);
+            Shader.SetGlobalBuffer(ShaderIDProps.BakedLightChunkInfoBuffer, (ComputeBuffer)null);
+            Shader.SetGlobalInteger(ShaderIDProps.BakedLightIsoLevel, 0);
+            Shader.SetGlobalInteger(ShaderIDProps.BakedLightChunkLMOffset, 0);
         }
 
         public static int GetLightMapLength()
@@ -184,32 +186,13 @@ namespace Arterra.Engine.Rendering
             return mapFullSize;
         }
 
-        public static void SetupLightSampler(Material mat)
+        private static void SetGlobalLightSamplerData(int isoValue, int lightMapOffset)
         {
-            var tSettings = Config.CURRENT.Quality.Terrain.value;
-            int IsoValue = Mathf.RoundToInt(tSettings.IsoLevel * 255.0f);
-            mat.EnableKeyword("NO_EDITORLIGHTING");
-            mat.SetBuffer("_ChunkAddressDict", GPUMapManager.Address);
-            mat.SetBuffer("_ChunkInfoBuffer", GPUMapManager.Storage);
-            mat.SetInt("chunkLMOffset", GetLightMapStart());
-            mat.SetInt("IsoLevel", IsoValue);
-            mat.SetInt("mapChunkSize", tSettings.mapChunkSize);
-            mat.SetFloat("lerpScale", tSettings.lerpScale);
-            GPUMapManager.SetCCoordHash(mat);
-        }
-
-        public static void SetupLightSampler(ComputeShader shad, int kernel)
-        {
-            var tSettings = Config.CURRENT.Quality.Terrain.value;
-            int IsoValue = Mathf.RoundToInt(tSettings.IsoLevel * 255.0f);
-            shad.EnableKeyword("NO_EDITORLIGHTING");
-            shad.SetBuffer(kernel, "_ChunkAddressDict", GPUMapManager.Address);
-            shad.SetBuffer(kernel, "_ChunkInfoBuffer", GPUMapManager.Storage);
-            shad.SetInt("chunkLMOffset", GetLightMapStart());
-            shad.SetInt("IsoLevel", IsoValue);
-            shad.SetInt("mapChunkSize", tSettings.mapChunkSize);
-            shad.SetFloat("lerpScale", tSettings.lerpScale);
-            GPUMapManager.SetCCoordHash(shad);
+            Shader.EnableKeyword("NO_EDITORLIGHTING");
+            Shader.SetGlobalBuffer(ShaderIDProps.BakedLightChunkAddressDict, GPUMapManager.Address);
+            Shader.SetGlobalBuffer(ShaderIDProps.BakedLightChunkInfoBuffer, GPUMapManager.Storage);
+            Shader.SetGlobalInteger(ShaderIDProps.BakedLightIsoLevel, isoValue);
+            Shader.SetGlobalInteger(ShaderIDProps.BakedLightChunkLMOffset, lightMapOffset);
         }
 
         public static void RegisterChunk(int3 CCoord, int mapChunkSize, uint nAddress, int wSkipInc)

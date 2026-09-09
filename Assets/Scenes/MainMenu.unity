@@ -196,6 +196,7 @@ Canvas:
   m_OverridePixelPerfect: 0
   m_SortingBucketNormalizedSize: 0
   m_VertexColorAlwaysGammaSpace: 0
+  m_UseReflectionProbes: 0
   m_AdditionalShaderChannelsFlag: 25
   m_UpdateRectTransformForStandalone: 0
   m_SortingLayerID: 0
@@ -2468,14 +2469,14 @@ Light:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1218534431}
   m_Enabled: 1
-  serializedVersion: 11
+  serializedVersion: 13
   m_Type: 1
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_Intensity: 1
   m_Range: 10
   m_SpotAngle: 30
   m_InnerSpotAngle: 21.80208
-  m_CookieSize: 10
+  m_CookieSize2D: {x: 10, y: 10}
   m_Shadows:
     m_Type: 0
     m_Resolution: -1
@@ -2520,7 +2521,7 @@ Light:
   m_UseBoundingSphereOverride: 0
   m_UseViewFrustumForShadowCasterCull: 1
   m_ForceVisible: 0
-  m_ShadowRadius: 0
+  m_ShapeRadius: 0
   m_ShadowAngle: 0
   m_LightUnit: 1
   m_LuxAtDistance: 1
@@ -3491,12 +3492,20 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::AudioManager
   AmbienceMusicEvent:
     Guid:
-      Data1: -1675588054
-      Data2: 1263398140
-      Data3: 2041504186
-      Data4: -270400608
-    Path: event:/Wind
+      Data1: 120140801
+      Data2: 1262662473
+      Data3: -1366354786
+      Data4: 669021033
+    Path: event:/Ambience
   AudioReferences:
+  - name: 4003
+    reference:
+      Guid:
+        Data1: 1625510489
+        Data2: 1131291078
+        Data3: 781188021
+        Data4: -70857476
+      Path: event:/Sound effects/Animal/Chew
   - name: 4000
     reference:
       Guid:
@@ -3504,7 +3513,7 @@ MonoBehaviour:
         Data2: 1171861477
         Data3: 712152742
         Data4: -1818572359
-      Path: event:/Sound effects/Water Effects
+      Path: event:/Sound effects/Water/Splash
   - name: 2001
     reference:
       Guid:
@@ -3512,7 +3521,7 @@ MonoBehaviour:
         Data2: 1225276032
         Data3: 1525825666
         Data4: 1168458264
-      Path: event:/Sound effects/ArrowFire
+      Path: event:/Sound effects/Arrow/ArrowFire
   - name: 3000
     reference:
       Guid:
@@ -3520,7 +3529,7 @@ MonoBehaviour:
         Data2: 1336426865
         Data3: -283943242
         Data4: -676881158
-      Path: event:/Sound effects/ArrowFlying
+      Path: event:/Sound effects/Arrow/ArrowFlying
   - name: 3001
     reference:
       Guid:
@@ -3528,7 +3537,511 @@ MonoBehaviour:
         Data2: 1196900726
         Data3: -88587134
         Data4: -1460235600
-      Path: event:/Sound effects/ArrowTwang
+      Path: event:/Sound effects/Arrow/ArrowTwang
+  - name: 4001
+    reference:
+      Guid:
+        Data1: 640518879
+        Data2: 1118601486
+        Data3: -2141029446
+        Data4: -1580859560
+      Path: event:/Sound effects/Water/Submerged
+  - name: 4005
+    reference:
+      Guid:
+        Data1: 324206369
+        Data2: 1093385877
+        Data3: -1829946235
+        Data4: -886951873
+      Path: event:/Sound effects/Animal/Flap
+  - name: 4100
+    reference:
+      Guid:
+        Data1: 1931494205
+        Data2: 1265658077
+        Data3: 437499303
+        Data4: 771337365
+      Path: event:/Sound effects/Steps/Grass
+  - name: 4101
+    reference:
+      Guid:
+        Data1: -1298152587
+        Data2: 1257967671
+        Data3: 1899818634
+        Data4: 1540338612
+      Path: event:/Sound effects/Steps/Sand
+  - name: 4102
+    reference:
+      Guid:
+        Data1: -1210132615
+        Data2: 1341050021
+        Data3: 1478033810
+        Data4: 923512703
+      Path: event:/Sound effects/Steps/Snow
+  - name: 4103
+    reference:
+      Guid:
+        Data1: 2074044508
+        Data2: 1165602926
+        Data3: 1833961112
+        Data4: -1534355813
+      Path: event:/Sound effects/Steps/Stone
+  - name: 4104
+    reference:
+      Guid:
+        Data1: -1937167170
+        Data2: 1219922641
+        Data3: -364464764
+        Data4: 40846436
+      Path: event:/Sound effects/Steps/Wood
+  - name: 4105
+    reference:
+      Guid:
+        Data1: -616139412
+        Data2: 1191356101
+        Data3: -16307557
+        Data4: 1103522945
+      Path: event:/Sound effects/Steps/Dirt
+  - name: 4106
+    reference:
+      Guid:
+        Data1: -62698292
+        Data2: 1118319674
+        Data3: -1089719664
+        Data4: -78479438
+      Path: event:/Sound effects/Steps/Leaf
+  - name: 4107
+    reference:
+      Guid:
+        Data1: -12257089
+        Data2: 1189365710
+        Data3: 1327788987
+        Data4: 1691958713
+      Path: event:/Sound effects/Steps/Gravel
+  - name: 4108
+    reference:
+      Guid:
+        Data1: -642178938
+        Data2: 1334606590
+        Data3: -963164255
+        Data4: 1535726689
+      Path: event:/Sound effects/Steps/Mud
+  - name: 4002
+    reference:
+      Guid:
+        Data1: 753941441
+        Data2: 1136031800
+        Data3: -960971329
+        Data4: 1612867275
+      Path: event:/Sound effects/Damage
+  - name: 3100
+    reference:
+      Guid:
+        Data1: 1556444944
+        Data2: 1191305262
+        Data3: -136919156
+        Data4: 57895329
+      Path: event:/Sound effects/Animal/Lion/Roar
+  - name: 3101
+    reference:
+      Guid:
+        Data1: -559338307
+        Data2: 1171848559
+        Data3: 979070390
+        Data4: -1756932940
+      Path: event:/Sound effects/Animal/Lion/Hurt
+  - name: 3102
+    reference:
+      Guid:
+        Data1: 2004185934
+        Data2: 1077391588
+        Data3: 1458012039
+        Data4: -1633746627
+      Path: event:/Sound effects/Animal/Lion/Attack
+  - name: 3103
+    reference:
+      Guid:
+        Data1: -1804443575
+        Data2: 1283720097
+        Data3: 1266757780
+        Data4: -218119163
+      Path: event:/Sound effects/Animal/Lion/Mate
+  - name: 3104
+    reference:
+      Guid:
+        Data1: 496945938
+        Data2: 1190599734
+        Data3: 1278025367
+        Data4: -557872714
+      Path: event:/Sound effects/Animal/Lion/Grunt
+  - name: 3110
+    reference:
+      Guid:
+        Data1: -869146593
+        Data2: 1096103299
+        Data3: -1751838831
+        Data4: -1209775313
+      Path: event:/Sound effects/Animal/Fox/Grunt
+  - name: 3111
+    reference:
+      Guid:
+        Data1: -885588767
+        Data2: 1300189679
+        Data3: 1215450032
+        Data4: -1928745685
+      Path: event:/Sound effects/Animal/Fox/Mate
+  - name: 3112
+    reference:
+      Guid:
+        Data1: 1527636656
+        Data2: 1232542646
+        Data3: -1029792637
+        Data4: 739406283
+      Path: event:/Sound effects/Animal/Fox/Hurt
+  - name: 3113
+    reference:
+      Guid:
+        Data1: -298171551
+        Data2: 1135095422
+        Data3: -1688814950
+        Data4: -931746302
+      Path: event:/Sound effects/Animal/Fox/Attack
+  - name: 3120
+    reference:
+      Guid:
+        Data1: 1295370784
+        Data2: 1173928592
+        Data3: 408504984
+        Data4: 724195176
+      Path: event:/Sound effects/Animal/Coyote/Grunt
+  - name: 3121
+    reference:
+      Guid:
+        Data1: 1268749262
+        Data2: 1304463012
+        Data3: -1768595525
+        Data4: 871209615
+      Path: event:/Sound effects/Animal/Coyote/Howl
+  - name: 3122
+    reference:
+      Guid:
+        Data1: -1122935368
+        Data2: 1171390284
+        Data3: 1011105208
+        Data4: -18510767
+      Path: event:/Sound effects/Animal/Coyote/Mate
+  - name: 3123
+    reference:
+      Guid:
+        Data1: -784485427
+        Data2: 1299182653
+        Data3: -1527400316
+        Data4: 1056640464
+      Path: event:/Sound effects/Animal/Coyote/Attack
+  - name: 3124
+    reference:
+      Guid:
+        Data1: -1216101502
+        Data2: 1242275163
+        Data3: 105206672
+        Data4: 79938452
+      Path: event:/Sound effects/Animal/Coyote/Whine
+  - name: 3130
+    reference:
+      Guid:
+        Data1: -894144405
+        Data2: 1298315247
+        Data3: -672772942
+        Data4: -1968895308
+      Path: event:/Sound effects/Animal/Snake/Slither
+  - name: 3131
+    reference:
+      Guid:
+        Data1: -2004622862
+        Data2: 1132672716
+        Data3: -1151878482
+        Data4: -2097001361
+      Path: event:/Sound effects/Animal/Snake/Hiss
+  - name: 3132
+    reference:
+      Guid:
+        Data1: 1700634692
+        Data2: 1238067844
+        Data3: 2104137860
+        Data4: -2003971136
+      Path: event:/Sound effects/Animal/Snake/Attack
+  - name: 3200
+    reference:
+      Guid:
+        Data1: 1305571993
+        Data2: 1315162234
+        Data3: -2072385355
+        Data4: 492466363
+      Path: event:/Sound effects/Animal/Whale/Song
+  - name: 3201
+    reference:
+      Guid:
+        Data1: -2085199695
+        Data2: 1163029562
+        Data3: -1143076954
+        Data4: -769430601
+      Path: event:/Sound effects/Animal/Whale/Hurt
+  - name: 3202
+    reference:
+      Guid:
+        Data1: -1445329331
+        Data2: 1311564075
+        Data3: -800220275
+        Data4: 731151062
+      Path: event:/Sound effects/Animal/Whale/Mate
+  - name: 3203
+    reference:
+      Guid:
+        Data1: 1969805146
+        Data2: 1232140797
+        Data3: 375305393
+        Data4: -1261352739
+      Path: event:/Sound effects/Animal/Whale/Attack
+  - name: 3204
+    reference:
+      Guid:
+        Data1: -349396375
+        Data2: 1221253139
+        Data3: -1215800408
+        Data4: 527259819
+      Path: event:/Sound effects/Animal/Whale/Blow
+  - name: 3140
+    reference:
+      Guid:
+        Data1: 1356513675
+        Data2: 1250492562
+        Data3: -1132675909
+        Data4: 1878315837
+      Path: event:/Sound effects/Animal/Elephant/Flap
+  - name: 3141
+    reference:
+      Guid:
+        Data1: 1353371596
+        Data2: 1184211537
+        Data3: 389231496
+        Data4: -1672081674
+      Path: event:/Sound effects/Animal/Elephant/Grunt
+  - name: 3142
+    reference:
+      Guid:
+        Data1: 1955835017
+        Data2: 1238242301
+        Data3: -1771116665
+        Data4: 622397008
+      Path: event:/Sound effects/Animal/Elephant/Trumpet
+  - name: 3143
+    reference:
+      Guid:
+        Data1: -2024535819
+        Data2: 1329555956
+        Data3: 1254464132
+        Data4: 1609069246
+      Path: event:/Sound effects/Animal/Elephant/Hurt
+  - name: 3144
+    reference:
+      Guid:
+        Data1: -2082743827
+        Data2: 1309213383
+        Data3: -1792445035
+        Data4: 2096346852
+      Path: event:/Sound effects/Animal/Elephant/Mate
+  - name: 3150
+    reference:
+      Guid:
+        Data1: 708734843
+        Data2: 1125183789
+        Data3: -389289576
+        Data4: 942322966
+      Path: event:/Sound effects/Animal/Horse/Attack
+  - name: 3151
+    reference:
+      Guid:
+        Data1: -1766566666
+        Data2: 1149608249
+        Data3: 33827456
+        Data4: -1682332933
+      Path: event:/Sound effects/Animal/Horse/Hurt
+  - name: 3152
+    reference:
+      Guid:
+        Data1: -1991467111
+        Data2: 1111453084
+        Data3: -1538764906
+        Data4: 1002646445
+      Path: event:/Sound effects/Animal/Horse/Neigh
+  - name: 3153
+    reference:
+      Guid:
+        Data1: -1132786095
+        Data2: 1197664336
+        Data3: 1329542839
+        Data4: -1245602454
+      Path: event:/Sound effects/Animal/Horse/Grunt
+  - name: 3160
+    reference:
+      Guid:
+        Data1: -1612116159
+        Data2: 1201388472
+        Data3: -1179836000
+        Data4: -1074373323
+      Path: event:/Sound effects/Animal/Rabbit/Squeak
+  - name: 3161
+    reference:
+      Guid:
+        Data1: -439245295
+        Data2: 1144849202
+        Data3: 1938482855
+        Data4: -539599140
+      Path: event:/Sound effects/Animal/Rabbit/Attack
+  - name: 3162
+    reference:
+      Guid:
+        Data1: 1515258383
+        Data2: 1287869506
+        Data3: -423735894
+        Data4: -1380891329
+      Path: event:/Sound effects/Animal/Rabbit/Hurt
+  - name: 3163
+    reference:
+      Guid:
+        Data1: 1111323044
+        Data2: 1104409546
+        Data3: -1629090139
+        Data4: -25368520
+      Path: event:/Sound effects/Animal/Rabbit/Mate
+  - name: 4004
+    reference:
+      Guid:
+        Data1: 773730228
+        Data2: 1290670000
+        Data3: 2030741143
+        Data4: -1409260928
+      Path: event:/Sound effects/Water/Swim
+  - name: 3170
+    reference:
+      Guid:
+        Data1: 707404936
+        Data2: 1339716556
+        Data3: -1203672150
+        Data4: -2062741988
+      Path: event:/Sound effects/Animal/Camel/Grunt
+  - name: 3171
+    reference:
+      Guid:
+        Data1: 1579581411
+        Data2: 1123264947
+        Data3: 4761245
+        Data4: 1598087546
+      Path: event:/Sound effects/Animal/Camel/Hurt
+  - name: 3172
+    reference:
+      Guid:
+        Data1: 404253232
+        Data2: 1324755034
+        Data3: -926497638
+        Data4: -1856994419
+      Path: event:/Sound effects/Animal/Camel/Attack
+  - name: 3173
+    reference:
+      Guid:
+        Data1: -1060815004
+        Data2: 1176225421
+        Data3: -973354584
+        Data4: -1644925482
+      Path: event:/Sound effects/Animal/Camel/Mate
+  - name: 3400
+    reference:
+      Guid:
+        Data1: 375407093
+        Data2: 1225203913
+        Data3: -1983728251
+        Data4: -1820889316
+      Path: event:/Sound effects/Animal/Sparrow/Chirp
+  - name: 3401
+    reference:
+      Guid:
+        Data1: -1465779357
+        Data2: 1272416544
+        Data3: -1543981916
+        Data4: -641833423
+      Path: event:/Sound effects/Animal/Sparrow/Attack
+  - name: 3402
+    reference:
+      Guid:
+        Data1: -467529926
+        Data2: 1212398156
+        Data3: -469151597
+        Data4: -2106351614
+      Path: event:/Sound effects/Animal/Sparrow/Hurt
+  - name: 3180
+    reference:
+      Guid:
+        Data1: 808968312
+        Data2: 1194539289
+        Data3: -600755055
+        Data4: -1061288842
+      Path: event:/Sound effects/Animal/Zebra/Whine
+  - name: 3181
+    reference:
+      Guid:
+        Data1: -1343090150
+        Data2: 1149842265
+        Data3: 656304027
+        Data4: -1413466893
+      Path: event:/Sound effects/Animal/Zebra/Hurt
+  - name: 3182
+    reference:
+      Guid:
+        Data1: 1396393787
+        Data2: 1274935729
+        Data3: 876332202
+        Data4: 2139451241
+      Path: event:/Sound effects/Animal/Zebra/Mate
+  - name: 3183
+    reference:
+      Guid:
+        Data1: -842958386
+        Data2: 1267468208
+        Data3: -1444024412
+        Data4: -750373505
+      Path: event:/Sound effects/Animal/Zebra/Attack
+  - name: 3410
+    reference:
+      Guid:
+        Data1: -1659402509
+        Data2: 1228858651
+        Data3: -729837931
+        Data4: 1306862984
+      Path: event:/Sound effects/Animal/Hawk/Cry
+  - name: 3411
+    reference:
+      Guid:
+        Data1: -33502041
+        Data2: 1081002813
+        Data3: 283117479
+        Data4: 1640936661
+      Path: event:/Sound effects/Animal/Hawk/Chirp
+  - name: 3412
+    reference:
+      Guid:
+        Data1: -1382693643
+        Data2: 1150140440
+        Data3: -213031500
+        Data4: 811539566
+      Path: event:/Sound effects/Animal/Hawk/Hurt
+  - name: 3413
+    reference:
+      Guid:
+        Data1: 1823608992
+        Data2: 1137458191
+        Data3: 1910592168
+        Data4: -775878638
+      Path: event:/Sound effects/Animal/Hawk/Attack
 --- !u!4 &1543784206
 Transform:
   m_ObjectHideFlags: 0
@@ -4557,7 +5070,7 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 1860236298}
   m_HandleRect: {fileID: 112242975}
   m_Direction: 0
-  m_Value: 0
+  m_Value: 1
   m_Size: 1
   m_NumberOfSteps: 0
   m_OnValueChanged:

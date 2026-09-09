@@ -16,14 +16,14 @@ namespace Arterra.Data.Material {
             Solid, Liquid
         }
 
-        public override void OnEntityTouchSolid(Entity.Entity entity) {
+        public override void OnEntityTouchSolid(int3 GCoord, Entity.Entity entity) {
             if (entity == null) return;
             if (state != State.Solid) return;
             if (!entity.Is(out IAttackable target)) return;
             EntityManager.AddHandlerEvent(() => target.TakeDamage(ContactDamage, float3.zero, null));
         }
 
-        public override void OnEntityTouchLiquid(Entity.Entity entity) {
+        public override void OnEntityTouchLiquid(int3 GCoord, Entity.Entity entity) {
             if (entity == null) return;
             if (state != State.Liquid) return;
             if (!entity.Is(out IAttackable target)) return;

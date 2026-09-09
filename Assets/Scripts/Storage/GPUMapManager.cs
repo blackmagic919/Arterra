@@ -71,6 +71,8 @@ namespace Arterra.Core.Storage{
             settings.StorageSize = memSize;
             memorySpace = new MemoryBufferHandler(settings);
 
+            SetGlobalWSCCoordHelper();
+
             initialized = true;
         }
 
@@ -79,6 +81,9 @@ namespace Arterra.Core.Storage{
         public static void Release() {
             memorySpace?.Release();
             _ChunkAddressDict?.Release();
+            Shader.SetGlobalFloat(ShaderIDProps.WorldLerpScale, 0.0f);
+            Shader.SetGlobalInteger(ShaderIDProps.WorldMapChunkSize, 0);
+            Shader.SetGlobalInteger(ShaderIDProps.ChunkMapNumChunksPerAxis, 0);
             initialized = false;
         }
 
@@ -303,7 +308,6 @@ namespace Arterra.Core.Storage{
             multiMapTranscribe.SetInt(ShaderIDProps.StartMap, rStart);
             multiMapTranscribe.SetInt(ShaderIDProps.MapChunkSize, mapChunkSize);
             multiMapTranscribe.SetInt(ShaderIDProps.SkipInc, skipInc);
-            SetCCoordHash(multiMapTranscribe);
 
             multiMapTranscribe.GetKernelThreadGroupSizes(0, out uint threadGroupSize, out _, out _);
             int numThreadsAxis = Mathf.CeilToInt(numPointsPerAxis / (float)threadGroupSize);
@@ -322,7 +326,6 @@ namespace Arterra.Core.Storage{
             int offset = ((offC.x * chunkInc & 0xFF) << 24) | ((offC.y * chunkInc & 0xFF) << 16) | ((offC.z * chunkInc & 0xFF) << 8) | (skipInc & 0xFF);
             dictReplaceKey.SetInt(ShaderIDProps.ChunkIncrement, chunkInc);
             dictReplaceKey.SetInt(ShaderIDProps.StartOffset, offset);
-            SetCCoordHash(dictReplaceKey);
 
             dictReplaceKey.GetKernelThreadGroupSizes(0, out uint threadGroupSize, out _, out _);
             int3 numThreadsAxis = (int3)math.ceil((float3)dimension / threadGroupSize);
@@ -357,8 +360,6 @@ namespace Arterra.Core.Storage{
             simplifyMap.SetInts(ShaderIDProps.CCoord, new int[3] { CCoord.x, CCoord.y, CCoord.z });
             simplifyMap.SetInt(ShaderIDProps.NumPointsPerAxis, numPointsAxis);
 
-            SetCCoordHash(simplifyMap);
-
             simplifyMap.GetKernelThreadGroupSizes(0, out uint threadGroupSize, out _, out _);
             int numThreadsAxis = Mathf.CeilToInt(numPointsAxis / (float)threadGroupSize);
             simplifyMap.Dispatch(0, numThreadsAxis, numThreadsAxis, numThreadsAxis);
@@ -373,9 +374,6 @@ namespace Arterra.Core.Storage{
             if (!initialized)
                 return;
 
-            SetCCoordHash(shader);
-            SetWSCCoordHelper(shader);
-
             shader.SetBuffer(0, ShaderIDProps.ChunkAddressDict, _ChunkAddressDict);
             shader.SetBuffer(0, ShaderIDProps.ChunkInfoBuffer, memorySpace.Storage);
         }
@@ -389,30 +387,15 @@ namespace Arterra.Core.Storage{
             if (!initialized)
                 return;
 
-            SetCCoordHash(material);
-            SetWSCCoordHelper(material);
-
             material.SetBuffer(ShaderIDProps.ChunkAddressDict, _ChunkAddressDict);
             material.SetBuffer(ShaderIDProps.ChunkInfoBuffer, memorySpace.Storage);
         }
 
-        static void SetWSCCoordHelper(ComputeShader shader) {
-            shader.SetFloat(ShaderIDProps.LerpScale, lerpScale);
-            shader.SetInt(ShaderIDProps.MapChunkSize, mapChunkSize);
+        static void SetGlobalWSCCoordHelper() {
+            Shader.SetGlobalFloat(ShaderIDProps.WorldLerpScale, lerpScale);
+            Shader.SetGlobalInteger(ShaderIDProps.WorldMapChunkSize, mapChunkSize);
+            Shader.SetGlobalInteger(ShaderIDProps.ChunkMapNumChunksPerAxis, numChunksAxis);
         }
-
-        static void SetWSCCoordHelper(Material material) {
-            material.SetFloat(ShaderIDProps.LerpScale, lerpScale);
-            material.SetInt(ShaderIDProps.MapChunkSize, mapChunkSize);
-        }
-        /// <summary>Attaches metadata allowing a compute shader to utilize the <see cref="Address">lookup construct</see> to sample map information. </summary>
-        /// <param name="shader">The compute shader requesting map information. Caller 
-        /// should ensure this shader is able to recieve the bindings attached here.</param>
-        public static void SetCCoordHash(ComputeShader shader) { shader.SetInt(ShaderIDProps.NumChunksAxis, numChunksAxis); }
-        /// <summary>Attaches metadata allowing a compute shader to utilize the <see cref="Address">lookup construct</see> to sample map information. </summary>
-        /// <param name="material">The compute shader requesting map information. Caller 
-        /// should ensure this shader is able to recieve the bindings attached here.</param>
-        public static void SetCCoordHash(Material material) { material.SetInt(ShaderIDProps.NumChunksAxis, numChunksAxis); }
 
     }
 }

@@ -16,7 +16,6 @@ namespace Arterra.Data.Entity.Behavior {
         }
         
         public Option<List<GeneFeature>> Genes;
-        public bool NormalizeWeights = true;
         public List<GeneFeature> Genetics => Genes.value;
         [JsonIgnore][HideInInspector][UISetting(Ignore = true)]
         public Dictionary<MSettings, int> GeneIndex;
@@ -26,18 +25,6 @@ namespace Arterra.Data.Entity.Behavior {
             for(int i = 0; i < Genes.value.Count; i++) {
                 GeneFeature gene = Genes.value[i];
                 GeneIndex[gene.name] = i;
-            }
-            if (!NormalizeWeights) return;
-            double totalWeight = 0;
-            foreach(var feature in Genetics) {
-                totalWeight += feature.var;
-            } for (int i = 0; i < Genetics.Count; i++) {
-                GeneFeature gene = Genetics[i];
-                Genetics[i] = new GeneFeature {
-                    name = gene.name,
-                    var = gene.var,
-                    geneWeight = (float)(gene.geneWeight/totalWeight),
-                };
             }
         }
 

@@ -78,7 +78,13 @@ namespace Arterra.Utils {
         public static readonly int ChunkIncrement = Shader.PropertyToID("chunkInc");
         public static readonly int StartOffset = Shader.PropertyToID("bOffset");
         public static readonly int LerpScale = Shader.PropertyToID("lerpScale");
-        public static readonly int NumChunksAxis = Shader.PropertyToID("numChunksAxis");
+        public static readonly int WorldLerpScale = Shader.PropertyToID("WorldLerpScale");
+        public static readonly int ChunkMapNumChunksPerAxis = Shader.PropertyToID("ChunkMapNumChunksPerAxis");
+        public static readonly int WorldMapChunkSize = Shader.PropertyToID("WorldMapChunkSize");
+        public static readonly int BakedLightChunkAddressDict = Shader.PropertyToID("BakedLightChunkAddressDict");
+        public static readonly int BakedLightChunkInfoBuffer = Shader.PropertyToID("BakedLightChunkInfoBuffer");
+        public static readonly int BakedLightIsoLevel = Shader.PropertyToID("BakedLightIsoLevel");
+        public static readonly int BakedLightChunkLMOffset = Shader.PropertyToID("BakedLightChunkLMOffset");
 
         //Surface Map Generator
         public static readonly int SurfaceMemoryBuffer = Shader.PropertyToID("_SurfMemoryBuffer");

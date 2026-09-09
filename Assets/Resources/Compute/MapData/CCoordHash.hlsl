@@ -1,6 +1,6 @@
 #ifndef CCOORD_HASH
 #define CCOORD_HASH
-uint numChunksAxis;
+uint ChunkMapNumChunksPerAxis;
 
 struct CInfo {
     uint address;
@@ -9,8 +9,8 @@ struct CInfo {
 };
 
 uint HashCoord(in int3 CCoord){
-    uint3 hashCC = (numChunksAxis + sign(CCoord) * (abs(CCoord) % numChunksAxis)) % numChunksAxis;
-    return (hashCC.x * numChunksAxis * numChunksAxis) + (hashCC.y * numChunksAxis) + hashCC.z;
+    uint3 hashCC = (ChunkMapNumChunksPerAxis + sign(CCoord) * (abs(CCoord) % ChunkMapNumChunksPerAxis)) % ChunkMapNumChunksPerAxis;
+    return (hashCC.x * ChunkMapNumChunksPerAxis * ChunkMapNumChunksPerAxis) + (hashCC.y * ChunkMapNumChunksPerAxis) + hashCC.z;
 }
 
 bool Contains(in CInfo info, in int3 CCoord){

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<objects serializationModel="Studio.02.03.00">
+	<object class="MixerGroup" id="{6e4772b2-d876-4528-b281-d47148745d3c}">
+		<property name="name">
+			<value>Camel</value>
+		</property>
+		<relationship name="effectChain">
+			<destination>{637ef908-4551-422c-9eef-12e04de5d19a}</destination>
+		</relationship>
+		<relationship name="panner">
+			<destination>{cb401952-23c5-47b4-9a67-cbe2d39f071d}</destination>
+		</relationship>
+		<relationship name="output">
+			<destination>{11040329-8379-4768-b0cc-4d7992176ff6}</destination>
+		</relationship>
+	</object>
+	<object class="MixerBusEffectChain" id="{637ef908-4551-422c-9eef-12e04de5d19a}">
+		<relationship name="effects">
+			<destination>{af0e693f-26e4-4d19-9d44-33902e04a786}</destination>
+		</relationship>
+	</object>
+	<object class="MixerBusPanner" id="{cb401952-23c5-47b4-9a67-cbe2d39f071d}" />
+	<object class="MixerBusFader" id="{af0e693f-26e4-4d19-9d44-33902e04a786}" />
+</objects>

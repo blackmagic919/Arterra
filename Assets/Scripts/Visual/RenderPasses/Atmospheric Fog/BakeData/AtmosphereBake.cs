@@ -199,8 +199,6 @@ namespace Arterra.Engine.Rendering {
             OpticalDataCompute.SetBuffer(0, "mapData", OpticalInfo);
             OpticalDataCompute.SetBuffer(0, "sunLuminance", sunLuminance);
             OpticalDataCompute.SetBuffer(0, "sunRayLengths", sunRayLengths);
-
-            LightBaker.SetupLightSampler(OpticalDataCompute, 0);
             GPUMapManager.SetDensitySampleData(OpticalDataCompute);
         }
 

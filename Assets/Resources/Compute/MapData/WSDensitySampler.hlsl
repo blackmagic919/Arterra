@@ -52,8 +52,8 @@ OpticalInfo SampleMapData(float3 samplePointWS){
     [unroll]for(uint i = 0; i < 8; i++){
         //unfortunately we have to clamp here
         //if you store duplice edge data in the map you don't have to do this
-        uint3 MSCoord = clamp(blendInfo.origin + uint3(i & 1u, (i & 2u) >> 1, (i & 4u) >> 2), 0, mapChunkSize - 1); 
-        uint pointAddress = cHandle.address + indexFromCoordManual(MSCoord, mapChunkSize) * POINT_STRIDE_4BYTE;
+        uint3 MSCoord = clamp(blendInfo.origin + uint3(i & 1u, (i & 2u) >> 1, (i & 4u) >> 2), 0, WorldMapChunkSize - 1); 
+        uint pointAddress = cHandle.address + indexFromCoordManual(MSCoord, WorldMapChunkSize) * POINT_STRIDE_4BYTE;
 
         uint info = _ChunkInfoBuffer[pointAddress];
         int material = info >> 16 & 0x7FFF;
@@ -82,8 +82,8 @@ OpticalDepth SampleOpticalDepth(float3 samplePointWS){
     [unroll]for(uint i = 0; i < 8; i++){
         //unfortunately we have to clamp here
         //if you store duplice edge data in the map you don't have to do this
-        uint3 MSCoord = clamp(blendInfo.origin + uint3(i & 1u, (i & 2u) >> 1, (i & 4u) >> 2), 0, mapChunkSize - 1); 
-        uint pointAddress = cHandle.address + indexFromCoordManual(MSCoord, mapChunkSize) * POINT_STRIDE_4BYTE;
+        uint3 MSCoord = clamp(blendInfo.origin + uint3(i & 1u, (i & 2u) >> 1, (i & 4u) >> 2), 0, WorldMapChunkSize - 1); 
+        uint pointAddress = cHandle.address + indexFromCoordManual(MSCoord, WorldMapChunkSize) * POINT_STRIDE_4BYTE;
 
         uint info = _ChunkInfoBuffer[pointAddress];
         int material = info >> 16 & 0x7FFF;
@@ -105,8 +105,8 @@ OpticalDepth SampleOpticalDepthRaw(float3 samplePointWS){
     MSPoint.y += (cHandle.offset >> 16) & 0xFF;
     MSPoint.z += (cHandle.offset >> 8) & 0xFF;
 
-    uint3 MSCoord = clamp(round(WSToMS(MSPoint)), 0, mapChunkSize - 1); 
-    uint pointAddress = cHandle.address + indexFromCoordManual(MSCoord, mapChunkSize) * POINT_STRIDE_4BYTE;
+    uint3 MSCoord = clamp(round(WSToMS(MSPoint)), 0, WorldMapChunkSize - 1); 
+    uint pointAddress = cHandle.address + indexFromCoordManual(MSCoord, WorldMapChunkSize) * POINT_STRIDE_4BYTE;
 
     uint info = _ChunkInfoBuffer[pointAddress];
     int material = info >> 16 & 0x7FFF;
@@ -129,8 +129,8 @@ OpticalInfo SampleMapDataRaw(float3 samplePointWS){
         (cHandle.offset >> 8) & 0xFF
     );
 
-    uint3 MSCoord = clamp(round(WSToMS(MSPoint)), 0, mapChunkSize - 1); 
-    uint pointAddress = cHandle.address + indexFromCoordManual(MSCoord, mapChunkSize) * POINT_STRIDE_4BYTE;
+    uint3 MSCoord = clamp(round(WSToMS(MSPoint)), 0, WorldMapChunkSize - 1); 
+    uint pointAddress = cHandle.address + indexFromCoordManual(MSCoord, WorldMapChunkSize) * POINT_STRIDE_4BYTE;
 
     uint info = _ChunkInfoBuffer[pointAddress];
     int material = info >> 16 & 0x7FFF;

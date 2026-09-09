@@ -12,17 +12,6 @@
 		</relationship>
 	</object>
 	<object class="GameParameter" id="{ea5fb739-1e91-424c-9b0a-3fb62d4a268e}">
-		<property name="parameterType">
-			<value>2</value>
-		</property>
-		<property name="maximum">
-			<value>3</value>
-		</property>
-		<property name="enumerationLabels">
-			<value>Small Splash</value>
-			<value>Medium Splash</value>
-			<value>Big Splash</value>
-		</property>
 		<property name="initialValue">
 			<value>0</value>
 		</property>

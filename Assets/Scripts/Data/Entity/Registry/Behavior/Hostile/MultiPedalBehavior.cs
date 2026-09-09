@@ -187,6 +187,8 @@ namespace Arterra.Data.Entity.Behavior
 
 
         private class Leg : LeadHeadBehavior.Appendage {
+            private const string LegGravityStateName = "MultiPedalBehavior::Leg";
+
             [JsonIgnore]
             private MultiPedalBehavior mp;
             [JsonIgnore]
@@ -208,9 +210,8 @@ namespace Arterra.Data.Entity.Behavior
             public override void Initialize(BehaviorEntity.Animal self, LeadHeadBehavior.AppendageSettings settings, Transform root) {
                 this.settings = settings as MultiPedalSettings.LegSettings;
                 if(!self.Is(out mp)) throw new Exception("Entity: MultiPedalBehavior Leg expected entity to be MultiPedalBehavior");
-                this.collider = new(settings.collider, mp.LeadHead.BodyPosition + settings.RestOffset) {
-                    useGravity = true
-                };
+                this.collider = new(settings.collider, mp.LeadHead.BodyPosition + settings.RestOffset);
+                this.collider.SetGravityState(LegGravityStateName, TerrainCollider.GravityPriority.Override, true);
 
                 base.Initialize(self, settings, root);
                 SetConstraint<TwoBoneIKConstraint>();
@@ -247,7 +248,7 @@ namespace Arterra.Data.Entity.Behavior
                 //Only try to raise leg if the opposite leg is planted in the ground
                 bool CanStartStep = mp.appendages[settings.OppositeLeg].State == StepState.Stand;
                 float3 origin = mp.LeadHead.BodyPosition + math.mul(mp.LeadHead.BodyCollider.transform.rotation, settings.RestOffset);
-                this.collider.useGravity = State != StepState.Raise;
+                this.collider.SetGravityState(LegGravityStateName, TerrainCollider.GravityPriority.Override, State != StepState.Raise);
                 Update(self);
 
                 this.collider.transform.velocity *= 1 - settings.Friction;

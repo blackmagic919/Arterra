@@ -149,6 +149,8 @@ namespace Arterra.Data.Entity.Behavior
         }
 
 		private class Tentacle : LeadHeadBehavior.Appendage, IAttackable {
+			private const string TentacleGravityStateName = "TentacleBehavior::Tentacle";
+
 			[JsonIgnore]
 			public TentacleSettings.TentacleConfig settings;
             private Transform AnimatedTentacle;
@@ -182,9 +184,8 @@ namespace Arterra.Data.Entity.Behavior
 
 			public override void Initialize(BehaviorEntity.Animal self, LeadHeadBehavior.AppendageSettings settings, Transform root) {
 				this.settings = settings as TentacleSettings.TentacleConfig;
-				this.collider = new (this.settings.collider, self.position + settings.RestOffset) {
-                    useGravity = false
-                };
+				this.collider = new(this.settings.collider, self.position + settings.RestOffset);
+				this.collider.SetGravityState(TentacleGravityStateName, TerrainCollider.GravityPriority.Override, false);
 
                 base.Initialize(self, settings, root);
                 SetConstraint<ChainIKConstraint>();
@@ -207,6 +208,7 @@ namespace Arterra.Data.Entity.Behavior
 				visible = true;
 
 				this.settings = settings as TentacleSettings.TentacleConfig;
+				this.collider.SetGravityState(TentacleGravityStateName, TerrainCollider.GravityPriority.Override, false);
                 this.State = TentacleState.Animated;
                 constraint.weight = 0;
 				active = true;

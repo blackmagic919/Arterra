@@ -62,6 +62,9 @@ namespace Arterra.Data.Entity.Behavior {
     }
 
     public class LeadHeadBehavior : SpeciesBehavior, IMultiCollider {
+        private const string BodyGravitySyncStateName = "LeadHeadBehavior::BodySync";
+        private const string HeadGravityStateName = "LeadHeadBehavior::Head";
+
         [JsonIgnore] public TerrainCollider BodyCollider;
         public TerrainCollider HeadCollider;
 
@@ -99,7 +102,7 @@ namespace Arterra.Data.Entity.Behavior {
 
         public override void Update(BehaviorEntity.Animal self) {
             if (self.context == BehaviorEntity.UpdateContext.JobSync) return;
-            BodyCollider.useGravity = HeadCollider.useGravity;
+            BodyCollider.SetGravityState(BodyGravitySyncStateName, TerrainCollider.GravityPriority.Override, HeadCollider.UseGravity);
             HeadCollider.transform.rotation = BodyCollider.transform.rotation;
             switch (BodyCUpdate.settings.interactType) {
                 case ColliderUpdateSettings.InteractType.Regular:
@@ -138,7 +141,7 @@ namespace Arterra.Data.Entity.Behavior {
             this.HeadCollider = new TerrainCollider(settings.Collider, GCoord + settings.Offset);
             this.BodyCollider = BodyCUpdate.collider;
             self.Register<IMultiCollider>(this);
-            HeadCollider.useGravity = false;
+            HeadCollider.SetGravityState(HeadGravityStateName, TerrainCollider.GravityPriority.Override, false);
         }
 
         public override void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
@@ -148,7 +151,7 @@ namespace Arterra.Data.Entity.Behavior {
                 throw new Exception("Entity: LeadHead Behavior Requires AnimalSettings to have ColliderUpdateBehavior");
             this.BodyCollider = BodyCUpdate.collider;
             self.Register<IMultiCollider>(this);
-            HeadCollider.useGravity = false;
+            HeadCollider.SetGravityState(HeadGravityStateName, TerrainCollider.GravityPriority.Override, false);
         }
 
         public abstract class Appendage : Entity {

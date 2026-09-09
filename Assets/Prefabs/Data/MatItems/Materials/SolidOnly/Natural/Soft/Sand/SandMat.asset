@@ -15,7 +15,11 @@ MonoBehaviour:
   Name: Sand
   Tags:
     Reg:
-      value: []
+      value:
+      - Tag: 9100
+        value:
+          value:
+            rid: 5295427349367226535
   Names:
     value:
     - Sand:Solid
@@ -41,7 +45,7 @@ MonoBehaviour:
     waveScale: {x: 0, y: 0}
     waveSpeed: {x: 0, y: 0}
   Roughness: 0.2
-  Logic: {fileID: 11400000, guid: 481b2c054900b455eb9738ef2d48a56d, type: 2}
+  Logic: {fileID: 0}
   looter:
     SolidLootTable:
       value: []
@@ -55,4 +59,9 @@ MonoBehaviour:
       DropMultiplier: 1
   references:
     version: 2
-    RefIds: []
+    RefIds:
+    - rid: 5295427349367226535
+      type: {class: ContactSoundTag, ns: Arterra.Configuration, asm: Assembly-CSharp}
+      data:
+        OnTouchEvent: 4101
+        OnRemoveEvent: 0

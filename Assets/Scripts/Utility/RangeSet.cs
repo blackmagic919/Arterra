@@ -21,17 +21,10 @@ namespace Arterra.Utils {
 
 
     [Serializable]
-    public class RangeSet<T> : BaseRangeSet<T> where T : IRangeBlock {
-        public void Construct(ICatalgoue catalogue) => base.Construct(catalogue);
-        public bool IsAllowListed(int entry, out int preference) => base.IsAllowListed(entry, out preference); 
-    }
+    public class RangeSet<T> : BaseRangeSet<T> where T : IRangeBlock {}
 
     [Serializable]
     public class RangeMap<T> : BaseRangeSet<T> where T : IRangeBlock {
-        public void Construct(ICatalgoue catalogue) {
-            base.Construct(catalogue);
-        }
-
         public bool TryGetInfo(int entry, out T info) {
             info = default(T);
             if (!base.IsAllowListed(entry, out int index))
@@ -41,8 +34,6 @@ namespace Arterra.Utils {
             info = AllowList.value[index];
             return true;
         }
-
-        public bool IsAllowListed(int entry, out int preference) => base.IsAllowListed(entry, out preference); 
     }
     
     [Serializable]
@@ -58,7 +49,7 @@ namespace Arterra.Utils {
             public int priority;
         }
 
-        protected void Construct(ICatalgoue catalgoue) {
+        public void Construct(ICatalgoue catalgoue) {
             allowRanges = new List<int2>();
             List<T> blocks = AllowList.value;
             if (catalgoue == null || blocks == null || blocks.Count == 0) return;
@@ -130,7 +121,7 @@ namespace Arterra.Utils {
                 allowRanges.RemoveAt(0);
         }
 
-        protected bool IsAllowListed(int entry, out int preference) {
+        public bool IsAllowListed(int entry, out int preference) {
             preference = -1;
             if (entry < 0 || allowRanges == null || allowRanges.Count == 0)
                 return false;

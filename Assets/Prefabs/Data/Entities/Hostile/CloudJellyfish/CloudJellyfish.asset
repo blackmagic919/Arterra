@@ -1339,25 +1339,25 @@ MonoBehaviour:
             geneWeight: 0.2
           - name: 1001
             var: 0
-            geneWeight: 0
+            geneWeight: 0.6
           - name: 1002
             var: 0
-            geneWeight: 0
+            geneWeight: 0.3
           - name: 1003
             var: 0
-            geneWeight: 0
+            geneWeight: 0.1
           - name: 2039
             var: 0.5
             geneWeight: 0.025
           - name: 2040
             var: 0
-            geneWeight: 0
+            geneWeight: 0.01
           - name: 2044
             var: 0.3
             geneWeight: 0.025
           - name: 2045
             var: 0
-            geneWeight: 0
+            geneWeight: 0.01
           - name: 2031
             var: 0.25
             geneWeight: 0.2
