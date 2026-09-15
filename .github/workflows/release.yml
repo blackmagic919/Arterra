@@ -40,7 +40,7 @@ jobs:
           UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
           UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}          
         with:
-          unityVersion: 6000.2.14f1
+          unityVersion: 6000.5.10f1
           targetPlatform: StandaloneWindows64
           buildsPath: build
 
@@ -80,7 +80,7 @@ jobs:
           UNITY_EMAIL: ${{ secrets.UNITY_EMAIL }}
           UNITY_PASSWORD: ${{ secrets.UNITY_PASSWORD }}
         with:
-          unityVersion: 6000.2.14f1
+          unityVersion: 6000.5.10f1
           targetPlatform: StandaloneOSX
           buildsPath: build
 
@@ -116,11 +116,18 @@ jobs:
           unzip -q artifacts/Arterra-macOS/Arterra-macOS.zip -d steam-content/macos
           find steam-content -maxdepth 3 -type f -o -type l | sort | head -200
 
+      - name: Generate Steam TOTP
+        id: steam-totp
+        uses: CyberAndrii/steam-totp@v1
+        with:
+          shared_secret: ${{ secrets.STEAM_SHARED_SECRET }}
+
       - name: Deploy to Steam QA branch
         uses: game-ci/steam-deploy@v3
         with:
           username: ${{ secrets.STEAM_USERNAME }}
-          configVdf: ${{ secrets.STEAM_CONFIG_VDF }}
+          password: ${{ secrets.STEAM_PASSWORD }}
+          totp: ${{ steps.steam-totp.outputs.code }}
           appId: ${{ secrets.STEAM_APP_ID }}
           buildDescription: ${{ env.RELEASE_VERSION }}
           rootPath: steam-content
