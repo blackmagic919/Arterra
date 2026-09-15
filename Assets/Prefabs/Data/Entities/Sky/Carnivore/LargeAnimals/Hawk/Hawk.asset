@@ -834,11 +834,6 @@ MonoBehaviour:
               sound: 3411
               chance: 0.25
           - state: 20200
-            frequency: 3
-            effect:
-              sound: 3411
-              chance: 0.25
-          - state: 20200
             frequency: 1.5
             effect:
               sound: 3412

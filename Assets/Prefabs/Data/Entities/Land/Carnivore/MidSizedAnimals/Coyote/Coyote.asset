@@ -262,6 +262,10 @@ MonoBehaviour:
             AllowList:
               value:
               - EntityType:
+                  tagValue: 0
+                  registryValue: Coyote
+                Policy: 1
+              - EntityType:
                   tagValue: 6150
                   registryValue: 
                 Policy: 1
@@ -634,6 +638,8 @@ MonoBehaviour:
       type: {class: StepSoundBehaviorSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
         StepDistance: 1
+        TouchState: 0
+        entityStepSound: 0
     - rid: 5295427382668427265
       type: {class: AnimalSoundBehaviorSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:

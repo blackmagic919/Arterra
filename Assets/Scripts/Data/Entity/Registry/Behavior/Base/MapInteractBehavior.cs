@@ -116,6 +116,7 @@ namespace Arterra.Data.Entity.Behavior {
         public void ProcessInLiquidAquatic(BehaviorEntity.Animal self, TerrainCollider tCollider, float density) {
             self.eventCtrl.RaiseEvent(Arterra.Core.Events.GameEvent.Entity_InLiquid, self, null, density);
             breath = math.max(breath - self.DeltaTime, 0);
+            tCollider.SetGravityState(LiquidGravityStateName, TerrainCollider.GravityPriority.Environment, false);
 
             if (self.Is(out IAttackable target) && target.IsDead) { //If dead float to the surface
                 tCollider.transform.velocity += self.DeltaTime * settings.Bouyancy * -EntityJob.cxt.gravity;

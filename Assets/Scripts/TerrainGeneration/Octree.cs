@@ -222,8 +222,8 @@ namespace Arterra.Engine.Terrain {
         /// </returns>
         public bool MergeSiblings(uint leaf) {
             Node node = nodes[leaf];
+            if (node.parent == 0) { return RemapRoot(leaf); } //Important this goes before
             if (!IsBalanced(ref nodes[node.parent])) { return true; }
-            if (node.parent == 0) { return RemapRoot(leaf); }
 
             uint sibling = leaf;
             do {

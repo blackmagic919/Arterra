@@ -4042,6 +4042,38 @@ MonoBehaviour:
         Data3: 1910592168
         Data4: -775878638
       Path: event:/Sound effects/Animal/Hawk/Attack
+  - name: 3420
+    reference:
+      Guid:
+        Data1: 647135129
+        Data2: 1130960137
+        Data3: -1473828942
+        Data4: 560154308
+      Path: event:/Sound effects/Animal/Owl/Hoot
+  - name: 3421
+    reference:
+      Guid:
+        Data1: -1186108649
+        Data2: 1222037784
+        Data3: -874989941
+        Data4: 74092183
+      Path: event:/Sound effects/Animal/Owl/Attack
+  - name: 3422
+    reference:
+      Guid:
+        Data1: -845012727
+        Data2: 1146415728
+        Data3: 1673361069
+        Data4: 1186207965
+      Path: event:/Sound effects/Animal/Owl/Hurt
+  - name: 3423
+    reference:
+      Guid:
+        Data1: 602578415
+        Data2: 1080644801
+        Data3: 1668346793
+        Data4: -1526840505
+      Path: event:/Sound effects/Animal/Owl/Mate
 --- !u!4 &1543784206
 Transform:
   m_ObjectHideFlags: 0

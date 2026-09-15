@@ -81,6 +81,11 @@ namespace Arterra.Engine.Audio {
         Entity_HawkHurt = AudioEventsBase.SFXEntity + 412,
         Entity_HawkAttack = AudioEventsBase.SFXEntity + 413,
 
+        Entity_OwlHoot = AudioEventsBase.SFXEntity + 420,
+        Entity_OwlAttack = AudioEventsBase.SFXEntity + 421,
+        Entity_OwlHurt = AudioEventsBase.SFXEntity + 422,
+        Entity_OwlMate = AudioEventsBase.SFXEntity + 423,
+
         Action_WaterSplash = AudioEventsBase.SFXAction + 0,
         Action_WaterSubmerged = AudioEventsBase.SFXAction + 1,
         Action_Damage = AudioEventsBase.SFXAction + 2, 

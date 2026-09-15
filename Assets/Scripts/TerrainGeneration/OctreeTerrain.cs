@@ -255,10 +255,13 @@ namespace Arterra.Engine.Terrain{
             protected override bool RemapRoot(uint octreeNode) {
                 ref Node node = ref nodes[octreeNode];
                 int maxChunkSize = MinChunkSize * (1 << MaxDepth);
-                int3 VCoord = FloorCCoord(ViewPosGS - maxChunkSize / 2, maxChunkSize);
-                int3 offset = ((node.origin / maxChunkSize - VCoord) % RootDim + RootDim) % RootDim;
+                //For odd root dims we need to offset our hash lattice
+                int latticeOffset = RootDim % 2 != 0 ? maxChunkSize / 2 : 0;
+                int3 rootCoord = FloorCCoord(node.origin - latticeOffset, maxChunkSize);
+                int3 VCoord = FloorCCoord(ViewPosGS - latticeOffset - maxChunkSize / 2, maxChunkSize);
+                int3 offset = ((rootCoord - VCoord) % RootDim + RootDim) % RootDim;
 
-                int3 newOrigin = (VCoord + offset) * maxChunkSize;
+                int3 newOrigin = (VCoord + offset) * maxChunkSize + latticeOffset;
                 if (newOrigin.Equals(node.origin)) return true;
 
                 //Force destroy it without creating zombies

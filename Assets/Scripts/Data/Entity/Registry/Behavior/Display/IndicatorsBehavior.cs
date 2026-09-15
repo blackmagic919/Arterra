@@ -117,8 +117,13 @@ public static class Indicators {
         GameObject indicator = GameObject.Instantiate(Indicators.DamageIndicator);
 
         Quaternion rot;
-        if(Vector3.Magnitude(eulerDir) <= 1E-05f) rot = UnityEngine.Random.rotation;
-        else rot = Quaternion.LookRotation(eulerDir);
+        Vector3 dir = eulerDir;
+        bool hasFiniteDirection =
+            !float.IsNaN(dir.x) && !float.IsInfinity(dir.x) &&
+            !float.IsNaN(dir.y) && !float.IsInfinity(dir.y) &&
+            !float.IsNaN(dir.z) && !float.IsInfinity(dir.z);
+        if(!hasFiniteDirection || dir.sqrMagnitude <= 1E-10f) rot = UnityEngine.Random.rotation;
+        else rot = Quaternion.LookRotation(dir);
         indicator.transform.SetPositionAndRotation(Arterra.Core.Storage.CPUMapManager.GSToWS(posGS), rot);
         return indicator;
     }

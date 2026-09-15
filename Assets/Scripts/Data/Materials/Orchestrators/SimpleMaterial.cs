@@ -22,7 +22,7 @@ namespace Arterra.Data.Material
         public override void PropogateMaterialUpdate(int3 GCoord, Unity.Mathematics.Random prng) 
             => Logic?.PropogateMaterialUpdate(GCoord, ref prng);
         public override void RandomMaterialUpdate(int3 GCoord, Unity.Mathematics.Random prng)
-            => Logic?.PropogateMaterialUpdate(GCoord, ref prng);
+            => Logic?.RandomMaterialUpdate(GCoord, ref prng);
 
         public override bool OnRemoving(int3 GCoord, Entity.Entity caller) 
             => Logic?.OnRemoving(GCoord, caller) ?? false;

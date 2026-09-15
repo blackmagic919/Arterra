@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<objects serializationModel="Studio.02.03.00">
+	<object class="MixerGroup" id="{2dad61fd-b3b0-4311-82f5-2dd3cf6d87f8}">
+		<property name="name">
+			<value>Owl</value>
+		</property>
+		<relationship name="effectChain">
+			<destination>{3ed78b39-6aa6-43d6-afab-c9e02e359fe2}</destination>
+		</relationship>
+		<relationship name="panner">
+			<destination>{0c968e4f-f1e8-4ca0-88bc-b93fef8ba92e}</destination>
+		</relationship>
+		<relationship name="output">
+			<destination>{11040329-8379-4768-b0cc-4d7992176ff6}</destination>
+		</relationship>
+	</object>
+	<object class="MixerBusEffectChain" id="{3ed78b39-6aa6-43d6-afab-c9e02e359fe2}">
+		<relationship name="effects">
+			<destination>{08070a1f-4bf1-4ce0-8136-17b2b957525b}</destination>
+		</relationship>
+	</object>
+	<object class="MixerBusPanner" id="{0c968e4f-f1e8-4ca0-88bc-b93fef8ba92e}" />
+	<object class="MixerBusFader" id="{08070a1f-4bf1-4ce0-8136-17b2b957525b}" />
+</objects>

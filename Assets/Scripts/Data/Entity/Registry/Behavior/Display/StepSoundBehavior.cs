@@ -93,6 +93,7 @@ namespace Arterra.Data.Entity.Behavior {
             EntityManager.AddHandlerEvent(TryPlayStep);
 
             void TryPlayStep() {
+                if (self == null || !self.active) return;
                 float weight = math.clamp(1.0f - math.exp(-0.01f * self.weight), 0.0f, 0.999f);
                 if (contactEvent != AudioEvents.None) {
                     FMOD.Studio.EventInstance e = AudioManager.CreateEvent(contactEvent, self.position);
