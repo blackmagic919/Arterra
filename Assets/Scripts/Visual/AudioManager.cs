@@ -86,6 +86,26 @@ namespace Arterra.Engine.Audio {
         Entity_OwlHurt = AudioEventsBase.SFXEntity + 422,
         Entity_OwlMate = AudioEventsBase.SFXEntity + 423,
 
+        Entity_BatSqueak = AudioEventsBase.SFXEntity + 430,
+        Entity_BatAttack = AudioEventsBase.SFXEntity + 431,
+        Entity_BatMate = AudioEventsBase.SFXEntity + 432,
+        Entity_BatHurt = AudioEventsBase.SFXEntity + 433,
+
+        Entity_VultureSquawk = AudioEventsBase.SFXEntity + 440,
+        Entity_VultureAttack = AudioEventsBase.SFXEntity + 441,
+        Entity_VultureMate = AudioEventsBase.SFXEntity + 442,
+        Entity_VultureHurt = AudioEventsBase.SFXEntity + 443,
+
+        Entity_SeagullCry = AudioEventsBase.SFXEntity + 450,
+        Entity_SeagullAttack = AudioEventsBase.SFXEntity + 451,
+        Entity_SeagullMate = AudioEventsBase.SFXEntity + 452,
+        Entity_SeagullHurt = AudioEventsBase.SFXEntity + 453,
+
+        Entity_DoveCoo = AudioEventsBase.SFXEntity + 460,
+        Entity_DoveAttack = AudioEventsBase.SFXEntity + 461,
+        Entity_DoveMate = AudioEventsBase.SFXEntity + 462,
+        Entity_DoveHurt = AudioEventsBase.SFXEntity + 463,
+
         Action_WaterSplash = AudioEventsBase.SFXAction + 0,
         Action_WaterSubmerged = AudioEventsBase.SFXAction + 1,
         Action_Damage = AudioEventsBase.SFXAction + 2, 

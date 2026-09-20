@@ -52,9 +52,31 @@ public class ArterraRuntime : MonoBehaviour {
     /// </remarks>
     public static LinkedList<RuntimeTaskEl> EventTaskQueue; 
     private static LinkedListNode<RuntimeTaskEl> _nextNode;
+    private static UnityEngine.Rendering.CommandBuffer AsyncTaskBuffer;
+
+
+    private static bool TryGetAsyncTaskBuffer(string caller, out UnityEngine.Rendering.CommandBuffer cmd) {
+        cmd = AsyncTaskBuffer;
+        if (cmd == null) {
+            Debug.LogWarning($"{nameof(ArterraRuntime)}.{caller} was called before runtime initialization or after shutdown.");
+            return false;
+        }
+
+        return true;
+    }
     
     private void OnEnable() {
+        if (instance != null && instance != this) {
+            Debug.LogWarning($"Duplicate {nameof(ArterraRuntime)} instance detected. Disabling duplicate component on {gameObject.name}.");
+            enabled = false;
+            return;
+        }
+
         instance = this;
+        AsyncTaskBuffer ??= new UnityEngine.Rendering.CommandBuffer {
+            name = "ArterraRuntime.AsyncTaskBuffer"
+        };
+        AsyncTaskBuffer.Clear();
         MainLoopUpdateTasks = new Queue<IUpdateSubscriber>();
         MainLateUpdateTasks = new Queue<IUpdateSubscriber>();
         MainFixedUpdateTasks = new Queue<IUpdateSubscriber>();
@@ -65,9 +87,11 @@ public class ArterraRuntime : MonoBehaviour {
     }
 
     private void OnDisable() {
-        if (instance == this)
-            instance = null;
+        if (instance != this) return;
+        instance = null;
         SystemProtocol.Shutdown();
+        AsyncTaskBuffer?.Release();
+        AsyncTaskBuffer = null;
     }
 
 #if UNITY_EDITOR
@@ -79,7 +103,19 @@ public class ArterraRuntime : MonoBehaviour {
         ProcessCoroutines(MainCoroutines);
         ProcessEventTasks();
     }
-    private void LateUpdate() { ProcessUpdateTasks(MainLateUpdateTasks); }
+    private void LateUpdate() {
+        ProcessUpdateTasks(MainLateUpdateTasks);
+        if (!TryGetAsyncTaskBuffer(nameof(LateUpdate), out var cmd))
+            return;
+
+        if (cmd.sizeInBytes == 0)
+            return;
+
+        if (SystemInfo.supportsAsyncCompute)
+            Graphics.ExecuteCommandBufferAsync(cmd, UnityEngine.Rendering.ComputeQueueType.Background);
+        else Graphics.ExecuteCommandBuffer(cmd);
+        cmd.Clear();
+    }
     private void FixedUpdate() { ProcessUpdateTasks(MainFixedUpdateTasks); }
     private void ProcessUpdateTasks(Queue<IUpdateSubscriber> taskQueue) {
         int UpdateTaskCount = taskQueue.Count;
@@ -112,6 +148,22 @@ public class ArterraRuntime : MonoBehaviour {
             type = RuntimeTaskEl.ElType.Fence,
             fence = config,
         }); 
+    }
+
+    public static void Dispatch(ComputeShader shader, int kernelIndex, int threadGroupsX, int threadGroupsY, int threadGroupsZ, bool GraphicsQueue = false) {
+        if (!TryGetAsyncTaskBuffer(nameof(Dispatch), out var cmd))
+            return;
+
+        if (GraphicsQueue) shader.Dispatch(kernelIndex, threadGroupsX, threadGroupsY, threadGroupsZ);
+        else cmd.DispatchCompute(shader, kernelIndex, threadGroupsX, threadGroupsY, threadGroupsZ);
+    }
+
+    public static void DispatchIndirect(ComputeShader shader, int kernelIndex, ComputeBuffer argsBuffer, uint argsOffset = 0u, bool GraphicsQueue = false) {
+        if (!TryGetAsyncTaskBuffer(nameof(DispatchIndirect), out var cmd))
+            return;
+
+        if (GraphicsQueue) shader.DispatchIndirect(kernelIndex, argsBuffer, argsOffset);
+        else cmd.DispatchCompute(shader, kernelIndex, argsBuffer, argsOffset);
     }
 
     private void ProcessEventTasks() {

@@ -109,7 +109,7 @@ MonoBehaviour:
           y: 0.75
           z: 0.75
       BehaviorList:
-        value: 0500000000000000f10300000300000006000000ea030000ed03000001000000e8030000e9030000eb030000ec030000102700002427000038270000422700004c27000056270000602700006a270000742700007e27000088270000ee030000ef0300001f270000f0030000202700001c270000
+        value: 0500000000000000f10300000300000006000000ea030000ed03000001000000e8030000e9030000eb030000ec030000102700002427000038270000422700004c27000056270000602700006a270000742700007e27000088270000ee030000ef0300001f270000f0030000202700001c27000007000000
       Settings:
         value:
           value:
@@ -211,8 +211,11 @@ MonoBehaviour:
                 rid: 3097084119023354028
           - value:
               value:
+                rid: 5295427670493102214
+          - value:
+              value:
                 rid: 3097084119023353994
-      _prevBehaviorCount: 29
+      _prevBehaviorCount: 30
   references:
     version: 2
     RefIds:
@@ -430,6 +433,7 @@ MonoBehaviour:
       type: {class: FeedableBehaviorSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
         CanEat: 0
+        ConsumeRate: 1
     - rid: 3097084037468258407
       type: {class: RelationsBehaviorSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
@@ -793,4 +797,74 @@ MonoBehaviour:
           - name: 2043
             var: 0.5
             geneWeight: 0.1
-        NormalizeWeights: 1
+    - rid: 5295427670493102214
+      type: {class: AnimalSoundBehaviorSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        EventSounds:
+          value:
+          - trigger: 23
+            effect:
+              sound: 3461
+              chance: 1
+          - trigger: 32
+            effect:
+              sound: 3463
+              chance: 1
+        StateSounds:
+          value:
+          - state: 0
+            frequency: 2
+            effect:
+              sound: 3460
+              chance: 0.25
+          - state: 100
+            frequency: 3
+            effect:
+              sound: 3460
+              chance: 0.25
+          - state: 200
+            frequency: 3
+            effect:
+              sound: 3460
+              chance: 0.25
+          - state: 300
+            frequency: 3
+            effect:
+              sound: 3460
+              chance: 0.25
+          - state: 50100
+            frequency: 3
+            effect:
+              sound: 3460
+              chance: 0.5
+          - state: 30300
+            frequency: 3
+            effect:
+              sound: 3460
+              chance: 0.5
+          - state: 40000
+            frequency: 3
+            effect:
+              sound: 3460
+              chance: 0.5
+          - state: 50000
+            frequency: 3
+            effect:
+              sound: 3460
+              chance: 0.5
+          - state: 20200
+            frequency: 1.5
+            effect:
+              sound: 3462
+              chance: 0.75
+          - state: 30500
+            frequency: 0.75
+            effect:
+              sound: 4003
+              chance: 1
+          - state: 30400
+            frequency: 0.75
+            effect:
+              sound: 4003
+              chance: 1
+        triggerMode: 2

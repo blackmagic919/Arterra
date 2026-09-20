@@ -18,8 +18,8 @@ uint countOffset;
 #endif
 
 #ifdef TRACKING
-RWStructuredBuffer<uint2> _Occupancy;
-uint buffIndex;
+RWStructuredBuffer<uint2> Allocations;
+uint operationIndex;
 #endif
 
 
@@ -39,14 +39,17 @@ void CSMain (uint3 id : SV_DispatchThreadID)
     uint totalSize = allocSize + InitBlockSize;
 
     //Don't allocate 0 size blocks
-    if(count == 0 || totalSize > _Heap[1].y){
+    if(count == 0 || totalSize >= _Heap[1].y){
         _AddressDict[addressIndex] = uint2(0, 0); //INDICATE NOT ALLOCATED
+#ifdef TRACKING
+        Allocations[operationIndex] = uint2(0, 0);
+#endif
         return; 
     }
 //
 #ifdef TRACKING
-    _Occupancy[buffIndex].x += totalSize;
-    _Occupancy[buffIndex].y++;
+    Allocations[operationIndex].x = count;
+    Allocations[operationIndex].y = stride;
 #endif
     uint rNode = FindSmallestBlock(totalSize, 0);
     uint2 root = _Heap[rNode]; uint rAddress = root.x; uint rBlockSize = root.y;

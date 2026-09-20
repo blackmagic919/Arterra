@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<objects serializationModel="Studio.02.03.00">
+	<object class="MixerGroup" id="{38d81276-454c-4087-82f9-e86f9861dfbc}">
+		<property name="name">
+			<value>Dove</value>
+		</property>
+		<relationship name="effectChain">
+			<destination>{c6d8a6ed-7a0c-444a-9281-211fddf4516e}</destination>
+		</relationship>
+		<relationship name="panner">
+			<destination>{a68a21be-d412-4c4f-bcf8-7dd121f293aa}</destination>
+		</relationship>
+		<relationship name="output">
+			<destination>{11040329-8379-4768-b0cc-4d7992176ff6}</destination>
+		</relationship>
+	</object>
+	<object class="MixerBusEffectChain" id="{c6d8a6ed-7a0c-444a-9281-211fddf4516e}">
+		<relationship name="effects">
+			<destination>{f58a916c-9634-4b5b-84c9-9ef30bc05ece}</destination>
+		</relationship>
+	</object>
+	<object class="MixerBusPanner" id="{a68a21be-d412-4c4f-bcf8-7dd121f293aa}" />
+	<object class="MixerBusFader" id="{f58a916c-9634-4b5b-84c9-9ef30bc05ece}" />
+</objects>

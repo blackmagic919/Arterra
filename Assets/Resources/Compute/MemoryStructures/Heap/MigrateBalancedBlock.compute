@@ -1,0 +1,48 @@
+#pragma kernel Copy
+#pragma kernel Commit
+#pragma kernel ShiftJournalToTemp
+#pragma kernel ShiftJournalFromTemp
+
+RWStructuredBuffer<uint2> _AddressDict;
+StructuredBuffer<uint> _SourceMemory;
+RWStructuredBuffer<uint> _DestMemory;
+RWStructuredBuffer<uint2> Allocations;
+RWStructuredBuffer<uint2> AllocationShiftBuffer;
+
+uint _AddressIndex;
+uint _DestinationRaw;
+uint _DestinationStart;
+uint _DestinationWords;
+uint _WordCount;
+uint _Stride;
+uint _GroupsX;
+uint _ShiftBy;
+uint _ShiftCount;
+
+[numthreads(256, 1, 1)]
+void Copy(uint3 id : SV_DispatchThreadID) {
+    uint wordIndex = id.x + id.y * _GroupsX * 256;
+    if (wordIndex >= _WordCount) return;
+    uint2 source = _AddressDict[_AddressIndex];
+    if (source.x == 0) return;
+    _DestMemory[_DestinationStart + wordIndex] =
+        _SourceMemory[source.y * _Stride + wordIndex];
+}
+
+[numthreads(1, 1, 1)]
+void Commit(uint3 id : SV_DispatchThreadID) {
+    _DestMemory[_DestinationRaw - 1] = _DestinationWords;
+    _AddressDict[_AddressIndex] = uint2(_DestinationRaw, _DestinationStart / _Stride);
+}
+
+[numthreads(256, 1, 1)]
+void ShiftJournalToTemp(uint3 id : SV_DispatchThreadID) {
+    if (id.x >= _ShiftCount) return;
+    AllocationShiftBuffer[id.x] = Allocations[id.x + _ShiftBy];
+}
+
+[numthreads(256, 1, 1)]
+void ShiftJournalFromTemp(uint3 id : SV_DispatchThreadID) {
+    if (id.x >= _ShiftCount) return;
+    Allocations[id.x] = AllocationShiftBuffer[id.x];
+}

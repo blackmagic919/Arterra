@@ -229,8 +229,7 @@ namespace Arterra.Engine.Rendering
             ProcessGeoShaders(GenerationPreset.memoryHandle, vertAddress, triAddress);
 
             uint2[][] allocs = AllocateForChunkGeometry(GenerationPreset.memoryHandle, subchunks);
-            for (int i = 0; i < subchunks.Length; i++)
-            {
+            for (int i = 0; i < subchunks.Length; i++) {
                 subchunks[i].ApplyAllocToChunk(allocs[i]);
             }
         }
@@ -493,8 +492,8 @@ namespace Arterra.Engine.Rendering
 
             int kernel = geoSizeCounter.FindKernel("CountSubChunkSizes");
             ComputeBuffer args = UtilityBuffers.CountToArgs(geoSizeCounter, UtilityBuffers.GenerationBuffer, offsets.baseGeoCounter, kernel);
-            geoSizeCounter.SetBuffer(kernel, ShaderIDProps.Vertices, triStorage);
-            geoSizeCounter.SetBuffer(kernel, ShaderIDProps.Triangles, vertStorage);
+            geoSizeCounter.SetBuffer(kernel, ShaderIDProps.Vertices, vertStorage);
+            geoSizeCounter.SetBuffer(kernel, ShaderIDProps.Triangles, triStorage);
             geoSizeCounter.SetBuffer(kernel, ShaderIDProps.AddressDict, memAddresses);
             geoSizeCounter.SetInt(ShaderIDProps.StartSChunkP, start);
             geoSizeCounter.SetInt(ShaderIDProps.VertAddress, vertAddress);

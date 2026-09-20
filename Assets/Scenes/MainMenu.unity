@@ -3338,7 +3338,7 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 1467958669}
   m_HandleRect: {fileID: 1844626531}
   m_Direction: 2
-  m_Value: 0
+  m_Value: 1
   m_Size: 1
   m_NumberOfSteps: 0
   m_OnValueChanged:
@@ -4074,6 +4074,134 @@ MonoBehaviour:
         Data3: 1668346793
         Data4: -1526840505
       Path: event:/Sound effects/Animal/Owl/Mate
+  - name: 3430
+    reference:
+      Guid:
+        Data1: 1016361390
+        Data2: 1091509691
+        Data3: -1540661630
+        Data4: -1027169660
+      Path: event:/Sound effects/Animal/Bat/Squeak
+  - name: 3431
+    reference:
+      Guid:
+        Data1: 173195087
+        Data2: 1189072430
+        Data3: -392537952
+        Data4: 1478475111
+      Path: event:/Sound effects/Animal/Bat/Attack
+  - name: 3432
+    reference:
+      Guid:
+        Data1: -449025160
+        Data2: 1268829184
+        Data3: 814416782
+        Data4: 697430966
+      Path: event:/Sound effects/Animal/Bat/Mate
+  - name: 3433
+    reference:
+      Guid:
+        Data1: -545682453
+        Data2: 1315880658
+        Data3: -1470655812
+        Data4: -1856169231
+      Path: event:/Sound effects/Animal/Bat/Hurt
+  - name: 3440
+    reference:
+      Guid:
+        Data1: 734130929
+        Data2: 1154200028
+        Data3: 339814298
+        Data4: 2113660083
+      Path: event:/Sound effects/Animal/Vulture/Squawk
+  - name: 3441
+    reference:
+      Guid:
+        Data1: -1225446569
+        Data2: 1307935127
+        Data3: 1644375736
+        Data4: -1898579737
+      Path: event:/Sound effects/Animal/Vulture/Attack
+  - name: 3442
+    reference:
+      Guid:
+        Data1: 529837770
+        Data2: 1184688726
+        Data3: -633499217
+        Data4: 1091765204
+      Path: event:/Sound effects/Animal/Vulture/Mate
+  - name: 3443
+    reference:
+      Guid:
+        Data1: -701652416
+        Data2: 1104018083
+        Data3: -1503690608
+        Data4: -1704933577
+      Path: event:/Sound effects/Animal/Vulture/Hurt
+  - name: 3450
+    reference:
+      Guid:
+        Data1: 49863910
+        Data2: 1316756655
+        Data3: 1695907978
+        Data4: -1682663825
+      Path: event:/Sound effects/Animal/Seagull/Cry
+  - name: 3451
+    reference:
+      Guid:
+        Data1: 1769350682
+        Data2: 1300142352
+        Data3: -545246057
+        Data4: -1948623231
+      Path: event:/Sound effects/Animal/Seagull/Attack
+  - name: 3452
+    reference:
+      Guid:
+        Data1: 1165614954
+        Data2: 1090339355
+        Data3: 231042479
+        Data4: 519738853
+      Path: event:/Sound effects/Animal/Seagull/Mate
+  - name: 3453
+    reference:
+      Guid:
+        Data1: -378469792
+        Data2: 1175689645
+        Data3: -1905889624
+        Data4: -646736208
+      Path: event:/Sound effects/Animal/Seagull/Hurt
+  - name: 3460
+    reference:
+      Guid:
+        Data1: 384239554
+        Data2: 1095449779
+        Data3: 1597265297
+        Data4: -173127182
+      Path: event:/Sound effects/Animal/Dove/Coo
+  - name: 3461
+    reference:
+      Guid:
+        Data1: 1533416404
+        Data2: 1129863814
+        Data3: 89737617
+        Data4: -533392906
+      Path: event:/Sound effects/Animal/Dove/Attack
+  - name: 3462
+    reference:
+      Guid:
+        Data1: -474204644
+        Data2: 1084310533
+        Data3: 1575338152
+        Data4: -2060430554
+      Path: event:/Sound effects/Animal/Dove/Mate
+  - name: 3463
+    reference:
+      Guid:
+        Data1: -244150496
+        Data2: 1202849940
+        Data3: 2139079566
+        Data4: 1344491503
+      Path: event:/Sound effects/Animal/Dove/Hurt
 --- !u!4 &1543784206
 Transform:
   m_ObjectHideFlags: 0

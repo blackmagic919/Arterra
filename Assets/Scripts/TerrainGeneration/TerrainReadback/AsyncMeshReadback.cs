@@ -10,10 +10,10 @@ using static Arterra.Core.ArterraRuntime;
 
 namespace Arterra.Engine.Terrain.Readback{
 /// <summary>
-/// The readback system is responsible for reading back meshes from the GPU and 
+/// The readback system is responsible for reading back meshes from the GPU and
 /// intermediately rendering the meshes directly from the GPU while this is happening.
 /// </summary>
-public class AsyncMeshReadback 
+public class AsyncMeshReadback
 {
     private Transform transform;
     private Bounds shaderBounds = default;
@@ -37,18 +37,18 @@ public class AsyncMeshReadback
     /// holds all the vertex information used by geometry linked through <see cref="triHandles"/> in the chunk. </summary>
     public GeometryHandle vertexHandle = default;
 
-    /// <summary> Creates an instance of the readback system specific for a chunk. Each readback 
+    /// <summary> Creates an instance of the readback system specific for a chunk. Each readback
     /// instance is responsible for managing a single chunk and its associated geometry. </summary>
     /// <param name="transform">The orientation of the chunk. Used for rendering the chunk indirectly</param>
     /// <param name="boundsOS">The bounds in the chunk's Object Space(local space) of the extents of the geometry. </param>
     public AsyncMeshReadback(Transform transform, Bounds boundsOS)
-    {   
+    {
         this.transform = transform;
         this.triHandles = new GeometryHandle[numMeshes];
         this.shaderBounds = CustomUtility.TransformBounds(transform, boundsOS);
     }
 
-    /// <summary> Presets static data shared by the readback system. This should be called before any 
+    /// <summary> Presets static data shared by the readback system. This should be called before any
     /// instances of the readback system are used. Referenced in <see cref="SystemProtocol.Startup"/>.  </summary>
     public static void PresetData(){
         settings = Configuration.Config.CURRENT.System.ReadBack.value;
@@ -62,7 +62,7 @@ public class AsyncMeshReadback
         int kernel = meshDrawArgsCreator.FindKernel("CSMain");
         meshDrawArgsCreator.SetBuffer(kernel, "counter", UtilityBuffers.GenerationBuffer);
         meshDrawArgsCreator.SetBuffer(kernel, "_IndirectArgsBuffer", UtilityBuffers.DrawArgs.Get());
-        
+
 
         kernel = triangleTranscriber.FindKernel("Transcribe");
         triangleTranscriber.SetBuffer(kernel, "BaseTriangles", UtilityBuffers.GenerationBuffer);
@@ -79,7 +79,7 @@ public class AsyncMeshReadback
         vertexTranscriber.SetBuffer(kernel, "_AddressDict", GenerationPreset.memoryHandle.Address);
     }
 
-    /// <summary> Releases all static data shared by the readback system. This should be called when the 
+    /// <summary> Releases all static data shared by the readback system. This should be called when the
     /// readback system is no longer needed (when the world is closed). Referenced in <see cref="SystemProtocol.Shutdown"/>. </summary>
     public static void Release(){
         settings.Release();
@@ -89,14 +89,14 @@ public class AsyncMeshReadback
     public void ReleaseAllGeometry()
     {
         for(int i = 0; i < numMeshes; i++)
-            triHandles[i]?.Release();  
+            triHandles[i]?.Release();
         this.vertexHandle?.Release();
     }
 
     /// <summary> Offloads(copies) vertices to long term GPU storage. This can be used to store vertices for rendering or to hold onto them
-    /// until instructions are flushed so it may be read back to the CPU. A Handle to the stored vertices will be 
+    /// until instructions are flushed so it may be read back to the CPU. A Handle to the stored vertices will be
     /// saved in <see cref="vertexHandle"/>, with any possible previous handles being released. </summary>
-    /// <param name="vertexCounter">The location within the <see cref="UtilityBuffers.GenerationBuffer">working buffer</see> 
+    /// <param name="vertexCounter">The location within the <see cref="UtilityBuffers.GenerationBuffer">working buffer</see>
     /// storing the amount of vertices to be copied. </param>
     public void OffloadVerticesToGPU(int vertexCounter)
     {
@@ -108,12 +108,12 @@ public class AsyncMeshReadback
         this.vertexHandle = new GeometryHandle{addressIndex = vertAddress, memory = GenerationPreset.memoryHandle};
     }
 
-    /// <summary> Offloads(copies) triangles(index buffer) to long term GPU storage. This can be used to store triangles for 
-    /// rendering or to hold onto them until instructions are flushed so it may be read back to the CPU. A Handle to the 
+    /// <summary> Offloads(copies) triangles(index buffer) to long term GPU storage. This can be used to store triangles for
+    /// rendering or to hold onto them until instructions are flushed so it may be read back to the CPU. A Handle to the
     /// stored triangles will be saved in <see cref="triHandles"/>, with any possible previous handles being released. </summary>
-    /// <param name="triCounter">The location within the <see cref="UtilityBuffers.GenerationBuffer">working buffer</see> 
+    /// <param name="triCounter">The location within the <see cref="UtilityBuffers.GenerationBuffer">working buffer</see>
     /// storing the amount of triangles to be copied. </param>
-    /// <param name="triStart">The location within the <see cref="UtilityBuffers.GenerationBuffer">working buffer</see> 
+    /// <param name="triStart">The location within the <see cref="UtilityBuffers.GenerationBuffer">working buffer</see>
     /// of the start of the triangles(index buffer).</param>
     /// <param name="matIndex">The index within <see cref="Intrinsic.Readback.indirectTerrainMats"/> of the material to use
     /// for geometry referenced by these triangles if it is to be indirectly rendered. </param>
@@ -135,12 +135,12 @@ public class AsyncMeshReadback
         triHandles[matIndex] = new GeometryHandle(rp, GenerationPreset.memoryHandle, geoHeapMemoryAddress, drawArgsAddress, matIndex);
         MainLateUpdateTasks?.Enqueue(triHandles[matIndex]);
     }
-    
+
     /// <summary> Offloads(copies) triangles(index buffer) to long term GPU storage. Unlike
     /// <see cref="OffloadTrisToGPU"/> this method does not immediately try to render the geometry indirectly.  </summary>
-    /// <param name="triCounter">The location within the <see cref="UtilityBuffers.GenerationBuffer">working buffer</see> 
+    /// <param name="triCounter">The location within the <see cref="UtilityBuffers.GenerationBuffer">working buffer</see>
     /// storing the amount of triangles to be copied. </param>
-    /// <param name="triStart">The location within the <see cref="UtilityBuffers.GenerationBuffer">working buffer</see> 
+    /// <param name="triStart">The location within the <see cref="UtilityBuffers.GenerationBuffer">working buffer</see>
     /// of the start of the triangles(index buffer).</param>
     /// <param name="matIndex">The index within <see cref="Intrinsic.Readback.indirectTerrainMats"/> of the material to use
     /// for geometry referenced by these triangles if it is to be indirectly rendered. </param>
@@ -151,7 +151,7 @@ public class AsyncMeshReadback
         //Transcribe data to memory heap for GPU-forward render
         uint geoHeapMemoryAddress = GenerationPreset.memoryHandle.AllocateMemory(UtilityBuffers.GenerationBuffer, TRI_STRIDE_WORD, triCounter);
         TranscribeTriangles((int)geoHeapMemoryAddress, triCounter, triStart);
-        
+
         triHandles[matIndex] = new GeometryHandle{
             addressIndex = geoHeapMemoryAddress,
             memory = GenerationPreset.memoryHandle,
@@ -161,22 +161,26 @@ public class AsyncMeshReadback
     public void CreateRenderParamsForMaterial(int triCounter, int matIndex, Material mat) {
         uint drawArgsAddress = UtilityBuffers.DrawArgs.Allocate(); //Allocates 4 bytes
         CreateDispArg(triCounter, (int)drawArgsAddress);
-        
+
         RenderParams rp = new RenderParams(mat) {
             worldBounds = this.shaderBounds,
             shadowCastingMode = ShadowCastingMode.On,
             matProps = new MaterialPropertyBlock()
         };
-        
+
         rp.matProps.SetBuffer(ShaderIDProps.Vertices, GenerationPreset.memoryHandle.GetBlockBuffer(vertexHandle.addressIndex));
         rp.matProps.SetBuffer(ShaderIDProps.Triangles, GenerationPreset.memoryHandle.GetBlockBuffer(triHandles[matIndex].addressIndex));
         rp.matProps.SetBuffer(ShaderIDProps.AddressDict, GenerationPreset.memoryHandle.Address);
+        GenerationPreset.memoryHandle.RegisterRebind(vertexHandle.addressIndex,
+            newSource => rp.matProps.SetBuffer(ShaderIDProps.Vertices, newSource));
+        GenerationPreset.memoryHandle.RegisterRebind(triHandles[matIndex].addressIndex,
+            newSource => rp.matProps.SetBuffer(ShaderIDProps.Triangles, newSource));
 
         rp.matProps.SetInt(ShaderIDProps.TriAddress, (int)triHandles[matIndex].addressIndex);
         rp.matProps.SetInt(ShaderIDProps.VertAddress, (int)vertexHandle.addressIndex);
-        
+
         rp.matProps.SetMatrix(ShaderIDProps.LocalToWorld, this.transform.localToWorldMatrix);
-        
+
         triHandles[matIndex].argsAddress = drawArgsAddress;
         triHandles[matIndex].rp = rp;
         MainLateUpdateTasks?.Enqueue(triHandles[matIndex]);
@@ -193,7 +197,10 @@ public class AsyncMeshReadback
         GeometryHandle vertHandle = this.vertexHandle; //Get reference here so that it doesn't change when lambda evaluates
         if (vertHandle == null || !vertHandle.Active)
             return;
-        AsyncGPUReadback.Request(GenerationPreset.memoryHandle.Address, size: 8, offset: 8 * (int)vertHandle.addressIndex, ret => OnAddressRecieved(ret, vertHandle, RBTask, onVertSizeRecieved));
+        GenerationPreset.memoryHandle.RegisterRebind(
+            vertHandle.addressIndex,
+            _ => ReadbackVertices(vertHandle, RBTask)
+        );
         RBTask.AddTask();
 
         //Readback mesh triangles
@@ -202,66 +209,53 @@ public class AsyncMeshReadback
             if (geoHandle == null || !geoHandle.Active)
                 continue;
             //Begin readback of data
-            AsyncGPUReadback.Request(GenerationPreset.memoryHandle.Address, size: 8, offset: 8 * (int)geoHandle.addressIndex, ret => OnAddressRecieved(ret, geoHandle, RBTask, onTriSizeRecieved));
+            GenerationPreset.memoryHandle.RegisterRebind(
+                geoHandle.addressIndex,
+                _ => ReadbackTriangles(geoHandle, RBTask)
+            );
             RBTask.AddTask();
         }
     }
 
-    private void OnAddressRecieved(AsyncGPUReadbackRequest request, GeometryHandle geoHandle, ReadbackTask<IVertFormat.TVert> RBTask, ReadbackSizeRecieved onSizeRecieved)
-    {
-        if (geoHandle == null || !geoHandle.Active) //Info was depreceated
-            return;
-        if(!GenerationPreset.memoryHandle.GetBlockBufferSafe((int)geoHandle.addressIndex, out ComputeBuffer sourceStorage))
-            return;
-
-        uint2 memAddress = request.GetData<uint2>().ToArray()[0];
-
-        if (memAddress.x == 0) { //No geometry to readback
-            geoHandle.Release();
-            RBTask.OnRBRecieved();
-            return; 
-        }
-
-        //AsyncGPUReadback.Request size and offset are in units of bytes... 
-        AsyncGPUReadback.Request(sourceStorage, size: 4, offset: 4 * ((int)memAddress.x - 1), ret => onSizeRecieved(ret, memAddress, geoHandle, RBTask));
-    }
-    private delegate void ReadbackSizeRecieved(AsyncGPUReadbackRequest request, uint2 address, GeometryHandle geoHandle, ReadbackTask<IVertFormat.TVert> RBTask);
-    private void onTriSizeRecieved(AsyncGPUReadbackRequest request, uint2 address, GeometryHandle geoHandle, ReadbackTask<IVertFormat.TVert> RBTask)
-    {
+    private void ReadbackTriangles(GeometryHandle geoHandle,
+        ReadbackTask<IVertFormat.TVert> RBTask) {
         if (geoHandle == null || !geoHandle.Active)  //Info was depreceated
             return;
-        if(!GenerationPreset.memoryHandle.GetBlockBufferSafe((int)geoHandle.addressIndex, out ComputeBuffer sourceStorage))
+        if (!GenerationPreset.memoryHandle.GetDirectAllocation(
+            geoHandle.addressIndex, TRI_STRIDE_WORD, out ComputeBuffer sourceStorage,
+            out _, out _, out int start, out int count))
             return;
 
-        int memSize = (int)(request.GetData<uint>().ToArray()[0] - TRI_STRIDE_WORD); //subtract one triangle for padding
-        int triStartWord = (int)(address.y * TRI_STRIDE_WORD);
-
-        RBTask.RBMesh.IndexBuffer[geoHandle.matIndex] = new NativeArray<uint>(memSize, Allocator.Persistent);
-        //AsyncGPUReadback.Request size and offset are in units of bytes... 
-        AsyncGPUReadback.RequestIntoNativeArray(ref RBTask.RBMesh.IndexBuffer[geoHandle.matIndex], sourceStorage, size: 4 * memSize, offset: 4 * triStartWord, ret => onDataRecieved(geoHandle, RBTask));
+        RBTask.RBMesh.IndexBuffer[geoHandle.matIndex] =
+            new NativeArray<uint>(count * TRI_STRIDE_WORD, Allocator.Persistent);
+        AsyncGPUReadback.RequestIntoNativeArray(
+            ref RBTask.RBMesh.IndexBuffer[geoHandle.matIndex], sourceStorage,
+            size: 4 * count * TRI_STRIDE_WORD,
+            offset: 4 * start * TRI_STRIDE_WORD,
+            _ => onDataRecieved(geoHandle, RBTask));
     }
 
-    private void onVertSizeRecieved(AsyncGPUReadbackRequest request, uint2 address, GeometryHandle geoHandle,  ReadbackTask<IVertFormat.TVert> RBTask){
-        if (geoHandle == null || !geoHandle.Active) 
+    private void ReadbackVertices(GeometryHandle geoHandle,
+        ReadbackTask<IVertFormat.TVert> RBTask) {
+        if (geoHandle == null || !geoHandle.Active)
             return;
-        if(!GenerationPreset.memoryHandle.GetBlockBufferSafe((int)geoHandle.addressIndex, out ComputeBuffer sourceStorage))
+        if (!GenerationPreset.memoryHandle.GetDirectAllocation(
+            geoHandle.addressIndex, MESH_VERTEX_STRIDE_WORD,
+            out ComputeBuffer sourceStorage, out _, out _, out int start, out int count))
             return;
 
-        int memSize = (int)(request.GetData<uint>().ToArray()[0] - MESH_VERTEX_STRIDE_WORD); //subtract one triangle for padding
-        int vertCount = memSize / MESH_VERTEX_STRIDE_WORD;
-        int vertStartWord = (int)(address.y * MESH_VERTEX_STRIDE_WORD);
-
-        RBTask.RBMesh.VertexBuffer = new NativeArray<IVertFormat.TVert>(vertCount, Allocator.Persistent);
-        //AsyncGPUReadback.Request size and offset are in units of bytes... 
-        //Async says async but is run on main thread(kind of confusing)
-        AsyncGPUReadback.RequestIntoNativeArray(ref RBTask.RBMesh.VertexBuffer, sourceStorage, size: 4 * memSize, offset: 4 * vertStartWord, ret => onDataRecieved(geoHandle, RBTask));
+        RBTask.RBMesh.VertexBuffer = new NativeArray<IVertFormat.TVert>(count, Allocator.Persistent);
+        AsyncGPUReadback.RequestIntoNativeArray(ref RBTask.RBMesh.VertexBuffer,
+            sourceStorage, size: 4 * count * MESH_VERTEX_STRIDE_WORD,
+            offset: 4 * start * MESH_VERTEX_STRIDE_WORD,
+            _ => onDataRecieved(geoHandle, RBTask));
     }
 
     private void onDataRecieved(GeometryHandle geoHandle, ReadbackTask<IVertFormat.TVert> RBTask)
     {
         if (geoHandle == null || !geoHandle.Active)  //Info was depreceated
             return;
-            
+
         RBTask.OnRBRecieved();
     }
 
@@ -283,10 +277,14 @@ public class AsyncMeshReadback
         rp.matProps.SetBuffer(ShaderIDProps.Vertices, GenerationPreset.memoryHandle.GetBlockBuffer(vertAddress));
         rp.matProps.SetBuffer(ShaderIDProps.Triangles, GenerationPreset.memoryHandle.GetBlockBuffer(triAddress));
         rp.matProps.SetBuffer(ShaderIDProps.AddressDict, GenerationPreset.memoryHandle.Address);
+        GenerationPreset.memoryHandle.RegisterRebind((uint)vertAddress,
+            newSource => rp.matProps.SetBuffer(ShaderIDProps.Vertices, newSource));
+        GenerationPreset.memoryHandle.RegisterRebind((uint)triAddress,
+            newSource => rp.matProps.SetBuffer(ShaderIDProps.Triangles, newSource));
 
         rp.matProps.SetInt(ShaderIDProps.TriAddress, triAddress);
         rp.matProps.SetInt(ShaderIDProps.VertAddress, vertAddress);
-        
+
         rp.matProps.SetMatrix(ShaderIDProps.LocalToWorld, this.transform.localToWorldMatrix);
 
         return rp;
@@ -316,7 +314,7 @@ public class AsyncMeshReadback
 
         triangleTranscriber.DispatchIndirect(kernel, args);
     }
-    
+
 }
 
 /// <summary> The types of materials that can be read back from the GPU. Associates
@@ -328,7 +326,7 @@ public enum ReadbackMaterial{
     water = 1,
 }
 
-/// <summary> A handle to geometry that is stored in <see cref="GenerationPreset.MemoryHandle._GPUMemorySource"> long term GPU storage </see>. 
+/// <summary> A handle to geometry that is stored in <see cref="GenerationPreset.MemoryHandle._GPUMemorySource"> long term GPU storage </see>.
 /// If the geometry is triangles(an index buffer), the handle will also store information for rendering the geometry indirectly,
 /// by using vertex information stored in a <see cref="AsyncMeshReadback.vertexHandle"> seperate geometry handle </see>.  </summary>
 public class GeometryHandle : Core.ArterraRuntime.IUpdateSubscriber
@@ -340,7 +338,7 @@ public class GeometryHandle : Core.ArterraRuntime.IUpdateSubscriber
     }
     /// <summary> The <see cref="RenderParams"/> describing how the geometry should be rendered indirectly if it is to be rendered. </summary>
     public RenderParams rp = default;
-    /// <summary> The memory handle of the buffer where the geometry is stored. Specifically, the geometry will be stored in 
+    /// <summary> The memory handle of the buffer where the geometry is stored. Specifically, the geometry will be stored in
     /// <see cref="GenerationPreset.MemoryHandle._GPUMemorySource"/> of this memory handle. </summary>
     public MemoryBufferHandler memory = default;
     /// <summary> The index of the material used for rendering the geometry indirectly. This index is used to reference the material in
@@ -350,10 +348,10 @@ public class GeometryHandle : Core.ArterraRuntime.IUpdateSubscriber
     /// of the location that stores the real address of the geometry in <see cref="GenerationPreset.MemoryHandle._GPUMemorySource"/>. See <see cref="GenerationPreset.MemoryHandle.Address"/> for more information.
     /// </summary>
     public uint addressIndex = 0;
-    /// <summary> If the geometry is to be rendered indirectly, the address of the <see cref="GraphicsBuffer.IndirectDrawArgs"> draw arguments </see> used 
+    /// <summary> If the geometry is to be rendered indirectly, the address of the <see cref="GraphicsBuffer.IndirectDrawArgs"> draw arguments </see> used
     /// to render the geometry. This is used to reference the draw arguments in <see cref="UtilityBuffers.ArgumentBuffer"/>.  </summary>
     public uint argsAddress = 0;
-    /// <summary> Creates a geometry handle for triangle geometry(index buffer) that will be rendered indirectly. As such, 
+    /// <summary> Creates a geometry handle for triangle geometry(index buffer) that will be rendered indirectly. As such,
     /// it needs to specify information on how to render it beyond just the location of the geometry itself. </summary>
     /// <param name="rp">The <see cref="rp">Render Parameters</see> describing how the geometry should be rendered </param>
     /// <param name="memory">The <see cref="memory">Memory Handle</see> of the buffer that holds the copied geometry.</param>
@@ -371,7 +369,7 @@ public class GeometryHandle : Core.ArterraRuntime.IUpdateSubscriber
     }
 
     /// <summary> Creates a geometry handle for storing geometry. The geometry will not be rendered indirectly
-    /// and thus does not need to specify any rendering parameters. Useful for vertex buffers which 
+    /// and thus does not need to specify any rendering parameters. Useful for vertex buffers which
     /// are only rendered through being referenced by triangles. </summary>
     public GeometryHandle()
     {
@@ -383,7 +381,7 @@ public class GeometryHandle : Core.ArterraRuntime.IUpdateSubscriber
         Release();
     }
 
-    /// <summary> Releases the geometry handle, freeing any memory blocks it holds in <see cref="memory"> the memory handle</see>. 
+    /// <summary> Releases the geometry handle, freeing any memory blocks it holds in <see cref="memory"> the memory handle</see>.
     /// This should be called when the geometry is no longer needed to ensure that the GPU memory is released. </summary>
     public void Release(){
         if(!this.active) return;
@@ -418,8 +416,8 @@ public class GeometryHandle : Core.ArterraRuntime.IUpdateSubscriber
         }
 }
 
-/// <summary> Interface for formats of vertices that are read back from the GPU. If a vertex format, the 
-/// layout of a vertex's data, is to be read back into a <see cref="ReadbackTask{T}.SharedMeshInfo"/>, 
+/// <summary> Interface for formats of vertices that are read back from the GPU. If a vertex format, the
+/// layout of a vertex's data, is to be read back into a <see cref="ReadbackTask{T}.SharedMeshInfo"/>,
 /// the vertex being readback should implement this interface to ensure proper initialization of
 /// the mesh destination. </summary>
 public interface IVertFormat {
@@ -428,8 +426,8 @@ public interface IVertFormat {
     /// <param name="count"> The amount of vertices in the mesh expected to use the specified mesh format. </param>
     //Like to be static, but .NET 5 doesn't support
     public void SetVertexBufferParams(Mesh mesh, int count);
-    
-    /// <summary> The vertex format for terrain geometry created during the games 
+
+    /// <summary> The vertex format for terrain geometry created during the games
     /// terrain generation. See <see cref="IVertFormat"/> for more information.  </summary>
     public struct TVert : IVertFormat
     {
@@ -439,7 +437,7 @@ public interface IVertFormat {
 
         /// <exclude />
         public void SetVertexBufferParams(Mesh mesh, int count){
-            mesh.SetVertexBufferParams(count, 
+            mesh.SetVertexBufferParams(count,
             new [] {
                 new VertexAttributeDescriptor(VertexAttribute.Position, VertexAttributeFormat.Float32, 3, stream: 0),
                 new VertexAttributeDescriptor(VertexAttribute.Normal, VertexAttributeFormat.Float32, 3, stream: 0),
@@ -458,7 +456,7 @@ public interface IVertFormat {
 
         /// <exclude />
         public void SetVertexBufferParams(Mesh mesh, int count){
-            mesh.SetVertexBufferParams(count, 
+            mesh.SetVertexBufferParams(count,
             new [] {
                 new VertexAttributeDescriptor(VertexAttribute.Position, VertexAttributeFormat.Float32, 3, stream: 0),
                 new VertexAttributeDescriptor(VertexAttribute.TexCoord0, VertexAttributeFormat.UInt32, 1, stream: 0),
@@ -470,15 +468,15 @@ public interface IVertFormat {
 
 /// <summary>
 /// A readback task responsible for copying <b>all</b> of a mesh's data from the GPU to the CPU when both processers are
-/// synchronized. If data is dispersed between multiple locations(e.g. vertex buffer, index buffer), it will only 
-/// provide the combined mesh once all data is read back. This is to prevent the possibility of incomplete meshes 
+/// synchronized. If data is dispersed between multiple locations(e.g. vertex buffer, index buffer), it will only
+/// provide the combined mesh once all data is read back. This is to prevent the possibility of incomplete meshes
 /// replacing indirect rendering, possibly causing a gap to appear in the terrain.
 /// </summary>
 /// <typeparam name="Vert">The <see cref="IVertFormat">type of vertex</see>, of the mesh being read back. </typeparam>
 public class ReadbackTask<Vert> where Vert : struct, IVertFormat{
     private int numRBTasks;
     private Action<SharedMeshInfo> RBMeshCallback;
-    /// <summary> The mesh data that is read back from the GPU. This is the destination 
+    /// <summary> The mesh data that is read back from the GPU. This is the destination
     /// of the readback task and will contain the mesh data once complete. </summary>
     public SharedMeshInfo RBMesh;
     /// <summary> Creates a readback task for reading back mesh data from the GPU. </summary>
@@ -491,7 +489,7 @@ public class ReadbackTask<Vert> where Vert : struct, IVertFormat{
     }
 
     /// <summary> Adds a task that needs to be completed before the mesh is considered fully read back.
-    /// This effectively subscribes a handle capable of stalling the readback completion 
+    /// This effectively subscribes a handle capable of stalling the readback completion
     /// until the subscribed task is complete. Used to ensure multiple independent
     /// tasks are all completed before the mesh is read back. <seealso cref="OnRBRecieved"/>. </summary>
     public void AddTask(){ numRBTasks++; }
@@ -524,7 +522,7 @@ public class ReadbackTask<Vert> where Vert : struct, IVertFormat{
             Release();
         }
 
-        /// <summary> Releases all buffers used by the shared mesh info. This should be called 
+        /// <summary> Releases all buffers used by the shared mesh info. This should be called
         /// when the mesh is no longer needed to ensure any intermediate readback buffers are recovered. </summary>
         public void Release(){
             for(int i = 0; i < IndexBuffer.Length; i++)
@@ -532,9 +530,9 @@ public class ReadbackTask<Vert> where Vert : struct, IVertFormat{
             VertexBuffer.Dispose();
         }
 
-        /// <summary> Generates a <see cref="Mesh"/> using the readback 
+        /// <summary> Generates a <see cref="Mesh"/> using the readback
         /// information stored in this object.  </summary>
-        /// <param name="meshIndexFormat"> The <see cref="IndexFormat">index format</see> used in 
+        /// <param name="meshIndexFormat"> The <see cref="IndexFormat">index format</see> used in
         /// the mesh's index buffer, either 16-bit or 32-bit indices. </param>
         /// <returns>The generated <see cref="Mesh"/> based off the <see cref="SharedMeshInfo"/>'s information. </returns>
         public Mesh GenerateMesh(UnityEngine.Rendering.IndexFormat meshIndexFormat)
@@ -548,7 +546,7 @@ public class ReadbackTask<Vert> where Vert : struct, IVertFormat{
 
             //Set Shared Vertex Data
             mesh.SetVertexBufferData(VertexBuffer, 0, 0, VertexBuffer.Length, 0, MeshUpdateFlags.DontValidateIndices);
-            
+
             //Set Indices and Submesh Data
             int meshIndexStart = 0;
             SubMeshDescriptor[] subMeshes = new SubMeshDescriptor[IndexBuffer.Length];
@@ -571,7 +569,7 @@ public class ReadbackTask<Vert> where Vert : struct, IVertFormat{
         /// <remarks> This would still require reobtaining all vertex information from the entire <see cref="VertexBuffer"/>
         /// as the vertices belonging to only the submesh is not stored seperately. </remarks>
         /// <param name="submeshIndex">The index within the <see cref="IndexBuffer"/> of the triangles belonging to the desired submesh, </param>
-        /// <param name="meshIndexFormat"> The <see cref="IndexFormat">index format</see> used in 
+        /// <param name="meshIndexFormat"> The <see cref="IndexFormat">index format</see> used in
         /// the mesh's index buffer, either 16-bit or 32-bit indices. </param>
         /// <returns></returns>
         public Mesh GetSubmesh(int submeshIndex, UnityEngine.Rendering.IndexFormat meshIndexFormat){
@@ -586,7 +584,7 @@ public class ReadbackTask<Vert> where Vert : struct, IVertFormat{
             mesh.SetVertexBufferData(VertexBuffer, 0, 0, VertexBuffer.Length, 0, MeshUpdateFlags.DontValidateIndices);
             mesh.SetIndexBufferData(indices, 0, 0, indices.Length, MeshUpdateFlags.DontValidateIndices);
             mesh.SetSubMesh(0, new SubMeshDescriptor(0, indices.Length, MeshTopology.Triangles));
-            
+
             return mesh;
         }
     }

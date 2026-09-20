@@ -12,8 +12,8 @@ uint addressIndex;
 #endif
 
 #ifdef TRACKING
-RWStructuredBuffer<uint2> _Occupancy;
-uint buffIndex;
+RWStructuredBuffer<uint2> Allocations;
+int operationIndex;
 #endif
 
 //Time complexity O(3log n) -> O(log n) for release
@@ -31,8 +31,7 @@ void CSMain (uint3 id : SV_DispatchThreadID)
     uint startIndex = blockAddress;
     uint endIndex = blockAddress + _SourceMemory[blockAddress-1];
 #ifdef TRACKING
-    _Occupancy[buffIndex].x -= (endIndex - startIndex) + InitBlockSize;
-    _Occupancy[buffIndex].y--;
+    if (operationIndex != -1) Allocations[operationIndex] = uint2(0, 0);
 #endif
 
     //We merge blocks to keep memory from fragmenting

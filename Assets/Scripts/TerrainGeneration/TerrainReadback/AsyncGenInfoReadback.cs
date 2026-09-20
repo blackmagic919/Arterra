@@ -64,26 +64,20 @@ namespace Arterra.Engine.Terrain.Readback {
         }
 
         public void BeginGenInfoReadback(int3 CCoord, byte cxt){
-            void OnRegionSizeRecieved(AsyncGPUReadbackRequest request, uint2 memHandle){
-                if (!GenerationPreset.memoryHandle.GetBlockBufferSafe(Allocation, out ComputeBuffer block))
-                    return;
-                int memSize = (int)(request.GetData<uint>()[0] - GenPoint.size);
-                int entityStartWord = GenPoint.size * (int)memHandle.y;
-                AsyncGPUReadback.Request(block, size: memSize * 4, offset: 4 * entityStartWord, (req) => ProcessGenPoints(req.GetData<GenPoint>(), CCoord, cxt));
-            }
-            void OnRegionAddressRecieved(AsyncGPUReadbackRequest request){
-                if (!GenerationPreset.memoryHandle.GetBlockBufferSafe(Allocation, out ComputeBuffer block))
-                    return;
-                uint2 memHandle = request.GetData<uint2>()[0];
-                if(memHandle.x == 0) {
-                    return; // No entities
-                }
-
-                AsyncGPUReadback.Request(block, size: 4, offset: 4 * ((int)memHandle.x - 1), (req) => OnRegionSizeRecieved(req, memHandle));
-            }
-
             if (Allocation <= 0) return; //No alloc exists
-            AsyncGPUReadback.Request(GenerationPreset.memoryHandle.Address, size: 8, offset: (int)(8 * Allocation), (req) => OnRegionAddressRecieved(req));
+            uint allocation = (uint)Allocation;
+            //This call ensures that readback is only called with a stable permanent allocation
+            GenerationPreset.memoryHandle.RegisterRebind(
+                allocation,
+                _1 => {
+                    if (!GenerationPreset.memoryHandle.GetDirectAllocation(
+                        allocation, GenPoint.size, out ComputeBuffer block,
+                        out _, out _, out int start, out int count)) return;
+                    AsyncGPUReadback.Request(block, size: count * GenPoint.size * 4,
+                        offset: start * GenPoint.size * 4,
+                        req => ProcessGenPoints(req.GetData<GenPoint>(), CCoord, cxt));
+                }
+            );
         }
 
         /// <summary> Flag to create entities from structure meta </summary>

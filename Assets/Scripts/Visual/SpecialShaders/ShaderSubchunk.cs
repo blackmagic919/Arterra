@@ -161,23 +161,22 @@ namespace Arterra.Engine.Rendering
                 ArterraRuntime.MainLateUpdateTasks.Enqueue(shader);
                 activeRenders[i] = shader;
 
-                GenerationPreset.memoryHandle.TestAllocIsEmpty((int)shader.address, address =>
-                {
+                GenerationPreset.memoryHandle.TestAllocIsEmpty((int)shader.address, address => {
                     //Captured shader is in this scope so ok
                     shader.Release(ref GenerationPreset.memoryHandle);
                 });
             }
         }
 
-        public RenderParams SetupShaderMaterials(
-            int shadInd, MemoryBufferHandler memoryHandle, uint addressIndex
-        )
-        {
+        public RenderParams SetupShaderMaterials(int shadInd, MemoryOccupancyBalancer memoryHandle, uint addressIndex){
             RenderParams rp = rps[shadInd];
             ComputeBuffer sourceBuffer = memoryHandle.GetBlockBuffer(addressIndex);
             rp.matProps.SetBuffer(ShaderIDProps.StorageMemory, sourceBuffer);
             rp.matProps.SetBuffer(ShaderIDProps.AddressDict, memoryHandle.Address);
             rp.matProps.SetInt(ShaderIDProps.AddressIndex, (int)addressIndex);
+            memoryHandle.RegisterRebind(addressIndex, newSource =>
+                rp.matProps.SetBuffer(ShaderIDProps.StorageMemory, newSource)
+            );
             return rp;
         }
 

@@ -79,45 +79,38 @@ public static class SpriteExtruder{
             OnMeshRecieved(ret);
         }, 1);
         RBTask.AddTask(); RBTask.AddTask();
-        AsyncGPUReadback.Request(GenerationPreset.memoryHandle.Address, size: 8, offset: 8*(int)vertAddress, (ret) =>
-            OnAddressRecieved((int)vertAddress, ret, RBTask, onVertSizeRecieved));
-        AsyncGPUReadback.Request(GenerationPreset.memoryHandle.Address, size: 8, offset: 8*(int)triAddress, (ret) =>
-            OnAddressRecieved((int)triAddress, ret, RBTask, onTriSizeRecieved));
+        //await until we obtain a fixed long term storage location
+        GenerationPreset.memoryHandle.RegisterRebind(
+            vertAddress,
+            _ => ReadbackVertices(vertAddress, RBTask)
+        );
+        GenerationPreset.memoryHandle.RegisterRebind(
+            triAddress,
+            _ => ReadbackTriangles(triAddress, RBTask)
+        );
     }
 
-    static void OnAddressRecieved(int buffAddr, AsyncGPUReadbackRequest request, ReadbackTask<SVert> RBTask, ReadbackSizeRecieved OnSizeRecieved){
-        if (!GenerationPreset.memoryHandle.GetBlockBufferSafe(buffAddr, out ComputeBuffer source))
+    static void ReadbackVertices(uint address, ReadbackTask<SVert> RBTask){
+        if (!GenerationPreset.memoryHandle.GetDirectAllocation(address, VERTEX_STRIDE_WORD,
+            out ComputeBuffer source, out _, out _, out int start, out int count))
             return;
-        uint2 memAddress = request.GetData<uint2>().ToArray()[0];
-
-        if(memAddress.x == 0){
-            RBTask.OnRBRecieved();
-            return;
-        }
-        
-        AsyncGPUReadback.Request(source, size: 4, offset: 4*((int)memAddress.x - 1), (ret) => OnSizeRecieved(buffAddr, ret, memAddress, RBTask));
+        RBTask.RBMesh.VertexBuffer = new NativeArray<SVert>(count, Allocator.Persistent);
+        AsyncGPUReadback.RequestIntoNativeArray(ref RBTask.RBMesh.VertexBuffer,
+            source, size: 4 * count * VERTEX_STRIDE_WORD,
+            offset: 4 * start * VERTEX_STRIDE_WORD,
+            _ => RBTask.OnRBRecieved());
     }
 
-    private delegate void ReadbackSizeRecieved(int buffAddress, AsyncGPUReadbackRequest request, uint2 address, ReadbackTask<SVert> RBTask);
-    static void onVertSizeRecieved(int buffAddr, AsyncGPUReadbackRequest request, uint2 address, ReadbackTask<SVert> RBTask){
-        if (!GenerationPreset.memoryHandle.GetBlockBufferSafe(buffAddr, out ComputeBuffer source))
+    static void ReadbackTriangles(uint address, ReadbackTask<SVert> RBTask){
+        if (!GenerationPreset.memoryHandle.GetDirectAllocation(address, TRI_STRIDE_WORD,
+            out ComputeBuffer source, out _, out _, out int start, out int count))
             return;
-        int memSize = request.GetData<int>().ToArray()[0] - VERTEX_STRIDE_WORD;
-        int vertCount = memSize / VERTEX_STRIDE_WORD;
-        int vertStartWord = (int)(address.y * VERTEX_STRIDE_WORD);
-
-        RBTask.RBMesh.VertexBuffer = new NativeArray<SVert>(vertCount, Allocator.Persistent);
-        AsyncGPUReadback.RequestIntoNativeArray(ref RBTask.RBMesh.VertexBuffer, source, size: 4 * memSize, offset: 4 * vertStartWord, ret => RBTask.OnRBRecieved());
-    }
-
-    static void onTriSizeRecieved(int buffAddr, AsyncGPUReadbackRequest request, uint2 address, ReadbackTask<SVert> RBTask){
-        if (!GenerationPreset.memoryHandle.GetBlockBufferSafe(buffAddr, out ComputeBuffer source))
-            return;
-        int memSize = request.GetData<int>().ToArray()[0] - TRI_STRIDE_WORD;
-        int triStartWord = (int)(address.y * TRI_STRIDE_WORD);
-
-        RBTask.RBMesh.IndexBuffer[0] = new NativeArray<uint>(memSize, Allocator.Persistent);
-        AsyncGPUReadback.RequestIntoNativeArray(ref RBTask.RBMesh.IndexBuffer[0], source, size: 4 * memSize, offset: 4 * triStartWord, ret => RBTask.OnRBRecieved());
+        RBTask.RBMesh.IndexBuffer[0] = new NativeArray<uint>(
+            count * TRI_STRIDE_WORD, Allocator.Persistent);
+        AsyncGPUReadback.RequestIntoNativeArray(ref RBTask.RBMesh.IndexBuffer[0],
+            source, size: 4 * count * TRI_STRIDE_WORD,
+            offset: 4 * start * TRI_STRIDE_WORD,
+            _ => RBTask.OnRBRecieved());
     }
 
     public static void GenerateMesh(ExtrudeSettings settings){

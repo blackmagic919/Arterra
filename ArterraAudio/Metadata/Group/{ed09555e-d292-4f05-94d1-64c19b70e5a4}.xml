@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<objects serializationModel="Studio.02.03.00">
+	<object class="MixerGroup" id="{ed09555e-d292-4f05-94d1-64c19b70e5a4}">
+		<property name="name">
+			<value>Vulture</value>
+		</property>
+		<relationship name="effectChain">
+			<destination>{62cc3849-7082-4cee-a62d-76249f060053}</destination>
+		</relationship>
+		<relationship name="panner">
+			<destination>{7b106cf7-3526-454e-80e2-a673e8e03f48}</destination>
+		</relationship>
+		<relationship name="output">
+			<destination>{11040329-8379-4768-b0cc-4d7992176ff6}</destination>
+		</relationship>
+	</object>
+	<object class="MixerBusEffectChain" id="{62cc3849-7082-4cee-a62d-76249f060053}">
+		<relationship name="effects">
+			<destination>{c8742356-ab72-4ffb-9bff-b55dc9196892}</destination>
+		</relationship>
+	</object>
+	<object class="MixerBusPanner" id="{7b106cf7-3526-454e-80e2-a673e8e03f48}" />
+	<object class="MixerBusFader" id="{c8742356-ab72-4ffb-9bff-b55dc9196892}" />
+</objects>

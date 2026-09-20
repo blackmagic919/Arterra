@@ -9,7 +9,7 @@ using Arterra.Utils;
 
 namespace Arterra.Configuration.Quality {
     /// <summary>
-    /// Responsible for managing the allocation and deallocation of memory on the GPU for generation
+    /// Responsible for TestAllocIsEmptynaging the allocation and deallocation of memory on the GPU for generation
     /// related tasks. Rather than allowing each system to maintain its own <see cref="ComputeBuffer"/>, 
     /// memory is allocated through a shader-based malloc which allows for more efficient memory management and 
     /// fewer buffer locations to track. Settings on the size of this memory heap can be found in <see cref="Quality.Memory"/>.
@@ -180,14 +180,18 @@ namespace Arterra.Configuration.Quality {
         /// </param>
         public virtual void ReleaseMemory(uint addressIndex) {
             if (!initialized || addressIndex == 0) return;
-            //Release Memory
-            DeallocateShader.SetInt(ShaderIDProps.AddressIndex, (int)addressIndex);
-            DeallocateShader.Dispatch(0, 1, 1, 1);
+            DeallocateMemoryBlock(addressIndex);
             _AddressBuffer.Release(addressIndex);
 
             //uint[] heap = new uint[6];
             //_EmptyBlockHeap.GetData(heap);
             //Debug.Log("Primary: " + heap[3]/250000 + "MB");
+        }
+
+        /// <summary>Releases the physical block while retaining its logical address entry.</summary>
+        protected void DeallocateMemoryBlock(uint addressIndex) {
+            DeallocateShader.SetInt(ShaderIDProps.AddressIndex, (int)addressIndex);
+            DeallocateShader.Dispatch(0, 1, 1, 1);
         }
 
         /// <summary>
@@ -309,7 +313,18 @@ namespace Arterra.Configuration.Quality {
                     AsyncGPUReadback.Request(block, size: 4 * BatchedCheckSize, offset: 4 * (int)memHandle.y, OnAllocsRecieved);
                 }
 
-                AsyncGPUReadback.Request(mem.Address, size: 8, offset: 8 * StatusGroupAlloc, OnAddressRecieved);
+                if (mem is MemoryOccupancyBalancer balanced) {
+                    balanced.RegisterRebind((uint)StatusGroupAlloc, _1 => {
+                        if (!balanced.GetDirectAllocation((uint)StatusGroupAlloc, 1,
+                            out ComputeBuffer block, out _, out _, out int start,
+                            out int count)) return;
+                        AsyncGPUReadback.Request(block, size: 4 * count,
+                            offset: 4 * start, OnAllocsRecieved);
+                    });
+                } else {
+                    AsyncGPUReadback.Request(mem.Address, size: 8,
+                        offset: 8 * StatusGroupAlloc, OnAddressRecieved);
+                }
             }
 
             public struct ReleaseHandle {

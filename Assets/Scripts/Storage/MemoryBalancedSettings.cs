@@ -5,14 +5,15 @@ namespace Arterra.Configuration.Quality {
     /// mainly used for saving blocks of CPU-side unknown sizes on the GPU  </summary>
     [CreateAssetMenu(menuName = "Containers/Balanced Heap")]
     public class BalancedMemory : Memory {
-        /// <summary> The initial amount of compute buffer meta data to allocate.
-        /// This does not indicate the actual memory initially allocated,
-        /// but the maximum blocks that can be allocated without resizing 
-        /// meta data buffers which is an expensive operation. </summary>
-        public int InitBlockCount;
-        /// <summary>The percentage of a buffer that must be free for the system to continue trying
-        /// to allocate to the buffer before it tries to redirect allocations to a different buffer. </summary>
-        [Range(0, 1)]
-        public float OverflowHandlerSizeReq;
+        /// <summary>Capacity of each ordinary long-term storage buffer in 4-byte words.
+        /// An allocation larger than this receives a dedicated, larger buffer.
+        /// The inherited StorageSize is the scratch heap capacity.</summary>
+        [Min(2)]
+        public int LongTermBlockSize = 50_000_000; // 4-byte words (200 MB)
+
+        /// <summary>Maximum allocation attempts that may be outstanding across one
+        /// asynchronous readback window. Zero uses 1024.</summary>
+        [Min(1)]
+        public int MaxAllocationsPerSnapshot = 25000;
     }
 }

@@ -15,7 +15,7 @@ namespace Arterra.Utils {
         //Memory Occupancy Balancer
         public static readonly int SourceMemory = Shader.PropertyToID("_SourceMemory");
         public static readonly int Heap = Shader.PropertyToID("_Heap");
-        public static readonly int BufferIndex = Shader.PropertyToID("buffIndex");
+        public static readonly int OperationIndex = Shader.PropertyToID("operationIndex");
         public static readonly int BufferSize4Bytes = Shader.PropertyToID("_BufferSize4Bytes");
         // Count To Args
         public static readonly int Stride = Shader.PropertyToID("stride");
