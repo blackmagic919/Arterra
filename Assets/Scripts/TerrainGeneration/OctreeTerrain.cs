@@ -153,6 +153,7 @@ namespace Arterra.Engine.Terrain{
             return status;
         }
 
+
         /// <summary>
         /// An <see cref="Octree{T}"/> that infinitely tiles <see cref="TerrainChunk"/>s and is balanced using an 
         /// explicit balancing factor (e.g. 1:2, 1:3) to determine different depth regions.

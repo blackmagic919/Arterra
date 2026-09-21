@@ -1,5 +1,4 @@
 using UnityEngine;
-using static Arterra.Utils.UtilityBuffers;
 using Unity.Mathematics;
 using Arterra.Configuration;
 using Arterra.Engine.Terrain.Readback;
@@ -8,6 +7,7 @@ using Arterra.Utils;
 using Arterra.Core.Storage;
 using Arterra.Data.Entity;
 using Arterra.Data.Entity.Behavior;
+using static Arterra.Core.Storage.SharedResourceManager;
 
 namespace Arterra.Engine.Terrain.Structure{
 /// <summary>
@@ -17,10 +17,18 @@ namespace Arterra.Engine.Terrain.Structure{
 /// </summary>
 public class Creator
 {
+    public GraphicsContextId GraphicsContext;
+
+    public Creator(GraphicsContextId graphicsContext = GraphicsContextId.Generation) {
+        GraphicsContext = graphicsContext;
+    }
+
+    public GraphicsResourceContext GetGraphicsContext() => Graphics(GraphicsContext);
+
     /// <summary>
-    /// The address of the generated structure information for this chunk. The location within 
+    /// The address of the generated structure information for this chunk. The location within
     /// <see cref="Configuration.Quality.MemoryOccupancyBalancer.addressBuffers"/> of the address within
-    /// /// <see cref="Configuration.Quality.MemoryOccupancyBalancer.Storage"/> 
+    /// /// <see cref="Configuration.Quality.MemoryOccupancyBalancer.Storage"/>
     /// of the beginning of the structure information for this chunk.
     /// </summary>
     public uint StructureDataIndex;
@@ -31,51 +39,23 @@ public class Creator
     public void ReleaseStructure()
     {
         if(StructureDataIndex == 0) return;
-        GenerationPreset.memoryHandle.ReleaseMemory(this.StructureDataIndex);
+        GetGraphicsContext().Memory.ReleaseMemory(this.StructureDataIndex);
         StructureDataIndex = 0;
-    }
-    
-    private int[] calculateLoDPoints(int maxLoD, int maxStructurePoints, float falloffFactor)
-    {
-        int[] points = new int[maxLoD + 2]; //suffix sum
-        for(int LoD = maxLoD; LoD >= 0; LoD--)
-        {
-            points[LoD] = Mathf.CeilToInt(maxStructurePoints * Mathf.Pow(falloffFactor, -LoD)) + points[LoD+1];
-        }
-        return points;
-    }
-    private int calculateMaxStructurePoints(int maxLoD, int maxStructurePoints, float falloffFactor)
-    {
-        int totalPoints = 0;
-        int processedChunks = 0;
-        int maxDist = maxLoD + 2;
-        int[] pointsPerLoD = calculateLoDPoints(maxLoD, maxStructurePoints, falloffFactor);
-
-        for (int dist = 1; dist <= maxDist; dist++)
-        {
-            int numChunks = dist * dist * dist - processedChunks;
-            int LoD = Mathf.Max(0, dist - 2);
-            int maxPointsPerChunk = pointsPerLoD[LoD];
-
-            totalPoints += maxPointsPerChunk * numChunks;
-            processedChunks += numChunks;
-        }
-        return totalPoints;
     }
 
     /// <summary> Finds all structures that intersect with the current chunk's boundaries. Planned structures are represented
-    /// through their <i>origin</i>, <i>structure index</i>, and <i>rotation</i> relative to the chunk's origin. 
+    /// through their <i>origin</i>, <i>structure index</i>, and <i>rotation</i> relative to the chunk's origin.
     /// Planning structures encompasses the first two steps of structure generation, <see href="https://blackmagic919.github.io/AboutMe/2024/06/08/Structure%20Planning/">
-    /// planning </see> and <see href="https://blackmagic919.github.io/AboutMe/2024/06/16/Structure-Pruning/">>pruning</see>, and is 
+    /// planning </see> and <see href="https://blackmagic919.github.io/AboutMe/2024/06/16/Structure-Pruning/">>pruning</see>, and is
     /// necessary to ensure structures across chunk boundaries are recognized and generated correctly. </summary>
-    /// <remarks>Structures are sampled in a deterministic manner meaning that the same structures 
+    /// <remarks>Structures are sampled in a deterministic manner meaning that the same structures
     /// will be generated in the same location in the same world regardless of any other factors. </remarks>
     /// <param name="readback" >The <see cref="AsyncGenInfoReadback"/> task responsible for batching intermediate generation
-    /// information to be readback to the CPU.</param> 
+    /// information to be readback to the CPU.</param>
     /// <param name="chunkCoord">The coordinate, in <see cref="TerrainChunk.CCoord"/>Chunk Space, of the chunk whose structures
     /// are planned. If the chunk spans multiple <paramref name="chunkCoord">ChunkCoords</paramref>, this is the coordinate of the origin of
     /// the region. </param>
-    /// <param name="offset">The offset in grid space of the origin of the chunk. This should be 
+    /// <param name="offset">The offset in grid space of the origin of the chunk. This should be
     /// equvalent to (<paramref name="chunkCoord"/> * <paramref name="chunkSize"/>)</param>
     /// <param name="chunkSize">The size of the chunk a <see cref="TerrainChunk.RealChunk">real chunk</see> in grid space. The atomic
     /// unit for guaranteed determinstic sampling of chunk structures. </param>
@@ -84,30 +64,36 @@ public class Creator
     /// the size of the chunk relative to a <see cref="TerrainChunk.RealChunk"> real chunk </see>. See <see cref="TerrainChunk.depth"/> for more info. </param>
     public void PlanStructuresGPU(AsyncGenInfoReadback readback, int3 chunkCoord, float3 offset, int chunkSize, float IsoLevel, int depth=0)
     {
+        GraphicsResourceContext gpuContext = GetGraphicsContext();
         ReleaseStructure();
         //Sample system structures
         if(Jigsaw.Generator.PlanStructureSystems(chunkSize, depth, chunkCoord))
-            ClearRange(GenerationBuffer, 6, 1);
-        else ClearRange(GenerationBuffer, 7, 0);
-        
-        Generator.SampleStructureLoD(Config.CURRENT.Generation.Structures.value.maxLoD, chunkSize, depth, chunkCoord);
-        Generator.IdentifyStructures(offset, IsoLevel);
+            gpuContext.Work.ClearRange(
+                gpuContext.Work.Scratch, 6, 1);
+        else gpuContext.Work.ClearRange(
+            gpuContext.Work.Scratch, 7, 0);
 
-        this.StructureDataIndex = GenerationPreset.memoryHandle.AllocateMemory(GenerationBuffer,
-            STRUCTURE_STRIDE_WORD, Generator.offsets.prunedCounter);
-        int genPtAddress = readback.AddGenPoints(GenerationBuffer, Generator.offsets.ehStctCounter, Generator.offsets.tempCounter);
-        Generator.TranscribeStructures(GenerationPreset.memoryHandle.Address, StructureDataIndex, genPtAddress);
+        SampleStructureLoD(Config.CURRENT.Generation.Structures.value.maxLoD, chunkSize, depth, chunkCoord);
+        IdentifyStructures(offset, IsoLevel);
+
+        this.StructureDataIndex = gpuContext.Memory.AllocateMemory(
+            gpuContext.Work.Scratch,
+            STRUCTURE_STRIDE_WORD, offsets.prunedCounter);
+        int genPtAddress = readback.AddGenPoints(
+            gpuContext.Work.Scratch,
+            offsets.ehStctCounter, offsets.tempCounter);
+        TranscribeStructures(gpuContext.Memory.Address, StructureDataIndex, genPtAddress);
     }
 
     /// <summary> Generates the planned structures for the current chunk. This involves actually transcribing the <see cref="Configuration.Generation.Structure.StructureData.map">
     /// map information </see> of each structure onto the chunk's map in <see cref="GenerationBuffer">working memory</see> that will be used to create the visual and
     /// interactable features of the chunk. This must be called after the chunk's base map has been populated through
-    /// <see cref="Map.Generator.GenerateBaseData(Vector3, uint, int, int, float)"/>. </summary>
+    /// <see cref="Map.GenerateBaseData(Vector3, uint, int, int, float)"/>. </summary>
     /// <remarks>The time complexity of this operation is O(n) with respect to the size of the largest structure within the chunk.</remarks>
     /// <param name="chunkSize">The size of the chunk a <see cref="TerrainChunk.RealChunk">real chunk</see> in grid space.</param>
     /// <param name="skipInc">The distance in grid space between two adjacent samples in the chunk's terrain map. Used to convert
     /// a structure's coordinate from grid space to map space(the location within the chunk's terrain map). </param>
-    /// <param name="mapStart">The start of the chunk's terrain map within the <see cref="UtilityBuffers.GenerationBuffer"/>. See <see cref="Map.Generator.GeoGenOffsets.rawMapStart"/>
+    /// <param name="mapStart">The start of the chunk's terrain map within the <see cref="GraphicsGeneration.Work.Scratch"/>. See <see cref="Map.GeoGenOffsets.rawMapStart"/>
     /// for more info. </param>
     /// <param name="IsoLevel">The density of the surface of the terrain. See <see cref="Configuration.Quality.Terrain.IsoLevel"/> for more info.</param>
     /// <param name="sampleOffset">The world-space offset used when sampling or seeding structure placement for this chunk.</param>
@@ -117,10 +103,11 @@ public class Creator
     /// entry of the first entry exclusively contained by the chunk. </param>
     public void GenerateStrucutresGPU(int chunkSize, int skipInc, int mapStart, float IsoLevel, float3 sampleOffset, int wChunkSize = -1, int wOffset = 0)
     {
+        GraphicsResourceContext gpuContext = GetGraphicsContext();
         if(wChunkSize == -1) wChunkSize = chunkSize;
-        ComputeBuffer blockSource = GenerationPreset.memoryHandle.GetBlockBuffer(StructureDataIndex);
-        ComputeBuffer structCount = Generator.GetStructCount(blockSource, GenerationPreset.memoryHandle.Address, (int)StructureDataIndex, STRUCTURE_STRIDE_WORD);
-        Generator.ApplyStructures(blockSource, GenerationPreset.memoryHandle.Address, structCount, 
+        ComputeBuffer blockSource = gpuContext.Memory.GetBlockBuffer(StructureDataIndex);
+        ComputeBuffer structCount = GetStructCount(blockSource, gpuContext.Memory.Address, (int)StructureDataIndex, STRUCTURE_STRIDE_WORD);
+        ApplyStructures(blockSource, gpuContext.Memory.Address, structCount,
                 (int)StructureDataIndex, mapStart, chunkSize, skipInc, sampleOffset, wOffset, wChunkSize, IsoLevel);
 
         return;
@@ -131,33 +118,25 @@ public class Creator
         ComputeBuffer coarseDetail = AnalyzeNoiseMapGPU(points, count, meshSettings.CoarseTerrainNoise, offset, 1, chunkSize, maxPoints, false, true, false, tempBuffers);
         ComputeBuffer fineDetail = AnalyzeNoiseMapGPU(points, count, meshSettings.CoarseTerrainNoise, offset, 1, chunkSize, maxPoints, false, true, false, tempBuffers);
 
-        return null;        
+        return null;
     }*/
 
-}
 
-/// <summary> A static manager responsible for managing loading and access
-/// of all compute-shaders used within the structure generation process
-/// of terrain generation. All instructions related to structure
-/// generation done by the GPU is streamlined from this module.  </summary>
-public static class Generator 
-{
     static ComputeShader StructureLoDSampler;//
     static ComputeShader StructureIdentifier;//
     static ComputeShader structureChunkGenerator;//
     static ComputeShader structureDataTranscriber;//
     static ComputeShader structureSizeCounter;//
 
-    const int STRUCTURE_STRIDE_WORD = 3 + 1;
     const int SAMPLE_STRIDE_WORD = 3 + 1;
     const int CHECK_STRIDE_WORD = 2;
 
-    /// <summary> The offsets within the <see cref="UtilityBuffers.GenerationBuffer"> working buffer </see> of different 
+    /// <summary> The offsets within the <see cref="GraphicsGeneration.Work.Scratch"> working buffer </see> of different
     /// logical regions used for different tasks during the terrain generation process. See <see cref="StructureOffsets"/>
     /// for more information. </summary>
     public static StructureOffsets offsets;
-    
-    static Generator(){
+
+    static Creator(){
         StructureLoDSampler = Resources.Load<ComputeShader>("Compute/TerrainGeneration/Structures/StructureLODSampler");
         StructureIdentifier = Resources.Load<ComputeShader>("Compute/TerrainGeneration/Structures/StructureIdentifier");
         structureChunkGenerator = Resources.Load<ComputeShader>("Compute/TerrainGeneration/Structures/StructureChunkGenerator");
@@ -197,85 +176,91 @@ public static class Generator
 
     /// <summary>
     /// Presets all compute-shaders used in the structure generator by acquiring them and
-    /// binding any constant values(information derived from the world's settings that 
+    /// binding any constant values(information derived from the world's settings that
     /// won't change until the world is unloaded) to them. Referenced by
     /// <see cref="SystemProtocol.Startup"/> </summary>
-    public static void PresetData()
+    public static void PresetData(GraphicsContextId graphicsContext = GraphicsContextId.Generation)
     {
-        Arterra.Data.Structure.Generation structures = Config.CURRENT.Generation.Structures.value;
+        GraphicsResourceContext gpuContext = Graphics(graphicsContext);
+        Generation structures = Config.CURRENT.Generation.Structures.value;
         Configuration.Quality.Terrain rSettings = Config.CURRENT.Quality.Terrain.value;
         int maxStructurePoints = calculateMaxStructurePoints(structures.maxLoD, rSettings.MaxStructureDepth, structures.StructureChecksPerChunk, structures.LoDFalloff);
         offsets = new StructureOffsets(maxStructurePoints, 0);
 
-        StructureLoDSampler.SetInt("maxLOD", structures.maxLoD);
-        StructureLoDSampler.SetInt("numPoints0", structures.StructureChecksPerChunk);
-        StructureLoDSampler.SetFloat("LoDFalloff", structures.LoDFalloff);
-        StructureLoDSampler.SetBuffer(0, "structures", UtilityBuffers.GenerationBuffer);
-        StructureLoDSampler.SetBuffer(0, "counter", UtilityBuffers.GenerationBuffer);
-        StructureLoDSampler.SetInt("bSTART", offsets.sampleStart);
-        StructureLoDSampler.SetInt("bCOUNTER", offsets.sampleCounter);
+        gpuContext.SetInt(StructureLoDSampler, "maxLOD", structures.maxLoD);
+        gpuContext.SetInt(StructureLoDSampler, "numPoints0", structures.StructureChecksPerChunk);
+        gpuContext.SetFloat(StructureLoDSampler, "LoDFalloff", structures.LoDFalloff);
+        gpuContext.SetBuffer(StructureLoDSampler, 0, "structures", gpuContext.Work.Scratch);
+        gpuContext.SetBuffer(StructureLoDSampler, 0, "counter", gpuContext.Work.Scratch);
+        gpuContext.SetInt(StructureLoDSampler, "bSTART", offsets.sampleStart);
+        gpuContext.SetInt(StructureLoDSampler, "bCOUNTER", offsets.sampleCounter);
 
-        SetStructIDSettings(StructureIdentifier);
+        SetStructIDSettings(StructureIdentifier, gpuContext);
 
-        StructureIdentifier.SetBuffer(0, "structurePlan", UtilityBuffers.GenerationBuffer);
-        StructureIdentifier.SetBuffer(0, "genStructures", UtilityBuffers.GenerationBuffer);
-        StructureIdentifier.SetBuffer(0, "structureChecks", UtilityBuffers.GenerationBuffer);
-        StructureIdentifier.SetBuffer(1, "structureChecks", UtilityBuffers.GenerationBuffer);
-        StructureIdentifier.SetBuffer(1, "structurePlan", UtilityBuffers.GenerationBuffer);
-        StructureIdentifier.SetBuffer(1, "genStructures", UtilityBuffers.GenerationBuffer);
-        StructureIdentifier.SetBuffer(2, "genStructures", UtilityBuffers.GenerationBuffer);
-        StructureIdentifier.SetInt("bSTART_plan", offsets.sampleStart);
-        StructureIdentifier.SetInt("bSTART_check", offsets.checkStart);
-        StructureIdentifier.SetInt("bSTART_struct", offsets.structureStart);
-        StructureIdentifier.SetInt("bSTART_prune", offsets.prunedStart);
+        gpuContext.SetBuffer(StructureIdentifier, 0, "structurePlan", gpuContext.Work.Scratch);
+        gpuContext.SetBuffer(StructureIdentifier, 0, "genStructures", gpuContext.Work.Scratch);
+        gpuContext.SetBuffer(StructureIdentifier, 0, "structureChecks", gpuContext.Work.Scratch);
+        gpuContext.SetBuffer(StructureIdentifier, 1, "structureChecks", gpuContext.Work.Scratch);
+        gpuContext.SetBuffer(StructureIdentifier, 1, "structurePlan", gpuContext.Work.Scratch);
+        gpuContext.SetBuffer(StructureIdentifier, 1, "genStructures", gpuContext.Work.Scratch);
+        gpuContext.SetBuffer(StructureIdentifier, 2, "genStructures", gpuContext.Work.Scratch);
+        gpuContext.SetInt(StructureIdentifier, "bSTART_plan", offsets.sampleStart);
+        gpuContext.SetInt(StructureIdentifier, "bSTART_check", offsets.checkStart);
+        gpuContext.SetInt(StructureIdentifier, "bSTART_struct", offsets.structureStart);
+        gpuContext.SetInt(StructureIdentifier, "bSTART_prune", offsets.prunedStart);
 
-        StructureIdentifier.SetBuffer(0, "counter", UtilityBuffers.GenerationBuffer);
-        StructureIdentifier.SetBuffer(1, "counter", UtilityBuffers.GenerationBuffer);
-        StructureIdentifier.SetBuffer(2, "counter", UtilityBuffers.GenerationBuffer);
-        StructureIdentifier.SetInt("bCOUNT_plan", offsets.sampleCounter);
-        StructureIdentifier.SetInt("bCOUNT_check", offsets.checkCounter);
-        StructureIdentifier.SetInt("bCOUNT_struct", offsets.structureCounter);
-        StructureIdentifier.SetInt("bCOUNT_prune", offsets.prunedCounter);
-        StructureIdentifier.SetInt("bCOUNT_ehStct", offsets.ehStctCounter);
+        gpuContext.SetBuffer(StructureIdentifier, 0, "counter", gpuContext.Work.Scratch);
+        gpuContext.SetBuffer(StructureIdentifier, 1, "counter", gpuContext.Work.Scratch);
+        gpuContext.SetBuffer(StructureIdentifier, 2, "counter", gpuContext.Work.Scratch);
+        gpuContext.SetInt(StructureIdentifier, "bCOUNT_plan", offsets.sampleCounter);
+        gpuContext.SetInt(StructureIdentifier, "bCOUNT_check", offsets.checkCounter);
+        gpuContext.SetInt(StructureIdentifier, "bCOUNT_struct", offsets.structureCounter);
+        gpuContext.SetInt(StructureIdentifier, "bCOUNT_prune", offsets.prunedCounter);
+        gpuContext.SetInt(StructureIdentifier, "bCOUNT_ehStct", offsets.ehStctCounter);
 
         int kernel = structureDataTranscriber.FindKernel("Transcribe");
-        structureDataTranscriber.SetBuffer(kernel, "counter", UtilityBuffers.GenerationBuffer);
-        structureDataTranscriber.SetBuffer(kernel, "structPoints", UtilityBuffers.GenerationBuffer);
-        structureDataTranscriber.SetInt("bSTART_struct", offsets.prunedStart);
-        structureDataTranscriber.SetInt("bCOUNT_struct", offsets.prunedCounter);
-        structureDataTranscriber.SetInt("bCOUNT_mStct", offsets.mStructCounter);
-        structureDataTranscriber.SetInt("GPConfig", (int)GenPoint.GenType.StructureMeta);
+        gpuContext.SetBuffer(structureDataTranscriber, kernel, "counter", gpuContext.Work.Scratch);
+        gpuContext.SetBuffer(structureDataTranscriber, kernel, "structPoints", gpuContext.Work.Scratch);
+        gpuContext.SetInt(structureDataTranscriber, "bSTART_struct", offsets.prunedStart);
+        gpuContext.SetInt(structureDataTranscriber, "bCOUNT_struct", offsets.prunedCounter);
+        gpuContext.SetInt(structureDataTranscriber, "bCOUNT_mStct", offsets.mStructCounter);
+        gpuContext.SetInt(structureDataTranscriber, "GPConfig", (int)GenPoint.GenType.StructureMeta);
 
-        Jigsaw.Generator.Initialize();
+        if (graphicsContext == GraphicsContextId.Generation)
+            Jigsaw.Generator.Initialize();
     }
 
-    public static void SetStructIDSettings(ComputeShader cs) {
+    public void SetStructIDSettings(ComputeShader cs) {
+        SetStructIDSettings(cs, GetGraphicsContext());
+    }
+
+    private static void SetStructIDSettings(ComputeShader cs, GraphicsResourceContext gpuContext) {
         Data.Generation.Map mesh = Config.CURRENT.Generation.Terrain.value;
         Data.Generation.Surface surface = Config.CURRENT.Generation.Surface.value;
 
-        cs.SetInt("caveFreqSampler", mesh.CaveFrequencyIndex);
-        cs.SetInt("caveSizeSampler", mesh.CaveSizeIndex);
-        cs.SetInt("caveShapeSampler", mesh.CaveShapeIndex);
-        cs.SetInt("caveCoarseSampler", mesh.CoarseTerrainIndex);
-        cs.SetInt("caveFineSampler", mesh.FineTerrainIndex);
+        gpuContext.SetInt(cs, "caveFreqSampler", mesh.CaveFrequencyIndex);
+        gpuContext.SetInt(cs, "caveSizeSampler", mesh.CaveSizeIndex);
+        gpuContext.SetInt(cs, "caveShapeSampler", mesh.CaveShapeIndex);
+        gpuContext.SetInt(cs, "caveCoarseSampler", mesh.CoarseTerrainIndex);
+        gpuContext.SetInt(cs, "caveFineSampler", mesh.FineTerrainIndex);
 
-        cs.SetInt("continentalSampler", surface.ContinentalIndex);
-        cs.SetInt("erosionSampler", surface.ErosionIndex);
-        cs.SetInt("majorWarpSampler", surface.MajorWarpIndex);
-        cs.SetInt("minorWarpSampler", surface.MinorWarpIndex);
-        cs.SetInt("squashSampler", surface.SquashIndex);
-        cs.SetInt("InfHeightSampler", surface.InfHeightIndex);
-        cs.SetInt("InfOffsetSampler", surface.InfOffsetIndex);
-        cs.SetInt("atmosphereSampler", surface.AtmosphereIndex);
+        gpuContext.SetInt(cs, "continentalSampler", surface.ContinentalIndex);
+        gpuContext.SetInt(cs, "erosionSampler", surface.ErosionIndex);
+        gpuContext.SetInt(cs, "majorWarpSampler", surface.MajorWarpIndex);
+        gpuContext.SetInt(cs, "minorWarpSampler", surface.MinorWarpIndex);
+        gpuContext.SetInt(cs, "squashSampler", surface.SquashIndex);
+        gpuContext.SetInt(cs, "InfHeightSampler", surface.InfHeightIndex);
+        gpuContext.SetInt(cs, "InfOffsetSampler", surface.InfOffsetIndex);
+        gpuContext.SetInt(cs, "atmosphereSampler", surface.AtmosphereIndex);
 
-        cs.SetFloat("maxInfluenceHeight", surface.MaxInfluenceHeight);
-        cs.SetFloat("maxTerrainHeight", surface.MaxTerrainHeight);
-        cs.SetFloat("squashHeight", surface.MaxSquashHeight);
-        cs.SetFloat("heightOffset", surface.terrainOffset);
-        cs.SetFloat("heightSFalloff", mesh.heightFalloff);
-        cs.SetFloat("waterHeight", mesh.waterHeight);
+        gpuContext.SetFloat(cs, "maxInfluenceHeight", surface.MaxInfluenceHeight);
+        gpuContext.SetFloat(cs, "maxTerrainHeight", surface.MaxTerrainHeight);
+        gpuContext.SetFloat(cs, "squashHeight", surface.MaxSquashHeight);
+        gpuContext.SetFloat(cs, "heightOffset", surface.terrainOffset);
+        gpuContext.SetFloat(cs, "heightSFalloff", mesh.heightFalloff);
+        gpuContext.SetFloat(cs, "waterHeight", mesh.waterHeight);
     }
-    
+
     /// <summary> Samples the origins of all structures that intersect with the current chunk's boundaries. This is the <see href="https://blackmagic919.github.io/AboutMe/2024/06/08/Structure%20Planning/">
     /// first step </see> of structure generation and is necessary to ensure that the chunk is aware of all structures that overlap
     /// with its boundaries. </summary>
@@ -287,68 +272,71 @@ public static class Generator
     /// <param name="chunkCoord">The coordinate, in <see cref="TerrainChunk.CCoord">Chunk Space</see>, of the chunk whose structures
     /// are planned. If the chunk spans multiple <paramref name="chunkCoord">ChunkCoords</paramref>, this is the coordinate of the origin of
     /// the region. </param>
-    public static void SampleStructureLoD(int maxLoD, int chunkSize, int depth, int3 chunkCoord)
-    {   
+    public void SampleStructureLoD(int maxLoD, int chunkSize, int depth, int3 chunkCoord)
+    {
+        GraphicsResourceContext gpuContext = GetGraphicsContext();
         //base depthL is the base chunk axis size to sample maximum detail
         int numChunksPerAxis = maxLoD + (1<<depth) + 1;
         int numChunksMax = numChunksPerAxis * numChunksPerAxis * numChunksPerAxis;
 
-        StructureLoDSampler.SetInts(ShaderIDProps.OriginCCoord, new int[] { chunkCoord.x, chunkCoord.y, chunkCoord.z });
-        StructureLoDSampler.SetInt(ShaderIDProps.MapChunkSize, chunkSize);
-        StructureLoDSampler.SetInt(ShaderIDProps.BaseDepthLoD, depth); 
+        gpuContext.SetInts(StructureLoDSampler, ShaderIDProps.OriginCCoord, new int[] { chunkCoord.x, chunkCoord.y, chunkCoord.z });
+        gpuContext.SetInt(StructureLoDSampler, ShaderIDProps.MapChunkSize, chunkSize);
+        gpuContext.SetInt(StructureLoDSampler, ShaderIDProps.BaseDepthLoD, depth);
 
         StructureLoDSampler.GetKernelThreadGroupSizes(0, out uint threadChunkSize, out uint threadLoDSize, out _);
         int numThreadsChunk = Mathf.CeilToInt(numChunksMax / (float)threadChunkSize);
         int numThreadsLoD = Mathf.CeilToInt(maxLoD / (float)threadLoDSize);
-        StructureLoDSampler.Dispatch(0, numThreadsChunk, numThreadsLoD, 1);
+        gpuContext.Dispatch(StructureLoDSampler, 0, numThreadsChunk, numThreadsLoD, 1);
     }
 
-    /// <summary> Assigns structures to each position given by <see cref="SampleStructureLoD(int, int, int, int3)"/> based on 
+    /// <summary> Assigns structures to each position given by <see cref="SampleStructureLoD(int, int, int, int3)"/> based on
     /// the biome and removes any invalid or trivial structures. This is the <see href="https://blackmagic919.github.io/AboutMe/2024/06/16/Structure-Pruning/">
     /// second step </see> of structure generation and allows for varied and localized structure generation. </summary>
     /// <param name="offset">The offset in grid space of the origin of the chunk</param>
     /// <param name="IsoLevel">The density of the surface of the terrain. See <see cref="Configuration.Quality.Terrain.IsoLevel"/> for more info.</param>
-    public static void IdentifyStructures(Vector3 offset, float IsoLevel)
+    public void IdentifyStructures(Vector3 offset, float IsoLevel)
     {
-        ComputeBuffer args = UtilityBuffers.CountToArgs(StructureIdentifier, UtilityBuffers.GenerationBuffer, offsets.sampleCounter);
+        GraphicsResourceContext gpuContext = GetGraphicsContext();
+        ComputeBuffer args = gpuContext.Args.CountToArgs(StructureIdentifier, gpuContext.Work.Scratch, offsets.sampleCounter);
 
-        StructureIdentifier.SetFloat(ShaderIDProps.IsoLevel, IsoLevel);
-        SetSampleData(StructureIdentifier, offset, 1);
+        gpuContext.SetFloat(StructureIdentifier, ShaderIDProps.IsoLevel, IsoLevel);
+        gpuContext.Work.SetSampleData(StructureIdentifier, offset, 1);
 
         int kernel = StructureIdentifier.FindKernel("Identify");
-        StructureIdentifier.DispatchIndirect(kernel, args);//byte offset
+        gpuContext.DispatchIndirect(StructureIdentifier, kernel, args);//byte offset
 
-        args = UtilityBuffers.CountToArgs(StructureIdentifier, UtilityBuffers.GenerationBuffer, offsets.checkCounter);
+        args = gpuContext.Args.CountToArgs(StructureIdentifier, gpuContext.Work.Scratch, offsets.checkCounter);
         kernel = StructureIdentifier.FindKernel("Check");
-        StructureIdentifier.DispatchIndirect(kernel, args);//byte offset
+        gpuContext.DispatchIndirect(StructureIdentifier, kernel, args);//byte offset
 
-        args = UtilityBuffers.CountToArgs(StructureIdentifier, UtilityBuffers.GenerationBuffer, offsets.structureCounter);
+        args = gpuContext.Args.CountToArgs(StructureIdentifier, gpuContext.Work.Scratch, offsets.structureCounter);
         kernel = StructureIdentifier.FindKernel("Prune");
-        StructureIdentifier.DispatchIndirect(kernel, args);
+        gpuContext.DispatchIndirect(StructureIdentifier, kernel, args);
     }
 
     /// <summary>  Transcribes the generation information of structures instersecting with the chunk from <see cref="GenerationBuffer"> working memory</see> to
     /// long term storage. This is the instance information of structures that <b>will</b> be generated
     /// in the chunk innevitably, following all pruning steps. </summary>
     /// <param name="addresses">The buffer containing the direct address within the associated long term buffer where the information will be stored. </param>
-    /// <param name="addressIndex"> >The index within <paramref name="addresses"/> of the location that contains the direct address to the 
+    /// <param name="addressIndex"> >The index within <paramref name="addresses"/> of the location that contains the direct address to the
     /// region within the associated long term buffer where the information will be stored. </param>
-    /// <param name="metaAddress"> The index withing <paramref name="addresses"/> of the location that contains the direct address to the 
+    /// <param name="metaAddress"> The index withing <paramref name="addresses"/> of the location that contains the direct address to the
     /// region within the associated long term buffer where enhanced structures will be stored. </param>
-    public static void TranscribeStructures(GraphicsBuffer addresses, uint addressIndex, int metaAddress)
+    public void TranscribeStructures(GraphicsBuffer addresses, uint addressIndex, int metaAddress)
     {
-        ComputeBuffer structMemory = GenerationPreset.memoryHandle.GetBlockBuffer(addressIndex);
-        ComputeBuffer metaMemory = GenerationPreset.memoryHandle.GetBlockBuffer(metaAddress);
-        ComputeBuffer args = UtilityBuffers.CountToArgs(structureDataTranscriber, UtilityBuffers.GenerationBuffer, offsets.structureCounter);
+        GraphicsResourceContext gpuContext = GetGraphicsContext();
+        ComputeBuffer structMemory = gpuContext.Memory.GetBlockBuffer(addressIndex);
+        ComputeBuffer metaMemory = gpuContext.Memory.GetBlockBuffer(metaAddress);
+        ComputeBuffer args = gpuContext.Args.CountToArgs(structureDataTranscriber, gpuContext.Work.Scratch, offsets.structureCounter);
 
         int kernel = structureDataTranscriber.FindKernel("Transcribe");
-        structureDataTranscriber.SetBuffer(kernel, ShaderIDProps.MemoryBuffer, structMemory);
-        structureDataTranscriber.SetBuffer(kernel, ShaderIDProps.MetaMemoryBuffer, metaMemory);
-        structureDataTranscriber.SetBuffer(kernel, ShaderIDProps.AddressDict, addresses);
-        structureDataTranscriber.SetInt(ShaderIDProps.AddressIndex, (int)addressIndex);
-        structureDataTranscriber.SetInt(ShaderIDProps.MetaAddressIndex, metaAddress);
+        gpuContext.SetBuffer(structureDataTranscriber, kernel, ShaderIDProps.MemoryBuffer, structMemory);
+        gpuContext.SetBuffer(structureDataTranscriber, kernel, ShaderIDProps.MetaMemoryBuffer, metaMemory);
+        gpuContext.SetBuffer(structureDataTranscriber, kernel, ShaderIDProps.AddressDict, addresses);
+        gpuContext.SetInt(structureDataTranscriber, ShaderIDProps.AddressIndex, (int)addressIndex);
+        gpuContext.SetInt(structureDataTranscriber, ShaderIDProps.MetaAddressIndex, metaAddress);
 
-        structureDataTranscriber.DispatchIndirect(0, args);
+        gpuContext.DispatchIndirect(structureDataTranscriber, 0, args);
     }
 
     /// <summary> Gets the number of structures saved in the memory block pointed to by a chunk's <paramref name="addressIndex">address handle</paramref> for its structures.
@@ -356,37 +344,38 @@ public static class Generator
     /// in meta data and padding. If the memory block is not represented in a known way or does not contain structure generation information, the result is undefined. </summary>
     /// <param name="memory">The GPU buffer containing the structure generation information that is to be counted.</param>
     /// <param name="address">The buffer containing the direct address within <paramref name="memory"/>where the information is stored. </param>
-    /// <param name="addressIndex">The index within <paramref name="address"/> of the location that contains the direct address to the 
+    /// <param name="addressIndex">The index within <paramref name="address"/> of the location that contains the direct address to the
     /// region within <paramref name="memory"/> where the information is stored.</param>
-    /// <param name="STRUCTURE_STRIDE_4BYTE">The size of the generation information of a single structure in units of 4-bytes. The amount of 
+    /// <param name="STRUCTURE_STRIDE_4BYTE">The size of the generation information of a single structure in units of 4-bytes. The amount of
     /// unique structures can be obtained by dividing the total size of the chunk's structure generation information by this size.</param>
     /// <returns>A buffer containing the amount of structures in its first entry.</returns>
-    public static ComputeBuffer GetStructCount(ComputeBuffer memory, GraphicsBuffer address, int addressIndex, int STRUCTURE_STRIDE_4BYTE)
+    public ComputeBuffer GetStructCount(ComputeBuffer memory, GraphicsBuffer address, int addressIndex, int STRUCTURE_STRIDE_4BYTE)
     {
-        ComputeBuffer structCount = UtilityBuffers.appendCount;
+        GraphicsResourceContext gpuContext = GetGraphicsContext();
+        ComputeBuffer structCount = gpuContext.Args.AppendCount;
 
-        structureSizeCounter.SetBuffer(0, ShaderIDProps.MemoryBuffer, memory);
-        structureSizeCounter.SetBuffer(0, ShaderIDProps.AddressDict, address);
-        structureSizeCounter.SetInt(ShaderIDProps.AddressIndex, addressIndex);
-        structureSizeCounter.SetInt(ShaderIDProps.StructureStride, STRUCTURE_STRIDE_4BYTE);
+        gpuContext.SetBuffer(structureSizeCounter, 0, ShaderIDProps.MemoryBuffer, memory);
+        gpuContext.SetBuffer(structureSizeCounter, 0, ShaderIDProps.AddressDict, address);
+        gpuContext.SetInt(structureSizeCounter, ShaderIDProps.AddressIndex, addressIndex);
+        gpuContext.SetInt(structureSizeCounter, ShaderIDProps.StructureStride, STRUCTURE_STRIDE_4BYTE);
 
-        structureSizeCounter.SetBuffer(0, ShaderIDProps.StructureCount, structCount);
-        structureSizeCounter.Dispatch(0, 1, 1, 1);
+        gpuContext.SetBuffer(structureSizeCounter, 0, ShaderIDProps.StructureCount, structCount);
+        gpuContext.Dispatch(structureSizeCounter, 0, 1, 1, 1);
 
         return structCount;
     }
-    
+
     /// <summary> Applies the generation information of structures to the chunk's terrain map. This is the <see href="https://blackmagic919.github.io/AboutMe/2024/07/03/Structure-Placement/">
-    /// final step</see> of structure generation and involves transcribing the <see cref="Configuration.Generation.Structure.StructureData.map"/> information of each structure 
+    /// final step</see> of structure generation and involves transcribing the <see cref="Configuration.Generation.Structure.StructureData.map"/> information of each structure
     /// over the chunk's terrain map. </summary>
     /// <remarks> The time complexity of this operation is O(n) with respect to the size of the largest structure within the chunk. </remarks>
     /// <param name="memory">The buffer containing the generation information for all structures generated by the chunk.</param>
     /// <param name="addresses">he buffer containing the direct address within <paramref name="memory"/>where the generation information is stored. </param>
     /// <param name="count">A single entry buffer dictating the amount of structures to place. </param>
-    /// <param name="addressIndex">The index within <paramref name="addresses"/> of the location that contains the direct address to the 
+    /// <param name="addressIndex">The index within <paramref name="addresses"/> of the location that contains the direct address to the
     /// region within <paramref name="memory"/> where the generation information is stored.</param>
     /// <param name="mapStart">The location within <see cref="GenerationBuffer">working memory</see> of the start of the
-    /// chunk's terrain map. See <see cref="Map.Generator.GeoGenOffsets.rawMapStart"/> for more info. </param>
+    /// chunk's terrain map. See <see cref="Map.GeoGenOffsets.rawMapStart"/> for more info. </param>
     /// <param name="chunkSize">The size of a <see cref="TerrainChunk.RealChunk"/> in grid space. </param>
     /// <param name="skipInc">The distance in grid space between two adjacent samples in the chunk's terrain map. Used to convert
     /// a structure's coordinate from grid space to map space(the location within the chunk's terrain map).</param>
@@ -396,26 +385,27 @@ public static class Generator
     /// entry of the first entry exclusively contained by the chunk.</param>
     /// <param name="wChunkSize">The axis size of the chunk's terrain map as it currently is in <see cref="GenerationBuffer"> working memory </see>.</param>
     /// <param name="IsoLevel">The density of the surface of the terrain. See <see cref="Configuration.Quality.Terrain.IsoLevel"/> for more info.</param>
-    public static void ApplyStructures(ComputeBuffer memory, GraphicsBuffer addresses, ComputeBuffer count, int addressIndex, int mapStart, int chunkSize, int skipInc, float3 sampleOffset, int wOffset, int wChunkSize, float IsoLevel)
+    public void ApplyStructures(ComputeBuffer memory, GraphicsBuffer addresses, ComputeBuffer count, int addressIndex, int mapStart, int chunkSize, int skipInc, float3 sampleOffset, int wOffset, int wChunkSize, float IsoLevel)
     {
-        ComputeBuffer args = UtilityBuffers.CountToArgs(structureChunkGenerator, count);
+        GraphicsResourceContext gpuContext = GetGraphicsContext();
+        ComputeBuffer args = gpuContext.Args.CountToArgs(structureChunkGenerator, count);
 
-        structureChunkGenerator.SetBuffer(0, ShaderIDProps.MemoryBuffer, memory);
-        structureChunkGenerator.SetBuffer(0, ShaderIDProps.AddressDict, addresses);
-        structureChunkGenerator.SetInt(ShaderIDProps.AddressIndex, addressIndex);
+        gpuContext.SetBuffer(structureChunkGenerator, 0, ShaderIDProps.MemoryBuffer, memory);
+        gpuContext.SetBuffer(structureChunkGenerator, 0, ShaderIDProps.AddressDict, addresses);
+        gpuContext.SetInt(structureChunkGenerator, ShaderIDProps.AddressIndex, addressIndex);
 
-        structureChunkGenerator.SetBuffer(0, ShaderIDProps.NumPoints, count);
+        gpuContext.SetBuffer(structureChunkGenerator, 0, ShaderIDProps.NumPoints, count);
 
-        structureChunkGenerator.SetBuffer(0, ShaderIDProps.ChunkData, UtilityBuffers.GenerationBuffer);
-        structureChunkGenerator.SetInt(ShaderIDProps.StartMap, mapStart);
-        structureChunkGenerator.SetInt(ShaderIDProps.MapChunkSize, chunkSize);
-        UtilityBuffers.SetSampleData(structureChunkGenerator, sampleOffset, skipInc);
-        structureChunkGenerator.SetFloat(ShaderIDProps.IsoLevel, IsoLevel);
+        gpuContext.SetBuffer(structureChunkGenerator, 0, ShaderIDProps.ChunkData, gpuContext.Work.Scratch);
+        gpuContext.SetInt(structureChunkGenerator, ShaderIDProps.StartMap, mapStart);
+        gpuContext.SetInt(structureChunkGenerator, ShaderIDProps.MapChunkSize, chunkSize);
+        gpuContext.Work.SetSampleData(structureChunkGenerator, sampleOffset, skipInc);
+        gpuContext.SetFloat(structureChunkGenerator, ShaderIDProps.IsoLevel, IsoLevel);
 
-        structureChunkGenerator.SetInt(ShaderIDProps.WriteOffset, wOffset);
-        structureChunkGenerator.SetInt(ShaderIDProps.NumPointsPerAxis, wChunkSize);
+        gpuContext.SetInt(structureChunkGenerator, ShaderIDProps.WriteOffset, wOffset);
+        gpuContext.SetInt(structureChunkGenerator, ShaderIDProps.NumPointsPerAxis, wChunkSize);
 
-        structureChunkGenerator.DispatchIndirect(0, args);
+        gpuContext.DispatchIndirect(structureChunkGenerator, 0, args);
     }
 
     /// <summary> Responsible for segmenting a fixed sized <see cref="GenerationBuffer"> working memory </see> buffer
@@ -449,26 +439,26 @@ public static class Generator
         /// <summary> The location of the checks of all structures within the chunk, used in <see cref="IdentifyStructures(Vector3, float)"/>. </summary>
         public int checkStart;
         private int offsetStart; private int offsetEnd;
-        /// <summary> The start of the buffer region that is used by the structure generator. 
+        /// <summary> The start of the buffer region that is used by the structure generator.
         /// See <see cref="BufferOffsets.bufferStart"/> for more info. </summary>
-        public int bufferStart{get{return offsetStart;}} 
-        /// <summary> The end of the buffer region that is used by the structure generator. 
+        public int bufferStart{get{return offsetStart;}}
+        /// <summary> The end of the buffer region that is used by the structure generator.
         /// See <see cref="BufferOffsets.bufferEnd"/> for more info. </summary>
         public int bufferEnd{get{return offsetEnd;}}
 
         /// <summary> Creates a new division scheme of working memory based on the maximum amount of structure points
         /// a chunk may need to reference simultaneously. An increased number of points will require more working
-        /// memory allocated for the structure generator. The caller should make sure this does not 
+        /// memory allocated for the structure generator. The caller should make sure this does not
         /// exceed the capacity of the buffer. </summary>
         /// <param name="maxStructurePoints">The maximum amount of structures that a single chunk may reference at the same time.
         /// This is the maximum possible structures that can be provided by <see cref="SampleStructureLoD(int, int, int, int3)"/> for
-        /// the <see cref="Configuration.Quality.Terrain.MaxStructureDepth">largest possible chunk requiring structures</see> under the given 
+        /// the <see cref="Configuration.Quality.Terrain.MaxStructureDepth">largest possible chunk requiring structures</see> under the given
         /// world's configuration. A larger chunk will require more structure points as it encompasses a larger region. </param>
-        /// <param name="bufferStart">The start of the region within working memory the structure generator may utilize. See 
+        /// <param name="bufferStart">The start of the region within working memory the structure generator may utilize. See
         /// <see cref="BufferOffsets.bufferStart"/> for more info. </param>
         public StructureOffsets(int maxStructurePoints, int bufferStart){
             this.offsetStart = bufferStart;
-            structureCounter = bufferStart; sampleCounter = bufferStart + 1; 
+            structureCounter = bufferStart; sampleCounter = bufferStart + 1;
             checkCounter = bufferStart + 2; prunedCounter = bufferStart + 3;
             ehStctCounter = bufferStart + 4; mStructCounter = bufferStart + 5;
             tempCounter = bufferStart + 6;
@@ -494,7 +484,7 @@ public static class Generator
     /// <param name="genInfo">The information describing a certain structure placement.</param>
     /// <param name="CCoord">The coordinate in chunk space of the chunk <paramref name="genInfo"/> belongs to</param>
     /// <param name="cxt"> Context on which structure meta to process and which to skip </param>
-    public static void InitializeStructureMeta(GenPoint genInfo, int3 CCoord, byte cxt) {
+    public void InitializeStructureMeta(GenPoint genInfo, int3 CCoord, byte cxt) {
         int mapSize = Config.CURRENT.Quality.Terrain.value.mapChunkSize;
         StructureData structure = Config.CURRENT.Generation.Structures.value.StructureDictionary.Retrieve((int)genInfo.index);
         StructureData.EnhancedFeatures eh = structure.Enhancements;
@@ -506,7 +496,7 @@ public static class Generator
 
         if ((cxt & AsyncGenInfoReadback.CREATE_ENTITIES) != 0) SpawnEntities();
         if ((cxt & AsyncGenInfoReadback.CREATE_META) != 0) SpawnMeta();
-        
+
         void SpawnEntities() {
             foreach(var spawn in eh.Entities.value) {
                 int count = Mathf.FloorToInt(spawn.GenCount);
@@ -562,36 +552,36 @@ public static ComputeBuffer CalculateStructureSize(ComputeBuffer structureCount,
     ComputeBuffer result = new ComputeBuffer(1, sizeof(uint), ComputeBufferType.Structured);
     bufferHandle.Enqueue(result);
 
-    structureMemorySize.SetBuffer(0, "structureCount", structureCount);
-    structureMemorySize.SetInt("structStride4Byte", structureStride);
-    structureMemorySize.SetBuffer(0, "byteLength", result);
+    GraphicsGeneration.SetBuffer(structureMemorySize, 0, "structureCount", structureCount);
+    GraphicsGeneration.SetInt(structureMemorySize, "structStride4Byte", structureStride);
+    GraphicsGeneration.SetBuffer(structureMemorySize, 0, "byteLength", result);
 
-    structureMemorySize.Dispatch(0, 1, 1, 1);
+    GraphicsGeneration.Dispatch(structureMemorySize, 0, 1, 1, 1);
 
     return result;
 }
 
 public static void AnalyzeTerrain(ComputeBuffer checks, ComputeBuffer structs, ComputeBuffer args, ComputeBuffer count, int[] samplers, float[] heights, Vector3 offset, int chunkSize, float IsoLevel)
 {
-    terrainAnalyzerGPU.SetBuffer(0, "numPoints", count);
-    terrainAnalyzerGPU.SetBuffer(0, "checks", checks);
-    terrainAnalyzerGPU.SetBuffer(0, "structs", structs);//output
-    terrainAnalyzerGPU.SetFloat("IsoLevel", IsoLevel);
+    GraphicsGeneration.SetBuffer(terrainAnalyzerGPU, 0, "numPoints", count);
+    GraphicsGeneration.SetBuffer(terrainAnalyzerGPU, 0, "checks", checks);
+    GraphicsGeneration.SetBuffer(terrainAnalyzerGPU, 0, "structs", structs);//output
+    GraphicsGeneration.SetFloat(terrainAnalyzerGPU, "IsoLevel", IsoLevel);
 
-    terrainAnalyzerGPU.SetInt("caveCoarseSampler", samplers[0]);
-    terrainAnalyzerGPU.SetInt("caveFineSampler", samplers[1]);
-    terrainAnalyzerGPU.SetInt("continentalSampler", samplers[2]);
-    terrainAnalyzerGPU.SetInt("erosionSampler", samplers[3]);
-    terrainAnalyzerGPU.SetInt("PVSampler", samplers[4]);
-    terrainAnalyzerGPU.SetInt("squashSampler", samplers[5]);
+    GraphicsGeneration.SetInt(terrainAnalyzerGPU, "caveCoarseSampler", samplers[0]);
+    GraphicsGeneration.SetInt(terrainAnalyzerGPU, "caveFineSampler", samplers[1]);
+    GraphicsGeneration.SetInt(terrainAnalyzerGPU, "continentalSampler", samplers[2]);
+    GraphicsGeneration.SetInt(terrainAnalyzerGPU, "erosionSampler", samplers[3]);
+    GraphicsGeneration.SetInt(terrainAnalyzerGPU, "PVSampler", samplers[4]);
+    GraphicsGeneration.SetInt(terrainAnalyzerGPU, "squashSampler", samplers[5]);
 
-    terrainAnalyzerGPU.SetFloat("continentalHeight", heights[0]);
-    terrainAnalyzerGPU.SetFloat("PVHeight", heights[1]);
-    terrainAnalyzerGPU.SetFloat("squashHeight", heights[2]);
-    terrainAnalyzerGPU.SetFloat("heightOffset", heights[3]);
+    GraphicsGeneration.SetFloat(terrainAnalyzerGPU, "continentalHeight", heights[0]);
+    GraphicsGeneration.SetFloat(terrainAnalyzerGPU, "PVHeight", heights[1]);
+    GraphicsGeneration.SetFloat(terrainAnalyzerGPU, "squashHeight", heights[2]);
+    GraphicsGeneration.SetFloat(terrainAnalyzerGPU, "heightOffset", heights[3]);
     SetSampleData(terrainAnalyzerGPU, offset, chunkSize, 1);
 
-    terrainAnalyzerGPU.DispatchIndirect(0, args);
+    GraphicsGeneration.DispatchIndirect(terrainAnalyzerGPU, 0, args);
 }
 
 public static ComputeBuffer CreateChecks(ComputeBuffer structures, ComputeBuffer args, ComputeBuffer count, int maxPoints, ref Queue<ComputeBuffer> bufferHandle)
@@ -599,31 +589,31 @@ public static ComputeBuffer CreateChecks(ComputeBuffer structures, ComputeBuffer
     ComputeBuffer results = new ComputeBuffer(maxPoints, sizeof(uint) * 2 + sizeof(float) * 3, ComputeBufferType.Append);
     bufferHandle.Enqueue(results);
 
-    StructureChecks.SetBuffer(0, "structures", structures);
-    StructureChecks.SetBuffer(0, "numPoints", count);
-    StructureChecks.SetBuffer(0, "checks", results);
+    GraphicsGeneration.SetBuffer(StructureChecks, 0, "structures", structures);
+    GraphicsGeneration.SetBuffer(StructureChecks, 0, "numPoints", count);
+    GraphicsGeneration.SetBuffer(StructureChecks, 0, "checks", results);
 
-    StructureChecks.DispatchIndirect(0, args);
+    GraphicsGeneration.DispatchIndirect(StructureChecks, 0, args);
 
     return results;
 }
 public static ComputeBuffer FilterStructures(ComputeBuffer structures, ComputeBuffer args, ComputeBuffer count, int maxPoints, ref Queue<ComputeBuffer> bufferHandle)
 {
     ComputeBuffer result = new ComputeBuffer(maxPoints, sizeof(float) * 3 + sizeof(uint) * 3, ComputeBufferType.Append);
-    result.SetCounterValue(0);
+    GraphicsGeneration.SetBufferCounterValue(result, 0);
     bufferHandle.Enqueue(result);
 
-    structureCheckFilter.SetBuffer(0, "numPoints", count);
-    structureCheckFilter.SetBuffer(0, "structureInfos", structures);
-    structureCheckFilter.SetBuffer(0, "validStructures", result);
+    GraphicsGeneration.SetBuffer(structureCheckFilter, 0, "numPoints", count);
+    GraphicsGeneration.SetBuffer(structureCheckFilter, 0, "structureInfos", structures);
+    GraphicsGeneration.SetBuffer(structureCheckFilter, 0, "validStructures", result);
 
-    structureCheckFilter.DispatchIndirect(0, args);
+    GraphicsGeneration.DispatchIndirect(structureCheckFilter, 0, args);
 
     return result;
 }
 
 public static void PresetSampleShader(ComputeShader sampler, NoiseData noiseData, float maxInfluenceHeight, bool sample2D, bool interp, bool centerNoise){
-    sampler.SetFloat("influenceHeight", maxInfluenceHeight);
+    GraphicsGeneration.SetFloat(sampler, "influenceHeight", maxInfluenceHeight);
 
     if(sample2D)
         sampler.EnableKeyword("SAMPLE_2D");
@@ -634,12 +624,12 @@ public static void PresetSampleShader(ComputeShader sampler, NoiseData noiseData
         sampler.EnableKeyword("INTERP");
     else
         sampler.DisableKeyword("INTERP");
-    
+
     if (centerNoise)
         sampler.EnableKeyword("CENTER_NOISE");
     else
         sampler.DisableKeyword("CENTER_NOISE");
-    
+
     PresetNoiseData(sampler, noiseData);
 }
 
@@ -648,24 +638,24 @@ public static ComputeBuffer AnalyzeBiome(ComputeBuffer structs, ComputeBuffer ar
     ComputeBuffer result = new ComputeBuffer(maxPoints, sizeof(int), ComputeBufferType.Structured);
     bufferHandle.Enqueue(result);
 
-    biomeMapGenerator.SetBuffer(0, "structOrigins", structs);
-    biomeMapGenerator.SetBuffer(0, "numPoints", count);
-    biomeMapGenerator.SetBuffer(0, "biomeMap", result);
-    biomeMapGenerator.SetInt("continentalSampler", samplers[0]);
-    biomeMapGenerator.SetInt("erosionSampler", samplers[1]);
-    biomeMapGenerator.SetInt("PVSampler", samplers[2]);
-    biomeMapGenerator.SetInt("squashSampler", samplers[3]);
-    biomeMapGenerator.SetInt("atmosphereSampler", samplers[4]);
-    biomeMapGenerator.SetInt("humiditySampler", samplers[5]);
+    GraphicsGeneration.SetBuffer(biomeMapGenerator, 0, "structOrigins", structs);
+    GraphicsGeneration.SetBuffer(biomeMapGenerator, 0, "numPoints", count);
+    GraphicsGeneration.SetBuffer(biomeMapGenerator, 0, "biomeMap", result);
+    GraphicsGeneration.SetInt(biomeMapGenerator, "continentalSampler", samplers[0]);
+    GraphicsGeneration.SetInt(biomeMapGenerator, "erosionSampler", samplers[1]);
+    GraphicsGeneration.SetInt(biomeMapGenerator, "PVSampler", samplers[2]);
+    GraphicsGeneration.SetInt(biomeMapGenerator, "squashSampler", samplers[3]);
+    GraphicsGeneration.SetInt(biomeMapGenerator, "atmosphereSampler", samplers[4]);
+    GraphicsGeneration.SetInt(biomeMapGenerator, "humiditySampler", samplers[5]);
     SetSampleData(biomeMapGenerator, offset, chunkSize, 1);
 
-    biomeMapGenerator.DispatchIndirect(0, args);
+    GraphicsGeneration.DispatchIndirect(biomeMapGenerator, 0, args);
 
     return result;
 }
 
 public static ComputeBuffer AnalyzeNoiseMapGPU(ComputeBuffer checks, ComputeBuffer count, NoiseData noiseData, Vector3 offset, float maxInfluenceHeight, int chunkSize, int maxPoints, bool sample2D, bool interp, bool centerNoise, Queue<ComputeBuffer> bufferHandle){
-    ComputeBuffer args = UtilityBuffers.CountToArgs(checkNoiseSampler, count);
+    ComputeBuffer args = GraphicsGeneration.Args.CountToArgs(checkNoiseSampler, count);
     return AnalyzeNoiseMapGPU(checks, args, count, noiseData, offset, maxInfluenceHeight, chunkSize, maxPoints, sample2D, interp, centerNoise, bufferHandle);
 }
 public static ComputeBuffer AnalyzeNoiseMapGPU(ComputeBuffer checks, ComputeBuffer args, ComputeBuffer count, NoiseData noiseData, Vector3 offset, float maxInfluenceHeight, int chunkSize, int maxPoints, bool sample2D, bool interp, bool centerNoise, Queue<ComputeBuffer> bufferHandle)
@@ -673,10 +663,10 @@ public static ComputeBuffer AnalyzeNoiseMapGPU(ComputeBuffer checks, ComputeBuff
     ComputeBuffer result = new ComputeBuffer(maxPoints, sizeof(float), ComputeBufferType.Append);
     bufferHandle.Enqueue(result);
 
-    checkNoiseSampler.SetBuffer(0, "CheckPoints", checks);
-    checkNoiseSampler.SetBuffer(0, "Results", result);
-    checkNoiseSampler.SetBuffer(0, "numPoints", count);
-    checkNoiseSampler.SetFloat("influenceHeight", maxInfluenceHeight);
+    GraphicsGeneration.SetBuffer(checkNoiseSampler, 0, "CheckPoints", checks);
+    GraphicsGeneration.SetBuffer(checkNoiseSampler, 0, "Results", result);
+    GraphicsGeneration.SetBuffer(checkNoiseSampler, 0, "numPoints", count);
+    GraphicsGeneration.SetFloat(checkNoiseSampler, "influenceHeight", maxInfluenceHeight);
 
     if(sample2D)
         checkNoiseSampler.EnableKeyword("SAMPLE_2D");
@@ -687,7 +677,7 @@ public static ComputeBuffer AnalyzeNoiseMapGPU(ComputeBuffer checks, ComputeBuff
         checkNoiseSampler.EnableKeyword("INTERP");
     else
         checkNoiseSampler.DisableKeyword("INTERP");
-    
+
     if (centerNoise)
         checkNoiseSampler.EnableKeyword("CENTER_NOISE");
     else
@@ -696,37 +686,37 @@ public static ComputeBuffer AnalyzeNoiseMapGPU(ComputeBuffer checks, ComputeBuff
 
     SetNoiseData(checkNoiseSampler, chunkSize, 1, noiseData, offset);
 
-    checkNoiseSampler.DispatchIndirect(0, args);
+    GraphicsGeneration.DispatchIndirect(checkNoiseSampler, 0, args);
 
     return result;
 }
 
 public static void AnalyzeChecks(ComputeBuffer checks, ComputeBuffer args, ComputeBuffer count, ComputeBuffer density, float IsoValue, ref ComputeBuffer valid, ref Queue<ComputeBuffer> bufferHandle)
 {
-    checkVerification.SetBuffer(0, "numPoints", count);
-    checkVerification.SetBuffer(0, "checks", checks);
-    checkVerification.SetBuffer(0, "density", density);
-    checkVerification.SetFloat("IsoValue", IsoValue);
+    GraphicsGeneration.SetBuffer(checkVerification, 0, "numPoints", count);
+    GraphicsGeneration.SetBuffer(checkVerification, 0, "checks", checks);
+    GraphicsGeneration.SetBuffer(checkVerification, 0, "density", density);
+    GraphicsGeneration.SetFloat(checkVerification, "IsoValue", IsoValue);
 
-    checkVerification.SetBuffer(0, "validity", valid);
+    GraphicsGeneration.SetBuffer(checkVerification, 0, "validity", valid);
 
-    checkVerification.DispatchIndirect(0, args);
+    GraphicsGeneration.DispatchIndirect(checkVerification, 0, args);
 }
 
 public static ComputeBuffer AnalyzeNoiseMapGPU(ComputeShader sampler, ComputeBuffer checks, ComputeBuffer count, Vector3 offset, int chunkSize, int maxPoints, Queue<ComputeBuffer> bufferHandle){
-    ComputeBuffer args = UtilityBuffers.CountToArgs(sampler, count);
+    ComputeBuffer args = GraphicsGeneration.Args.CountToArgs(sampler, count);
     return AnalyzeNoiseMapGPU(sampler, checks, args, count, offset, chunkSize, maxPoints, bufferHandle);
 }
 public static ComputeBuffer AnalyzeNoiseMapGPU(ComputeShader sampler, ComputeBuffer checks, ComputeBuffer args, ComputeBuffer count, Vector3 offset, int chunkSize, int maxPoints, Queue<ComputeBuffer> bufferHandle){
     ComputeBuffer result = new ComputeBuffer(maxPoints, sizeof(float), ComputeBufferType.Append);
     bufferHandle.Enqueue(result);
 
-    sampler.SetBuffer(0, "CheckPoints", checks);
-    sampler.SetBuffer(0, "Results", result);
-    sampler.SetBuffer(0, "numPoints", count);
+    GraphicsGeneration.SetBuffer(sampler, 0, "CheckPoints", checks);
+    GraphicsGeneration.SetBuffer(sampler, 0, "Results", result);
+    GraphicsGeneration.SetBuffer(sampler, 0, "numPoints", count);
 
     SetSampleData(sampler, offset, chunkSize, 1);
-    sampler.DispatchIndirect(0, args);
+    GraphicsGeneration.DispatchIndirect(sampler, 0, args);
     return result;
 }
 
@@ -735,15 +725,15 @@ public static ComputeBuffer CombineTerrainMapsGPU(ComputeBuffer args, ComputeBuf
     ComputeBuffer results = new ComputeBuffer(maxPoints, sizeof(float), ComputeBufferType.Structured);
     bufferHandle.Enqueue(results);
 
-    terrainCombinerGPU.SetBuffer(0, "continental", contBuffer);
-    terrainCombinerGPU.SetBuffer(0, "erosion", erosionBuffer);
-    terrainCombinerGPU.SetBuffer(0, "peaksValleys", PVBuffer);
-    terrainCombinerGPU.SetBuffer(0, "Result", results);
+    GraphicsGeneration.SetBuffer(terrainCombinerGPU, 0, "continental", contBuffer);
+    GraphicsGeneration.SetBuffer(terrainCombinerGPU, 0, "erosion", erosionBuffer);
+    GraphicsGeneration.SetBuffer(terrainCombinerGPU, 0, "peaksValleys", PVBuffer);
+    GraphicsGeneration.SetBuffer(terrainCombinerGPU, 0, "Result", results);
 
-    terrainCombinerGPU.SetBuffer(0, "numOfPoints", count);
-    terrainCombinerGPU.SetFloat("heightOffset", terrainOffset);
+    GraphicsGeneration.SetBuffer(terrainCombinerGPU, 0, "numOfPoints", count);
+    GraphicsGeneration.SetFloat(terrainCombinerGPU, "heightOffset", terrainOffset);
 
-    terrainCombinerGPU.DispatchIndirect(0, args);
+    GraphicsGeneration.DispatchIndirect(terrainCombinerGPU, 0, args);
 
     return results;
 }
@@ -759,7 +749,7 @@ public static ComputeBuffer InitializeIndirect<T>(ComputeBuffer args, ComputeBuf
     if (val.GetType() == typeof(int))
     {
         indirectMapInitialize.EnableKeyword("USE_INT");
-        indirectMapInitialize.SetInt("value", (int)(object)val);
+        GraphicsGeneration.SetInt(indirectMapInitialize, "value", (int)(object)val);
         map = new ComputeBuffer(maxPoints, sizeof(int), ComputeBufferType.Structured);
     }
     else if (val.GetType() == typeof(bool))
@@ -768,16 +758,16 @@ public static ComputeBuffer InitializeIndirect<T>(ComputeBuffer args, ComputeBuf
         indirectMapInitialize.SetBool("value", (bool)(object)val);
         map = new ComputeBuffer(maxPoints, sizeof(bool), ComputeBufferType.Structured);
     }
-    else { 
-        indirectMapInitialize.SetFloat("value", (float)(object)val);
+    else {
+        GraphicsGeneration.SetFloat(indirectMapInitialize, "value", (float)(object)val);
         map = new ComputeBuffer(maxPoints, sizeof(float), ComputeBufferType.Structured);
     }
 
     bufferHandle.Enqueue(map);
-    indirectMapInitialize.SetBuffer(0, "numPoints", count);
-    indirectMapInitialize.SetBuffer(0, "map", map);
+    GraphicsGeneration.SetBuffer(indirectMapInitialize, 0, "numPoints", count);
+    GraphicsGeneration.SetBuffer(indirectMapInitialize, 0, "map", map);
 
-    indirectMapInitialize.DispatchIndirect(0, args);
+    GraphicsGeneration.DispatchIndirect(indirectMapInitialize, 0, args);
 
     return map;
 }

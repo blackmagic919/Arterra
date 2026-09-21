@@ -7,6 +7,8 @@ using Unity.Collections;
 using Arterra.Utils;
 using Arterra.Configuration.Quality;
 using static Arterra.Core.ArterraRuntime;
+using Arterra.Core.Storage;
+using static Arterra.Core.Storage.SharedResourceManager;
 
 namespace Arterra.Engine.Terrain.Readback{
 /// <summary>
@@ -51,6 +53,7 @@ public class AsyncMeshReadback
     /// <summary> Presets static data shared by the readback system. This should be called before any
     /// instances of the readback system are used. Referenced in <see cref="SystemProtocol.Startup"/>.  </summary>
     public static void PresetData(){
+        GraphicsResourceContext gpuContext = GraphicsRendering;
         settings = Configuration.Config.CURRENT.System.ReadBack.value;
         numMeshes = (uint)settings.indirectTerrainMats.Length;
         meshDrawArgsCreator = Resources.Load<ComputeShader>("Compute/TerrainGeneration/Readback/MeshDrawArgs");
@@ -58,25 +61,25 @@ public class AsyncMeshReadback
         vertexTranscriber = Resources.Load<ComputeShader>("Compute/TerrainGeneration/Readback/TranscribeVertices");
         settings.Initialize();
 
-        Map.Generator.GeoGenOffsets offsets = Map.Generator.bufferOffsets;
+        Map.Creator.GeoGenOffsets offsets = Map.Creator.bufferOffsets;
         int kernel = meshDrawArgsCreator.FindKernel("CSMain");
-        meshDrawArgsCreator.SetBuffer(kernel, "counter", UtilityBuffers.GenerationBuffer);
-        meshDrawArgsCreator.SetBuffer(kernel, "_IndirectArgsBuffer", UtilityBuffers.DrawArgs.Get());
+        gpuContext.SetBuffer(meshDrawArgsCreator, kernel, "counter", gpuContext.Work.Scratch);
+        gpuContext.SetBuffer(meshDrawArgsCreator, kernel, "_IndirectArgsBuffer", gpuContext.Args.DrawArgs.Get());
 
 
         kernel = triangleTranscriber.FindKernel("Transcribe");
-        triangleTranscriber.SetBuffer(kernel, "BaseTriangles", UtilityBuffers.GenerationBuffer);
-        triangleTranscriber.SetBuffer(kernel, "triDict", UtilityBuffers.GenerationBuffer);
-        triangleTranscriber.SetBuffer(kernel, "counter", UtilityBuffers.GenerationBuffer);
-        triangleTranscriber.SetInt("bSTART_Dict", offsets.dictStart);
-        triangleTranscriber.SetBuffer(kernel, "_AddressDict", GenerationPreset.memoryHandle.Address);
+        gpuContext.SetBuffer(triangleTranscriber, kernel, "BaseTriangles", gpuContext.Work.Scratch);
+        gpuContext.SetBuffer(triangleTranscriber, kernel, "triDict", gpuContext.Work.Scratch);
+        gpuContext.SetBuffer(triangleTranscriber, kernel, "counter", gpuContext.Work.Scratch);
+        gpuContext.SetInt(triangleTranscriber, "bSTART_Dict", offsets.dictStart);
+        gpuContext.SetBuffer(triangleTranscriber, kernel, "_AddressDict", gpuContext.Memory.Address);
 
         kernel = vertexTranscriber.FindKernel("Transcribe");
-        vertexTranscriber.SetBuffer(kernel, "baseVertices", UtilityBuffers.GenerationBuffer);
-        vertexTranscriber.SetBuffer(kernel, "counter", UtilityBuffers.GenerationBuffer);
-        vertexTranscriber.SetInt("bCOUNTER", offsets.vertexCounter);
-        vertexTranscriber.SetInt("bSTART", offsets.vertStart);
-        vertexTranscriber.SetBuffer(kernel, "_AddressDict", GenerationPreset.memoryHandle.Address);
+        gpuContext.SetBuffer(vertexTranscriber, kernel, "baseVertices", gpuContext.Work.Scratch);
+        gpuContext.SetBuffer(vertexTranscriber, kernel, "counter", gpuContext.Work.Scratch);
+        gpuContext.SetInt(vertexTranscriber, "bCOUNTER", offsets.vertexCounter);
+        gpuContext.SetInt(vertexTranscriber, "bSTART", offsets.vertStart);
+        gpuContext.SetBuffer(vertexTranscriber, kernel, "_AddressDict", gpuContext.Memory.Address);
     }
 
     /// <summary> Releases all static data shared by the readback system. This should be called when the
@@ -96,35 +99,37 @@ public class AsyncMeshReadback
     /// <summary> Offloads(copies) vertices to long term GPU storage. This can be used to store vertices for rendering or to hold onto them
     /// until instructions are flushed so it may be read back to the CPU. A Handle to the stored vertices will be
     /// saved in <see cref="vertexHandle"/>, with any possible previous handles being released. </summary>
-    /// <param name="vertexCounter">The location within the <see cref="UtilityBuffers.GenerationBuffer">working buffer</see>
+    /// <param name="vertexCounter">The location within the <see cref="GraphicsRendering.Work.Scratch">working buffer</see>
     /// storing the amount of vertices to be copied. </param>
     public void OffloadVerticesToGPU(int vertexCounter)
     {
+        GraphicsResourceContext gpuContext = GraphicsRendering;
         this.vertexHandle?.Release();
 
-        uint vertAddress = GenerationPreset.memoryHandle.AllocateMemory(UtilityBuffers.GenerationBuffer, MESH_VERTEX_STRIDE_WORD, vertexCounter);
+        uint vertAddress = gpuContext.Memory.AllocateMemory(gpuContext.Work.Scratch, MESH_VERTEX_STRIDE_WORD, vertexCounter);
         TranscribeVertices((int)vertAddress, vertexCounter);
 
-        this.vertexHandle = new GeometryHandle{addressIndex = vertAddress, memory = GenerationPreset.memoryHandle};
+        this.vertexHandle = new GeometryHandle{addressIndex = vertAddress, memory = gpuContext.Memory};
     }
 
     /// <summary> Offloads(copies) triangles(index buffer) to long term GPU storage. This can be used to store triangles for
     /// rendering or to hold onto them until instructions are flushed so it may be read back to the CPU. A Handle to the
     /// stored triangles will be saved in <see cref="triHandles"/>, with any possible previous handles being released. </summary>
-    /// <param name="triCounter">The location within the <see cref="UtilityBuffers.GenerationBuffer">working buffer</see>
+    /// <param name="triCounter">The location within the <see cref="GraphicsRendering.Work.Scratch">working buffer</see>
     /// storing the amount of triangles to be copied. </param>
-    /// <param name="triStart">The location within the <see cref="UtilityBuffers.GenerationBuffer">working buffer</see>
+    /// <param name="triStart">The location within the <see cref="GraphicsRendering.Work.Scratch">working buffer</see>
     /// of the start of the triangles(index buffer).</param>
     /// <param name="matIndex">The index within <see cref="Intrinsic.Readback.indirectTerrainMats"/> of the material to use
     /// for geometry referenced by these triangles if it is to be indirectly rendered. </param>
     public void OffloadTrisToGPU(int triCounter, int triStart, int matIndex)
     {
+        GraphicsResourceContext gpuContext = GraphicsRendering;
         triHandles[matIndex]?.Release();
 
         //Transcribe data to memory heap for GPU-forward render
-        uint geoHeapMemoryAddress = GenerationPreset.memoryHandle.AllocateMemory(UtilityBuffers.GenerationBuffer, TRI_STRIDE_WORD, triCounter);
+        uint geoHeapMemoryAddress = gpuContext.Memory.AllocateMemory(gpuContext.Work.Scratch, TRI_STRIDE_WORD, triCounter);
 
-        uint drawArgsAddress = UtilityBuffers.DrawArgs.Allocate(); //Allocates 4 bytes
+        uint drawArgsAddress = gpuContext.Args.DrawArgs.Allocate(); //Allocates 4 bytes
         CreateDispArg(triCounter, (int)drawArgsAddress);
 
         TranscribeTriangles((int)geoHeapMemoryAddress, triCounter, triStart);
@@ -132,34 +137,36 @@ public class AsyncMeshReadback
         //All buffers that are created by helper functions must enqueue to a buffer handle for consistency
         //Thus to indicate that they aren't being handled, initialize persistant buffers here
         RenderParams rp = GetRenderParams((int)geoHeapMemoryAddress, (int)this.vertexHandle.addressIndex, matIndex);
-        triHandles[matIndex] = new GeometryHandle(rp, GenerationPreset.memoryHandle, geoHeapMemoryAddress, drawArgsAddress, matIndex);
+        triHandles[matIndex] = new GeometryHandle(rp, gpuContext.Memory, geoHeapMemoryAddress, drawArgsAddress, matIndex);
         MainLateUpdateTasks?.Enqueue(triHandles[matIndex]);
     }
 
     /// <summary> Offloads(copies) triangles(index buffer) to long term GPU storage. Unlike
     /// <see cref="OffloadTrisToGPU"/> this method does not immediately try to render the geometry indirectly.  </summary>
-    /// <param name="triCounter">The location within the <see cref="UtilityBuffers.GenerationBuffer">working buffer</see>
+    /// <param name="triCounter">The location within the <see cref="GraphicsRendering.Work.Scratch">working buffer</see>
     /// storing the amount of triangles to be copied. </param>
-    /// <param name="triStart">The location within the <see cref="UtilityBuffers.GenerationBuffer">working buffer</see>
+    /// <param name="triStart">The location within the <see cref="GraphicsRendering.Work.Scratch">working buffer</see>
     /// of the start of the triangles(index buffer).</param>
     /// <param name="matIndex">The index within <see cref="Intrinsic.Readback.indirectTerrainMats"/> of the material to use
     /// for geometry referenced by these triangles if it is to be indirectly rendered. </param>
     public void OffloadTrisToGPUNoRender(int triCounter, int triStart, int matIndex)
     {
+        GraphicsResourceContext gpuContext = GraphicsRendering;
         triHandles[matIndex]?.Release();
 
         //Transcribe data to memory heap for GPU-forward render
-        uint geoHeapMemoryAddress = GenerationPreset.memoryHandle.AllocateMemory(UtilityBuffers.GenerationBuffer, TRI_STRIDE_WORD, triCounter);
+        uint geoHeapMemoryAddress = gpuContext.Memory.AllocateMemory(gpuContext.Work.Scratch, TRI_STRIDE_WORD, triCounter);
         TranscribeTriangles((int)geoHeapMemoryAddress, triCounter, triStart);
 
         triHandles[matIndex] = new GeometryHandle{
             addressIndex = geoHeapMemoryAddress,
-            memory = GenerationPreset.memoryHandle,
+            memory = gpuContext.Memory,
             matIndex = matIndex
         };
     }
     public void CreateRenderParamsForMaterial(int triCounter, int matIndex, Material mat) {
-        uint drawArgsAddress = UtilityBuffers.DrawArgs.Allocate(); //Allocates 4 bytes
+        GraphicsResourceContext gpuContext = GraphicsRendering;
+        uint drawArgsAddress = gpuContext.Args.DrawArgs.Allocate(); //Allocates 4 bytes
         CreateDispArg(triCounter, (int)drawArgsAddress);
 
         RenderParams rp = new RenderParams(mat) {
@@ -168,12 +175,12 @@ public class AsyncMeshReadback
             matProps = new MaterialPropertyBlock()
         };
 
-        rp.matProps.SetBuffer(ShaderIDProps.Vertices, GenerationPreset.memoryHandle.GetBlockBuffer(vertexHandle.addressIndex));
-        rp.matProps.SetBuffer(ShaderIDProps.Triangles, GenerationPreset.memoryHandle.GetBlockBuffer(triHandles[matIndex].addressIndex));
-        rp.matProps.SetBuffer(ShaderIDProps.AddressDict, GenerationPreset.memoryHandle.Address);
-        GenerationPreset.memoryHandle.RegisterRebind(vertexHandle.addressIndex,
+        rp.matProps.SetBuffer(ShaderIDProps.Vertices, gpuContext.Memory.GetBlockBuffer(vertexHandle.addressIndex));
+        rp.matProps.SetBuffer(ShaderIDProps.Triangles, gpuContext.Memory.GetBlockBuffer(triHandles[matIndex].addressIndex));
+        rp.matProps.SetBuffer(ShaderIDProps.AddressDict, gpuContext.Memory.Address);
+        gpuContext.Memory.RegisterRebind(vertexHandle.addressIndex,
             newSource => rp.matProps.SetBuffer(ShaderIDProps.Vertices, newSource));
-        GenerationPreset.memoryHandle.RegisterRebind(triHandles[matIndex].addressIndex,
+        gpuContext.Memory.RegisterRebind(triHandles[matIndex].addressIndex,
             newSource => rp.matProps.SetBuffer(ShaderIDProps.Triangles, newSource));
 
         rp.matProps.SetInt(ShaderIDProps.TriAddress, (int)triHandles[matIndex].addressIndex);
@@ -191,13 +198,14 @@ public class AsyncMeshReadback
     /// the CPU and GPU states are synchronized. </summary>
     /// <param name="callback"> The callback to be called once the readback is complete. The callback will be provided the readback <see cref="ReadbackTask{T}.SharedMeshInfo"/> </param>
     public void BeginMeshReadback(Action<ReadbackTask<IVertFormat.TVert>.SharedMeshInfo> callback) {
+        GraphicsResourceContext gpuContext = GraphicsRendering;
         ReadbackTask<IVertFormat.TVert> RBTask = new ReadbackTask<IVertFormat.TVert>((ReadbackTask<IVertFormat.TVert>.SharedMeshInfo ret) => { callback(ret); ReleaseAllGeometry(); }, (int)numMeshes);
 
         //Readback shared vertices
         GeometryHandle vertHandle = this.vertexHandle; //Get reference here so that it doesn't change when lambda evaluates
         if (vertHandle == null || !vertHandle.Active)
             return;
-        GenerationPreset.memoryHandle.RegisterRebind(
+        gpuContext.Memory.RegisterRebind(
             vertHandle.addressIndex,
             _ => ReadbackVertices(vertHandle, RBTask)
         );
@@ -209,7 +217,7 @@ public class AsyncMeshReadback
             if (geoHandle == null || !geoHandle.Active)
                 continue;
             //Begin readback of data
-            GenerationPreset.memoryHandle.RegisterRebind(
+            gpuContext.Memory.RegisterRebind(
                 geoHandle.addressIndex,
                 _ => ReadbackTriangles(geoHandle, RBTask)
             );
@@ -221,14 +229,14 @@ public class AsyncMeshReadback
         ReadbackTask<IVertFormat.TVert> RBTask) {
         if (geoHandle == null || !geoHandle.Active)  //Info was depreceated
             return;
-        if (!GenerationPreset.memoryHandle.GetDirectAllocation(
+        if (!GraphicsRendering.Memory.GetDirectAllocation(
             geoHandle.addressIndex, TRI_STRIDE_WORD, out ComputeBuffer sourceStorage,
             out _, out _, out int start, out int count))
             return;
 
         RBTask.RBMesh.IndexBuffer[geoHandle.matIndex] =
             new NativeArray<uint>(count * TRI_STRIDE_WORD, Allocator.Persistent);
-        AsyncGPUReadback.RequestIntoNativeArray(
+        GraphicsRendering.RequestAsyncReadbackIntoNativeArray(
             ref RBTask.RBMesh.IndexBuffer[geoHandle.matIndex], sourceStorage,
             size: 4 * count * TRI_STRIDE_WORD,
             offset: 4 * start * TRI_STRIDE_WORD,
@@ -239,13 +247,13 @@ public class AsyncMeshReadback
         ReadbackTask<IVertFormat.TVert> RBTask) {
         if (geoHandle == null || !geoHandle.Active)
             return;
-        if (!GenerationPreset.memoryHandle.GetDirectAllocation(
+        if (!GraphicsRendering.Memory.GetDirectAllocation(
             geoHandle.addressIndex, MESH_VERTEX_STRIDE_WORD,
             out ComputeBuffer sourceStorage, out _, out _, out int start, out int count))
             return;
 
         RBTask.RBMesh.VertexBuffer = new NativeArray<IVertFormat.TVert>(count, Allocator.Persistent);
-        AsyncGPUReadback.RequestIntoNativeArray(ref RBTask.RBMesh.VertexBuffer,
+        GraphicsRendering.RequestAsyncReadbackIntoNativeArray(ref RBTask.RBMesh.VertexBuffer,
             sourceStorage, size: 4 * count * MESH_VERTEX_STRIDE_WORD,
             offset: 4 * start * MESH_VERTEX_STRIDE_WORD,
             _ => onDataRecieved(geoHandle, RBTask));
@@ -261,25 +269,27 @@ public class AsyncMeshReadback
 
     private void CreateDispArg(int triCounter, int address)
     {
-        meshDrawArgsCreator.SetInt(ShaderIDProps.BufferCounter, triCounter);
-        meshDrawArgsCreator.SetInt(ShaderIDProps.ArgOffset, address);
-        meshDrawArgsCreator.Dispatch(0, 1, 1, 1);
+        GraphicsResourceContext gpuContext = GraphicsRendering;
+        gpuContext.SetInt(meshDrawArgsCreator, ShaderIDProps.BufferCounter, triCounter);
+        gpuContext.SetInt(meshDrawArgsCreator, ShaderIDProps.ArgOffset, address);
+        gpuContext.Dispatch(meshDrawArgsCreator, 0, 1, 1, 1);
     }
 
 
     private RenderParams GetRenderParams(int triAddress, int vertAddress, int matIndex)
     {
+        GraphicsResourceContext gpuContext = GraphicsRendering;
         RenderParams rp = new RenderParams(settings.indirectTerrainMats[matIndex]) {
             worldBounds = this.shaderBounds,
             shadowCastingMode = ShadowCastingMode.On,
             matProps = new MaterialPropertyBlock()
         };
-        rp.matProps.SetBuffer(ShaderIDProps.Vertices, GenerationPreset.memoryHandle.GetBlockBuffer(vertAddress));
-        rp.matProps.SetBuffer(ShaderIDProps.Triangles, GenerationPreset.memoryHandle.GetBlockBuffer(triAddress));
-        rp.matProps.SetBuffer(ShaderIDProps.AddressDict, GenerationPreset.memoryHandle.Address);
-        GenerationPreset.memoryHandle.RegisterRebind((uint)vertAddress,
+        rp.matProps.SetBuffer(ShaderIDProps.Vertices, gpuContext.Memory.GetBlockBuffer(vertAddress));
+        rp.matProps.SetBuffer(ShaderIDProps.Triangles, gpuContext.Memory.GetBlockBuffer(triAddress));
+        rp.matProps.SetBuffer(ShaderIDProps.AddressDict, gpuContext.Memory.Address);
+        gpuContext.Memory.RegisterRebind((uint)vertAddress,
             newSource => rp.matProps.SetBuffer(ShaderIDProps.Vertices, newSource));
-        GenerationPreset.memoryHandle.RegisterRebind((uint)triAddress,
+        gpuContext.Memory.RegisterRebind((uint)triAddress,
             newSource => rp.matProps.SetBuffer(ShaderIDProps.Triangles, newSource));
 
         rp.matProps.SetInt(ShaderIDProps.TriAddress, triAddress);
@@ -291,28 +301,30 @@ public class AsyncMeshReadback
     }
 
     private void TranscribeVertices(int addressIndex, int vertCounter){
-        ComputeBuffer args = UtilityBuffers.CountToArgs(vertexTranscriber, UtilityBuffers.GenerationBuffer, countOffset: vertCounter);
-        ComputeBuffer source = GenerationPreset.memoryHandle.GetBlockBuffer(addressIndex);
+        GraphicsResourceContext gpuContext = GraphicsRendering;
+        ComputeBuffer args = gpuContext.Args.CountToArgs(vertexTranscriber, gpuContext.Work.Scratch, countOffset: vertCounter);
+        ComputeBuffer source = gpuContext.Memory.GetBlockBuffer(addressIndex);
 
         int kernel = vertexTranscriber.FindKernel("Transcribe");
-        vertexTranscriber.SetBuffer(kernel, ShaderIDProps.MemoryBuffer, source);
-        vertexTranscriber.SetInt(ShaderIDProps.AddressIndex, addressIndex);
+        gpuContext.SetBuffer(vertexTranscriber, kernel, ShaderIDProps.MemoryBuffer, source);
+        gpuContext.SetInt(vertexTranscriber, ShaderIDProps.AddressIndex, addressIndex);
 
-        vertexTranscriber.DispatchIndirect(kernel, args);
+        gpuContext.DispatchIndirect(vertexTranscriber, kernel, args);
     }
 
     private void TranscribeTriangles(int addressIndex, int triCounter, int triStart)
     {
-        ComputeBuffer args = UtilityBuffers.CountToArgs(triangleTranscriber, UtilityBuffers.GenerationBuffer, countOffset: triCounter);
-        ComputeBuffer source = GenerationPreset.memoryHandle.GetBlockBuffer(addressIndex);
+        GraphicsResourceContext gpuContext = GraphicsRendering;
+        ComputeBuffer args = gpuContext.Args.CountToArgs(triangleTranscriber, gpuContext.Work.Scratch, countOffset: triCounter);
+        ComputeBuffer source = gpuContext.Memory.GetBlockBuffer(addressIndex);
 
         int kernel = triangleTranscriber.FindKernel("Transcribe");
-        triangleTranscriber.SetBuffer(kernel, ShaderIDProps.MemoryBuffer, source);
-        triangleTranscriber.SetInt(ShaderIDProps.CountTri, triCounter);
-        triangleTranscriber.SetInt(ShaderIDProps.StartTri, triStart);
-        triangleTranscriber.SetInt(ShaderIDProps.TriAddress, addressIndex);
+        gpuContext.SetBuffer(triangleTranscriber, kernel, ShaderIDProps.MemoryBuffer, source);
+        gpuContext.SetInt(triangleTranscriber, ShaderIDProps.CountTri, triCounter);
+        gpuContext.SetInt(triangleTranscriber, ShaderIDProps.StartTri, triStart);
+        gpuContext.SetInt(triangleTranscriber, ShaderIDProps.TriAddress, addressIndex);
 
-        triangleTranscriber.DispatchIndirect(kernel, args);
+        gpuContext.DispatchIndirect(triangleTranscriber, kernel, args);
     }
 
 }
@@ -349,7 +361,7 @@ public class GeometryHandle : Core.ArterraRuntime.IUpdateSubscriber
     /// </summary>
     public uint addressIndex = 0;
     /// <summary> If the geometry is to be rendered indirectly, the address of the <see cref="GraphicsBuffer.IndirectDrawArgs"> draw arguments </see> used
-    /// to render the geometry. This is used to reference the draw arguments in <see cref="UtilityBuffers.ArgumentBuffer"/>.  </summary>
+    /// to render the geometry. This is used to reference the draw arguments in <see cref="GraphicsRendering.Args.IndirectArgs"/>.  </summary>
     public uint argsAddress = 0;
     /// <summary> Creates a geometry handle for triangle geometry(index buffer) that will be rendered indirectly. As such,
     /// it needs to specify information on how to render it beyond just the location of the geometry itself. </summary>
@@ -384,14 +396,15 @@ public class GeometryHandle : Core.ArterraRuntime.IUpdateSubscriber
     /// <summary> Releases the geometry handle, freeing any memory blocks it holds in <see cref="memory"> the memory handle</see>.
     /// This should be called when the geometry is no longer needed to ensure that the GPU memory is released. </summary>
     public void Release(){
+        GraphicsResourceContext gpuContext = GraphicsRendering;
         if(!this.active) return;
         this.active = false;
 
         //Release geometry memory
         if(this.addressIndex != 0)
-            GenerationPreset.memoryHandle.ReleaseMemory(this.addressIndex);
+            gpuContext.Memory.ReleaseMemory(this.addressIndex);
         if(this.argsAddress != 0)
-            UtilityBuffers.DrawArgs.Release(this.argsAddress);
+            gpuContext.Args.DrawArgs.Release(this.argsAddress);
     }
 
         /// <summary> Updates the geometry handle to pass any indirect render commands it may have.
@@ -404,7 +417,7 @@ public class GeometryHandle : Core.ArterraRuntime.IUpdateSubscriber
                 return;
 
             //Offset in bytes = address * 4 args per address * 4 bytes per arg
-            Graphics.RenderPrimitivesIndirect(rp, MeshTopology.Triangles, UtilityBuffers.DrawArgs.Get(), 1, (int)argsAddress);
+            UnityEngine.Graphics.RenderPrimitivesIndirect(rp, MeshTopology.Triangles, GraphicsRendering.Args.DrawArgs.Get(), 1, (int)argsAddress);
         }
 
         public void Render(CommandBuffer cmd) {
@@ -412,7 +425,7 @@ public class GeometryHandle : Core.ArterraRuntime.IUpdateSubscriber
                 return;
 
             //Offset in bytes = address * 4 args per address * 4 bytes per arg
-            Graphics.RenderPrimitivesIndirect(rp, MeshTopology.Triangles, UtilityBuffers.DrawArgs.Get(), 1, (int)argsAddress);
+            UnityEngine.Graphics.RenderPrimitivesIndirect(rp, MeshTopology.Triangles, GraphicsRendering.Args.DrawArgs.Get(), 1, (int)argsAddress);
         }
 }
 

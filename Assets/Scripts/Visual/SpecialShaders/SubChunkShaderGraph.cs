@@ -10,6 +10,7 @@ using Arterra.Engine.Terrain;
 using Arterra.Engine.Terrain.Readback;
 using Arterra.Utils;
 using Arterra.Core;
+using static Arterra.Core.Storage.SharedResourceManager;
 
 namespace Arterra.Engine.Rendering
 {
@@ -39,6 +40,7 @@ namespace Arterra.Engine.Rendering
         const int TRI_STRIDE_WORD = 3;
         public static void PresetData()
         {
+            GraphicsResourceContext gpuContext = GraphicsRendering;
             geoSizeCounter = Resources.Load<ComputeShader>("Compute/GeoShader/ShaderMatSizeCounter");
             filterGeometry = Resources.Load<ComputeShader>("Compute/GeoShader/FilterShaderGeometry");
             sizePrefixSum = Resources.Load<ComputeShader>("Compute/GeoShader/ShaderPrefixConstructor");
@@ -62,100 +64,100 @@ namespace Arterra.Engine.Rendering
             SortedSubChunks = new LogicalBlockBuffer(GraphicsBuffer.Target.Structured, numChunks * 2, sizeof(uint) * (NumSubChunks + 1));
 
             int kernel = geoInfoLoader.FindKernel("GetBaseSize");
-            geoInfoLoader.SetBuffer(kernel, "counter", UtilityBuffers.GenerationBuffer);
-            geoInfoLoader.SetInt("bCOUNT_tri", offsets.baseGeoCounter);
-            geoInfoLoader.SetInt("bCOUNT_offset", offsets.baseGeoOffset);
-            geoInfoLoader.SetInt("triStride", TRI_STRIDE_WORD);
+            gpuContext.SetBuffer(geoInfoLoader, kernel, "counter", gpuContext.Work.Scratch);
+            gpuContext.SetInt(geoInfoLoader, "bCOUNT_tri", offsets.baseGeoCounter);
+            gpuContext.SetInt(geoInfoLoader, "bCOUNT_offset", offsets.baseGeoOffset);
+            gpuContext.SetInt(geoInfoLoader, "triStride", TRI_STRIDE_WORD);
             kernel = geoInfoLoader.FindKernel("GetSubChunkSize");
-            geoInfoLoader.SetBuffer(kernel, "SubChunkPrefix", SortedSubChunks.Get());
-            geoInfoLoader.SetBuffer(kernel, "counter", UtilityBuffers.GenerationBuffer);
+            gpuContext.SetBuffer(geoInfoLoader, kernel, "SubChunkPrefix", SortedSubChunks.Get());
+            gpuContext.SetBuffer(geoInfoLoader, kernel, "counter", gpuContext.Work.Scratch);
 
             kernel = subChunkInfo.FindKernel("SetSubChunkDetail");
-            subChunkInfo.SetBuffer(kernel, "SubChunkInfo", UtilityBuffers.GenerationBuffer);
-            subChunkInfo.SetBuffer(kernel, "SubChunkRegions", UtilityBuffers.TransferBuffer);
+            gpuContext.SetBuffer(subChunkInfo, kernel, "SubChunkInfo", gpuContext.Work.Scratch);
+            gpuContext.SetBuffer(subChunkInfo, kernel, "SubChunkRegions", gpuContext.Work.Transfer);
             kernel = subChunkInfo.FindKernel("CollectSubChunkSizes");
-            subChunkInfo.SetBuffer(kernel, "SubChunkInfo", UtilityBuffers.GenerationBuffer);
-            subChunkInfo.SetBuffer(kernel, "SubChunkRegions", UtilityBuffers.TransferBuffer);
+            gpuContext.SetBuffer(subChunkInfo, kernel, "SubChunkInfo", gpuContext.Work.Scratch);
+            gpuContext.SetBuffer(subChunkInfo, kernel, "SubChunkRegions", gpuContext.Work.Transfer);
             kernel = subChunkInfo.FindKernel("SetSubChunkAddress");
-            subChunkInfo.SetBuffer(kernel, "SubChunkInfo", UtilityBuffers.GenerationBuffer);
-            subChunkInfo.SetBuffer(kernel, "SubChunkRegions", UtilityBuffers.TransferBuffer);
-            subChunkInfo.SetInt("bSTART_sChunkI", offsets.subChunkInfoStart);
+            gpuContext.SetBuffer(subChunkInfo, kernel, "SubChunkInfo", gpuContext.Work.Scratch);
+            gpuContext.SetBuffer(subChunkInfo, kernel, "SubChunkRegions", gpuContext.Work.Transfer);
+            gpuContext.SetInt(subChunkInfo, "bSTART_sChunkI", offsets.subChunkInfoStart);
             kernel = subChunkInfo.FindKernel("ConstructPrefixSizes");
-            subChunkInfo.SetBuffer(kernel, "SubChunkPrefix", SortedSubChunks.Get());
-            subChunkInfo.SetInt("numSubChunks", NumSubChunks);
+            gpuContext.SetBuffer(subChunkInfo, kernel, "SubChunkPrefix", SortedSubChunks.Get());
+            gpuContext.SetInt(subChunkInfo, "numSubChunks", NumSubChunks);
             kernel = subChunkInfo.FindKernel("SetGlobalDetail");
-            subChunkInfo.SetBuffer(kernel, "SubChunkInfo", UtilityBuffers.GenerationBuffer);
+            gpuContext.SetBuffer(subChunkInfo, kernel, "SubChunkInfo", gpuContext.Work.Scratch);
 
             kernel = geoSizeCounter.FindKernel("CountShaderSizes");
-            geoSizeCounter.SetBuffer(kernel, "counter", UtilityBuffers.GenerationBuffer);
-            geoSizeCounter.SetBuffer(kernel, "triangleIndexOffset", UtilityBuffers.GenerationBuffer);
-            geoSizeCounter.SetBuffer(kernel, "shaderIndexOffset", UtilityBuffers.GenerationBuffer);
-            geoSizeCounter.SetInt("bSTART_scount", offsets.matSizeCStart);
-            geoSizeCounter.SetInt("bSTART_tri", offsets.triIndDictStart);
-            geoSizeCounter.SetInt("bCOUNT_base", offsets.baseGeoCounter);
-            geoSizeCounter.SetInt("bCOUNT_offset", offsets.baseGeoOffset);
+            gpuContext.SetBuffer(geoSizeCounter, kernel, "counter", gpuContext.Work.Scratch);
+            gpuContext.SetBuffer(geoSizeCounter, kernel, "triangleIndexOffset", gpuContext.Work.Scratch);
+            gpuContext.SetBuffer(geoSizeCounter, kernel, "shaderIndexOffset", gpuContext.Work.Scratch);
+            gpuContext.SetInt(geoSizeCounter, "bSTART_scount", offsets.matSizeCStart);
+            gpuContext.SetInt(geoSizeCounter, "bSTART_tri", offsets.triIndDictStart);
+            gpuContext.SetInt(geoSizeCounter, "bCOUNT_base", offsets.baseGeoCounter);
+            gpuContext.SetInt(geoSizeCounter, "bCOUNT_offset", offsets.baseGeoOffset);
             kernel = geoSizeCounter.FindKernel("CountSubChunkSizes");
-            geoSizeCounter.SetBuffer(kernel, "counter", UtilityBuffers.GenerationBuffer);
-            geoSizeCounter.SetBuffer(kernel, "triangleIndexOffset", UtilityBuffers.GenerationBuffer);
-            geoSizeCounter.SetBuffer(kernel, "SubChunkPrefix", SortedSubChunks.Get());
-            geoSizeCounter.SetInt("sChunkSize", SubChunkSizeOS);
-            geoSizeCounter.SetInt("sChunksPerAxis", SubChunksPerAxis);
+            gpuContext.SetBuffer(geoSizeCounter, kernel, "counter", gpuContext.Work.Scratch);
+            gpuContext.SetBuffer(geoSizeCounter, kernel, "triangleIndexOffset", gpuContext.Work.Scratch);
+            gpuContext.SetBuffer(geoSizeCounter, kernel, "SubChunkPrefix", SortedSubChunks.Get());
+            gpuContext.SetInt(geoSizeCounter, "sChunkSize", SubChunkSizeOS);
+            gpuContext.SetInt(geoSizeCounter, "sChunksPerAxis", SubChunksPerAxis);
 
-            sizePrefixSum.SetBuffer(0, "shaderCountOffset", UtilityBuffers.GenerationBuffer);
-            sizePrefixSum.SetInt("bSTART_scount", offsets.matSizeCStart);
+            gpuContext.SetBuffer(sizePrefixSum, 0, "shaderCountOffset", gpuContext.Work.Scratch);
+            gpuContext.SetInt(sizePrefixSum, "bSTART_scount", offsets.matSizeCStart);
 
             kernel = filterGeometry.FindKernel("FilterShader");
-            filterGeometry.SetBuffer(kernel, "filteredIndicies", UtilityBuffers.GenerationBuffer);
-            filterGeometry.SetBuffer(kernel, "counter", UtilityBuffers.GenerationBuffer);
-            filterGeometry.SetBuffer(kernel, "triangleIndexOffset", UtilityBuffers.GenerationBuffer);
-            filterGeometry.SetBuffer(kernel, "shaderPrefix", UtilityBuffers.GenerationBuffer);
-            filterGeometry.SetInt("bSTART_scount", offsets.matSizeCStart);
-            filterGeometry.SetInt("bSTART_tri", offsets.triIndDictStart);
-            filterGeometry.SetInt("bCOUNT_base", offsets.baseGeoCounter);
-            filterGeometry.SetInt("bCOUNT_offset", offsets.baseGeoOffset);
-            filterGeometry.SetInt("bSTART_sort", offsets.fBaseGeoStart);
+            gpuContext.SetBuffer(filterGeometry, kernel, "filteredIndicies", gpuContext.Work.Scratch);
+            gpuContext.SetBuffer(filterGeometry, kernel, "counter", gpuContext.Work.Scratch);
+            gpuContext.SetBuffer(filterGeometry, kernel, "triangleIndexOffset", gpuContext.Work.Scratch);
+            gpuContext.SetBuffer(filterGeometry, kernel, "shaderPrefix", gpuContext.Work.Scratch);
+            gpuContext.SetInt(filterGeometry, "bSTART_scount", offsets.matSizeCStart);
+            gpuContext.SetInt(filterGeometry, "bSTART_tri", offsets.triIndDictStart);
+            gpuContext.SetInt(filterGeometry, "bCOUNT_base", offsets.baseGeoCounter);
+            gpuContext.SetInt(filterGeometry, "bCOUNT_offset", offsets.baseGeoOffset);
+            gpuContext.SetInt(filterGeometry, "bSTART_sort", offsets.fBaseGeoStart);
 
             kernel = filterGeometry.FindKernel("FilterSubChunks");
-            filterGeometry.SetBuffer(kernel, "filteredGeometry", UtilityBuffers.GenerationBuffer);
-            filterGeometry.SetBuffer(kernel, "counter", UtilityBuffers.GenerationBuffer);
-            filterGeometry.SetBuffer(kernel, "triangleIndexOffset", UtilityBuffers.GenerationBuffer);
-            filterGeometry.SetBuffer(kernel, "SubChunkPrefix", SortedSubChunks.Get());
-            filterGeometry.SetInt("sChunkSize", SubChunkSizeOS);
-            filterGeometry.SetInt("sChunksPerAxis", SubChunksPerAxis);
+            gpuContext.SetBuffer(filterGeometry, kernel, "filteredGeometry", gpuContext.Work.Scratch);
+            gpuContext.SetBuffer(filterGeometry, kernel, "counter", gpuContext.Work.Scratch);
+            gpuContext.SetBuffer(filterGeometry, kernel, "triangleIndexOffset", gpuContext.Work.Scratch);
+            gpuContext.SetBuffer(filterGeometry, kernel, "SubChunkPrefix", SortedSubChunks.Get());
+            gpuContext.SetInt(filterGeometry, "sChunkSize", SubChunkSizeOS);
+            gpuContext.SetInt(filterGeometry, "sChunksPerAxis", SubChunksPerAxis);
 
             kernel = geoTranscriber.FindKernel("Transcribe");
-            geoTranscriber.SetBuffer(kernel, "DrawTriangles", UtilityBuffers.GenerationBuffer);
-            geoTranscriber.SetBuffer(kernel, "ShaderPrefixes", UtilityBuffers.GenerationBuffer);
-            geoTranscriber.SetInt("bSTART_oGeo", offsets.shadGeoStart);
+            gpuContext.SetBuffer(geoTranscriber, kernel, "DrawTriangles", gpuContext.Work.Scratch);
+            gpuContext.SetBuffer(geoTranscriber, kernel, "ShaderPrefixes", gpuContext.Work.Scratch);
+            gpuContext.SetInt(geoTranscriber, "bSTART_oGeo", offsets.shadGeoStart);
 
             kernel = geoTranscriber.FindKernel("BatchTranscribe");
-            geoTranscriber.SetBuffer(kernel, "DrawTriangles", UtilityBuffers.GenerationBuffer);
-            geoTranscriber.SetBuffer(kernel, "ShaderPrefixes", UtilityBuffers.GenerationBuffer);
-            geoTranscriber.SetBuffer(kernel, "SubChunkInfo", UtilityBuffers.GenerationBuffer);
-            geoTranscriber.SetInt("bSTART_sChunkI", offsets.subChunkInfoStart);
+            gpuContext.SetBuffer(geoTranscriber, kernel, "DrawTriangles", gpuContext.Work.Scratch);
+            gpuContext.SetBuffer(geoTranscriber, kernel, "ShaderPrefixes", gpuContext.Work.Scratch);
+            gpuContext.SetBuffer(geoTranscriber, kernel, "SubChunkInfo", gpuContext.Work.Scratch);
+            gpuContext.SetInt(geoTranscriber, "bSTART_sChunkI", offsets.subChunkInfoStart);
 
             kernel = geoTranscriber.FindKernel("TranscribeSortedBase");
-            geoTranscriber.SetBuffer(kernel, "counter", UtilityBuffers.GenerationBuffer);
-            geoTranscriber.SetBuffer(kernel, "SortedTriangles", UtilityBuffers.GenerationBuffer);
-            geoTranscriber.SetInt("bCOUNT_base", offsets.baseGeoCounter);
-            geoTranscriber.SetInt("bSTART_sort", offsets.fBaseGeoStart);
+            gpuContext.SetBuffer(geoTranscriber, kernel, "counter", gpuContext.Work.Scratch);
+            gpuContext.SetBuffer(geoTranscriber, kernel, "SortedTriangles", gpuContext.Work.Scratch);
+            gpuContext.SetInt(geoTranscriber, "bCOUNT_base", offsets.baseGeoCounter);
+            gpuContext.SetInt(geoTranscriber, "bSTART_sort", offsets.fBaseGeoStart);
 
             kernel = geoSizeCalculator.FindKernel("GetPrefixSize");
-            geoSizeCalculator.SetBuffer(kernel, "counter", UtilityBuffers.GenerationBuffer);
-            geoSizeCalculator.SetBuffer(kernel, "prefixSizes", UtilityBuffers.GenerationBuffer);
-            geoSizeCalculator.SetInt("bCOUNT_write", offsets.baseGeoCounter);
+            gpuContext.SetBuffer(geoSizeCalculator, kernel, "counter", gpuContext.Work.Scratch);
+            gpuContext.SetBuffer(geoSizeCalculator, kernel, "prefixSizes", gpuContext.Work.Scratch);
+            gpuContext.SetInt(geoSizeCalculator, "bCOUNT_write", offsets.baseGeoCounter);
             kernel = geoSizeCalculator.FindKernel("CountSubChunkSizes");
-            geoSizeCalculator.SetBuffer(kernel, "prefixSizes", UtilityBuffers.GenerationBuffer);
-            geoSizeCalculator.SetBuffer(kernel, "DrawTriangles", UtilityBuffers.GenerationBuffer);
-            geoSizeCalculator.SetBuffer(kernel, "SubChunkInfo", UtilityBuffers.GenerationBuffer);
-            geoSizeCalculator.SetInt("bSTART_oGeo", offsets.shadGeoStart);
-            geoSizeCalculator.SetInt("bSTART_sChunkI", offsets.subChunkInfoStart);
+            gpuContext.SetBuffer(geoSizeCalculator, kernel, "prefixSizes", gpuContext.Work.Scratch);
+            gpuContext.SetBuffer(geoSizeCalculator, kernel, "DrawTriangles", gpuContext.Work.Scratch);
+            gpuContext.SetBuffer(geoSizeCalculator, kernel, "SubChunkInfo", gpuContext.Work.Scratch);
+            gpuContext.SetInt(geoSizeCalculator, "bSTART_oGeo", offsets.shadGeoStart);
+            gpuContext.SetInt(geoSizeCalculator, "bSTART_sChunkI", offsets.subChunkInfoStart);
 
             kernel = shaderDrawArgs.FindKernel("FromPrefix");
-            shaderDrawArgs.SetBuffer(kernel, "_IndirectArgsBuffer", UtilityBuffers.DrawArgs.Get());
+            gpuContext.SetBuffer(shaderDrawArgs, kernel, "_IndirectArgsBuffer", gpuContext.Args.DrawArgs.Get());
             kernel = shaderDrawArgs.FindKernel("FromSubChunks");
-            shaderDrawArgs.SetBuffer(kernel, "SubChunkRegions", UtilityBuffers.TransferBuffer);
-            shaderDrawArgs.SetBuffer(kernel, "_IndirectArgsBuffer", UtilityBuffers.DrawArgs.Get());
+            gpuContext.SetBuffer(shaderDrawArgs, kernel, "SubChunkRegions", gpuContext.Work.Transfer);
+            gpuContext.SetBuffer(shaderDrawArgs, kernel, "_IndirectArgsBuffer", gpuContext.Args.DrawArgs.Get());
 
             for (int i = 0; i < rSettings.Categories.Reg.Count; i++)
             {
@@ -169,10 +171,11 @@ namespace Arterra.Engine.Rendering
 
         public static void PresetSubChunkInfo(ComputeShader shader)
         {
-            shader.SetInt("sChunkSize", SubChunkSizeOS);
-            shader.SetInt("sChunksPerAxis", SubChunksPerAxis);
-            shader.SetInt("bSTART_sChunkI", offsets.subChunkInfoStart);
-            shader.SetBuffer(0, "SubChunkInfo", UtilityBuffers.GenerationBuffer);
+            GraphicsResourceContext gpuContext = GraphicsRendering;
+            gpuContext.SetInt(shader, "sChunkSize", SubChunkSizeOS);
+            gpuContext.SetInt(shader, "sChunksPerAxis", SubChunksPerAxis);
+            gpuContext.SetInt(shader, "bSTART_sChunkI", offsets.subChunkInfoStart);
+            gpuContext.SetBuffer(shader, 0, "SubChunkInfo", gpuContext.Work.Scratch);
         }
 
 
@@ -213,6 +216,7 @@ namespace Arterra.Engine.Rendering
 
         public void ComputeGeoShaderGeometry(GeometryHandle vertHandle, GeometryHandle triHandle)
         {
+            GraphicsResourceContext gpuContext = GraphicsRendering;
             ReleaseGeometry(); tree?.VerifyChunks();
             this.executor = new ArterraRuntime.IndirectUpdate(Update);
             ArterraRuntime.MainLoopUpdateTasks.Enqueue(executor);
@@ -222,13 +226,13 @@ namespace Arterra.Engine.Rendering
             this.baseHandle = new BaseGeoHandle(vertHandle, triHandle);
 
             ShaderSubchunk[] subchunks = tree.GetAllActiveChunks();//
-            UtilityBuffers.ClearRange(UtilityBuffers.GenerationBuffer, offsets.triIndDictStart, 0);
-            LoadBaseGeoInfo(GenerationPreset.memoryHandle, triHandle);
-            FilterGeometry(GenerationPreset.memoryHandle, triAddress, vertAddress);
+            gpuContext.Work.ClearRange(gpuContext.Work.Scratch, offsets.triIndDictStart, 0);
+            LoadBaseGeoInfo(gpuContext.Memory, triHandle);
+            FilterGeometry(gpuContext.Memory, triAddress, vertAddress);
             SetSubChunkDetailLevel(subchunks);
-            ProcessGeoShaders(GenerationPreset.memoryHandle, vertAddress, triAddress);
+            ProcessGeoShaders(gpuContext.Memory, vertAddress, triAddress);
 
-            uint2[][] allocs = AllocateForChunkGeometry(GenerationPreset.memoryHandle, subchunks);
+            uint2[][] allocs = AllocateForChunkGeometry(gpuContext.Memory, subchunks);
             for (int i = 0; i < subchunks.Length; i++) {
                 subchunks[i].ApplyAllocToChunk(allocs[i]);
             }
@@ -236,18 +240,19 @@ namespace Arterra.Engine.Rendering
 
         public bool RecalculateSubChunkGeoShader(ShaderSubchunk chunk)
         {
+            GraphicsResourceContext gpuContext = GraphicsRendering;
             if (!baseHandle.IsValid) return false;
-            if (!baseHandle.IsSorted) SortBaseGeometry(GenerationPreset.memoryHandle);
+            if (!baseHandle.IsSorted) SortBaseGeometry(gpuContext.Memory);
 
             int2 SCInfo = chunk.GetInfoRegion();
             int triAddress = (int)baseHandle.triangles.addressIndex;
             int vertAddress = (int)baseHandle.vertex.addressIndex;
-            UtilityBuffers.ClearRange(UtilityBuffers.GenerationBuffer, offsets.triIndDictStart, 0);
+            gpuContext.Work.ClearRange(gpuContext.Work.Scratch, offsets.triIndDictStart, 0);
             LoadBaseSubChunkGeoInfo(SCInfo, baseHandle.SortedSubCInd);
-            FilterGeometry(GenerationPreset.memoryHandle, triAddress, vertAddress);
+            FilterGeometry(gpuContext.Memory, triAddress, vertAddress);
             SetGlobalDetailLevel(chunk.detailLevel);
-            ProcessGeoShaders(GenerationPreset.memoryHandle, vertAddress, triAddress);
-            uint2[] allocs = AllocateForSubChunkGeometry(GenerationPreset.memoryHandle);
+            ProcessGeoShaders(gpuContext.Memory, vertAddress, triAddress);
+            uint2[] allocs = AllocateForSubChunkGeometry(gpuContext.Memory);
             chunk.ApplyAllocToChunk(allocs);
             return true;
         }
@@ -268,12 +273,13 @@ namespace Arterra.Engine.Rendering
 
         void ProcessGeoShaders(MemoryBufferHandler memory, int vertAddress, int triAddress)
         {
-            UtilityBuffers.ClearRange(UtilityBuffers.GenerationBuffer, 1, 0); //clear base count
+            GraphicsResourceContext gpuContext = GraphicsRendering;
+            gpuContext.Work.ClearRange(gpuContext.Work.Scratch, 1, 0); //clear base count
             for (int i = 0; i < shaders.Count; i++)
             {
                 GeoShader geoShader = shaders[i];
                 geoShader.ProcessGeoShader(memory, vertAddress, triAddress, offsets.matSizeCStart + i, parent.depth);
-                UtilityBuffers.CopyCount(source: UtilityBuffers.GenerationBuffer, dest: UtilityBuffers.GenerationBuffer,
+                gpuContext.Args.CopyCount(source: gpuContext.Work.Scratch, dest: gpuContext.Work.Scratch,
                     readOffset: offsets.baseGeoCounter, writeOffset: offsets.shadGeoCStart + i + 1);
             }
         }
@@ -281,6 +287,7 @@ namespace Arterra.Engine.Rendering
 
         uint2[][] AllocateForChunkGeometry(MemoryBufferHandler memory, ShaderSubchunk[] subChunks)
         {
+            GraphicsResourceContext gpuContext = GraphicsRendering;
             uint2[][] allocs = new uint2[subChunks.Length][];
             int3[] scAddrInfo = new int3[subChunks.Length];
             for (int i = 0; i < subChunks.Length; i++)
@@ -295,12 +302,12 @@ namespace Arterra.Engine.Rendering
                 for (int j = 0; j < subChunks.Length; j++)
                 {
                     allocs[j][i].x = memory.AllocateMemory(
-                        UtilityBuffers.TransferBuffer,
+                        gpuContext.Work.Transfer,
                         GEO_TRI_STRIDE,
                         j * 3 + 2
                     );
                     scAddrInfo[j].z = (int)allocs[j][i].x;
-                    allocs[j][i].y = UtilityBuffers.DrawArgs.Allocate();
+                    allocs[j][i].y = gpuContext.Args.DrawArgs.Allocate();
                     SetSubChunkDrawArgs((int)allocs[j][i].y, j);
                 }
                 BatchTranscribe(memory.Storage, memory.Address,
@@ -311,6 +318,7 @@ namespace Arterra.Engine.Rendering
 
         public uint2[] AllocateForSubChunkGeometry(MemoryBufferHandler memory)
         {
+            GraphicsResourceContext gpuContext = GraphicsRendering;
             int numShaders = shaders.Count;
 
             uint2[] allocs = new uint2[numShaders];
@@ -319,10 +327,10 @@ namespace Arterra.Engine.Rendering
             for (int i = 0; i < numShaders; i++)
             {
                 CopyGeoCount(offsets.shadGeoCStart + i);
-                allocs[i].x = memory.AllocateMemory(UtilityBuffers.GenerationBuffer, GEO_TRI_STRIDE, offsets.baseGeoCounter);
+                allocs[i].x = memory.AllocateMemory(gpuContext.Work.Scratch, GEO_TRI_STRIDE, offsets.baseGeoCounter);
                 ComputeBuffer memoryReference = memory.GetBlockBuffer(allocs[i].x);
                 TranscribeGeometry(memoryReference, addressesReference, (int)allocs[i].x, offsets.shadGeoCStart + i);
-                allocs[i].y = UtilityBuffers.DrawArgs.Allocate();
+                allocs[i].y = gpuContext.Args.DrawArgs.Allocate();
                 GetDrawArgs((int)allocs[i].y, offsets.shadGeoCStart + i);
             }
             return allocs;
@@ -331,153 +339,167 @@ namespace Arterra.Engine.Rendering
 
         private void LoadBaseGeoInfo(MemoryBufferHandler memory, GeometryHandle triHandle)
         {
+            GraphicsResourceContext gpuContext = GraphicsRendering;
             ComputeBuffer triStorage = memory.GetBlockBuffer(triHandle.addressIndex);
             GraphicsBuffer addresses = memory.Address;
 
             int kernel = geoInfoLoader.FindKernel("GetBaseSize");
-            geoInfoLoader.SetBuffer(kernel, ShaderIDProps.MemoryBuffer, triStorage);
-            geoInfoLoader.SetBuffer(kernel, ShaderIDProps.AddressDict, addresses);
-            geoInfoLoader.SetInt(ShaderIDProps.TriAddress, (int)triHandle.addressIndex);
-            geoInfoLoader.Dispatch(kernel, 1, 1, 1);
+            gpuContext.SetBuffer(geoInfoLoader, kernel, ShaderIDProps.MemoryBuffer, triStorage);
+            gpuContext.SetBuffer(geoInfoLoader, kernel, ShaderIDProps.AddressDict, addresses);
+            gpuContext.SetInt(geoInfoLoader, ShaderIDProps.TriAddress, (int)triHandle.addressIndex);
+            gpuContext.Dispatch(geoInfoLoader, kernel, 1, 1, 1);
         }
 
         private void LoadBaseSubChunkGeoInfo(int2 SCInfo, int prefixStart)
         {
+            GraphicsResourceContext gpuContext = GraphicsRendering;
             int stride = NumSubChunks + 1;
             int kernel = geoInfoLoader.FindKernel("GetSubChunkSize");
-            geoInfoLoader.SetInt(ShaderIDProps.StartSChunkP, prefixStart * stride);
-            geoInfoLoader.SetInt(ShaderIDProps.SCStart, SCInfo.x);
-            geoInfoLoader.SetInt(ShaderIDProps.SCEnd, SCInfo.y);
-            geoInfoLoader.Dispatch(kernel, 1, 1, 1);
+            gpuContext.SetInt(geoInfoLoader, ShaderIDProps.StartSChunkP, prefixStart * stride);
+            gpuContext.SetInt(geoInfoLoader, ShaderIDProps.SCStart, SCInfo.x);
+            gpuContext.SetInt(geoInfoLoader, ShaderIDProps.SCEnd, SCInfo.y);
+            gpuContext.Dispatch(geoInfoLoader, kernel, 1, 1, 1);
         }
 
         private static void CountGeometrySizes(ComputeBuffer vertMemory, ComputeBuffer triMemory, GraphicsBuffer addresses, int vertAddress, int triAddress)
         {
+            GraphicsResourceContext gpuContext = GraphicsRendering;
             int kernel = geoSizeCounter.FindKernel("CountShaderSizes");
-            ComputeBuffer args = UtilityBuffers.CountToArgs(geoSizeCounter, UtilityBuffers.GenerationBuffer, offsets.baseGeoCounter, kernel);
-            geoSizeCounter.SetBuffer(kernel, ShaderIDProps.Vertices, vertMemory);
-            geoSizeCounter.SetBuffer(kernel, ShaderIDProps.Triangles, triMemory);
-            geoSizeCounter.SetBuffer(kernel, ShaderIDProps.AddressDict, addresses);
-            geoSizeCounter.SetInt(ShaderIDProps.VertAddress, vertAddress);
-            geoSizeCounter.SetInt(ShaderIDProps.TriAddress, triAddress);
+            ComputeBuffer args = gpuContext.Args.CountToArgs(geoSizeCounter, gpuContext.Work.Scratch, offsets.baseGeoCounter, kernel);
+            gpuContext.SetBuffer(geoSizeCounter, kernel, ShaderIDProps.Vertices, vertMemory);
+            gpuContext.SetBuffer(geoSizeCounter, kernel, ShaderIDProps.Triangles, triMemory);
+            gpuContext.SetBuffer(geoSizeCounter, kernel, ShaderIDProps.AddressDict, addresses);
+            gpuContext.SetInt(geoSizeCounter, ShaderIDProps.VertAddress, vertAddress);
+            gpuContext.SetInt(geoSizeCounter, ShaderIDProps.TriAddress, triAddress);
 
-            geoSizeCounter.DispatchIndirect(kernel, args);
+            gpuContext.DispatchIndirect(geoSizeCounter, kernel, args);
         }
 
         private static void ConstructPrefixSum(int numShaders)
         {
-            sizePrefixSum.SetInt("numShaders", numShaders);
-            sizePrefixSum.Dispatch(0, 1, 1, 1);
+            GraphicsResourceContext gpuContext = GraphicsRendering;
+            gpuContext.SetInt(sizePrefixSum, "numShaders", numShaders);
+            gpuContext.Dispatch(sizePrefixSum, 0, 1, 1, 1);
         }
 
         private static void FilterShaderGeometry(ComputeBuffer vertMemory, ComputeBuffer triMemory, GraphicsBuffer addresses, int vertAddress, int triAddress)
         {
-            ComputeBuffer args = UtilityBuffers.CountToArgs(filterGeometry, UtilityBuffers.GenerationBuffer, offsets.baseGeoCounter);
+            GraphicsResourceContext gpuContext = GraphicsRendering;
+            ComputeBuffer args = gpuContext.Args.CountToArgs(filterGeometry, gpuContext.Work.Scratch, offsets.baseGeoCounter);
 
             int kernel = filterGeometry.FindKernel("FilterShader");
-            filterGeometry.SetBuffer(kernel, ShaderIDProps.Vertices, vertMemory);
-            filterGeometry.SetBuffer(kernel, ShaderIDProps.Triangles, triMemory);
-            filterGeometry.SetBuffer(kernel, ShaderIDProps.AddressDict, addresses);
-            filterGeometry.SetInt(ShaderIDProps.VertAddress, vertAddress);
-            filterGeometry.SetInt(ShaderIDProps.TriAddress, triAddress);
+            gpuContext.SetBuffer(filterGeometry, kernel, ShaderIDProps.Vertices, vertMemory);
+            gpuContext.SetBuffer(filterGeometry, kernel, ShaderIDProps.Triangles, triMemory);
+            gpuContext.SetBuffer(filterGeometry, kernel, ShaderIDProps.AddressDict, addresses);
+            gpuContext.SetInt(filterGeometry, ShaderIDProps.VertAddress, vertAddress);
+            gpuContext.SetInt(filterGeometry, ShaderIDProps.TriAddress, triAddress);
 
-            filterGeometry.DispatchIndirect(kernel, args);
+            gpuContext.DispatchIndirect(filterGeometry, kernel, args);
         }
 
 
         void CountSubChunkGeoSizes(int shadGeoCount, ShaderSubchunk[] subChunks)
         {
-            UtilityBuffers.ClearRange(UtilityBuffers.GenerationBuffer, NumSubChunks, offsets.subChunkInfoStart);
+            GraphicsResourceContext gpuContext = GraphicsRendering;
+            gpuContext.Work.ClearRange(gpuContext.Work.Scratch, NumSubChunks, offsets.subChunkInfoStart);
             CopyGeoCount(shadGeoCount);
 
             int kernel = geoSizeCalculator.FindKernel("CountSubChunkSizes");
-            ComputeBuffer args = UtilityBuffers.CountToArgs(geoSizeCalculator, UtilityBuffers.GenerationBuffer, offsets.baseGeoCounter, kernel);
-            geoSizeCalculator.DispatchIndirect(kernel, args);
+            ComputeBuffer args = gpuContext.Args.CountToArgs(geoSizeCalculator, gpuContext.Work.Scratch, offsets.baseGeoCounter, kernel);
+            gpuContext.DispatchIndirect(geoSizeCalculator, kernel, args);
 
             kernel = subChunkInfo.FindKernel("CollectSubChunkSizes");
-            subChunkInfo.SetInt(ShaderIDProps.NumSubChunkRegions, subChunks.Length);
+            gpuContext.SetInt(subChunkInfo, ShaderIDProps.NumSubChunkRegions, subChunks.Length);
             subChunkInfo.GetKernelThreadGroupSizes(kernel, out uint threadGroupSize, out _, out _);
             int numThreadsAxis = (int)math.ceil((double)subChunks.Length / threadGroupSize);
-            subChunkInfo.Dispatch(kernel, numThreadsAxis, 1, 1);
+            gpuContext.Dispatch(subChunkInfo, kernel, numThreadsAxis, 1, 1);
         }
 
         void CopyGeoCount(int shadGeoCount)
         {
+            GraphicsResourceContext gpuContext = GraphicsRendering;
             int kernel = geoSizeCalculator.FindKernel("GetPrefixSize");
-            geoSizeCalculator.SetInt(ShaderIDProps.CountOGeo, shadGeoCount);
-            geoSizeCalculator.Dispatch(kernel, 1, 1, 1);
+            gpuContext.SetInt(geoSizeCalculator, ShaderIDProps.CountOGeo, shadGeoCount);
+            gpuContext.Dispatch(geoSizeCalculator, kernel, 1, 1, 1);
         }
 
         void TranscribeGeometry(ComputeBuffer memory, GraphicsBuffer addresses, int addressIndex, int geoSizeCounter)
         {
-            ComputeBuffer args = UtilityBuffers.CountToArgs(geoTranscriber, UtilityBuffers.GenerationBuffer, offsets.baseGeoCounter);
+            GraphicsResourceContext gpuContext = GraphicsRendering;
+            ComputeBuffer args = gpuContext.Args.CountToArgs(geoTranscriber, gpuContext.Work.Scratch, offsets.baseGeoCounter);
 
             int kernel = geoTranscriber.FindKernel("Transcribe");
-            geoTranscriber.SetBuffer(kernel, ShaderIDProps.MemoryBuffer, memory);
-            geoTranscriber.SetBuffer(kernel, ShaderIDProps.AddressDict, addresses);
-            geoTranscriber.SetInt(ShaderIDProps.AddressIndex, addressIndex);
-            geoTranscriber.SetInt(ShaderIDProps.CountOGeo, geoSizeCounter);
-            geoTranscriber.DispatchIndirect(kernel, args);
+            gpuContext.SetBuffer(geoTranscriber, kernel, ShaderIDProps.MemoryBuffer, memory);
+            gpuContext.SetBuffer(geoTranscriber, kernel, ShaderIDProps.AddressDict, addresses);
+            gpuContext.SetInt(geoTranscriber, ShaderIDProps.AddressIndex, addressIndex);
+            gpuContext.SetInt(geoTranscriber, ShaderIDProps.CountOGeo, geoSizeCounter);
+            gpuContext.DispatchIndirect(geoTranscriber, kernel, args);
         }
 
         void BatchTranscribe(ComputeBuffer memory, GraphicsBuffer addresses, int3[] SCAddressRegions, int shadGeoCount)
         {
-            UtilityBuffers.TransferBuffer.SetData(SCAddressRegions);
+            GraphicsResourceContext gpuContext = GraphicsRendering;
+            gpuContext.SetBufferData(gpuContext.Work.Transfer, SCAddressRegions);
             int kernel = subChunkInfo.FindKernel("SetSubChunkAddress");
             //This is safe ONLY if immediately using it after allocation
-            subChunkInfo.SetBuffer(kernel, ShaderIDProps.AddressDict, addresses);
-            subChunkInfo.SetInt(ShaderIDProps.NumSubChunkRegions, SCAddressRegions.Length);
+            gpuContext.SetBuffer(subChunkInfo, kernel, ShaderIDProps.AddressDict, addresses);
+            gpuContext.SetInt(subChunkInfo, ShaderIDProps.NumSubChunkRegions, SCAddressRegions.Length);
             subChunkInfo.GetKernelThreadGroupSizes(kernel, out uint threadGroupSize, out _, out _);
             int numThreadsAxis = (int)math.ceil((double)SCAddressRegions.Length / threadGroupSize);
-            subChunkInfo.Dispatch(kernel, numThreadsAxis, 1, 1);
+            gpuContext.Dispatch(subChunkInfo, kernel, numThreadsAxis, 1, 1);
 
             kernel = geoTranscriber.FindKernel("BatchTranscribe");
-            ComputeBuffer args = UtilityBuffers.CountToArgs(geoTranscriber, UtilityBuffers.GenerationBuffer, offsets.baseGeoCounter, kernel);
-            geoTranscriber.SetBuffer(kernel, ShaderIDProps.MemoryBuffer, memory);
-            geoTranscriber.SetInt(ShaderIDProps.CountOGeo, shadGeoCount);
-            geoTranscriber.DispatchIndirect(kernel, args);
+            ComputeBuffer args = gpuContext.Args.CountToArgs(geoTranscriber, gpuContext.Work.Scratch, offsets.baseGeoCounter, kernel);
+            gpuContext.SetBuffer(geoTranscriber, kernel, ShaderIDProps.MemoryBuffer, memory);
+            gpuContext.SetInt(geoTranscriber, ShaderIDProps.CountOGeo, shadGeoCount);
+            gpuContext.DispatchIndirect(geoTranscriber, kernel, args);
         }
 
         void SetSubChunkDetailLevel(ShaderSubchunk[] subchunks)
         {
+            GraphicsResourceContext gpuContext = GraphicsRendering;
             int3[] detailLevels = subchunks.Select(subchunk => new int3(
                 subchunk.GetInfoRegion(), subchunk.detailLevel)).ToArray();
-            UtilityBuffers.TransferBuffer.SetData(detailLevels);
+            gpuContext.SetBufferData(gpuContext.Work.Transfer, detailLevels);
             int kernel = subChunkInfo.FindKernel("SetSubChunkDetail");
-            subChunkInfo.SetInt(ShaderIDProps.NumSubChunkRegions, subchunks.Length);
+            gpuContext.SetInt(subChunkInfo, ShaderIDProps.NumSubChunkRegions, subchunks.Length);
             subChunkInfo.GetKernelThreadGroupSizes(kernel, out uint threadGroupSize, out _, out _);
             int numThreadsAxis = (int)math.ceil((double)subchunks.Length / threadGroupSize);
-            subChunkInfo.Dispatch(kernel, numThreadsAxis, 1, 1);
+            gpuContext.Dispatch(subChunkInfo, kernel, numThreadsAxis, 1, 1);
         }
 
         void SetGlobalDetailLevel(int detailLevel)
         {
+            GraphicsResourceContext gpuContext = GraphicsRendering;
             int kernel = subChunkInfo.FindKernel("SetGlobalDetail");
-            subChunkInfo.SetInt(ShaderIDProps.DetailLevel, detailLevel);
+            gpuContext.SetInt(subChunkInfo, ShaderIDProps.DetailLevel, detailLevel);
             subChunkInfo.GetKernelThreadGroupSizes(kernel, out uint threadGroupSize, out _, out _);
             int numThreadsAxis = (int)math.ceil((double)NumSubChunks / threadGroupSize);
-            subChunkInfo.Dispatch(kernel, numThreadsAxis, 1, 1);
+            gpuContext.Dispatch(subChunkInfo, kernel, numThreadsAxis, 1, 1);
         }
 
         void SetSubChunkDrawArgs(int address, int subChunkInd)
         {
+            GraphicsResourceContext gpuContext = GraphicsRendering;
             int kernel = shaderDrawArgs.FindKernel("FromSubChunks");
-            shaderDrawArgs.SetInt(ShaderIDProps.ArgOffset, address);
-            shaderDrawArgs.SetInt(ShaderIDProps.SubChunkInd, subChunkInd);
-            shaderDrawArgs.Dispatch(kernel, 1, 1, 1);
+            gpuContext.SetInt(shaderDrawArgs, ShaderIDProps.ArgOffset, address);
+            gpuContext.SetInt(shaderDrawArgs, ShaderIDProps.SubChunkInd, subChunkInd);
+            gpuContext.Dispatch(shaderDrawArgs, kernel, 1, 1, 1);
         }
 
         void GetDrawArgs(int address, int geoSizeCounter)
         {
+            GraphicsResourceContext gpuContext = GraphicsRendering;
             int kernel = shaderDrawArgs.FindKernel("FromPrefix");
-            shaderDrawArgs.SetBuffer(kernel, "prefixSizes", UtilityBuffers.GenerationBuffer);
-            shaderDrawArgs.SetInt(ShaderIDProps.CountOGeo, geoSizeCounter);
-            shaderDrawArgs.SetInt(ShaderIDProps.ArgOffset, address);
-            shaderDrawArgs.Dispatch(kernel, 1, 1, 1);
+            gpuContext.SetBuffer(shaderDrawArgs, kernel, "prefixSizes", gpuContext.Work.Scratch);
+            gpuContext.SetInt(shaderDrawArgs, ShaderIDProps.CountOGeo, geoSizeCounter);
+            gpuContext.SetInt(shaderDrawArgs, ShaderIDProps.ArgOffset, address);
+            gpuContext.Dispatch(shaderDrawArgs, kernel, 1, 1, 1);
         }
 
         void SortBaseGeometry(MemoryBufferHandler memory)
         {
+            GraphicsResourceContext gpuContext = GraphicsRendering;
             int stride = NumSubChunks + 1;
             baseHandle.SortedSubCInd = (int)SortedSubChunks.Allocate();
             int start = baseHandle.SortedSubCInd * stride;
@@ -488,43 +510,43 @@ namespace Arterra.Engine.Rendering
             int vertAddress = (int)baseHandle.vertex.addressIndex;
 
             LoadBaseGeoInfo(memory, baseHandle.triangles);
-            UtilityBuffers.ClearRange(SortedSubChunks.Get(), stride, start);
+            gpuContext.Work.ClearRange(SortedSubChunks.Get(), stride, start);
 
             int kernel = geoSizeCounter.FindKernel("CountSubChunkSizes");
-            ComputeBuffer args = UtilityBuffers.CountToArgs(geoSizeCounter, UtilityBuffers.GenerationBuffer, offsets.baseGeoCounter, kernel);
-            geoSizeCounter.SetBuffer(kernel, ShaderIDProps.Vertices, vertStorage);
-            geoSizeCounter.SetBuffer(kernel, ShaderIDProps.Triangles, triStorage);
-            geoSizeCounter.SetBuffer(kernel, ShaderIDProps.AddressDict, memAddresses);
-            geoSizeCounter.SetInt(ShaderIDProps.StartSChunkP, start);
-            geoSizeCounter.SetInt(ShaderIDProps.VertAddress, vertAddress);
-            geoSizeCounter.SetInt(ShaderIDProps.TriAddress, triAddress);
-            geoSizeCounter.DispatchIndirect(kernel, args);
+            ComputeBuffer args = gpuContext.Args.CountToArgs(geoSizeCounter, gpuContext.Work.Scratch, offsets.baseGeoCounter, kernel);
+            gpuContext.SetBuffer(geoSizeCounter, kernel, ShaderIDProps.Vertices, vertStorage);
+            gpuContext.SetBuffer(geoSizeCounter, kernel, ShaderIDProps.Triangles, triStorage);
+            gpuContext.SetBuffer(geoSizeCounter, kernel, ShaderIDProps.AddressDict, memAddresses);
+            gpuContext.SetInt(geoSizeCounter, ShaderIDProps.StartSChunkP, start);
+            gpuContext.SetInt(geoSizeCounter, ShaderIDProps.VertAddress, vertAddress);
+            gpuContext.SetInt(geoSizeCounter, ShaderIDProps.TriAddress, triAddress);
+            gpuContext.DispatchIndirect(geoSizeCounter, kernel, args);
 
             kernel = subChunkInfo.FindKernel("ConstructPrefixSizes");
-            subChunkInfo.SetInt(ShaderIDProps.StartSChunkP, start);
-            subChunkInfo.Dispatch(kernel, 1, 1, 1);
+            gpuContext.SetInt(subChunkInfo, ShaderIDProps.StartSChunkP, start);
+            gpuContext.Dispatch(subChunkInfo, kernel, 1, 1, 1);
 
             kernel = filterGeometry.FindKernel("FilterSubChunks");
-            filterGeometry.SetBuffer(kernel, ShaderIDProps.Vertices, vertStorage);
-            filterGeometry.SetBuffer(kernel, ShaderIDProps.Triangles, triStorage);
-            filterGeometry.SetBuffer(kernel, ShaderIDProps.AddressDict, memAddresses);
-            filterGeometry.SetInt(ShaderIDProps.VertAddress, vertAddress);
-            filterGeometry.SetInt(ShaderIDProps.TriAddress, triAddress);
-            filterGeometry.SetInt(ShaderIDProps.StartSChunkP, start);
-            args = UtilityBuffers.CountToArgs(filterGeometry, UtilityBuffers.GenerationBuffer, offsets.baseGeoCounter, kernel);
-            filterGeometry.DispatchIndirect(kernel, args);
+            gpuContext.SetBuffer(filterGeometry, kernel, ShaderIDProps.Vertices, vertStorage);
+            gpuContext.SetBuffer(filterGeometry, kernel, ShaderIDProps.Triangles, triStorage);
+            gpuContext.SetBuffer(filterGeometry, kernel, ShaderIDProps.AddressDict, memAddresses);
+            gpuContext.SetInt(filterGeometry, ShaderIDProps.VertAddress, vertAddress);
+            gpuContext.SetInt(filterGeometry, ShaderIDProps.TriAddress, triAddress);
+            gpuContext.SetInt(filterGeometry, ShaderIDProps.StartSChunkP, start);
+            args = gpuContext.Args.CountToArgs(filterGeometry, gpuContext.Work.Scratch, offsets.baseGeoCounter, kernel);
+            gpuContext.DispatchIndirect(filterGeometry, kernel, args);
 
             kernel = geoTranscriber.FindKernel("TranscribeSortedBase");
-            geoTranscriber.SetBuffer(kernel, ShaderIDProps.MemoryBufferBase, triStorage);
-            geoTranscriber.SetBuffer(kernel, ShaderIDProps.AddressDict, memAddresses);
-            geoTranscriber.SetInt(ShaderIDProps.AddressIndex, triAddress);
-            args = UtilityBuffers.CountToArgs(geoTranscriber, UtilityBuffers.GenerationBuffer, offsets.baseGeoCounter, kernel);
-            geoTranscriber.DispatchIndirect(kernel, args);
+            gpuContext.SetBuffer(geoTranscriber, kernel, ShaderIDProps.MemoryBufferBase, triStorage);
+            gpuContext.SetBuffer(geoTranscriber, kernel, ShaderIDProps.AddressDict, memAddresses);
+            gpuContext.SetInt(geoTranscriber, ShaderIDProps.AddressIndex, triAddress);
+            args = gpuContext.Args.CountToArgs(geoTranscriber, gpuContext.Work.Scratch, offsets.baseGeoCounter, kernel);
+            gpuContext.DispatchIndirect(geoTranscriber, kernel, args);
         }
 
         public class FixedOctree : Octree<ShaderSubchunk>
         {
-            /// <summary> The last tracked position of the viewer in 
+            /// <summary> The last tracked position of the viewer in
             /// chunk space. This value is only updated when the viewer's
             /// position exceeds the viewDistUpdate threshold. </summary>
             public int3 ViewerPosGS;
@@ -617,10 +639,10 @@ namespace Arterra.Engine.Rendering
             public int fBaseGeoStart;
             public int shadGeoStart;
             private int offsetStart; private int offsetEnd;
-            /// <summary> The start of the buffer region that is used by the GeoShader generator. 
+            /// <summary> The start of the buffer region that is used by the GeoShader generator.
             /// See <see cref="BufferOffsets.bufferStart"/> for more info. </summary>
             public int bufferStart { get { return offsetStart; } }
-            /// <summary> The end of the buffer region that is used by the GeoShader generator. 
+            /// <summary> The end of the buffer region that is used by the GeoShader generator.
             /// See <see cref="BufferOffsets.bufferEnd"/> for more info. </summary>
             public int bufferEnd { get { return offsetEnd; } }
             public GeoShaderOffsets(int maxChunkSize, int maxShaderCount, int maxSubChunkDepth, int bufferStart)

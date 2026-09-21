@@ -20,6 +20,7 @@ using Arterra.Engine.Terrain.Readback;
 using Arterra.Utils;
 using Arterra.Data.Structure;
 using Arterra.Core;
+using static Arterra.Core.Storage.SharedResourceManager;
 
 public static class EntityManager
 {
@@ -41,7 +42,7 @@ public static class EntityManager
     public static bool TryGetEntity(Guid identifier, out Entity entity){
         if (EntityIndex.TryGetValue(identifier, out entity)) {
             return true;
-        } 
+        }
         return false;
     }
 
@@ -49,7 +50,7 @@ public static class EntityManager
         while(HandlerEvents.TryDequeue(out Action action)){
             action.Invoke();
         } HandlerEvents.Clear();
-        
+
         if (EntityIndex.Count == 0) return;
         CurUpdateEntities = EntityReg.ToArray();
         foreach (Entity entity in CurUpdateEntities) {
@@ -72,7 +73,7 @@ public static class EntityManager
             Authoring authoring = Config.CURRENT.Generation.Entities.Reg[(int)entityIndex];
             sEntity = authoring.Entity;
         }
-        
+
         AddHandlerEvent(() => {
             InitializeE(sEntity, GCoord, entityIndex);
             cb?.Invoke();
@@ -124,14 +125,14 @@ public static class EntityManager
     public static void ReleaseE(Guid entityId){
         if(!EntityIndex.TryGetValue(entityId, out Entity entity))
             return;
-        
+
         entity.active = false;
         EntityReg.Remove(entity);
         EntityIndex.Remove(entityId);
         ESTree.Delete(entityId);
         entity.Disable();
     }
-    
+
     public static void InitializeE(Entity nEntity, float3 GCoord, uint entityIndex) {
         Authoring authoring = Config.CURRENT.Generation.Entities.Reg[(int)entityIndex];
         nEntity.info.rtEntityId = Guid.NewGuid();
@@ -166,6 +167,7 @@ public static class EntityManager
 
 
     public static void Initialize() {
+        GraphicsResourceContext gpuContext = GraphicsGeneration;
         ESTree = new STree(MAX_ENTITY_COUNT * 2 + 1);
         EntityReg = new HashSet<Entity>();
         EntityIndex = new Dictionary<Guid, Entity>();
@@ -182,22 +184,22 @@ public static class EntityManager
         entityTranscriber = Resources.Load<ComputeShader>("Compute/TerrainGeneration/Entities/EntityTranscriber");
 
         int kernel = entityGenShader.FindKernel("Identify");
-        entityGenShader.SetBuffer(kernel, "chunkEntities", UtilityBuffers.GenerationBuffer);
-        entityGenShader.SetBuffer(kernel, "counter", UtilityBuffers.GenerationBuffer);
-        entityGenShader.SetBuffer(kernel, "BiomeMap", UtilityBuffers.GenerationBuffer);
-        entityGenShader.SetInt("GPConfig", (int)GenPoint.GenType.Entity);
+        gpuContext.SetBuffer(entityGenShader, kernel, "chunkEntities", gpuContext.Work.Scratch);
+        gpuContext.SetBuffer(entityGenShader, kernel, "counter", gpuContext.Work.Scratch);
+        gpuContext.SetBuffer(entityGenShader, kernel, "BiomeMap", gpuContext.Work.Scratch);
+        gpuContext.SetInt(entityGenShader, "GPConfig", (int)GenPoint.GenType.Entity);
         kernel = entityGenShader.FindKernel("Prune");
-        entityGenShader.SetBuffer(kernel, "chunkEntities", UtilityBuffers.GenerationBuffer);
-        entityGenShader.SetBuffer(kernel, "counter", UtilityBuffers.GenerationBuffer);
-        entityGenShader.SetInt("bCOUNTER_entities", bufferOffsets.entityCounter);
-        entityGenShader.SetInt("bCOUNTER_prune", bufferOffsets.prunedCounter);
-        entityGenShader.SetInt("bSTART_entities", bufferOffsets.entityStart);
-        entityGenShader.SetInt("bSTART_prune", bufferOffsets.prunedStart);
+        gpuContext.SetBuffer(entityGenShader, kernel, "chunkEntities", gpuContext.Work.Scratch);
+        gpuContext.SetBuffer(entityGenShader, kernel, "counter", gpuContext.Work.Scratch);
+        gpuContext.SetInt(entityGenShader, "bCOUNTER_entities", bufferOffsets.entityCounter);
+        gpuContext.SetInt(entityGenShader, "bCOUNTER_prune", bufferOffsets.prunedCounter);
+        gpuContext.SetInt(entityGenShader, "bSTART_entities", bufferOffsets.entityStart);
+        gpuContext.SetInt(entityGenShader, "bSTART_prune", bufferOffsets.prunedStart);
 
-        entityTranscriber.SetBuffer(0, "chunkEntities", UtilityBuffers.GenerationBuffer);
-        entityTranscriber.SetBuffer(0, "counter", UtilityBuffers.GenerationBuffer);
-        entityTranscriber.SetInt("bCOUNTER_entities", bufferOffsets.prunedCounter);
-        entityTranscriber.SetInt("bSTART_entities", bufferOffsets.prunedStart);
+        gpuContext.SetBuffer(entityTranscriber, 0, "chunkEntities", gpuContext.Work.Scratch);
+        gpuContext.SetBuffer(entityTranscriber, 0, "counter", gpuContext.Work.Scratch);
+        gpuContext.SetInt(entityTranscriber, "bCOUNTER_entities", bufferOffsets.prunedCounter);
+        gpuContext.SetInt(entityTranscriber, "bSTART_entities", bufferOffsets.prunedStart);
 
         EnsurePlayerEntity();
 
@@ -237,13 +239,13 @@ public static class EntityManager
             StructureData.CheckInfo check = default;
             if (math.any(coord == 0)) {
                 check.MinLiquid = 0; check.MaxLiquid = (uint)MapData.MaxDensity;
-                check.MinSolid = (uint)(MapData.MaxDensity * rSettings.IsoLevel); 
+                check.MinSolid = (uint)(MapData.MaxDensity * rSettings.IsoLevel);
                 check.MaxSolid = (uint)MapData.MaxDensity;
                 profile.flags = ProfileE.OR;
             } else {
                 check.MinLiquid = 0; check.MinSolid = 0;
                 check.MaxLiquid = (uint)MapData.MaxDensity;
-                check.MaxSolid = (uint)(MapData.MaxDensity * rSettings.IsoLevel); 
+                check.MaxSolid = (uint)(MapData.MaxDensity * rSettings.IsoLevel);
                 profile.flags = ProfileE.AND;
             } profile.bounds = check;
             int index = CustomUtility.irregularIndexFromCoord(coord, new int2(y, z));
@@ -274,33 +276,34 @@ public static class EntityManager
     }
 
     public static void PlanEntities(AsyncGenInfoReadback readback, int biomeStart, int3 CCoord, int chunkSize){
+        GraphicsResourceContext gpuContext = GraphicsGeneration;
         int numPointsAxes = chunkSize;
-        UtilityBuffers.ClearRange(UtilityBuffers.GenerationBuffer, 3, bufferOffsets.bufferStart);
+        gpuContext.Work.ClearRange(gpuContext.Work.Scratch, 3, bufferOffsets.bufferStart);
 
         int kernel = entityGenShader.FindKernel("Identify");
-        entityGenShader.SetInt(ShaderIDProps.StartBiome, biomeStart);
-        entityGenShader.SetInt(ShaderIDProps.NumPointsPerAxis, numPointsAxes);
-        entityGenShader.SetInts(ShaderIDProps.CCoord, new int[] { CCoord.x, CCoord.y, CCoord.z });
+        gpuContext.SetInt(entityGenShader, ShaderIDProps.StartBiome, biomeStart);
+        gpuContext.SetInt(entityGenShader, ShaderIDProps.NumPointsPerAxis, numPointsAxes);
+        gpuContext.SetInts(entityGenShader, ShaderIDProps.CCoord, new int[] { CCoord.x, CCoord.y, CCoord.z });
 
         entityGenShader.GetKernelThreadGroupSizes(kernel, out uint threadGroupSize, out _, out _);
         int numThreadsPerAxis = Mathf.CeilToInt(numPointsAxes / (float)threadGroupSize);
-        entityGenShader.Dispatch(kernel, numThreadsPerAxis, numThreadsPerAxis, numThreadsPerAxis);
+        gpuContext.Dispatch(entityGenShader, kernel, numThreadsPerAxis, numThreadsPerAxis, numThreadsPerAxis);
 
         kernel = entityGenShader.FindKernel("Prune");
-        entityGenShader.SetBuffer(kernel, ShaderIDProps.MemoryBuffer, GPUMapManager.Storage);
-        entityGenShader.SetBuffer(kernel, ShaderIDProps.AddressDict, GPUMapManager.Address);
+        gpuContext.SetBuffer(entityGenShader, kernel, ShaderIDProps.MemoryBuffer, GPUMapManager.Storage);
+        gpuContext.SetBuffer(entityGenShader, kernel, ShaderIDProps.AddressDict, GPUMapManager.Address);
 
-        ComputeBuffer args = UtilityBuffers.CountToArgs(entityGenShader, UtilityBuffers.GenerationBuffer, bufferOffsets.entityCounter, kernel: kernel);
-        entityGenShader.DispatchIndirect(kernel, args);
+        ComputeBuffer args = gpuContext.Args.CountToArgs(entityGenShader, gpuContext.Work.Scratch, bufferOffsets.entityCounter, kernel: kernel);
+        gpuContext.DispatchIndirect(entityGenShader, kernel, args);
 
         kernel = entityTranscriber.FindKernel("CSMain");
-        int address = readback.AddGenPoints(UtilityBuffers.GenerationBuffer, bufferOffsets.prunedCounter, bufferOffsets.tempCounter);
-        entityTranscriber.SetBuffer(kernel, ShaderIDProps.MemoryBuffer, GenerationPreset.memoryHandle.GetBlockBuffer(address));
-        entityTranscriber.SetBuffer(kernel, ShaderIDProps.AddressDict, GenerationPreset.memoryHandle.Address);
-        entityTranscriber.SetInt(ShaderIDProps.AddressIndex, (int)address);
+        int address = readback.AddGenPoints(gpuContext.Work.Scratch, bufferOffsets.prunedCounter, bufferOffsets.tempCounter);
+        gpuContext.SetBuffer(entityTranscriber, kernel, ShaderIDProps.MemoryBuffer, gpuContext.Memory.GetBlockBuffer(address));
+        gpuContext.SetBuffer(entityTranscriber, kernel, ShaderIDProps.AddressDict, gpuContext.Memory.Address);
+        gpuContext.SetInt(entityTranscriber, ShaderIDProps.AddressIndex, (int)address);
 
-        args = UtilityBuffers.CountToArgs(entityTranscriber, UtilityBuffers.GenerationBuffer, bufferOffsets.prunedCounter, kernel: kernel);
-        entityTranscriber.DispatchIndirect(kernel, args);
+        args = gpuContext.Args.CountToArgs(entityTranscriber, gpuContext.Work.Scratch, bufferOffsets.prunedCounter, kernel: kernel);
+        gpuContext.DispatchIndirect(entityTranscriber, kernel, args);
     }
 
     public struct EntityGenOffsets: BufferOffsets{
@@ -330,7 +333,7 @@ public static class EntityManager
         private Dictionary<Guid, uint> SpatialIndex;
         public TreeNode[] tree;
         //mark as volatile so we get the latest value
-        public uint length; 
+        public uint length;
         public readonly uint Length => length - 1;
         public readonly uint Root{
             get{return tree[0].Right;}
@@ -339,7 +342,7 @@ public static class EntityManager
 
         public readonly ref TreeNode this[Guid entityId]{
             get{
-                if(SpatialIndex.ContainsKey(entityId)) 
+                if(SpatialIndex.ContainsKey(entityId))
                     return ref tree[SpatialIndex[entityId]];
                 throw new KeyNotFoundException($"Entity with ID {entityId} not found.");
             }
@@ -366,17 +369,17 @@ public static class EntityManager
             Bounds nBounds = new Bounds(entity.position, entity.transform.size);
             AssertEntityLocation(entity.info.entityId, nBounds);
         }
-        
+
         //We allow this option to support objects with multiple bounds
         //by allowing bounds to be registered under an alias id of the entity
-        //Every unique bound must have a unique ID, but they can be associated to the same 
+        //Every unique bound must have a unique ID, but they can be associated to the same
         //Entity under EntityIndex
         public void AssertEntityLocation(Guid entityId, Bounds bounds){
             if(!this.Contains(entityId)) return;
             if(Contains(this[this[entityId].Parent].bounds, bounds)){
                 this[entityId].bounds = bounds;
                 return;
-            } 
+            }
             this.Delete(entityId);
             this.Insert(bounds, entityId);
         }
@@ -412,12 +415,12 @@ public static class EntityManager
                 length++;
                 return;
             }
-            
+
             node.bounds.Encapsulate(bounds);
-            ref Bounds B1 = ref tree[(int)node.Left].bounds; 
-            ref Bounds B2 = ref tree[(int)node.Right].bounds; 
+            ref Bounds B1 = ref tree[(int)node.Left].bounds;
+            ref Bounds B2 = ref tree[(int)node.Right].bounds;
             if(Contains(B1, bounds)) RecursiveInsert(bounds, node.Left);
-            else if(Contains(B2, bounds)) RecursiveInsert(bounds, node.Right); 
+            else if(Contains(B2, bounds)) RecursiveInsert(bounds, node.Right);
             else{
                 Bounds B1Prime, B2Prime;
                 B1Prime = GetExpand(B1, bounds);
@@ -426,7 +429,7 @@ public static class EntityManager
                 if(Volume(B1Prime) >= Volume(B2Prime)) RecursiveInsert(bounds, node.Right);
                 else RecursiveInsert(bounds, node.Left);
             }
-        } 
+        }
 
         public void Delete(Guid entityId){
             if(tree == null) return;
@@ -434,7 +437,7 @@ public static class EntityManager
             if(!SpatialIndex.ContainsKey(entityId)) return;
             int index = (int)SpatialIndex[entityId];
             SpatialIndex.Remove(entityId);
-            
+
             if(index > length - 1 || index == 0) return;
             ref TreeNode node = ref tree[index];
             ref TreeNode parent = ref tree[(int)node.Parent];
@@ -444,7 +447,7 @@ public static class EntityManager
                 Root = 0; length = 1;
                 return;
             }
-            
+
             uint parentIndex = node.Parent;
             tree[(int)parent.Parent].ReplaceChild(node.Parent, Sibling);
             tree[(int)parent.Parent].ResizeBranch(tree);
@@ -455,7 +458,7 @@ public static class EntityManager
             }
             if(parentIndex < length - 2){
                 if(index != length - 2) MoveEntry((int)length - 2, parentIndex);
-                else MoveEntry((int)length - 1, parentIndex); 
+                else MoveEntry((int)length - 1, parentIndex);
             }
             length -= 2;
         }
@@ -484,7 +487,7 @@ public static class EntityManager
                 action.Invoke(node.GetLeaf);
                 return;
             }
-            
+
             if(bounds.Intersects(tree[(int)node.Left].bounds)) Query(bounds, action, (int)node.Left);
             if(bounds.Intersects(tree[(int)node.Right].bounds)) Query(bounds, action, (int)node.Right);
         }
@@ -494,13 +497,13 @@ public static class EntityManager
             if(current == 0) return; //Root is zero when it is empty
             TreeNode node = tree[current];
             if (node.IsLeaf) {
-                Entity entity = node.GetLeaf; 
+                Entity entity = node.GetLeaf;
                 //We use entity.position because some entities could have multiple bounds
                 if (ContainsExclusive(bounds, entity.position))
                     action.Invoke(entity);
                 return;
             }
-            
+
             if(bounds.Intersects(tree[(int)node.Left].bounds)) QueryExclusive(bounds, action, (int)node.Left);
             if (bounds.Intersects(tree[(int)node.Right].bounds)) QueryExclusive(bounds, action, (int)node.Right);
             bool ContainsExclusive(Bounds b, float3 p) {
@@ -519,9 +522,9 @@ public static class EntityManager
                 return;
             }
 
-            if(tree[(int)node.Left].bounds.IntersectRay(ray, out float dist) && dist <= maxDist) 
+            if(tree[(int)node.Left].bounds.IntersectRay(ray, out float dist) && dist <= maxDist)
                 QueryRay(ray, maxDist, action, (int)node.Left);
-            if(tree[(int)node.Right].bounds.IntersectRay(ray, out dist) && dist <= maxDist) 
+            if(tree[(int)node.Right].bounds.IntersectRay(ray, out dist) && dist <= maxDist)
                 QueryRay(ray, maxDist, action, (int)node.Right);
         }
 
@@ -542,7 +545,7 @@ public static class EntityManager
             QueryRay(viewRay, cDist, OnFoundEntity);
             closestHit = cEntity;
             dist = cDist;
-            
+
             return cEntity != null;
         }
 
@@ -659,7 +662,7 @@ public class EntityJob : Arterra.Core.ArterraRuntime.IUpdateSubscriber{
     private JobHandle handle;
     public static Context cxt;
     private float accumulatedTime;
-    
+
 
     public unsafe EntityJob(){
         dispatched = false;
@@ -683,7 +686,7 @@ public class EntityJob : Arterra.Core.ArterraRuntime.IUpdateSubscriber{
 
     public bool TryComplete(){
         if(!dispatched) return true;
-        if(!handle.IsCompleted) return false; 
+        if(!handle.IsCompleted) return false;
         Complete();
         return true;
     }

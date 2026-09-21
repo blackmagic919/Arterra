@@ -5,6 +5,8 @@ using Arterra.Data.Structure;
 using Arterra.Utils;
 using Unity.Mathematics;
 using Arterra.Data.Structure.Jigsaw;
+using Arterra.Core.Storage;
+using static Arterra.Core.Storage.SharedResourceManager;
 
 /// <summary>
 /// Stores the static jigsaw-system topology used by the structure-system path shaders.
@@ -393,11 +395,12 @@ public struct StructSystem {
             return !string.IsNullOrEmpty(targetName) && socket.Name == targetName;
         }
     }
-    
+
     /// <summary>
     /// Initializes the static jigsaw-system data and uploads the transition atlas used by pathfinding.
     /// </summary>
     public void Initialize() {
+        GraphicsResourceContext gpuContext = GraphicsGeneration;
         List<JigsawSystem> SystemDictionary = Config.CURRENT.Generation.Structures.value.SystemDictionary.Reg;
         List<StructureData> StructureDictionary = Config.CURRENT.Generation.Structures.value.StructureDictionary.Reg;
 
@@ -458,13 +461,13 @@ public struct StructSystem {
         SocketPortAtlas = new ComputeBuffer(socketPortAtlas.Count, SocketPortTransitions.size, ComputeBufferType.Structured);
         TransitionDeltasAtlas = new ComputeBuffer(transitionDeltasAtlas.Count, TransDeltas.size, ComputeBufferType.Structured);
 
-        StructureSystems.SetData(systems);
-        SystemStructures.SetData(structures);
-        StructurePorts.SetData(structurePorts);
-        PortAllowedSockets.SetData(portAllowedSockets);
-        PortSocketOptions.SetData(portSocketOptions);
-        SocketPortAtlas.SetData(socketPortAtlas);
-        TransitionDeltasAtlas.SetData(transitionDeltasAtlas);
+        gpuContext.SetBufferData(StructureSystems, systems);
+        gpuContext.SetBufferData(SystemStructures, structures);
+        gpuContext.SetBufferData(StructurePorts, structurePorts);
+        gpuContext.SetBufferData(PortAllowedSockets, portAllowedSockets);
+        gpuContext.SetBufferData(PortSocketOptions, portSocketOptions);
+        gpuContext.SetBufferData(SocketPortAtlas, socketPortAtlas);
+        gpuContext.SetBufferData(TransitionDeltasAtlas, transitionDeltasAtlas);
 
         Shader.SetGlobalBuffer("_SystemInfo", StructureSystems);
         Shader.SetGlobalBuffer("_SystemStructures", SystemStructures);
@@ -603,8 +606,8 @@ public struct StructSystem {
         };
     }
 
-    /* 
-    
+    /*
+
     Floodfill Pathfind with Atlas:
         - Given a structure, look at its Ports in _StructurePorts
         - For each port select a random SocketPortTransitions option from its lookup range
@@ -650,7 +653,7 @@ public struct StructSystem {
         /// <summary>The offset from the current input socket to the structure origin.</summary>
         public int3 originDelta;
         /// <summary>The packed system-structure index and rotation of the next structure.</summary>
-        public int structMeta; 
+        public int structMeta;
         /// <summary>The index of the emitted base-space output port.</summary>
         public int nextPort;
         /// <summary>The object-space face on which this structure receives the current socket.</summary>

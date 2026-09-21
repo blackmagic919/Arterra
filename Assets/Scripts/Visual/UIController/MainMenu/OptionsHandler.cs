@@ -12,10 +12,11 @@ using System.Collections;
 using static Arterra.Core.Storage.World;
 using Arterra.Utils;
 using Arterra.Editor;
+using static Arterra.Core.Storage.SharedResourceManager;
 
 namespace Arterra.Data.Intrinsic {
-    /// <summary> Settings controlling how the world appears in 
-    /// the menu when selecting and viewing the world 
+    /// <summary> Settings controlling how the world appears in
+    /// the menu when selecting and viewing the world
     /// before entering </summary>
     [Serializable]
     public struct WorldApperance {
@@ -26,7 +27,7 @@ namespace Arterra.Data.Intrinsic {
         /// <summary> The speed at which the camera rotates around this display chunk. </summary>
         public float3 RotateSpeed;
         /// <summary>
-        /// The amount of 
+        /// The amount of
         /// </summary>
         public float GridScale;
         public float GridThickness;
@@ -184,8 +185,9 @@ namespace Arterra.GamePlay.UI {
                 SystemProtocol.MinimalStartup();
                 active = true;
 
-                Arterra.Configuration.Quality.Terrain rSettings = Config.CURRENT.Quality.Terrain;
-                Arterra.Data.Intrinsic.WorldApperance wSettings = Config.CURRENT.System.WorldApperance;
+                GraphicsResourceContext gpuContext = GraphicsGeneration;
+                Configuration.Quality.Terrain rSettings = Config.CURRENT.Quality.Terrain;
+                Data.Intrinsic.WorldApperance wSettings = Config.CURRENT.System.WorldApperance;
                 uint chunkSize = (uint)rSettings.mapChunkSize + 2;
 
                 uint3 gridSize = (uint3)Mathf.CeilToInt(chunkSize * wSettings.GridScale);
@@ -193,7 +195,7 @@ namespace Arterra.GamePlay.UI {
                 grid.position -= (Vector3)(float3)chunkSize / 2.0f;
                 grid.localScale = chunkSize / (float3)(gridSize - 1);
 
-                ChunkGrid = new GridManager(gridSize, grid.transform, UtilityBuffers.GenerationBuffer, 0);
+                ChunkGrid = new GridManager(gridSize, grid.transform, gpuContext.Work.Scratch, 0);
                 ChunkGrid.GridMaterial.SetFloat("_WireframeWidth", ChunkGrid.GridMaterial.GetFloat("_WireframeWidth") * wSettings.GridThickness);
                 ChunkGrid.GridMaterial.SetFloat("_VertexSize", ChunkGrid.GridMaterial.GetFloat("_VertexSize") * wSettings.GridThickness);
                 ChunkGrid.GenerateModel();
@@ -205,11 +207,11 @@ namespace Arterra.GamePlay.UI {
                 model.position -= (Vector3)(float3)chunkSize / 2.0f;
                 ChunkModel = new ModelManager(
                     chunkSize, model,
-                    rSettings.IsoLevel, UtilityBuffers.TransferBuffer,
-                    UtilityBuffers.GenerationBuffer, ChunkGrid.offsets.bufferEnd
+                    rSettings.IsoLevel, gpuContext.Work.Transfer,
+                    gpuContext.Work.Scratch, ChunkGrid.offsets.bufferEnd
                 );
 
-                UtilityBuffers.TransferBuffer.SetData(chunk);
+                gpuContext.SetBufferData(gpuContext.Work.Transfer, chunk);
                 ChunkModel.GenerateModel();
             }
 

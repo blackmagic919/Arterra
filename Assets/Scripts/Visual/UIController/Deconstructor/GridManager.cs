@@ -2,6 +2,8 @@ using System;
 using Unity.Mathematics;
 using UnityEngine;
 using Arterra.Utils;
+using Arterra.Core.Storage;
+using static Arterra.Core.Storage.SharedResourceManager;
 
 namespace Arterra.Editor {
     public class GridManager {
@@ -62,10 +64,10 @@ namespace Arterra.Editor {
 
         public void SetSelectionData(ref SelectionArray SelectionArray) {
             if (this.SelectionBuffer == null || SelectionArray.SelectionData == null) return;
-            this.SelectionBuffer.SetData(SelectionArray.SelectionData);
+            GraphicsGeneration.SetBufferData(this.SelectionBuffer, SelectionArray.SelectionData);
         }
 
-        public void Render() { Graphics.RenderPrimitives(renderParams, MeshTopology.Triangles, (int)GridPlaneCount * 4, 1); }
+        public void Render() { UnityEngine.Graphics.RenderPrimitives(renderParams, MeshTopology.Triangles, (int)GridPlaneCount * 4, 1); }
 
         void SetupRenderParams(Camera camera, out RenderParams rp, Transform transform) {
             Bounds BoundsWS = CustomUtility.TransformBounds(transform, boundsOS);
@@ -90,17 +92,18 @@ namespace Arterra.Editor {
         }
 
         void ConstructGridGeometry() {
-            UtilityBuffers.ClearRange(GeoBuffer, 1, offsets.bufferStart);
+            GraphicsResourceContext gpuContext = GraphicsGeneration;
+            gpuContext.Work.ClearRange(GeoBuffer, 1, offsets.bufferStart);
             int kernel = GridConstructor.FindKernel("CSMain");
 
-            GridConstructor.SetBuffer(kernel, "counter", GeoBuffer);
-            GridConstructor.SetBuffer(kernel, "VertexBuffer", GeoBuffer);
-            GridConstructor.SetBuffer(kernel, "IndexBuffer", GeoBuffer);
-            GridConstructor.SetInt("bCOUNTER_index", offsets.indexCounter);
-            GridConstructor.SetInt("bSTART_index", offsets.indexStart);
-            GridConstructor.SetInt("bSTART_vertex", offsets.vertexStart);
+            gpuContext.SetBuffer(GridConstructor, kernel, "counter", GeoBuffer);
+            gpuContext.SetBuffer(GridConstructor, kernel, "VertexBuffer", GeoBuffer);
+            gpuContext.SetBuffer(GridConstructor, kernel, "IndexBuffer", GeoBuffer);
+            gpuContext.SetInt(GridConstructor, "bCOUNTER_index", offsets.indexCounter);
+            gpuContext.SetInt(GridConstructor, "bSTART_index", offsets.indexStart);
+            gpuContext.SetInt(GridConstructor, "bSTART_vertex", offsets.vertexStart);
 
-            GridConstructor.SetInts("GridSize", new int[] { (int)GridSize.x, (int)GridSize.y, (int)GridSize.z });
+            gpuContext.SetInts(GridConstructor, "GridSize", new int[] { (int)GridSize.x, (int)GridSize.y, (int)GridSize.z });
 
             uint3 threadsPerAxis;
             GridConstructor.GetKernelThreadGroupSizes(kernel, out threadsPerAxis.x, out threadsPerAxis.y, out threadsPerAxis.z);
@@ -110,7 +113,7 @@ namespace Arterra.Editor {
                 (uint)Mathf.CeilToInt((float)GridSize.z / threadsPerAxis.z)
             );
 
-            GridConstructor.Dispatch(kernel, (int)threadsPerAxis.x, (int)threadsPerAxis.y, (int)threadsPerAxis.z);
+            gpuContext.Dispatch(GridConstructor, kernel, (int)threadsPerAxis.x, (int)threadsPerAxis.y, (int)threadsPerAxis.z);
         }
 
         public struct SelectionArray {

@@ -4,6 +4,8 @@ using UnityEngine;
 using Arterra.Configuration;
 using Arterra.Configuration.Quality;
 using Arterra.Utils;
+using Arterra.Core.Storage;
+using static Arterra.Core.Storage.SharedResourceManager;
 
 namespace Arterra.Engine.Rendering
 {
@@ -29,6 +31,7 @@ namespace Arterra.Engine.Rendering
 
         public override void PresetData(int baseGeoStart, int baseGeoCount, int geoCounter, int geoStart, int geoInd)
         {
+            GraphicsResourceContext gpuContext = GraphicsRendering;
             Release();
             if (settings.Reg.Count == 0)
             {
@@ -58,33 +61,33 @@ namespace Arterra.Engine.Rendering
             meshTable = new ComputeBuffer(Mathf.Max(options.Count, 1), MiniMeshCompact.DataSize, ComputeBufferType.Structured);
             meshVertexTable = new ComputeBuffer(Mathf.Max(meshVertices.Count, 1), MeshVertex.DataSize, ComputeBufferType.Structured);
 
-            levelTable.SetData(levels);
+            gpuContext.SetBufferData(levelTable, levels);
             if (options.Count > 0)
             {
-                meshTable.SetData(options);
+                gpuContext.SetBufferData(meshTable, options);
             }
             if (meshVertices.Count > 0)
             {
-                meshVertexTable.SetData(meshVertices);
+                gpuContext.SetBufferData(meshVertexTable, meshVertices);
             }
 
             int mapChunkSize = Config.CURRENT.Quality.Terrain.value.mapChunkSize;
-            miniMeshCompute.SetInt("numPointsPerAxis", mapChunkSize);
-            miniMeshCompute.SetInt("bSTART_base", baseGeoStart);
-            miniMeshCompute.SetInt("bCOUNT_base", baseGeoCount);
-            miniMeshCompute.SetInt("bSTART_oGeo", geoStart);
-            miniMeshCompute.SetInt("bCOUNT_oGeo", geoCounter);
-            miniMeshCompute.SetInt("geoInd", geoInd);
-            miniMeshCompute.SetInt("levelsPerVariant", levelsPerVariant);
-            miniMeshCompute.SetInt("variantCount", variantCount);
+            gpuContext.SetInt(miniMeshCompute, "numPointsPerAxis", mapChunkSize);
+            gpuContext.SetInt(miniMeshCompute, "bSTART_base", baseGeoStart);
+            gpuContext.SetInt(miniMeshCompute, "bCOUNT_base", baseGeoCount);
+            gpuContext.SetInt(miniMeshCompute, "bSTART_oGeo", geoStart);
+            gpuContext.SetInt(miniMeshCompute, "bCOUNT_oGeo", geoCounter);
+            gpuContext.SetInt(miniMeshCompute, "geoInd", geoInd);
+            gpuContext.SetInt(miniMeshCompute, "levelsPerVariant", levelsPerVariant);
+            gpuContext.SetInt(miniMeshCompute, "variantCount", variantCount);
 
             SubChunkShaderGraph.PresetSubChunkInfo(miniMeshCompute);
 
-            miniMeshCompute.SetBuffer(kernel, "Counters", UtilityBuffers.GenerationBuffer);
-            miniMeshCompute.SetBuffer(kernel, "DrawTriangles", UtilityBuffers.GenerationBuffer);
-            miniMeshCompute.SetBuffer(kernel, "LevelSettings", levelTable);
-            miniMeshCompute.SetBuffer(kernel, "VariantSettings", meshTable);
-            miniMeshCompute.SetBuffer(kernel, "MeshVertices", meshVertexTable);
+            gpuContext.SetBuffer(miniMeshCompute, kernel, "Counters", gpuContext.Work.Scratch);
+            gpuContext.SetBuffer(miniMeshCompute, kernel, "DrawTriangles", gpuContext.Work.Scratch);
+            gpuContext.SetBuffer(miniMeshCompute, kernel, "LevelSettings", levelTable);
+            gpuContext.SetBuffer(miniMeshCompute, kernel, "VariantSettings", meshTable);
+            gpuContext.SetBuffer(miniMeshCompute, kernel, "MeshVertices", meshVertexTable);
 
             if (material.value != null)
             {
@@ -95,6 +98,7 @@ namespace Arterra.Engine.Rendering
 
         public override void ProcessGeoShader(MemoryBufferHandler memoryHandle, int vertAddress, int triAddress, int baseGeoCount, int parentDepth)
         {
+            GraphicsResourceContext gpuContext = GraphicsRendering;
             if (settings.Reg.Count == 0 || miniMeshCompute == null)
             {
                 return;
@@ -106,16 +110,16 @@ namespace Arterra.Engine.Rendering
             GraphicsBuffer addresses = memoryHandle.Address;
 
             float invScale = 1.0f / (1 << parentDepth);
-            ComputeBuffer args = UtilityBuffers.PrefixCountToArgs(miniMeshCompute, UtilityBuffers.GenerationBuffer, baseGeoCount);
+            ComputeBuffer args = gpuContext.Args.PrefixCountToArgs(miniMeshCompute, gpuContext.Work.Scratch, baseGeoCount);
 
-            miniMeshCompute.SetBuffer(kernel, ShaderIDProps.SourceVertices, vertSource);
-            miniMeshCompute.SetBuffer(kernel, ShaderIDProps.SourceTriangles, triSource);
-            miniMeshCompute.SetBuffer(kernel, ShaderIDProps.AddressDict, addresses);
-            miniMeshCompute.SetInt(ShaderIDProps.VertAddress, vertAddress);
-            miniMeshCompute.SetInt(ShaderIDProps.TriAddress, triAddress);
-            miniMeshCompute.SetFloat(ShaderIDProps.ScaleInverse, invScale);
+            gpuContext.SetBuffer(miniMeshCompute, kernel, ShaderIDProps.SourceVertices, vertSource);
+            gpuContext.SetBuffer(miniMeshCompute, kernel, ShaderIDProps.SourceTriangles, triSource);
+            gpuContext.SetBuffer(miniMeshCompute, kernel, ShaderIDProps.AddressDict, addresses);
+            gpuContext.SetInt(miniMeshCompute, ShaderIDProps.VertAddress, vertAddress);
+            gpuContext.SetInt(miniMeshCompute, ShaderIDProps.TriAddress, triAddress);
+            gpuContext.SetFloat(miniMeshCompute, ShaderIDProps.ScaleInverse, invScale);
 
-            miniMeshCompute.DispatchIndirect(kernel, args);
+            gpuContext.DispatchIndirect(miniMeshCompute, kernel, args);
         }
 
         public override void Release()

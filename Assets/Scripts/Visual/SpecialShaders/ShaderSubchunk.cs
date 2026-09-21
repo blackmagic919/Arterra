@@ -8,8 +8,10 @@ using Arterra.Configuration;
 using Arterra.Configuration.Quality;
 using Arterra.Engine.Terrain;
 using Arterra.Core;
+using Arterra.Core.Storage;
+using static Arterra.Core.Storage.SharedResourceManager;
 
-namespace Arterra.Engine.Rendering 
+namespace Arterra.Engine.Rendering
 {
     public class ShaderSubchunk : IOctreeChunk
     {
@@ -103,7 +105,7 @@ namespace Arterra.Engine.Rendering
             foreach (ShaderUpdateTask task in activeRenders)
             {
                 if (task == null || !task.Active) continue;
-                task.Release(ref GenerationPreset.memoryHandle);
+                task.Release(GraphicsRendering.Memory);
             }
         }
 
@@ -150,20 +152,21 @@ namespace Arterra.Engine.Rendering
 
         public void ApplyAllocToChunk(uint2[] shadInfo)
         {
+            GraphicsResourceContext gpuContext = GraphicsRendering;
             graph.tree.ReapChunk(index); ReleaseGeometry();
             RefreshState = TerrainChunk.Status.State.Finished;
             activeRenders = new ShaderUpdateTask[shadInfo.Length];
             for (int i = 0; i < shadInfo.Length; i++)
             {
                 uint2 info = shadInfo[i];
-                RenderParams rp = SetupShaderMaterials(i, GenerationPreset.memoryHandle, info.x);
+                RenderParams rp = SetupShaderMaterials(i, gpuContext.Memory, info.x);
                 ShaderUpdateTask shader = new ShaderUpdateTask(info.x, info.y, rp);
                 ArterraRuntime.MainLateUpdateTasks.Enqueue(shader);
                 activeRenders[i] = shader;
 
-                GenerationPreset.memoryHandle.TestAllocIsEmpty((int)shader.address, address => {
+                gpuContext.Memory.TestAllocIsEmpty((int)shader.address, address => {
                     //Captured shader is in this scope so ok
-                    shader.Release(ref GenerationPreset.memoryHandle);
+                    shader.Release(gpuContext.Memory);
                 });
             }
         }
@@ -203,20 +206,20 @@ namespace Arterra.Engine.Rendering
 
             public void Update(MonoBehaviour mono)
             {
-                Graphics.RenderPrimitivesIndirect(
+                UnityEngine.Graphics.RenderPrimitivesIndirect(
                     rp, MeshTopology.Triangles,
-                    UtilityBuffers.DrawArgs.Get(),
+                    GraphicsRendering.Args.DrawArgs.Get(),
                     1, (int)dispArgs
                 );
             }
 
-            public void Release(ref MemoryOccupancyBalancer memory)
+            public void Release(MemoryOccupancyBalancer memory)
             {
                 if (!active) return;
                 active = false;
 
                 memory.ReleaseMemory(address);
-                UtilityBuffers.DrawArgs.Release(dispArgs);
+                GraphicsRendering.Args.DrawArgs.Release(dispArgs);
             }
         }
     }

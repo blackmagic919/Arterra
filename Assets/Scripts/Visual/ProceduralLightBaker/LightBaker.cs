@@ -6,6 +6,7 @@ using Arterra.Core.Storage;
 using Arterra.Engine.Terrain;
 using Arterra.Utils;
 using Arterra.Core;
+using static Arterra.Core.Storage.SharedResourceManager;
 
 namespace Arterra.Configuration.Quality
 {
@@ -25,7 +26,7 @@ namespace Arterra.Configuration.Quality
         public int SubChunkDivisions;
         /// <summary> The maximum number of object light
         /// sub-chunks that can be updated in a single tick.
-        /// Constrains both time and memory usage of the light baker. 
+        /// Constrains both time and memory usage of the light baker.
         /// Recommended less than 2k </summary>
         public int MaxObjectSubChunkUpdatesPerTick;
         /// <summary> The maximum number of shadow sub-chunks
@@ -61,6 +62,7 @@ namespace Arterra.Engine.Rendering
 
         public static void Initialize()
         {
+            GraphicsResourceContext gpuContext = GraphicsGeneration;
             Arterra.Configuration.Quality.Terrain terrain = Config.CURRENT.Quality.Terrain;
             int NumChunks = OctreeTerrain.BalancedOctree.GetMaxNodes(terrain.MaxDepth, terrain.Balance, terrain.MinChunkRadius);
             int SubChunkCount = Settings.SubChunkDivisions * Settings.SubChunkDivisions * Settings.SubChunkDivisions;
@@ -72,8 +74,8 @@ namespace Arterra.Engine.Rendering
             SubChunkUpdateBuffer = new ComputeBuffer(Settings.MaxObjectSubChunkUpdatesPerTick + Settings.MaxShadowSubChunkUpdatesPerTick + 1, sizeof(uint) * 2, ComputeBufferType.Structured);
             DirtyQueueOffsets = new BakeQueueOffsets(0, SubChunkCount);
             TickUpdateOffsets = new UpdateQueueOffsets(0, Settings.MaxShadowSubChunkUpdatesPerTick, Settings.MaxObjectSubChunkUpdatesPerTick);
-            DirtyShadowSubChunks.SetData(new uint2[] { 0 }, 0, DirtyQueueOffsets.QueueCount, 1);
-            DirtyObjectSubChunks.SetData(new uint2[] { 0 }, 0, DirtyQueueOffsets.QueueCount, 1);
+            gpuContext.SetBufferData(DirtyShadowSubChunks, new uint2[] { 0 }, 0, DirtyQueueOffsets.QueueCount, 1);
+            gpuContext.SetBufferData(DirtyObjectSubChunks, new uint2[] { 0 }, 0, DirtyQueueOffsets.QueueCount, 1);
 
             int mapSize = terrain.mapChunkSize * terrain.mapChunkSize * terrain.mapChunkSize;
             int mapFullSize = mapSize + (terrain.mapChunkSize + 3) * (terrain.mapChunkSize + 3) * 9;
@@ -82,77 +84,77 @@ namespace Arterra.Engine.Rendering
             SetGlobalLightSamplerData(IsoValue, mapFullSize);
 
             int kernel = LightSetupPrimer.FindKernel("PrimeSubchunks");
-            LightSetupPrimer.SetBuffer(kernel, "_MemoryBuffer", GPUMapManager.Storage);
-            LightSetupPrimer.SetBuffer(kernel, "_AddressDict", GPUMapManager.Address);
-            LightSetupPrimer.SetBuffer(kernel, "DirtyShadowSubChunks", DirtyShadowSubChunks);
-            LightSetupPrimer.SetBuffer(kernel, "DirtyObjectSubChunks", DirtyObjectSubChunks);
-            LightSetupPrimer.SetBuffer(kernel, "CurUpdateSubChunks", SubChunkUpdateBuffer);
+            gpuContext.SetBuffer(LightSetupPrimer, kernel, "_MemoryBuffer", GPUMapManager.Storage);
+            gpuContext.SetBuffer(LightSetupPrimer, kernel, "_AddressDict", GPUMapManager.Address);
+            gpuContext.SetBuffer(LightSetupPrimer, kernel, "DirtyShadowSubChunks", DirtyShadowSubChunks);
+            gpuContext.SetBuffer(LightSetupPrimer, kernel, "DirtyObjectSubChunks", DirtyObjectSubChunks);
+            gpuContext.SetBuffer(LightSetupPrimer, kernel, "CurUpdateSubChunks", SubChunkUpdateBuffer);
             kernel = LightSetupPrimer.FindKernel("PrimeQueue");
-            LightSetupPrimer.SetBuffer(kernel, "DirtyShadowSubChunks", DirtyShadowSubChunks);
-            LightSetupPrimer.SetBuffer(kernel, "DirtyObjectSubChunks", DirtyObjectSubChunks);
-            LightSetupPrimer.SetBuffer(kernel, "CurUpdateSubChunks", SubChunkUpdateBuffer);
+            gpuContext.SetBuffer(LightSetupPrimer, kernel, "DirtyShadowSubChunks", DirtyShadowSubChunks);
+            gpuContext.SetBuffer(LightSetupPrimer, kernel, "DirtyObjectSubChunks", DirtyObjectSubChunks);
+            gpuContext.SetBuffer(LightSetupPrimer, kernel, "CurUpdateSubChunks", SubChunkUpdateBuffer);
 
-            LightSetupPrimer.SetInts("bCOUNT", new int[] { DirtyQueueOffsets.QueueCount, TickUpdateOffsets.ShadowCount, TickUpdateOffsets.ObjectCount });
-            LightSetupPrimer.SetInts("bSTART", new int[] { DirtyQueueOffsets.QueueStart, TickUpdateOffsets.ShadowStart, TickUpdateOffsets.ObjectStart });
-            LightSetupPrimer.SetInt("chunkLHOffset", mapFullSize + lightMapSize);
-            LightSetupPrimer.SetInt("ShadowUpdateCount", Settings.MaxShadowSubChunkUpdatesPerTick);
-            LightSetupPrimer.SetInt("ObjectUpdateCount", Settings.MaxObjectSubChunkUpdatesPerTick);
-            LightSetupPrimer.SetInt("QueueSize", SubChunkCount);
+            gpuContext.SetInts(LightSetupPrimer, "bCOUNT", new int[] { DirtyQueueOffsets.QueueCount, TickUpdateOffsets.ShadowCount, TickUpdateOffsets.ObjectCount });
+            gpuContext.SetInts(LightSetupPrimer, "bSTART", new int[] { DirtyQueueOffsets.QueueStart, TickUpdateOffsets.ShadowStart, TickUpdateOffsets.ObjectStart });
+            gpuContext.SetInt(LightSetupPrimer, "chunkLHOffset", mapFullSize + lightMapSize);
+            gpuContext.SetInt(LightSetupPrimer, "ShadowUpdateCount", Settings.MaxShadowSubChunkUpdatesPerTick);
+            gpuContext.SetInt(LightSetupPrimer, "ObjectUpdateCount", Settings.MaxObjectSubChunkUpdatesPerTick);
+            gpuContext.SetInt(LightSetupPrimer, "QueueSize", SubChunkCount);
 
             kernel = ObjectLightShader.FindKernel("BakeLights");
-            ObjectLightShader.SetBuffer(kernel, "_MemoryBuffer", GPUMapManager.Storage);
-            ObjectLightShader.SetBuffer(kernel, "_AddressDict", GPUMapManager.Address);
-            ObjectLightShader.SetBuffer(kernel, "DirtySubChunks", DirtyObjectSubChunks);
-            ObjectLightShader.SetBuffer(kernel, "CurUpdateSubChunks", SubChunkUpdateBuffer);
-            ObjectLightShader.SetInts("bCOUNT", new int[] { DirtyQueueOffsets.QueueCount, TickUpdateOffsets.ShadowCount, TickUpdateOffsets.ObjectCount });
-            ObjectLightShader.SetInts("bSTART", new int[] { DirtyQueueOffsets.QueueStart, TickUpdateOffsets.ShadowStart, TickUpdateOffsets.ObjectStart });
-            ObjectLightShader.SetInt("QueueSize", SubChunkCount);
-            ObjectLightShader.SetInt("chunkLMOffset", mapFullSize);
-            ObjectLightShader.SetInt("chunkLHOffset", mapFullSize + lightMapSize);
-            ObjectLightShader.SetInt("subChunkSize", SubChunkSize);
-            ObjectLightShader.SetInt("subChunksAxis", Settings.SubChunkDivisions);
-            ObjectLightShader.SetInt("IsoLevel", IsoValue);
-            ObjectLightShader.SetInt("mapChunkSize", terrain.mapChunkSize); //as int
-            ObjectLightShader.SetInt("numPointsPerAxis", terrain.mapChunkSize); //as uint
+            gpuContext.SetBuffer(ObjectLightShader, kernel, "_MemoryBuffer", GPUMapManager.Storage);
+            gpuContext.SetBuffer(ObjectLightShader, kernel, "_AddressDict", GPUMapManager.Address);
+            gpuContext.SetBuffer(ObjectLightShader, kernel, "DirtySubChunks", DirtyObjectSubChunks);
+            gpuContext.SetBuffer(ObjectLightShader, kernel, "CurUpdateSubChunks", SubChunkUpdateBuffer);
+            gpuContext.SetInts(ObjectLightShader, "bCOUNT", new int[] { DirtyQueueOffsets.QueueCount, TickUpdateOffsets.ShadowCount, TickUpdateOffsets.ObjectCount });
+            gpuContext.SetInts(ObjectLightShader, "bSTART", new int[] { DirtyQueueOffsets.QueueStart, TickUpdateOffsets.ShadowStart, TickUpdateOffsets.ObjectStart });
+            gpuContext.SetInt(ObjectLightShader, "QueueSize", SubChunkCount);
+            gpuContext.SetInt(ObjectLightShader, "chunkLMOffset", mapFullSize);
+            gpuContext.SetInt(ObjectLightShader, "chunkLHOffset", mapFullSize + lightMapSize);
+            gpuContext.SetInt(ObjectLightShader, "subChunkSize", SubChunkSize);
+            gpuContext.SetInt(ObjectLightShader, "subChunksAxis", Settings.SubChunkDivisions);
+            gpuContext.SetInt(ObjectLightShader, "IsoLevel", IsoValue);
+            gpuContext.SetInt(ObjectLightShader, "mapChunkSize", terrain.mapChunkSize); //as int
+            gpuContext.SetInt(ObjectLightShader, "numPointsPerAxis", terrain.mapChunkSize); //as uint
 
             kernel = ShadowShader.FindKernel("BakeLights");
-            ShadowShader.SetBuffer(kernel, "_MemoryBuffer", GPUMapManager.Storage);
-            ShadowShader.SetBuffer(kernel, "_AddressDict", GPUMapManager.Address);
-            ShadowShader.SetBuffer(kernel, "DirtySubChunks", DirtyShadowSubChunks);
-            ShadowShader.SetBuffer(kernel, "CurUpdateSubChunks", SubChunkUpdateBuffer);
-            ShadowShader.SetInts("bCOUNT", new int[] { DirtyQueueOffsets.QueueCount, TickUpdateOffsets.ShadowCount, TickUpdateOffsets.ObjectCount });
-            ShadowShader.SetInts("bSTART", new int[] { DirtyQueueOffsets.QueueStart, TickUpdateOffsets.ShadowStart, TickUpdateOffsets.ObjectStart });
-            ShadowShader.SetInt("QueueSize", SubChunkCount);
-            ShadowShader.SetInt("chunkLMOffset", mapFullSize);
-            ShadowShader.SetInt("chunkLHOffset", mapFullSize + lightMapSize);
-            ShadowShader.SetInt("subChunkSize", SubChunkSize);
-            ShadowShader.SetInt("subChunksAxis", Settings.SubChunkDivisions);
-            ShadowShader.SetInt("IsoLevel", IsoValue);
-            ShadowShader.SetInt("mapChunkSize", terrain.mapChunkSize); //as int
-            ShadowShader.SetInt("numPointsPerAxis", terrain.mapChunkSize); //as uint
+            gpuContext.SetBuffer(ShadowShader, kernel, "_MemoryBuffer", GPUMapManager.Storage);
+            gpuContext.SetBuffer(ShadowShader, kernel, "_AddressDict", GPUMapManager.Address);
+            gpuContext.SetBuffer(ShadowShader, kernel, "DirtySubChunks", DirtyShadowSubChunks);
+            gpuContext.SetBuffer(ShadowShader, kernel, "CurUpdateSubChunks", SubChunkUpdateBuffer);
+            gpuContext.SetInts(ShadowShader, "bCOUNT", new int[] { DirtyQueueOffsets.QueueCount, TickUpdateOffsets.ShadowCount, TickUpdateOffsets.ObjectCount });
+            gpuContext.SetInts(ShadowShader, "bSTART", new int[] { DirtyQueueOffsets.QueueStart, TickUpdateOffsets.ShadowStart, TickUpdateOffsets.ObjectStart });
+            gpuContext.SetInt(ShadowShader, "QueueSize", SubChunkCount);
+            gpuContext.SetInt(ShadowShader, "chunkLMOffset", mapFullSize);
+            gpuContext.SetInt(ShadowShader, "chunkLHOffset", mapFullSize + lightMapSize);
+            gpuContext.SetInt(ShadowShader, "subChunkSize", SubChunkSize);
+            gpuContext.SetInt(ShadowShader, "subChunksAxis", Settings.SubChunkDivisions);
+            gpuContext.SetInt(ShadowShader, "IsoLevel", IsoValue);
+            gpuContext.SetInt(ShadowShader, "mapChunkSize", terrain.mapChunkSize); //as int
+            gpuContext.SetInt(ShadowShader, "numPointsPerAxis", terrain.mapChunkSize); //as uint
 
             kernel = ChunkLightPrimer.FindKernel("CopyHash");
-            ChunkLightPrimer.SetBuffer(kernel, "_MemoryBuffer", GPUMapManager.Storage);
-            ChunkLightPrimer.SetBuffer(kernel, "_AddressDict", GPUMapManager.Address);
-            ChunkLightPrimer.SetBuffer(kernel, "_DirectAddress", GPUMapManager.DirectAddress);
-            ChunkLightPrimer.SetBuffer(kernel, "DirtySubChunks", DirtyObjectSubChunks); //Object Light is DirtySubChunks
-            ChunkLightPrimer.SetBuffer(kernel, "DirtyShadowSubChunks", DirtyShadowSubChunks);
+            gpuContext.SetBuffer(ChunkLightPrimer, kernel, "_MemoryBuffer", GPUMapManager.Storage);
+            gpuContext.SetBuffer(ChunkLightPrimer, kernel, "_AddressDict", GPUMapManager.Address);
+            gpuContext.SetBuffer(ChunkLightPrimer, kernel, "_DirectAddress", GPUMapManager.DirectAddress);
+            gpuContext.SetBuffer(ChunkLightPrimer, kernel, "DirtySubChunks", DirtyObjectSubChunks); //Object Light is DirtySubChunks
+            gpuContext.SetBuffer(ChunkLightPrimer, kernel, "DirtyShadowSubChunks", DirtyShadowSubChunks);
             kernel = ChunkLightPrimer.FindKernel("CleanChunk");
-            ChunkLightPrimer.SetBuffer(kernel, "_MemoryBuffer", GPUMapManager.Storage);
-            ChunkLightPrimer.SetBuffer(kernel, "_AddressDict", GPUMapManager.Address);
-            ChunkLightPrimer.SetBuffer(kernel, "_DirectAddress", GPUMapManager.DirectAddress);
-            ChunkLightPrimer.SetBuffer(kernel, "DirtySubChunks", DirtyObjectSubChunks);
-            ChunkLightPrimer.SetBuffer(kernel, "DirtyShadowSubChunks", DirtyShadowSubChunks);
+            gpuContext.SetBuffer(ChunkLightPrimer, kernel, "_MemoryBuffer", GPUMapManager.Storage);
+            gpuContext.SetBuffer(ChunkLightPrimer, kernel, "_AddressDict", GPUMapManager.Address);
+            gpuContext.SetBuffer(ChunkLightPrimer, kernel, "_DirectAddress", GPUMapManager.DirectAddress);
+            gpuContext.SetBuffer(ChunkLightPrimer, kernel, "DirtySubChunks", DirtyObjectSubChunks);
+            gpuContext.SetBuffer(ChunkLightPrimer, kernel, "DirtyShadowSubChunks", DirtyShadowSubChunks);
 
-            ChunkLightPrimer.SetInts("bCOUNT", new int[] { DirtyQueueOffsets.QueueCount, TickUpdateOffsets.ShadowCount, TickUpdateOffsets.ObjectCount });
-            ChunkLightPrimer.SetInts("bSTART", new int[] { DirtyQueueOffsets.QueueStart, TickUpdateOffsets.ShadowStart, TickUpdateOffsets.ObjectStart });
-            ChunkLightPrimer.SetInt("chunkLHOffset", mapFullSize + lightMapSize);
-            ChunkLightPrimer.SetInt("chunkLMOffset", mapFullSize);
-            ChunkLightPrimer.SetInt("subChunkSize", SubChunkSize);
-            ChunkLightPrimer.SetInt("subChunksAxis", Settings.SubChunkDivisions);
-            ChunkLightPrimer.SetInt("QueueSize", SubChunkCount);
-            ChunkLightPrimer.SetInt("numPointsPerAxis", terrain.mapChunkSize); //as uint
-            ChunkLightPrimer.SetInt("IsoLevel", IsoValue); //as int
+            gpuContext.SetInts(ChunkLightPrimer, "bCOUNT", new int[] { DirtyQueueOffsets.QueueCount, TickUpdateOffsets.ShadowCount, TickUpdateOffsets.ObjectCount });
+            gpuContext.SetInts(ChunkLightPrimer, "bSTART", new int[] { DirtyQueueOffsets.QueueStart, TickUpdateOffsets.ShadowStart, TickUpdateOffsets.ObjectStart });
+            gpuContext.SetInt(ChunkLightPrimer, "chunkLHOffset", mapFullSize + lightMapSize);
+            gpuContext.SetInt(ChunkLightPrimer, "chunkLMOffset", mapFullSize);
+            gpuContext.SetInt(ChunkLightPrimer, "subChunkSize", SubChunkSize);
+            gpuContext.SetInt(ChunkLightPrimer, "subChunksAxis", Settings.SubChunkDivisions);
+            gpuContext.SetInt(ChunkLightPrimer, "QueueSize", SubChunkCount);
+            gpuContext.SetInt(ChunkLightPrimer, "numPointsPerAxis", terrain.mapChunkSize); //as uint
+            gpuContext.SetInt(ChunkLightPrimer, "IsoLevel", IsoValue); //as int
 
             ArterraRuntime.MainLateUpdateTasks.Enqueue(new ArterraRuntime.IndirectUpdate(IterateLightUpdate));
         }
@@ -197,22 +199,23 @@ namespace Arterra.Engine.Rendering
 
         public static void RegisterChunk(int3 CCoord, int mapChunkSize, uint nAddress, int wSkipInc)
         {
+            GraphicsResourceContext gpuContext = GraphicsGeneration;
             int SubChunkAxis = mapChunkSize / Settings.SubChunkDivisions;
             int numSubChunks = SubChunkAxis * SubChunkAxis * SubChunkAxis;
-            ChunkLightPrimer.SetInts("CCoord", new int[] { CCoord.x, CCoord.y, CCoord.z });
-            ChunkLightPrimer.SetInt("numLightUnits", Mathf.CeilToInt(numSubChunks / 4.0f));
-            ChunkLightPrimer.SetInt("nChunkAddress", (int)nAddress);
+            gpuContext.SetInts(ChunkLightPrimer, "CCoord", new int[] { CCoord.x, CCoord.y, CCoord.z });
+            gpuContext.SetInt(ChunkLightPrimer, "numLightUnits", Mathf.CeilToInt(numSubChunks / 4.0f));
+            gpuContext.SetInt(ChunkLightPrimer, "nChunkAddress", (int)nAddress);
 
             int kernel = ChunkLightPrimer.FindKernel("CopyHash");
             ChunkLightPrimer.GetKernelThreadGroupSizes(kernel, out uint threadGroupSize, out _, out _);
             int numThreads = Mathf.CeilToInt(numSubChunks / (4.0f * (float)threadGroupSize));
-            ChunkLightPrimer.Dispatch(kernel, numThreads, 1, 1);
+            gpuContext.Dispatch(ChunkLightPrimer, kernel, numThreads, 1, 1);
 
             kernel = ChunkLightPrimer.FindKernel("CleanChunk");
-            ChunkLightPrimer.SetInt("SkipInc", wSkipInc);
+            gpuContext.SetInt(ChunkLightPrimer, "SkipInc", wSkipInc);
             ChunkLightPrimer.GetKernelThreadGroupSizes(kernel, out threadGroupSize, out _, out _);
             numThreads = Mathf.CeilToInt(mapChunkSize / (float)threadGroupSize);
-            ChunkLightPrimer.Dispatch(kernel, numThreads, numThreads, (numThreads + 1) / 2);
+            gpuContext.Dispatch(ChunkLightPrimer, kernel, numThreads, numThreads, (numThreads + 1) / 2);
 
 
             //int2[] address = {0};
@@ -224,24 +227,25 @@ namespace Arterra.Engine.Rendering
 
         public static void IterateLightUpdate(MonoBehaviour mono)
         {
+            GraphicsResourceContext gpuContext = GraphicsGeneration;
             int kernel = LightSetupPrimer.FindKernel("PrimeSubchunks");
             LightSetupPrimer.GetKernelThreadGroupSizes(kernel, out uint threadGroupSize, out _, out _);
             int maxUpdates = Math.Max(Settings.MaxShadowSubChunkUpdatesPerTick, Settings.MaxObjectSubChunkUpdatesPerTick);
             if (maxUpdates == 0) return;
 
             int numThreads = Mathf.CeilToInt(maxUpdates / (float)threadGroupSize);
-            LightSetupPrimer.Dispatch(kernel, numThreads, 1, 1);
+            gpuContext.Dispatch(LightSetupPrimer, kernel, numThreads, 1, 1);
 
             kernel = LightSetupPrimer.FindKernel("PrimeQueue");
-            LightSetupPrimer.Dispatch(kernel, 1, 1, 1);
+            gpuContext.Dispatch(LightSetupPrimer, kernel, 1, 1, 1);
 
             kernel = ShadowShader.FindKernel("BakeLights");
-            ComputeBuffer args = UtilityBuffers.CountToArgs(ShadowShader, SubChunkUpdateBuffer, TickUpdateOffsets.ShadowCount, kernel);
-            ShadowShader.DispatchIndirect(kernel, args);
+            ComputeBuffer args = gpuContext.Args.CountToArgs(ShadowShader, SubChunkUpdateBuffer, TickUpdateOffsets.ShadowCount, kernel);
+            gpuContext.DispatchIndirect(ShadowShader, kernel, args);
 
             kernel = ObjectLightShader.FindKernel("BakeLights");
-            args = UtilityBuffers.CountToArgs(ObjectLightShader, SubChunkUpdateBuffer, TickUpdateOffsets.ObjectCount, kernel);
-            ObjectLightShader.DispatchIndirect(kernel, args);
+            args = gpuContext.Args.CountToArgs(ObjectLightShader, SubChunkUpdateBuffer, TickUpdateOffsets.ObjectCount, kernel);
+            gpuContext.DispatchIndirect(ObjectLightShader, kernel, args);
 
             //int2[] count = new int2[4];
             //DirtyObjectSubChunks.GetData(count, 0, 0, 4);
@@ -255,10 +259,10 @@ namespace Arterra.Engine.Rendering
             /// <summary> The index of the element tracking the start of the queue. </summary>
             public int QueueStart;
             private int offsetStart; private int offsetEnd;
-            /// <summary> The start of the buffer region that is used by the Map & Mesh generator. 
+            /// <summary> The start of the buffer region that is used by the Map & Mesh generator.
             /// See <see cref="BufferOffsets.bufferStart"/> for more info. </summary>
             public int bufferStart { get { return offsetStart; } }
-            /// <summary> The end of the buffer region that is used by the Map & Mesh generator. 
+            /// <summary> The end of the buffer region that is used by the Map & Mesh generator.
             /// See <see cref="BufferOffsets.bufferEnd"/> for more info. </summary>
             public int bufferEnd { get { return offsetEnd; } }
 
@@ -282,10 +286,10 @@ namespace Arterra.Engine.Rendering
             /// <summary> The index of the element tracking the start of the object light subchunk queue. </summary>
             public int ObjectStart;
             private int offsetStart; private int offsetEnd;
-            /// <summary> The start of the buffer region that is used by the Map & Mesh generator. 
+            /// <summary> The start of the buffer region that is used by the Map & Mesh generator.
             /// See <see cref="BufferOffsets.bufferStart"/> for more info. </summary>
             public int bufferStart { get { return offsetStart; } }
-            /// <summary> The end of the buffer region that is used by the Map & Mesh generator. 
+            /// <summary> The end of the buffer region that is used by the Map & Mesh generator.
             /// See <see cref="BufferOffsets.bufferEnd"/> for more info. </summary>
             public int bufferEnd { get { return offsetEnd; } }
 

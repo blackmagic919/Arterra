@@ -11,6 +11,8 @@ using Arterra.Engine.Terrain;
 using Arterra.GamePlay.Interaction;
 using Arterra.GamePlay.UI;
 using Arterra.Core.Events;
+using Arterra.Core.Storage;
+using static Arterra.Core.Storage.SharedResourceManager;
 
 namespace Arterra.GamePlay.UI {
     public sealed class CraftingMenuController : PanelNavbarManager.INavPanel {
@@ -60,7 +62,7 @@ namespace Arterra.GamePlay.UI {
             eventTask = new Core.ArterraRuntime.IndirectUpdate(Update);
             Core.ArterraRuntime.MainLoopUpdateTasks.Enqueue(eventTask);
             PlayerHandler.data.eventCtrl.RaiseEvent(Core.Events.GameEvent.Action_OpenCrafting, PlayerHandler.data, null);
-            
+
                 InputPoller.AddContextFence("PlayerCraft", "3.5::Window", ActionBind.Exclusion.None);
                 InputPoller.AddBinding(new ActionBind("Craft", CraftEntry), "PlayerCraft:CFT", "3.5::Window");
                 InputPoller.AddBinding(new ActionBind("Deselect",
@@ -69,7 +71,7 @@ namespace Arterra.GamePlay.UI {
                     Select, ActionBind.Exclusion.None), "PlayerCraft:SEL", "3.5::Window");
                 InputPoller.AddBinding(new ActionBind("SelectPartial", SelectPartial),  "PlayerCraft:SELP", "3.5::Window");
                 InputPoller.AddBinding(new ActionBind("SelectAll", SelectAll), "PlayerCraft:SELA", "3.0::AllWindow");
-            
+
 
             Clear();
             Refresh();
@@ -81,10 +83,10 @@ namespace Arterra.GamePlay.UI {
         public void Deactivate() {
             eventTask.Active = false;
             Clear(InventoryController.AddEntry);
-            
+
                 InputPoller.RemoveContextFence("PlayerCraft", "3.5::Window");
                 InputPoller.RemoveBinding("PlayerCraft:SELA", "3.0::AllWindow");
-            
+
             Rendering.ReleaseDisplay();
             craftingMenu.SetActive(false);
             RecipeSearch.Deactivate();
@@ -166,7 +168,7 @@ namespace Arterra.GamePlay.UI {
             CraftingRecipe.Ingredient[] ingredients = new CraftingRecipe.Ingredient[TotalGrids * GridCount];
             Rendering.CopyToBuffer(ingredients);
             RecipeSearch.CopyToBuffer(ingredients);
-            craftingBuffer.SetData(ingredients);
+            GraphicsGeneration.SetBufferData(craftingBuffer, ingredients);
         }
 
         private void EvaluateInfluence(Action<int2, float> callback) {

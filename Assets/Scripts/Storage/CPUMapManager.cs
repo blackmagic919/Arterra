@@ -720,6 +720,9 @@ namespace Arterra.Core.Storage {
         /// from in GPU memory and where it is written to in <see cref="SectionedMemory"/>. </param>
         /// <param name="onReadback"> A callback that will be triggered when the map is fully readback </param>
         public static void BeginMapReadback(int3 CCoord, Action onReadback = null) { //Need a wrapper class to maintain reference to the native array
+            int handle = GPUMapManager.GetChunkHandle(CCoord);
+            if (handle == 0) return;
+            GPUMapManager.SubscribeHandle((uint)handle);
             int GPUChunkHash = GPUMapManager.HashCoord(CCoord);
             int CPUChunkHash = HashCoord(CCoord);
 
@@ -733,10 +736,16 @@ namespace Arterra.Core.Storage {
 
             unsafe void onChunkAddressRecieved(AsyncGPUReadbackRequest request) {
                 if (!initialized) return;
+                if (request.hasError) {
+                    GPUMapManager.UnsubscribeHandle(handle);
+                    return;
+                }
                 uint2 memHandle = request.GetData<uint2>()[0];
                 ChunkMapInfo destChunk = AddressDict[CPUChunkHash];
-                if (math.any(CCoord != destChunk.CCoord))
+                if (math.any(CCoord != destChunk.CCoord)) {
+                    GPUMapManager.UnsubscribeHandle(handle);
                     return;
+                }
                 int[] coord = request.GetData<int>().ToArray();
                 int3 FoundCCoord = new int3(coord[2], coord[3], coord[4]);
                 if (math.any(CCoord != FoundCCoord))
@@ -746,10 +755,13 @@ namespace Arterra.Core.Storage {
                 int meshSkipInc = (int)memHandle.y;
 
                 NativeArray<MapData> dest = AccessChunk(CPUChunkHash);
-                AsyncGPUReadback.RequestIntoNativeArray(ref dest, GPUMapManager.Storage, size: 4 * numPoints, offset: 4 * memAddress, _ => OnReadbackComplete());
+                SharedResourceManager.GraphicsGeneration.RequestAsyncReadbackIntoNativeArray(ref dest, GPUMapManager.Storage, size: 4 * numPoints, offset: 4 * memAddress, request => {
+                    GPUMapManager.UnsubscribeHandle(handle);
+                    if (!request.hasError) OnReadbackComplete();
+                });
             }
 
-            AsyncGPUReadback.Request(GPUMapManager.Address, size: 20, offset: 20 * GPUChunkHash, ret => onChunkAddressRecieved(ret));
+            SharedResourceManager.GraphicsGeneration.RequestAsyncReadback(GPUMapManager.Address, size: 20, offset: 20 * GPUChunkHash, ret => onChunkAddressRecieved(ret));
         }
 
         /// <summary> Converts from grid space to chunk space hash and map space hash.

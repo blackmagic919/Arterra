@@ -5,75 +5,87 @@ using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Rendering;
 using Arterra.Utils;
+using Arterra.Core.Storage;
+using static Arterra.Core.Storage.SharedResourceManager;
 
 namespace Arterra.Engine.Terrain.Readback {
     public class AsyncGenInfoReadback {
         private int Allocation = -1;
         private static ComputeShader GenPointRealloc;
+        public GraphicsContextId GraphicsContext;
+        private readonly Structure.Creator StructureCreator;
 
         public static void PresetData() {
             GenPointRealloc = Resources.Load<ComputeShader>("Compute/TerrainGeneration/Readback/GenPointRealloc");
-
             int kernel = GenPointRealloc.FindKernel("CombineCount");
-            GenPointRealloc.SetBuffer(kernel, "_AddressDict", GenerationPreset.memoryHandle.Address);
-            
+            GraphicsGeneration.SetBuffer(GenPointRealloc, kernel, "_AddressDict", GraphicsGeneration.Memory.Address);
+
             kernel = GenPointRealloc.FindKernel("CopyToNewAlloc");
-            GenPointRealloc.SetBuffer(kernel, "_AddressDict", GenerationPreset.memoryHandle.Address);
+            GraphicsGeneration.SetBuffer(GenPointRealloc, kernel, "_AddressDict", GraphicsGeneration.Memory.Address);
         }
 
-        public AsyncGenInfoReadback() {
+        public AsyncGenInfoReadback(
+            Structure.Creator structureCreator,
+            GraphicsContextId graphicsContext = GraphicsContextId.Generation
+        ) {
+            GraphicsContext = graphicsContext;
+            StructureCreator = structureCreator;
             Allocation = -1;
         }
 
+        public GraphicsResourceContext GetGraphicsContext() => Graphics(GraphicsContext);
+
         public void Release() {
             if (Allocation <= 0) return;
-            GenerationPreset.memoryHandle.ReleaseMemory((uint)Allocation);
+            GetGraphicsContext().Memory.ReleaseMemory((uint)Allocation);
             Allocation = -1;
         }
 
         public int AddGenPoints(ComputeBuffer countBuffer, int countOffset, int tempCounter) {
+            GraphicsResourceContext gpuContext = GetGraphicsContext();
             if (Allocation <= 0) {
-                Allocation = (int)GenerationPreset.memoryHandle.AllocateMemory(countBuffer, GenPoint.size, countOffset);
+                Allocation = (int)gpuContext.Memory.AllocateMemory(countBuffer, GenPoint.size, countOffset);
                 return Allocation;
-            } 
+            }
 
-            int kernel = GenPointRealloc.FindKernel("CombineCount"); 
-            ComputeBuffer bufferOld = GenerationPreset.memoryHandle.GetBlockBuffer(Allocation);
-            GenPointRealloc.SetBuffer(kernel, ShaderIDProps.MemoryBuffer, bufferOld);
-            GenPointRealloc.SetBuffer(kernel, ShaderIDProps.Counters, countBuffer);
-            GenPointRealloc.SetInt(ShaderIDProps.BufferCounter, countOffset);
-            GenPointRealloc.SetInt(ShaderIDProps.TempCounter, tempCounter);
-            GenPointRealloc.SetInt(ShaderIDProps.AddressIndex, Allocation);
-            GenPointRealloc.Dispatch(kernel, 1, 1, 1);
+            int kernel = GenPointRealloc.FindKernel("CombineCount");
+            ComputeBuffer bufferOld = gpuContext.Memory.GetBlockBuffer(Allocation);
+            gpuContext.SetBuffer(GenPointRealloc, kernel, ShaderIDProps.MemoryBuffer, bufferOld);
+            gpuContext.SetBuffer(GenPointRealloc, kernel, ShaderIDProps.Counters, countBuffer);
+            gpuContext.SetInt(GenPointRealloc, ShaderIDProps.BufferCounter, countOffset);
+            gpuContext.SetInt(GenPointRealloc, ShaderIDProps.TempCounter, tempCounter);
+            gpuContext.SetInt(GenPointRealloc, ShaderIDProps.AddressIndex, Allocation);
+            gpuContext.Dispatch(GenPointRealloc, kernel, 1, 1, 1);
 
-            int nAllocation = (int)GenerationPreset.memoryHandle.AllocateMemory(countBuffer, GenPoint.size, tempCounter);
-            ComputeBuffer bufferNew = GenerationPreset.memoryHandle.GetBlockBuffer(nAllocation);
+            int nAllocation = (int)gpuContext.Memory.AllocateMemory(countBuffer, GenPoint.size, tempCounter);
+            ComputeBuffer bufferNew = gpuContext.Memory.GetBlockBuffer(nAllocation);
 
             kernel = GenPointRealloc.FindKernel("CopyToNewAlloc");
-            GenPointRealloc.SetBuffer(kernel, ShaderIDProps.Counters, countBuffer);
-            GenPointRealloc.SetBuffer(kernel, ShaderIDProps.SourceMemory, bufferOld);
-            GenPointRealloc.SetBuffer(kernel, ShaderIDProps.DestMemory, bufferNew);
-            GenPointRealloc.SetInt(ShaderIDProps.NewAddressIndex, nAllocation);
-            ComputeBuffer args = UtilityBuffers.CountToArgs(GenPointRealloc, countBuffer, countOffset: tempCounter, kernel: kernel);
-            GenPointRealloc.DispatchIndirect(kernel, args);
+            gpuContext.SetBuffer(GenPointRealloc, kernel, ShaderIDProps.Counters, countBuffer);
+            gpuContext.SetBuffer(GenPointRealloc, kernel, ShaderIDProps.SourceMemory, bufferOld);
+            gpuContext.SetBuffer(GenPointRealloc, kernel, ShaderIDProps.DestMemory, bufferNew);
+            gpuContext.SetInt(GenPointRealloc, ShaderIDProps.NewAddressIndex, nAllocation);
+            ComputeBuffer args = gpuContext.Args.CountToArgs(GenPointRealloc, countBuffer, countOffset: tempCounter, kernel: kernel);
+            gpuContext.DispatchIndirect(GenPointRealloc, kernel, args);
 
             Release(); //Release previous allocation
             Allocation = nAllocation;
-            
+
             return Allocation;
         }
 
         public void BeginGenInfoReadback(int3 CCoord, byte cxt){
+            GraphicsResourceContext gpuContext = GetGraphicsContext();
             if (Allocation <= 0) return; //No alloc exists
             uint allocation = (uint)Allocation;
             //This call ensures that readback is only called with a stable permanent allocation
-            GenerationPreset.memoryHandle.RegisterRebind(
+            gpuContext.Memory.RegisterRebind(
                 allocation,
                 _1 => {
-                    if (!GenerationPreset.memoryHandle.GetDirectAllocation(
+                    if (!gpuContext.Memory.GetDirectAllocation(
                         allocation, GenPoint.size, out ComputeBuffer block,
                         out _, out _, out int start, out int count)) return;
-                    AsyncGPUReadback.Request(block, size: count * GenPoint.size * 4,
+                    gpuContext.RequestAsyncReadback(block, size: count * GenPoint.size * 4,
                         offset: start * GenPoint.size * 4,
                         req => ProcessGenPoints(req.GetData<GenPoint>(), CCoord, cxt));
                 }
@@ -93,12 +105,12 @@ namespace Arterra.Engine.Terrain.Readback {
                         EntityManager.InitializeChunkEntity(point, CCoord, cxt);
                         break;
                     case GenPoint.GenType.StructureMeta:
-                        Structure.Generator.InitializeStructureMeta(point, CCoord, cxt);
+                        StructureCreator.InitializeStructureMeta(point, CCoord, cxt);
                         break;
                 }
             }
         }
-    } 
+    }
 
     [StructLayout(LayoutKind.Sequential)]
     public struct GenPoint{

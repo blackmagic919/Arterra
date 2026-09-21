@@ -3,6 +3,7 @@
 #pragma kernel CopyBuffer
 #pragma kernel CopyIndirect
 #pragma kernel CopyToStorage
+#pragma kernel CopyDirectToStorage
 #pragma kernel CopyFromStorage
 
 StructuredBuffer<uint> source;
@@ -54,6 +55,16 @@ void CopyToStorage (uint3 id : SV_DispatchThreadID)
     for (uint i = id.x * stride; i < (id.x + 1) * stride; i++) {
         _DestMemory[destBase + i] = source[rOffset + i];
     }
+}
+
+[numthreads(256,1,1)]
+void CopyDirectToStorage (uint3 id : SV_DispatchThreadID)
+{
+    if(id.x >= count * stride)
+        return;
+
+    uint destBase = _AddressDict[addressIndex].x;
+    _DestMemory[destBase + id.x] = source[rOffset + id.x];
 }
 
 [numthreads(256,1,1)]

@@ -9,6 +9,7 @@ using Arterra.Data.Structure;
 using Arterra.Configuration;
 using Arterra.Core.Storage;
 using Arterra.Engine.Terrain;
+using static Arterra.Core.Storage.SharedResourceManager;
 
 namespace Arterra.Editor {
     [ExecuteInEditMode]
@@ -144,6 +145,7 @@ namespace Arterra.Editor {
         }
 
         private void InitializeGrid(bool reloadFromStructure = true) {
+            GraphicsResourceContext gpuContext = GraphicsGeneration;
             if (reloadFromStructure || currentState.MapData == null) {
                 if (Config.CURRENT == null) World.Activate();
                 IRegister.Setup(Config.CURRENT); //Initialize Register LUTS
@@ -168,8 +170,8 @@ namespace Arterra.Editor {
             currentState.SelectedArray = new GridManager.SelectionArray(numPoints);
             Selected = new Queue<uint>();
 
-            gridManager = new GridManager(GridSize, this.gameObject.transform, UtilityBuffers.GenerationBuffer, numPoints, 0);
-            modelManager = new ModelManager(GridSize, this.gameObject.transform, IsoLevel, UtilityBuffers.TransferBuffer, UtilityBuffers.GenerationBuffer, gridManager.offsets.bufferEnd);
+            gridManager = new GridManager(GridSize, this.gameObject.transform, gpuContext.Work.Scratch, numPoints, 0);
+            modelManager = new ModelManager(GridSize, this.gameObject.transform, IsoLevel, gpuContext.Work.Transfer, gpuContext.Work.Scratch, gridManager.offsets.bufferEnd);
             gridManager.GenerateModel();
 
             initialized = true;
@@ -271,10 +273,11 @@ namespace Arterra.Editor {
         }
 
         public void UpdateMapData() {
+            GraphicsResourceContext gpuContext = GraphicsGeneration;
             if (currentState.MapData == null) return;
 
             StructureData.PointInfo[] gpuMap = BuildGpuMapData(currentState.MapData);
-            UtilityBuffers.TransferBuffer.SetData(gpuMap);
+            gpuContext.SetBufferData(gpuContext.Work.Transfer, gpuMap);
         }
         public void OnSceneGUI(SceneView sceneView) {
             if (!initialized) return;
@@ -884,10 +887,11 @@ namespace Arterra.Editor {
         }
 
         void GetDataFromMesh(Mesh mesh) {
+            GraphicsResourceContext gpuContext = GraphicsGeneration;
             ComputeShader SDFConstructor = Resources.Load<ComputeShader>("Compute/CGeometry/Deconstructor/MeshDeconstructor");
             ComputeBuffer vertexBuffer = new ComputeBuffer(mesh.vertexCount, sizeof(float) * 3);
             ComputeBuffer indexBuffer = new ComputeBuffer(mesh.triangles.Length, sizeof(uint));
-            vertexBuffer.SetData(mesh.vertices); indexBuffer.SetData(mesh.triangles);
+            gpuContext.SetBufferData(vertexBuffer, mesh.vertices); gpuContext.SetBufferData(indexBuffer, mesh.triangles);
 
             float3 max = new float3(float.MinValue, float.MinValue, float.MinValue);
             float3 min = new float3(float.MaxValue, float.MaxValue, float.MaxValue);
@@ -899,13 +903,13 @@ namespace Arterra.Editor {
             Debug.Log($"Bounding Box: {min} to {max}");
 
             int kernel = SDFConstructor.FindKernel("GetSDF");
-            SDFConstructor.SetBuffer(kernel, "Vertices", vertexBuffer); //Assume one data stream
-            SDFConstructor.SetBuffer(kernel, "Indices", indexBuffer);
-            SDFConstructor.SetInt("numInds", (int)mesh.GetIndexCount(0)); //Assume one submesh
-            SDFConstructor.SetFloats("offset", SDFoffset.x, SDFoffset.y, SDFoffset.z);
+            gpuContext.SetBuffer(SDFConstructor, kernel, "Vertices", vertexBuffer); //Assume one data stream
+            gpuContext.SetBuffer(SDFConstructor, kernel, "Indices", indexBuffer);
+            gpuContext.SetInt(SDFConstructor, "numInds", (int)mesh.GetIndexCount(0)); //Assume one submesh
+            gpuContext.SetFloats(SDFConstructor, "offset", SDFoffset.x, SDFoffset.y, SDFoffset.z);
 
-            SDFConstructor.SetBuffer(kernel, "Distance", UtilityBuffers.TransferBuffer);
-            SDFConstructor.SetInts("GridSize", new int[] { (int)GridSize.x, (int)GridSize.y, (int)GridSize.z });
+            gpuContext.SetBuffer(SDFConstructor, kernel, "Distance", gpuContext.Work.Transfer);
+            gpuContext.SetInts(SDFConstructor, "GridSize", new int[] { (int)GridSize.x, (int)GridSize.y, (int)GridSize.z });
 
             uint3 threadsPerAxis;
             SDFConstructor.GetKernelThreadGroupSizes(kernel, out threadsPerAxis.x, out threadsPerAxis.y, out threadsPerAxis.z);
@@ -914,22 +918,22 @@ namespace Arterra.Editor {
                 (uint)Mathf.CeilToInt((float)GridSize.y / threadsPerAxis.y),
                 (uint)Mathf.CeilToInt((float)GridSize.z / threadsPerAxis.z)
             );
-            SDFConstructor.Dispatch(kernel, (int)threadsPerAxis.x, (int)threadsPerAxis.y, (int)threadsPerAxis.z);
+            gpuContext.Dispatch(SDFConstructor, kernel, (int)threadsPerAxis.x, (int)threadsPerAxis.y, (int)threadsPerAxis.z);
             vertexBuffer.Dispose();
             indexBuffer.Dispose();
 
             kernel = SDFConstructor.FindKernel("GetMap");
-            SDFConstructor.SetBuffer(kernel, "Distance", UtilityBuffers.TransferBuffer);
-            SDFConstructor.SetBuffer(kernel, "MapData", UtilityBuffers.TransferBuffer);
-            SDFConstructor.SetFloat("IsoLevel", IsoLevel);
+            gpuContext.SetBuffer(SDFConstructor, kernel, "Distance", gpuContext.Work.Transfer);
+            gpuContext.SetBuffer(SDFConstructor, kernel, "MapData", gpuContext.Work.Transfer);
+            gpuContext.SetFloat(SDFConstructor, "IsoLevel", IsoLevel);
 
             int numPoints = (int)(GridSize.x * GridSize.y * GridSize.z);
             SDFConstructor.GetKernelThreadGroupSizes(kernel, out threadsPerAxis.x, out _, out _);
             threadsPerAxis.x = (uint)Mathf.CeilToInt((float)numPoints / threadsPerAxis.x);
-            SDFConstructor.Dispatch(kernel, (int)threadsPerAxis.x, 1, 1);
+            gpuContext.Dispatch(SDFConstructor, kernel, (int)threadsPerAxis.x, 1, 1);
 
             StructureData.PointInfo[] newMap = currentState.MapData.ToArray();
-            UtilityBuffers.TransferBuffer.GetData(newMap);
+            gpuContext.Work.Transfer.GetData(newMap);
             currentState.MapData = newMap.ToList();
         }
 

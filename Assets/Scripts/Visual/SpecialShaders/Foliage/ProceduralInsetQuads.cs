@@ -5,6 +5,8 @@ using Arterra.Configuration.Quality;
 using System.Linq;
 using System.Collections.Generic;
 using Arterra.Utils;
+using Arterra.Core.Storage;
+using static Arterra.Core.Storage.SharedResourceManager;
 
 namespace Arterra.Engine.Rendering
 {
@@ -27,27 +29,28 @@ namespace Arterra.Engine.Rendering
 
         public override void PresetData(int baseGeoStart, int baseGeoCount, int geoCounter, int geoStart, int geoInd)
         {
+            GraphicsResourceContext gpuContext = GraphicsRendering;
             if (settings.Reg.Count == 0) return;
             QuadSetting.Data[] data = settings.Reg.Select(e => e.GetInfo()).ToArray();
             variantTable = new ComputeBuffer(data.Length, QuadSetting.DataSize, ComputeBufferType.Structured);
             detailTable = new ComputeBuffer(detailLevels.value.Count, QuadLevel.DataSize, ComputeBufferType.Structured);
             int mapChunkSize = Config.CURRENT.Quality.Terrain.value.mapChunkSize;
-            detailTable.SetData(detailLevels.value);
-            variantTable.SetData(data);
+            gpuContext.SetBufferData(detailTable, detailLevels.value);
+            gpuContext.SetBufferData(variantTable, data);
 
             quadCompute = Resources.Load<ComputeShader>("Compute/GeoShader/Registry/FoliageQuads");
 
             int kernel = quadCompute.FindKernel("Main");
-            quadCompute.SetBuffer(kernel, "Counters", UtilityBuffers.GenerationBuffer);
-            quadCompute.SetBuffer(kernel, "DrawTriangles", UtilityBuffers.GenerationBuffer);
-            quadCompute.SetBuffer(kernel, "VariantSettings", variantTable);
-            quadCompute.SetBuffer(kernel, "DetailSettings", detailTable);
-            quadCompute.SetInt("numPointsPerAxis", mapChunkSize);
-            quadCompute.SetInt("bSTART_base", baseGeoStart);
-            quadCompute.SetInt("bCOUNT_base", baseGeoCount);
-            quadCompute.SetInt("bSTART_oGeo", geoStart);
-            quadCompute.SetInt("bCOUNT_oGeo", geoCounter);
-            quadCompute.SetInt("geoInd", geoInd);
+            gpuContext.SetBuffer(quadCompute, kernel, "Counters", gpuContext.Work.Scratch);
+            gpuContext.SetBuffer(quadCompute, kernel, "DrawTriangles", gpuContext.Work.Scratch);
+            gpuContext.SetBuffer(quadCompute, kernel, "VariantSettings", variantTable);
+            gpuContext.SetBuffer(quadCompute, kernel, "DetailSettings", detailTable);
+            gpuContext.SetInt(quadCompute, "numPointsPerAxis", mapChunkSize);
+            gpuContext.SetInt(quadCompute, "bSTART_base", baseGeoStart);
+            gpuContext.SetInt(quadCompute, "bCOUNT_base", baseGeoCount);
+            gpuContext.SetInt(quadCompute, "bSTART_oGeo", geoStart);
+            gpuContext.SetInt(quadCompute, "bCOUNT_oGeo", geoCounter);
+            gpuContext.SetInt(quadCompute, "geoInd", geoInd);
             SubChunkShaderGraph.PresetSubChunkInfo(quadCompute);
             material.value.SetBuffer("VariantSettings", variantTable);
         }
@@ -61,6 +64,7 @@ namespace Arterra.Engine.Rendering
 
         public override void ProcessGeoShader(MemoryBufferHandler memoryHandle, int vertAddress, int triAddress, int baseGeoCount, int parentDepth)
         {
+            GraphicsResourceContext gpuContext = GraphicsRendering;
             if (settings.Reg.Count == 0) return;
             int idFoliageKernel = quadCompute.FindKernel("Main");
             ComputeBuffer vertSource = memoryHandle.GetBlockBuffer(vertAddress);
@@ -68,15 +72,15 @@ namespace Arterra.Engine.Rendering
             GraphicsBuffer addresses = memoryHandle.Address;
             float invScale = 1.0f / (1 << parentDepth);
 
-            ComputeBuffer args = UtilityBuffers.PrefixCountToArgs(quadCompute, UtilityBuffers.GenerationBuffer, baseGeoCount);
+            ComputeBuffer args = gpuContext.Args.PrefixCountToArgs(quadCompute, gpuContext.Work.Scratch, baseGeoCount);
 
-            quadCompute.SetBuffer(idFoliageKernel, ShaderIDProps.SourceVertices, vertSource);
-            quadCompute.SetBuffer(idFoliageKernel, ShaderIDProps.SourceTriangles, triSource);
-            quadCompute.SetBuffer(idFoliageKernel, ShaderIDProps.AddressDict, addresses);
-            quadCompute.SetInt(ShaderIDProps.VertAddress, vertAddress);
-            quadCompute.SetInt(ShaderIDProps.TriAddress, triAddress);
-            quadCompute.SetFloat(ShaderIDProps.ScaleInverse, invScale);
-            quadCompute.DispatchIndirect(idFoliageKernel, args);
+            gpuContext.SetBuffer(quadCompute, idFoliageKernel, ShaderIDProps.SourceVertices, vertSource);
+            gpuContext.SetBuffer(quadCompute, idFoliageKernel, ShaderIDProps.SourceTriangles, triSource);
+            gpuContext.SetBuffer(quadCompute, idFoliageKernel, ShaderIDProps.AddressDict, addresses);
+            gpuContext.SetInt(quadCompute, ShaderIDProps.VertAddress, vertAddress);
+            gpuContext.SetInt(quadCompute, ShaderIDProps.TriAddress, triAddress);
+            gpuContext.SetFloat(quadCompute, ShaderIDProps.ScaleInverse, invScale);
+            gpuContext.DispatchIndirect(quadCompute, idFoliageKernel, args);
         }
     }
 }

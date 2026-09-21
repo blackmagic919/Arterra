@@ -13,10 +13,10 @@ namespace Arterra.Data.Generation {
     [CreateAssetMenu(menuName = "Containers/Map Settings")]
     public class Map : ScriptableObject {
         /// <summary>
-        /// The height in grid space of the water surface. Water will only be generated if the <i>surface</i>, as defined in 
+        /// The height in grid space of the water surface. Water will only be generated if the <i>surface</i>, as defined in
         /// <see cref="Surface"/> is below this height, water will then fill the space between the surface and this height.
-        /// </summary> 
-        /// <remarks>Water only generates below this height as creating various water heights involves topological examination 
+        /// </summary>
+        /// <remarks>Water only generates below this height as creating various water heights involves topological examination
         /// to affirm a water body is contained within the terrain which is expensive.</remarks>
         public float waterHeight;
         /// <summary>
@@ -28,8 +28,8 @@ namespace Arterra.Data.Generation {
         /// </summary>
         public float heightFalloff;
         /// <summary>
-        /// The falloff intensity of the atmosphere that is multipled with the <see cref="Surface.AtmosphereNoise"/> map to 
-        /// falloff the atmosphere as height approaches infinity. Because this number is very small, it is difficult to control directly 
+        /// The falloff intensity of the atmosphere that is multipled with the <see cref="Surface.AtmosphereNoise"/> map to
+        /// falloff the atmosphere as height approaches infinity. Because this number is very small, it is difficult to control directly
         /// in the <see cref="Material.MaterialData">noise</see> settings, so this value is just used as a scalar for the entire function.
         /// </summary>
         public float atmosphereFalloff;
@@ -42,7 +42,7 @@ namespace Arterra.Data.Generation {
         public string CaveFrequencyNoise;
         /// <summary>
         /// The name of the noise function within the <see cref="Config.GenerationSettings.Noise"/> registry of noise functions
-        /// that is used to generate the size of the caves. It does this by assuming <see cref="CoarseTerrainNoise"/> generates larger caves 
+        /// that is used to generate the size of the caves. It does this by assuming <see cref="CoarseTerrainNoise"/> generates larger caves
         /// while <see cref="FineTerrainNoise"/> generates smaller caves, whereby it blends the two accordingly by the outputed <see cref="CaveSizeNoise"/>.
         /// </summary>
         [RegistryReference("Noise")]
@@ -50,8 +50,8 @@ namespace Arterra.Data.Generation {
         /// <summary>
         /// The name of the noise function within the <see cref="Config.GenerationSettings.Noise"/> registry of noise functions
         /// that is used to generate the shape of the caves. This is done by taking evaluating each entry's cave density by the distance
-        /// from it to the outputed <see cref="CaveSizeNoise"/> and using that as the new density. This has the effect of creating blobular 
-        /// regular caves when <see cref="CaveSizeNoise"/> approaches 0 or 1, and more stringy shell-like caves when <see cref="CaveSizeNoise"/> 
+        /// from it to the outputed <see cref="CaveSizeNoise"/> and using that as the new density. This has the effect of creating blobular
+        /// regular caves when <see cref="CaveSizeNoise"/> approaches 0 or 1, and more stringy shell-like caves when <see cref="CaveSizeNoise"/>
         /// is closer to 0.5.
         /// </summary>
         [RegistryReference("Noise")]
@@ -120,7 +120,7 @@ public CPUDensityManager.MapData[] GetChunkInfo(StructureCreator structCreator, 
 
         CPUDensityManager.MapData[] chunkMap = new CPUDensityManager.MapData[numOfPoints];
 
-        UtilityBuffers.GenerationBuffer.GetData(chunkMap);
+        GraphicsGeneration.Work.Scratch.GetData(chunkMap);
         return chunkMap;
     }
 
@@ -138,7 +138,7 @@ public ComputeBuffer GenerateDensity(SurfaceChunk.SurfData surfaceData, Vector3 
         MeshInfo chunk = new MeshInfo();
 
         ComputeBuffer argsBuffer = new ComputeBuffer(1, sizeof(int) * 4, ComputeBufferType.IndirectArguments);
-        argsBuffer.SetData(new int[] { 0, 1, 0, 0 });
+        GraphicsGeneration.SetBufferData(argsBuffer, new int[] { 0, 1, 0, 0 });
 
         ComputeBuffer.CopyCount(sourceMeshBuffer, argsBuffer, 0);
         tempBuffers.Enqueue(argsBuffer);
@@ -146,16 +146,16 @@ public ComputeBuffer GenerateDensity(SurfaceChunk.SurfData surfaceData, Vector3 
         int[] data = { 0, 1, 0, 0 };
         argsBuffer.GetData(data);
         int numTris = data[0];
-        
+
         if (numTris == 0)
         {
             ReleaseTempBuffers();
             return chunk;
         }
-        
+
         TriangleConst[] tris = new TriangleConst[numTris];
         sourceMeshBuffer.GetData(tris, 0, 0, numTris);
-        
+
         Dictionary<int2, int> vertDict = new Dictionary<int2, int>();
         int vertCount = 0;
 
@@ -181,7 +181,7 @@ public ComputeBuffer GenerateDensity(SurfaceChunk.SurfData surfaceData, Vector3 
         return chunk;
 
     }
-    
+
     public Dictionary<int, Mesh> CreateSpecialMeshes(SpecialShaderData[] specialShaderData, MeshInfo terrainData)
     {
         Dictionary<int, Mesh> meshes = new Dictionary<int, Mesh>();
@@ -244,7 +244,7 @@ public ComputeBuffer GenerateDensity(SurfaceChunk.SurfData surfaceData, Vector3 
     }*/
 
 
-    /*y     
+    /*y
     * ^
     * |     .--------.      z
     * |    /|  5    /|     /\
@@ -327,7 +327,7 @@ public ComputeBuffer GenerateDensity(SurfaceChunk.SurfData surfaceData, Vector3 
             callback(chunk);
             return;
         }
-            
+
 
         tris = new TriangleConst[numRealTris];
         triangelBuffer.GetData(tris, 0, 0, numRealTris); //Will already have calculated since count is binded
@@ -358,7 +358,7 @@ public ComputeBuffer GenerateDensity(SurfaceChunk.SurfData surfaceData, Vector3 
                 chunk.meshData.vertexParents[2 * (i * 3 + j) + 1] = tris[i].p2[j];
             }
         }
-        
+
         releaseBuffers();
 
         TextureData.ApplyToMaterial(terrainMat, GenerationData.Materials);

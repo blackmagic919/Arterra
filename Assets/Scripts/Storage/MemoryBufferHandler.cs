@@ -6,14 +6,16 @@ using UnityEngine;
 using UnityEngine.Profiling;
 using UnityEngine.Rendering;
 using Arterra.Utils;
+using Arterra.Core.Storage;
+using static Arterra.Core.Storage.SharedResourceManager;
 
 namespace Arterra.Configuration.Quality {
     /// <summary>
     /// Responsible for TestAllocIsEmptynaging the allocation and deallocation of memory on the GPU for generation
-    /// related tasks. Rather than allowing each system to maintain its own <see cref="ComputeBuffer"/>, 
-    /// memory is allocated through a shader-based malloc which allows for more efficient memory management and 
+    /// related tasks. Rather than allowing each system to maintain its own <see cref="ComputeBuffer"/>,
+    /// memory is allocated through a shader-based malloc which allows for more efficient memory management and
     /// fewer buffer locations to track. Settings on the size of this memory heap can be found in <see cref="Quality.Memory"/>.
-    /// <seealso href = "https://blackmagic919.github.io/AboutMe/2024/08/18/Memory-Heap/"/> 
+    /// <seealso href = "https://blackmagic919.github.io/AboutMe/2024/08/18/Memory-Heap/"/>
     /// </summary>
     public class MemoryBufferHandler {
         /// <exclude />
@@ -36,13 +38,15 @@ namespace Arterra.Configuration.Quality {
         protected LogicalBlockBuffer _AddressBuffer;
          /// <exclude />
         protected bool initialized;
+        protected readonly GraphicsResourceContext GraphicsContext;
 
         /// <summary>
         /// Initializes the <see cref="MemoryBufferHandler"/>. Allocates a memory heap on the GPU for use in the terrain generation process.
         /// Information is stored in local GPU Buffers which should be obtained through <see cref="Storage"/> and <see cref="Address"/>
-        /// properties and bound to any shader that needs to use it. 
+        /// properties and bound to any shader that needs to use it.
         /// </summary>
-        public MemoryBufferHandler(Memory settings) {
+        public MemoryBufferHandler(Memory settings, GraphicsResourceContext graphicsContext = null) {
+            GraphicsContext = graphicsContext ?? GraphicsGeneration;
             if (initialized) Release();
 
             _GPUMemorySource = new ComputeBuffer(settings.StorageSize, sizeof(uint), ComputeBufferType.Structured, ComputeBufferMode.Immutable);
@@ -82,41 +86,41 @@ namespace Arterra.Configuration.Quality {
             d_AllocateShader.EnableKeyword("DIRECT_ALLOCATE");
             d_DeallocateShader.EnableKeyword("DIRECT_DEALLOCATE");
 
-            AllocateShader.SetBuffer(0, "_SourceMemory", _GPUMemorySource);
-            AllocateShader.SetBuffer(0, "_Heap", _EmptyBlockHeap);
-            AllocateShader.SetBuffer(0, "_AddressDict", _AddressBuffer.Get());
+            GraphicsContext.SetBuffer(AllocateShader, 0, "_SourceMemory", _GPUMemorySource);
+            GraphicsContext.SetBuffer(AllocateShader, 0, "_Heap", _EmptyBlockHeap);
+            GraphicsContext.SetBuffer(AllocateShader, 0, "_AddressDict", _AddressBuffer.Get());
 
-            d_AllocateShader.SetBuffer(0, "_SourceMemory", _GPUMemorySource);
-            d_AllocateShader.SetBuffer(0, "_Heap", _EmptyBlockHeap);
-            d_AllocateShader.SetBuffer(0, "_AddressDict", _AddressBuffer.Get());
+            GraphicsContext.SetBuffer(d_AllocateShader, 0, "_SourceMemory", _GPUMemorySource);
+            GraphicsContext.SetBuffer(d_AllocateShader, 0, "_Heap", _EmptyBlockHeap);
+            GraphicsContext.SetBuffer(d_AllocateShader, 0, "_AddressDict", _AddressBuffer.Get());
 
-            DeallocateShader.SetBuffer(0, "_SourceMemory", _GPUMemorySource);
-            DeallocateShader.SetBuffer(0, "_Heap", _EmptyBlockHeap);
-            DeallocateShader.SetBuffer(0, "_AddressDict", _AddressBuffer.Get());
+            GraphicsContext.SetBuffer(DeallocateShader, 0, "_SourceMemory", _GPUMemorySource);
+            GraphicsContext.SetBuffer(DeallocateShader, 0, "_Heap", _EmptyBlockHeap);
+            GraphicsContext.SetBuffer(DeallocateShader, 0, "_AddressDict", _AddressBuffer.Get());
 
-            d_DeallocateShader.SetBuffer(0, "_SourceMemory", _GPUMemorySource);
-            d_DeallocateShader.SetBuffer(0, "_Heap", _EmptyBlockHeap);
+            GraphicsContext.SetBuffer(d_DeallocateShader, 0, "_SourceMemory", _GPUMemorySource);
+            GraphicsContext.SetBuffer(d_DeallocateShader, 0, "_Heap", _EmptyBlockHeap);
         }
 
         private void PrepareMemory(Memory settings) {
             int kernel = HeapSetupShader.FindKernel("Prepare");
-            HeapSetupShader.SetBuffer(kernel, "_SourceMemory", _GPUMemorySource);
-            HeapSetupShader.SetBuffer(kernel, "_Heap", _EmptyBlockHeap);
-            HeapSetupShader.SetInt("_BufferSize4Bytes", settings.StorageSize);
+            GraphicsContext.SetBuffer(HeapSetupShader, kernel, "_SourceMemory", _GPUMemorySource);
+            GraphicsContext.SetBuffer(HeapSetupShader, kernel, "_Heap", _EmptyBlockHeap);
+            GraphicsContext.SetInt(HeapSetupShader, "_BufferSize4Bytes", settings.StorageSize);
 
-            HeapSetupShader.Dispatch(kernel, 1, 1, 1);
+            GraphicsContext.Dispatch(HeapSetupShader, kernel, 1, 1, 1);
         }
 
         /// <summary>
-        /// Allocates a memory block of size (<paramref name="count"/> * <paramref name="stride"/>) with the 
+        /// Allocates a memory block of size (<paramref name="count"/> * <paramref name="stride"/>) with the
         /// specified <paramref name="stride"/> on the GPU. The unit is a 4-byte integer(word) and byte-level
-        /// allocation is not supported. 
+        /// allocation is not supported.
         /// </summary>
         /// <remarks>
         /// As this malloc functions on the GPU, though its synchronous complexity is O(log N) where N is the size of
         /// the free heap, it is an inefficient use of GPU resources as it must be performed synchronously. As a result
         /// avoid using this function for small allocations or in performance-critical sections of the code.
-        /// 
+        ///
         /// The <paramref name="stride"/> is specified such that one can cast the <see cref="Storage"/> buffer as containing a struct of size <paramref name="stride"/>
         /// which expedites and simplifies the process of reading and writing to the buffer.
         /// </remarks>
@@ -125,8 +129,8 @@ namespace Arterra.Configuration.Quality {
         /// <returns>
         /// The address within the <see cref="Address"/> buffer of the entry which holds the address of the first entry
         /// within the <see cref="Storage"/> buffer. To read from the memory block, a shader should follow the access pattern
-        /// <b>return addres</b> -> Address Buffer -> Storage Memory. This indirection is necessary to avoid GPU readback. 
-        /// <remarks> 
+        /// <b>return addres</b> -> Address Buffer -> Storage Memory. This indirection is necessary to avoid GPU readback.
+        /// <remarks>
         /// The address within the <see cref="Address"/> buffer is will contain two entries, the first being the 4-byte relative address
         /// and the second being relative to the requested <paramref name = "stride" /> <paramref name="stride"/>.
         /// </remarks>
@@ -136,11 +140,11 @@ namespace Arterra.Configuration.Quality {
 
             uint addressIndex = _AddressBuffer.Allocate();
             //Allocate Memory
-            d_AllocateShader.SetInt(ShaderIDProps.AddressIndex, (int)addressIndex);
-            d_AllocateShader.SetInt(ShaderIDProps.AllocCount, count);
-            d_AllocateShader.SetInt(ShaderIDProps.AllocStride, stride);
+            GraphicsContext.SetInt(d_AllocateShader, ShaderIDProps.AddressIndex, (int)addressIndex);
+            GraphicsContext.SetInt(d_AllocateShader, ShaderIDProps.AllocCount, count);
+            GraphicsContext.SetInt(d_AllocateShader, ShaderIDProps.AllocStride, stride);
 
-            d_AllocateShader.Dispatch(0, 1, 1, 1);
+            GraphicsContext.Dispatch(d_AllocateShader, 0, 1, 1, 1);
             return addressIndex;
         }
 
@@ -159,13 +163,13 @@ namespace Arterra.Configuration.Quality {
             uint addressIndex = _AddressBuffer.Allocate();
 
             //Allocate Memory
-            AllocateShader.SetInt(ShaderIDProps.AddressIndex, (int)addressIndex);
-            AllocateShader.SetInt(ShaderIDProps.CountOffset, countOffset);
+            GraphicsContext.SetInt(AllocateShader, ShaderIDProps.AddressIndex, (int)addressIndex);
+            GraphicsContext.SetInt(AllocateShader, ShaderIDProps.CountOffset, countOffset);
 
-            AllocateShader.SetBuffer(0, ShaderIDProps.AllocCount, count);
-            AllocateShader.SetInt(ShaderIDProps.AllocStride, stride);
+            GraphicsContext.SetBuffer(AllocateShader, 0, ShaderIDProps.AllocCount, count);
+            GraphicsContext.SetInt(AllocateShader, ShaderIDProps.AllocStride, stride);
 
-            AllocateShader.Dispatch(0, 1, 1, 1);
+            GraphicsContext.Dispatch(AllocateShader, 0, 1, 1, 1);
             return addressIndex;
         }
 
@@ -176,7 +180,7 @@ namespace Arterra.Configuration.Quality {
         /// </summary>
         /// <param name="addressIndex">
         /// The address of the entry within the <see cref="Address"/> buffer which points to the
-        /// allocated memory block within the <see cref="Storage"/> buffer. 
+        /// allocated memory block within the <see cref="Storage"/> buffer.
         /// </param>
         public virtual void ReleaseMemory(uint addressIndex) {
             if (!initialized || addressIndex == 0) return;
@@ -190,8 +194,8 @@ namespace Arterra.Configuration.Quality {
 
         /// <summary>Releases the physical block while retaining its logical address entry.</summary>
         protected void DeallocateMemoryBlock(uint addressIndex) {
-            DeallocateShader.SetInt(ShaderIDProps.AddressIndex, (int)addressIndex);
-            DeallocateShader.Dispatch(0, 1, 1, 1);
+            GraphicsContext.SetInt(DeallocateShader, ShaderIDProps.AddressIndex, (int)addressIndex);
+            GraphicsContext.Dispatch(DeallocateShader, 0, 1, 1, 1);
         }
 
         /// <summary>
@@ -203,15 +207,15 @@ namespace Arterra.Configuration.Quality {
         public virtual void ReleaseMemoryDirect(ComputeBuffer address, int countOffset = 0) {
             if (!initialized) return;
             //Allocate Memory
-            d_DeallocateShader.SetBuffer(0, ShaderIDProps.AddressDict, address);
-            d_DeallocateShader.SetInt(ShaderIDProps.CountOffset, countOffset);
+            GraphicsContext.SetBuffer(d_DeallocateShader, 0, ShaderIDProps.AddressDict, address);
+            GraphicsContext.SetInt(d_DeallocateShader, ShaderIDProps.CountOffset, countOffset);
 
-            d_DeallocateShader.Dispatch(0, 1, 1, 1);
+            GraphicsContext.Dispatch(d_DeallocateShader, 0, 1, 1, 1);
         }
 
         /// <summary> The primary memory buffer used for long-term memory storage in the terrain generation process. </summary>
         public virtual ComputeBuffer Storage => _GPUMemorySource;
-        /// <summary> A buffer containing addresses to memory blocks within the <see cref="Storage"/> buffer. This buffer tracks the 
+        /// <summary> A buffer containing addresses to memory blocks within the <see cref="Storage"/> buffer. This buffer tracks the
         /// raw 4-byte address as well as the address relative to the requested stride during allocation of each memory block. </summary>
         public virtual GraphicsBuffer Address => _AddressBuffer.Get();
         /// <summary>Retrieves the Storage Buffer associated with this allocation. </summary>
@@ -222,9 +226,9 @@ namespace Arterra.Configuration.Quality {
         public virtual ComputeBuffer GetBlockBuffer(int index) { return _GPUMemorySource; }
         /// <summary>Attempts to retrieve the Storage Buffer associated with this allocation if it is valid </summary>
         /// <param name="index">The address returned by <see cref="AllocateMemory"/>.</param>
-        /// <param name="buffer">If successful, the compute buffer holding this allocation </param> 
+        /// <param name="buffer">If successful, the compute buffer holding this allocation </param>
         /// <returns>Whether or not the buffer containing thsi allocation can be successfully obtained</returns>
-        public virtual bool GetBlockBufferSafe(int index, out ComputeBuffer buffer) { 
+        public virtual bool GetBlockBufferSafe(int index, out ComputeBuffer buffer) {
             buffer = null;
             if (!initialized) return false;
             buffer = _GPUMemorySource;
@@ -256,12 +260,13 @@ namespace Arterra.Configuration.Quality {
                 initialized = true;
 
                 AllocsToCheck = new Queue<ReleaseHandle>();
-                GatherAllocSizes = Resources.Load<ComputeShader>("Compute/MemoryStructures/GatherAllocGroup");
-                GatherAllocSizes.SetBuffer(0, "CheckAddresses", UtilityBuffers.TransferBuffer);
+                GatherAllocSizes = GameObject.Instantiate(Resources.Load<ComputeShader>("Compute/MemoryStructures/GatherAllocGroup"));
+                mem.GraphicsContext.SetBuffer(GatherAllocSizes, 0, "CheckAddresses", mem.GraphicsContext.Work.Transfer);
             }
 
             public void Release() {
                 initialized = false;
+                GameObject.Destroy(GatherAllocSizes);
             }
 
             public void TryReleaseIfEmpty(ReleaseHandle handle) {
@@ -272,21 +277,21 @@ namespace Arterra.Configuration.Quality {
             private void ReadbackAndClearEmpty() {
                 if (!initialized) return;
                 //Means we are currently trying to readback
-                if (StatusGroupAlloc > 0) return; 
+                if (StatusGroupAlloc > 0) return;
                 BatchedCheckSize = AllocsToCheck.Count;
                 int[] allocs = AllocsToCheck.Select(h => h.Alloc).ToArray();
-                UtilityBuffers.TransferBuffer.SetData(allocs, 0, 0, BatchedCheckSize);
+                mem.GraphicsContext.SetBufferData(mem.GraphicsContext.Work.Transfer, allocs, 0, 0, BatchedCheckSize);
 
                 StatusGroupAlloc = (int)mem.AllocateMemoryDirect(BatchedCheckSize, 1);
                 ComputeBuffer storage = mem.GetBlockBuffer(StatusGroupAlloc);
-                GatherAllocSizes.SetBuffer(0, ShaderIDProps.MemoryBuffer, storage);
-                GatherAllocSizes.SetBuffer(0, ShaderIDProps.AddressDict, mem.Address);
-                GatherAllocSizes.SetInt(ShaderIDProps.AddressIndex, StatusGroupAlloc);
-                GatherAllocSizes.SetInt(ShaderIDProps.NumAddress, BatchedCheckSize);
+                mem.GraphicsContext.SetBuffer(GatherAllocSizes, 0, ShaderIDProps.MemoryBuffer, storage);
+                mem.GraphicsContext.SetBuffer(GatherAllocSizes, 0, ShaderIDProps.AddressDict, mem.Address);
+                mem.GraphicsContext.SetInt(GatherAllocSizes, ShaderIDProps.AddressIndex, StatusGroupAlloc);
+                mem.GraphicsContext.SetInt(GatherAllocSizes, ShaderIDProps.NumAddress, BatchedCheckSize);
 
                 GatherAllocSizes.GetKernelThreadGroupSizes(0, out uint threadGroupSize, out _, out _);
                 int numThreadsAxis = Mathf.CeilToInt(BatchedCheckSize / (float)threadGroupSize);
-                GatherAllocSizes.Dispatch(0, numThreadsAxis, 1, 1);;
+                mem.GraphicsContext.Dispatch(GatherAllocSizes, 0, numThreadsAxis, 1, 1);
 
                 void OnAllocsRecieved(AsyncGPUReadbackRequest request) {
                     if (!initialized) return;
@@ -295,7 +300,7 @@ namespace Arterra.Configuration.Quality {
                         ReleaseHandle handle = AllocsToCheck.Dequeue();
                         if (success[i] != 0) continue;
                         handle.OnReleasing(handle.Alloc);
-                    } 
+                    }
                     mem.ReleaseMemory((uint)StatusGroupAlloc);
                     BatchedCheckSize = 0;
                     StatusGroupAlloc = 0;
@@ -310,7 +315,7 @@ namespace Arterra.Configuration.Quality {
                         return;
                     uint2 memHandle = request.GetData<uint2>()[0];
                     if(memHandle.x == 0) return;
-                    AsyncGPUReadback.Request(block, size: 4 * BatchedCheckSize, offset: 4 * (int)memHandle.y, OnAllocsRecieved);
+                    mem.GraphicsContext.RequestAsyncReadback(block, size: 4 * BatchedCheckSize, offset: 4 * (int)memHandle.y, OnAllocsRecieved);
                 }
 
                 if (mem is MemoryOccupancyBalancer balanced) {
@@ -318,11 +323,11 @@ namespace Arterra.Configuration.Quality {
                         if (!balanced.GetDirectAllocation((uint)StatusGroupAlloc, 1,
                             out ComputeBuffer block, out _, out _, out int start,
                             out int count)) return;
-                        AsyncGPUReadback.Request(block, size: 4 * count,
+                        mem.GraphicsContext.RequestAsyncReadback(block, size: 4 * count,
                             offset: 4 * start, OnAllocsRecieved);
                     });
                 } else {
-                    AsyncGPUReadback.Request(mem.Address, size: 8,
+                    mem.GraphicsContext.RequestAsyncReadback(mem.Address, size: 8,
                         offset: 8 * StatusGroupAlloc, OnAddressRecieved);
                 }
             }

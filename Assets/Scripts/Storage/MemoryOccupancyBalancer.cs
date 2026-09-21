@@ -5,6 +5,7 @@ using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Rendering;
 using System.Linq;
+using Arterra.Core.Storage;
 
 namespace Arterra.Configuration.Quality {
     /// <summary>
@@ -23,13 +24,14 @@ namespace Arterra.Configuration.Quality {
         private readonly int journalCapacity;
         private int currentOperation;
 
-        public MemoryOccupancyBalancer(BalancedMemory settings) : base(settings) {
+        public MemoryOccupancyBalancer(BalancedMemory settings, GraphicsResourceContext graphicsContext = null)
+            : base(settings, graphicsContext) {
             this.settings = settings;
             journalCapacity = settings.MaxAllocationsPerSnapshot > 0
                 ? settings.MaxAllocationsPerSnapshot : 1024;
             allocationSizes = new ComputeBuffer(journalCapacity, sizeof(uint) * 2,
                 ComputeBufferType.Structured, ComputeBufferMode.Immutable);
-            allocationSizes.SetData(new uint2[journalCapacity]);
+            GraphicsContext.SetBufferData(allocationSizes, new uint2[journalCapacity]);
             allocationShiftBuffer = new ComputeBuffer(journalCapacity, sizeof(uint) * 2,
                 ComputeBufferType.Structured, ComputeBufferMode.Immutable);
             addressBuffers = new Allocation[settings.AddressSize + 1];
@@ -49,24 +51,24 @@ namespace Arterra.Configuration.Quality {
             d_AllocateShader.EnableKeyword("TRACKING");
             DeallocateShader.EnableKeyword("TRACKING");
             d_DeallocateShader.EnableKeyword("TRACKING");
-            AllocateShader.SetBuffer(0, "Allocations", allocationSizes);
-            d_AllocateShader.SetBuffer(0, "Allocations", allocationSizes);
-            DeallocateShader.SetBuffer(0, "Allocations", allocationSizes);
-            d_DeallocateShader.SetBuffer(0, "Allocations", allocationSizes);
+            GraphicsContext.SetBuffer(AllocateShader, 0, "Allocations", allocationSizes);
+            GraphicsContext.SetBuffer(d_AllocateShader, 0, "Allocations", allocationSizes);
+            GraphicsContext.SetBuffer(DeallocateShader, 0, "Allocations", allocationSizes);
+            GraphicsContext.SetBuffer(d_DeallocateShader, 0, "Allocations", allocationSizes);
 
             int kernel = migrationShader.FindKernel("Copy");
-            migrationShader.SetBuffer(kernel, "_AddressDict", Address);
-            migrationShader.SetBuffer(kernel, "_SourceMemory", _GPUMemorySource);
+            GraphicsContext.SetBuffer(migrationShader, kernel, "_AddressDict", Address);
+            GraphicsContext.SetBuffer(migrationShader, kernel, "_SourceMemory", _GPUMemorySource);
             kernel = migrationShader.FindKernel("Commit");
-            migrationShader.SetBuffer(kernel, "_AddressDict", Address);
+            GraphicsContext.SetBuffer(migrationShader, kernel, "_AddressDict", Address);
 
             kernel = migrationShader.FindKernel("ShiftJournalToTemp");
-            migrationShader.SetBuffer(kernel, "Allocations", allocationSizes);
-            migrationShader.SetBuffer(kernel, "AllocationShiftBuffer",
+            GraphicsContext.SetBuffer(migrationShader, kernel, "Allocations", allocationSizes);
+            GraphicsContext.SetBuffer(migrationShader, kernel, "AllocationShiftBuffer",
                 allocationShiftBuffer);
             kernel = migrationShader.FindKernel("ShiftJournalFromTemp");
-            migrationShader.SetBuffer(kernel, "Allocations", allocationSizes);
-            migrationShader.SetBuffer(kernel, "AllocationShiftBuffer",
+            GraphicsContext.SetBuffer(migrationShader, kernel, "Allocations", allocationSizes);
+            GraphicsContext.SetBuffer(migrationShader, kernel, "AllocationShiftBuffer",
                 allocationShiftBuffer);
         }
 
@@ -83,7 +85,7 @@ namespace Arterra.Configuration.Quality {
             int count = currentOperation;
             // Keep the loop alive while idle; a zero-byte readback is invalid.
             int readCount = Math.Max(1, count);
-            AsyncGPUReadback.Request(allocationSizes, readCount * sizeof(uint) * 2, 0,
+            GraphicsContext.RequestAsyncReadback(allocationSizes, readCount * sizeof(uint) * 2, 0,
                 request => CompleteReadback(request, count));
         }
 
@@ -125,7 +127,7 @@ namespace Arterra.Configuration.Quality {
                     (int)wordCount, (int)size.y);
                 // All earlier scratch users precede this copy on the graphics
                 // queue. Future users will receive the new binding below.
-                DeallocateShader.SetInt("operationIndex", -1);
+                GraphicsContext.SetInt(DeallocateShader, "operationIndex", -1);
                 DeallocateMemoryBlock(addressIndex);
                 CommitMigration(addressIndex, blockIndex, rawStart, alignedStart,
                     reservedWords, (int)size.y);
@@ -146,13 +148,13 @@ namespace Arterra.Configuration.Quality {
             if (count > 0 && overflow > 0) {
                 int groups = (overflow + 255) / 256;
                 int kernel = migrationShader.FindKernel("ShiftJournalToTemp");
-                migrationShader.SetInt("_ShiftCount", overflow);
-                migrationShader.SetInt("_ShiftBy", count);
-                migrationShader.Dispatch(kernel, groups, 1, 1);
+                GraphicsContext.SetInt(migrationShader, "_ShiftCount", overflow);
+                GraphicsContext.SetInt(migrationShader, "_ShiftBy", count);
+                GraphicsContext.Dispatch(migrationShader, kernel, groups, 1, 1);
 
                 kernel = migrationShader.FindKernel("ShiftJournalFromTemp");
-                migrationShader.SetInt("_ShiftCount", overflow);
-                migrationShader.Dispatch(kernel, groups, 1, 1);
+                GraphicsContext.SetInt(migrationShader, "_ShiftCount", overflow);
+                GraphicsContext.Dispatch(migrationShader, kernel, groups, 1, 1);
             }
             for (int i = count; i < currentOperation; i++) {
                 uint addressIndex = oppToAddressIndex[i].addressIndex;
@@ -179,30 +181,30 @@ namespace Arterra.Configuration.Quality {
         private void DispatchCopy(uint addressIndex, int blockIndex, int alignedStart,
             int wordCount, int stride) {
             int kernel = migrationShader.FindKernel("Copy");
-            migrationShader.SetBuffer(kernel, "_DestMemory",
+            GraphicsContext.SetBuffer(migrationShader, kernel, "_DestMemory",
                 blockStorage[blockIndex].storage);
-            migrationShader.SetInt("_AddressIndex", (int)addressIndex);
-            migrationShader.SetInt("_DestinationStart", alignedStart);
-            migrationShader.SetInt("_WordCount", wordCount);
-            migrationShader.SetInt("_Stride", stride);
+            GraphicsContext.SetInt(migrationShader, "_AddressIndex", (int)addressIndex);
+            GraphicsContext.SetInt(migrationShader, "_DestinationStart", alignedStart);
+            GraphicsContext.SetInt(migrationShader, "_WordCount", wordCount);
+            GraphicsContext.SetInt(migrationShader, "_Stride", stride);
             int groups = (int)(((long)wordCount + 255) / 256);
             int groupsX = Math.Min(groups, 65535);
             int groupsY = (groups + groupsX - 1) / groupsX;
-            migrationShader.SetInt("_GroupsX", groupsX);
-            migrationShader.Dispatch(kernel, groupsX, groupsY, 1);
+            GraphicsContext.SetInt(migrationShader, "_GroupsX", groupsX);
+            GraphicsContext.Dispatch(migrationShader, kernel, groupsX, groupsY, 1);
         }
 
         private void CommitMigration(uint addressIndex, int blockIndex, int rawStart,
             int alignedStart, int reservedWords, int stride) {
             int kernel = migrationShader.FindKernel("Commit");
-            migrationShader.SetBuffer(kernel, "_DestMemory",
+            GraphicsContext.SetBuffer(migrationShader, kernel, "_DestMemory",
                 blockStorage[blockIndex].storage);
-            migrationShader.SetInt("_AddressIndex", (int)addressIndex);
-            migrationShader.SetInt("_DestinationRaw", rawStart);
-            migrationShader.SetInt("_DestinationStart", alignedStart);
-            migrationShader.SetInt("_DestinationWords", reservedWords);
-            migrationShader.SetInt("_Stride", stride);
-            migrationShader.Dispatch(kernel, 1, 1, 1);
+            GraphicsContext.SetInt(migrationShader, "_AddressIndex", (int)addressIndex);
+            GraphicsContext.SetInt(migrationShader, "_DestinationRaw", rawStart);
+            GraphicsContext.SetInt(migrationShader, "_DestinationStart", alignedStart);
+            GraphicsContext.SetInt(migrationShader, "_DestinationWords", reservedWords);
+            GraphicsContext.SetInt(migrationShader, "_Stride", stride);
+            GraphicsContext.Dispatch(migrationShader, kernel, 1, 1, 1);
         }
 
         private bool TryAllocateStorage(int words, int stride, out int index,
@@ -315,17 +317,35 @@ namespace Arterra.Configuration.Quality {
         public override uint AllocateMemory(ComputeBuffer count, int stride, int countOffset = 0) {
             if (!initialized) return 0;
             int operationIndex = BeginAllocation();
-            AllocateShader.SetInt("operationIndex", operationIndex);
+            GraphicsContext.SetInt(AllocateShader, "operationIndex", operationIndex);
             return FinishAllocation(base.AllocateMemory(count, stride, countOffset),
                 operationIndex);
         }
 
         public override uint AllocateMemoryDirect(int count, int stride) {
-            if (!initialized) return 0;
-            int operationIndex = BeginAllocation();
-            d_AllocateShader.SetInt("operationIndex", operationIndex);
-            return FinishAllocation(base.AllocateMemoryDirect(count, stride),
-                operationIndex);
+            if (!initialized || count <= 0 || stride <= 0) return 0;
+
+            long wordCount = (long)count * stride;
+            if (wordCount > int.MaxValue || !TryAllocateStorage((int)wordCount,
+                stride, out int blockIndex, out int rawStart,
+                out int alignedStart, out int reservedWords)) {
+                Debug.LogError("No long-term buffer can hold the direct allocation.");
+                return 0;
+            }
+
+            uint addressIndex = _AddressBuffer.Allocate();
+            addressBuffers[addressIndex] = new Allocation {
+                bufferIndex = blockIndex,
+                operationIndex = -1
+            };
+            directlManagedAllocations[addressIndex] = new DirectManagedAllocation {
+                rawStart = rawStart,
+                reservedWords = reservedWords
+            };
+
+            CommitMigration(addressIndex, blockIndex, rawStart, alignedStart,
+                reservedWords, stride);
+            return addressIndex;
         }
 
         public override void ReleaseMemory(uint addressIndex) {
@@ -338,7 +358,7 @@ namespace Arterra.Configuration.Quality {
             };
             directlManagedAllocations[addressIndex] = default;
             if (allocation.bufferIndex < 0) {
-                DeallocateShader.SetInt("operationIndex", allocation.operationIndex);
+                GraphicsContext.SetInt(DeallocateShader, "operationIndex", allocation.operationIndex);
                 base.ReleaseMemory(addressIndex);
             } else {
                 FreeStorage(allocation.bufferIndex, directAllocation.rawStart - 1,

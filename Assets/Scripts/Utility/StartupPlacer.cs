@@ -3,6 +3,7 @@ using UnityEngine;
 using Arterra.Configuration;
 using Arterra.Data.Entity;
 using Arterra.Core.Storage;
+using static Arterra.Core.Storage.SharedResourceManager;
 
 namespace Arterra.Utils {
     public static class StartupPlacer {
@@ -14,68 +15,71 @@ namespace Arterra.Utils {
             WeightedPlacement = Resources.Load<ComputeShader>("Compute/StartupPlacement/WeightedPlacement");
         }
         public static void Initialize() {
+            GraphicsResourceContext gpuContext = GraphicsGeneration;
             Arterra.Configuration.Quality.Terrain rSettings = Config.CURRENT.Quality.Terrain;
             Arterra.Data.Generation.Surface surface = Config.CURRENT.Generation.Surface.value;
-            SurfaceFinder.SetInt("continentalSampler", surface.ContinentalIndex);
-            SurfaceFinder.SetInt("majorWarpSampler", surface.MajorWarpIndex);
-            SurfaceFinder.SetInt("minorWarpSampler", surface.MinorWarpIndex);
-            SurfaceFinder.SetInt("erosionSampler", surface.ErosionIndex);
-            SurfaceFinder.SetInt("squashSampler", surface.SquashIndex);
-            SurfaceFinder.SetFloat("maxTerrainHeight", surface.MaxTerrainHeight);
-            SurfaceFinder.SetFloat("squashHeight", surface.MaxSquashHeight);
-            SurfaceFinder.SetFloat("heightOffset", surface.terrainOffset);
+            gpuContext.SetInt(SurfaceFinder, "continentalSampler", surface.ContinentalIndex);
+            gpuContext.SetInt(SurfaceFinder, "majorWarpSampler", surface.MajorWarpIndex);
+            gpuContext.SetInt(SurfaceFinder, "minorWarpSampler", surface.MinorWarpIndex);
+            gpuContext.SetInt(SurfaceFinder, "erosionSampler", surface.ErosionIndex);
+            gpuContext.SetInt(SurfaceFinder, "squashSampler", surface.SquashIndex);
+            gpuContext.SetFloat(SurfaceFinder, "maxTerrainHeight", surface.MaxTerrainHeight);
+            gpuContext.SetFloat(SurfaceFinder, "squashHeight", surface.MaxSquashHeight);
+            gpuContext.SetFloat(SurfaceFinder, "heightOffset", surface.terrainOffset);
 
             int kernel = SurfaceFinder.FindKernel("FindSurface");
-            SurfaceFinder.SetBuffer(kernel, "Result", UtilityBuffers.TransferBuffer);
-            SurfaceFinder.SetInt("bSTART", 0);
+            gpuContext.SetBuffer(SurfaceFinder, kernel, "Result", gpuContext.Work.Transfer);
+            gpuContext.SetInt(SurfaceFinder, "bSTART", 0);
 
-            WeightedPlacement.SetInt("SearchRadius", rSettings.viewDistUpdate);
-            WeightedPlacement.SetInt("ProfileEntity", Config.CURRENT.Generation.Entities.RetrieveIndex("Player"));
-            WeightedPlacement.SetInt("mapChunkSize", rSettings.mapChunkSize);
-            WeightedPlacement.SetInt("numPointsPerAxis", rSettings.mapChunkSize);
-            WeightedPlacement.SetInt("bSTART", 0);
-            WeightedPlacement.SetInt("bLOCK", 3);
+            gpuContext.SetInt(WeightedPlacement, "SearchRadius", rSettings.viewDistUpdate);
+            gpuContext.SetInt(WeightedPlacement, "ProfileEntity", Config.CURRENT.Generation.Entities.RetrieveIndex("Player"));
+            gpuContext.SetInt(WeightedPlacement, "mapChunkSize", rSettings.mapChunkSize);
+            gpuContext.SetInt(WeightedPlacement, "numPointsPerAxis", rSettings.mapChunkSize);
+            gpuContext.SetInt(WeightedPlacement, "bSTART", 0);
+            gpuContext.SetInt(WeightedPlacement, "bLOCK", 3);
 
             kernel = WeightedPlacement.FindKernel("WeightedPlace");
-            WeightedPlacement.SetBuffer(kernel, "_AddressDict", GPUMapManager.Address);
-            WeightedPlacement.SetBuffer(kernel, "_MemoryBuffer", GPUMapManager.Storage);
-            WeightedPlacement.SetBuffer(kernel, "Result", UtilityBuffers.TransferBuffer);
-            WeightedPlacement.SetBuffer(kernel, "Lock", UtilityBuffers.TransferBuffer);
+            gpuContext.SetBuffer(WeightedPlacement, kernel, "_AddressDict", GPUMapManager.Address);
+            gpuContext.SetBuffer(WeightedPlacement, kernel, "_MemoryBuffer", GPUMapManager.Storage);
+            gpuContext.SetBuffer(WeightedPlacement, kernel, "Result", gpuContext.Work.Transfer);
+            gpuContext.SetBuffer(WeightedPlacement, kernel, "Lock", gpuContext.Work.Transfer);
             kernel = WeightedPlacement.FindKernel("FindSmallest");
-            WeightedPlacement.SetBuffer(kernel, "Result", UtilityBuffers.TransferBuffer);
-            WeightedPlacement.SetBuffer(kernel, "Lock", UtilityBuffers.TransferBuffer);
+            gpuContext.SetBuffer(WeightedPlacement, kernel, "Result", gpuContext.Work.Transfer);
+            gpuContext.SetBuffer(WeightedPlacement, kernel, "Lock", gpuContext.Work.Transfer);
         }
 
         public static float3 FindClearingAround(float3 startPos) {
-            SurfaceFinder.SetFloats("startPosXZ", new float[] { startPos.x, startPos.z });
+            GraphicsResourceContext gpuContext = GraphicsGeneration;
+            gpuContext.SetFloats(SurfaceFinder, "startPosXZ", new float[] { startPos.x, startPos.z });
             int kernel = SurfaceFinder.FindKernel("FindSurface");
-            SurfaceFinder.Dispatch(kernel, 1, 1, 1);
+            gpuContext.Dispatch(SurfaceFinder, kernel, 1, 1, 1);
 
             float[] height = new float[1];
-            UtilityBuffers.TransferBuffer.GetData(height, 0, 0, 1);
+            gpuContext.GetData(gpuContext.Work.Transfer, height, 0, 0, 1);
             startPos.y = height[0];
             return startPos;
         }
 
         public static void MoveToClearing(Entity entity) {
+            GraphicsResourceContext gpuContext = GraphicsGeneration;
             //Setup Lock Value
             Arterra.Configuration.Quality.Terrain rSettings = Config.CURRENT.Quality.Terrain;
-            UtilityBuffers.TransferBuffer.SetData(new uint[] { uint.MaxValue }, 0, 3, 1);
+            gpuContext.SetBufferData(gpuContext.Work.Transfer, new uint[] { uint.MaxValue }, 0, 3, 1);
 
             int3 center = (int3)math.round(entity.position);
-            WeightedPlacement.SetInts("SearchCenter", new int[] { center.x, center.y, center.z });
+            gpuContext.SetInts(WeightedPlacement, "SearchCenter", new int[] { center.x, center.y, center.z });
             int kernel = WeightedPlacement.FindKernel("WeightedPlace");
             WeightedPlacement.GetKernelThreadGroupSizes(kernel, out uint threadGroupSize, out _, out _);
             int numThreadsAxis = Mathf.CeilToInt(rSettings.viewDistUpdate * 2 / (float)threadGroupSize);
-            WeightedPlacement.Dispatch(kernel, numThreadsAxis, numThreadsAxis, numThreadsAxis);
+            gpuContext.Dispatch(WeightedPlacement, kernel, numThreadsAxis, numThreadsAxis, numThreadsAxis);
 
             kernel = WeightedPlacement.FindKernel("FindSmallest");
             WeightedPlacement.GetKernelThreadGroupSizes(kernel, out threadGroupSize, out _, out _);
             numThreadsAxis = Mathf.CeilToInt(rSettings.viewDistUpdate * 2 / (float)threadGroupSize);
-            WeightedPlacement.Dispatch(kernel, numThreadsAxis, numThreadsAxis, numThreadsAxis);
+            gpuContext.Dispatch(WeightedPlacement, kernel, numThreadsAxis, numThreadsAxis, numThreadsAxis);
 
             int[] position = new int[4];
-            UtilityBuffers.TransferBuffer.GetData(position, 0, 0, 4);
+            gpuContext.GetData(gpuContext.Work.Transfer, position, 0, 0, 4);
             int3 deltaPos = new(position[0], position[1], position[2]);
             deltaPos = math.clamp(deltaPos, -rSettings.viewDistUpdate, rSettings.viewDistUpdate);
             Debug.Log(deltaPos);

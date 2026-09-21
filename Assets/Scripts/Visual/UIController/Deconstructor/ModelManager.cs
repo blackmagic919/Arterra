@@ -1,6 +1,8 @@
 using Unity.Mathematics;
 using UnityEngine;
 using Arterra.Utils;
+using Arterra.Core.Storage;
+using static Arterra.Core.Storage.SharedResourceManager;
 
 namespace Arterra.Editor {
     public class ModelManager {
@@ -9,7 +11,7 @@ namespace Arterra.Editor {
         private ComputeShader ModelConstructor;
         private ComputeShader IndexLinker;
         private ComputeShader DrawArgsConstructor;
-        public Arterra.Engine.Terrain.Map.Generator.GeoGenOffsets offsets;
+        public Arterra.Engine.Terrain.Map.Creator.GeoGenOffsets offsets;
         private uint3 GridSize;
         private float IsoLevel;
 
@@ -32,7 +34,7 @@ namespace Arterra.Editor {
             this.IsoLevel = IsoLevel;
             this.transform = transform;
 
-            this.offsets = new Arterra.Engine.Terrain.Map.Generator.GeoGenOffsets(new int3(GridSize), 0, bufferStart, VERTEX_STRIDE_WORD);
+            this.offsets = new Arterra.Engine.Terrain.Map.Creator.GeoGenOffsets(new int3(GridSize), 0, bufferStart, VERTEX_STRIDE_WORD);
             PresetData();
         }
 
@@ -67,8 +69,9 @@ namespace Arterra.Editor {
         }
 
         void ConstructModel() {
+            GraphicsResourceContext gpuContext = GraphicsGeneration;
             //Construct Vertices
-            UtilityBuffers.ClearRange(this.GeoBuffer, 3, offsets.bufferStart);
+            gpuContext.Work.ClearRange(this.GeoBuffer, 3, offsets.bufferStart);
             int kernel = ModelConstructor.FindKernel("March");
 
             uint3 threadsPerAxis;
@@ -79,28 +82,30 @@ namespace Arterra.Editor {
                 (uint)Mathf.CeilToInt((float)GridSize.z / threadsPerAxis.z)
             );
 
-            ModelConstructor.Dispatch(kernel, (int)threadsPerAxis.x, (int)threadsPerAxis.y, (int)threadsPerAxis.z);
+            gpuContext.Dispatch(ModelConstructor, kernel, (int)threadsPerAxis.x, (int)threadsPerAxis.y, (int)threadsPerAxis.z);
             LinkTriangles(offsets.baseTriStart, offsets.baseTriCounter);
             LinkTriangles(offsets.waterTriStart, offsets.waterTriCounter);
         }
 
         void LinkTriangles(int start, int counter) {
+            GraphicsResourceContext gpuContext = GraphicsGeneration;
             int kernel = IndexLinker.FindKernel("CSMain");
-            ComputeBuffer args = UtilityBuffers.CountToArgs(IndexLinker, this.GeoBuffer, counter);
-            IndexLinker.SetInt("bCOUNT_Tri", counter);
-            IndexLinker.SetInt("bSTART_Tri", start);
-            IndexLinker.DispatchIndirect(kernel, args);
+            ComputeBuffer args = gpuContext.Args.CountToArgs(IndexLinker, this.GeoBuffer, counter);
+            gpuContext.SetInt(IndexLinker, "bCOUNT_Tri", counter);
+            gpuContext.SetInt(IndexLinker, "bSTART_Tri", start);
+            gpuContext.DispatchIndirect(IndexLinker, kernel, args);
         }
 
         Arterra.Engine.Terrain.Readback.GeometryHandle SetupGeoHandle(Camera camera, int vertStart, int indexStart, int indexCounter, int matInd) {
-            uint drawArgs = UtilityBuffers.DrawArgs.Allocate();
+            GraphicsResourceContext gpuContext = GraphicsGeneration;
+            uint drawArgs = gpuContext.Args.DrawArgs.Allocate();
 
             int kernel = DrawArgsConstructor.FindKernel("CSMain");
-            DrawArgsConstructor.SetBuffer(kernel, "counter", this.GeoBuffer);
-            DrawArgsConstructor.SetInt("bCOUNTER", indexCounter);
-            DrawArgsConstructor.SetInt("argOffset", (int)drawArgs);
-            DrawArgsConstructor.SetBuffer(kernel, "_IndirectArgsBuffer", UtilityBuffers.DrawArgs.Get());
-            DrawArgsConstructor.Dispatch(kernel, 1, 1, 1);
+            gpuContext.SetBuffer(DrawArgsConstructor, kernel, "counter", this.GeoBuffer);
+            gpuContext.SetInt(DrawArgsConstructor, "bCOUNTER", indexCounter);
+            gpuContext.SetInt(DrawArgsConstructor, "argOffset", (int)drawArgs);
+            gpuContext.SetBuffer(DrawArgsConstructor, kernel, "_IndirectArgsBuffer", gpuContext.Args.DrawArgs.Get());
+            gpuContext.Dispatch(DrawArgsConstructor, kernel, 1, 1, 1);
 
             Vector3 size = new Vector3(GridSize.x, GridSize.y, GridSize.z);
             Bounds BoundsWS = CustomUtility.TransformBounds(transform, new Bounds(size / 2f, size));
@@ -123,30 +128,31 @@ namespace Arterra.Editor {
         }
 
         void PresetData() {
+            GraphicsResourceContext gpuContext = GraphicsGeneration;
             this.ModelMaterial[0] = new Material(Shader.Find("Unlit/ModelTerrain"));
             this.ModelMaterial[1] = new Material(Shader.Find("Unlit/ModelLiquid"));
 
             int kernel = ModelConstructor.FindKernel("March");
-            ModelConstructor.SetBuffer(kernel, "MapInfo", this.MapBuffer);
-            ModelConstructor.SetBuffer(kernel, "vertexes", this.GeoBuffer);
-            ModelConstructor.SetBuffer(kernel, "triangles", this.GeoBuffer);
-            ModelConstructor.SetBuffer(kernel, "triangleDict", this.GeoBuffer);
-            ModelConstructor.SetBuffer(kernel, "counter", this.GeoBuffer);
+            gpuContext.SetBuffer(ModelConstructor, kernel, "MapInfo", this.MapBuffer);
+            gpuContext.SetBuffer(ModelConstructor, kernel, "vertexes", this.GeoBuffer);
+            gpuContext.SetBuffer(ModelConstructor, kernel, "triangles", this.GeoBuffer);
+            gpuContext.SetBuffer(ModelConstructor, kernel, "triangleDict", this.GeoBuffer);
+            gpuContext.SetBuffer(ModelConstructor, kernel, "counter", this.GeoBuffer);
 
-            ModelConstructor.SetInts("counterInd", new int[] { offsets.vertexCounter, offsets.baseTriCounter, offsets.waterTriCounter });
-            ModelConstructor.SetInts("GridSize", new int[] { (int)GridSize.x, (int)GridSize.y, (int)GridSize.z });
+            gpuContext.SetInts(ModelConstructor, "counterInd", new int[] { offsets.vertexCounter, offsets.baseTriCounter, offsets.waterTriCounter });
+            gpuContext.SetInts(ModelConstructor, "GridSize", new int[] { (int)GridSize.x, (int)GridSize.y, (int)GridSize.z });
 
-            ModelConstructor.SetInt("bSTART_dict", offsets.dictStart);
-            ModelConstructor.SetInt("bSTART_verts", offsets.vertStart);
-            ModelConstructor.SetInt("bSTART_baseT", offsets.baseTriStart);
-            ModelConstructor.SetInt("bSTART_waterT", offsets.waterTriStart);
-            ModelConstructor.SetFloat("IsoLevel", IsoLevel);
+            gpuContext.SetInt(ModelConstructor, "bSTART_dict", offsets.dictStart);
+            gpuContext.SetInt(ModelConstructor, "bSTART_verts", offsets.vertStart);
+            gpuContext.SetInt(ModelConstructor, "bSTART_baseT", offsets.baseTriStart);
+            gpuContext.SetInt(ModelConstructor, "bSTART_waterT", offsets.waterTriStart);
+            gpuContext.SetFloat(ModelConstructor, "IsoLevel", IsoLevel);
 
             kernel = IndexLinker.FindKernel("CSMain");
-            IndexLinker.SetBuffer(kernel, "triDict", this.GeoBuffer);
-            IndexLinker.SetBuffer(kernel, "counter", this.GeoBuffer);
-            IndexLinker.SetBuffer(kernel, "BaseTriangles", this.GeoBuffer);
-            IndexLinker.SetInt("bSTART_Dict", offsets.dictStart);
+            gpuContext.SetBuffer(IndexLinker, kernel, "triDict", this.GeoBuffer);
+            gpuContext.SetBuffer(IndexLinker, kernel, "counter", this.GeoBuffer);
+            gpuContext.SetBuffer(IndexLinker, kernel, "BaseTriangles", this.GeoBuffer);
+            gpuContext.SetInt(IndexLinker, "bSTART_Dict", offsets.dictStart);
         }
     }
 }

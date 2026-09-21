@@ -4,9 +4,11 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using Arterra.Configuration;
+using Arterra.Core.Storage;
 using Arterra.Engine.Terrain;
 using UnityEngine;
 using UnityEngine.Profiling;
+using static Arterra.Core.Storage.SharedResourceManager;
 
 namespace Arterra.Core {
 public class ArterraRuntime : MonoBehaviour {
@@ -31,7 +33,7 @@ public class ArterraRuntime : MonoBehaviour {
     /// <summary>
     /// A queue containing subscribed tasks that are executed
     /// once every fixed update loop. The fixed update loop is
-    /// akin to a game-tick and is frame-independent. 
+    /// akin to a game-tick and is frame-independent.
     /// </summary>
     public static Queue<IUpdateSubscriber> MainFixedUpdateTasks;
     /// <summary>
@@ -42,29 +44,19 @@ public class ArterraRuntime : MonoBehaviour {
     public static Queue<IEnumerator> MainCoroutines;
     /// <summary>
     /// A queue of generation actions which are processed
-    /// sequentially and discarded once they are called. All tasks 
+    /// sequentially and discarded once they are called. All tasks
     /// are channeled through this queue to manage the resource load
-    /// and facilitate expensive operations. 
+    /// and facilitate expensive operations.
     /// </summary>
     /// <remarks>
     /// The concurrent queue may also be used to reinject tasks
     /// on different threads back into the main thread.
     /// </remarks>
-    public static LinkedList<RuntimeTaskEl> EventTaskQueue; 
+    public static LinkedList<RuntimeTaskEl> EventTaskQueue;
     private static LinkedListNode<RuntimeTaskEl> _nextNode;
-    private static UnityEngine.Rendering.CommandBuffer AsyncTaskBuffer;
 
 
-    private static bool TryGetAsyncTaskBuffer(string caller, out UnityEngine.Rendering.CommandBuffer cmd) {
-        cmd = AsyncTaskBuffer;
-        if (cmd == null) {
-            Debug.LogWarning($"{nameof(ArterraRuntime)}.{caller} was called before runtime initialization or after shutdown.");
-            return false;
-        }
 
-        return true;
-    }
-    
     private void OnEnable() {
         if (instance != null && instance != this) {
             Debug.LogWarning($"Duplicate {nameof(ArterraRuntime)} instance detected. Disabling duplicate component on {gameObject.name}.");
@@ -73,10 +65,6 @@ public class ArterraRuntime : MonoBehaviour {
         }
 
         instance = this;
-        AsyncTaskBuffer ??= new UnityEngine.Rendering.CommandBuffer {
-            name = "ArterraRuntime.AsyncTaskBuffer"
-        };
-        AsyncTaskBuffer.Clear();
         MainLoopUpdateTasks = new Queue<IUpdateSubscriber>();
         MainLateUpdateTasks = new Queue<IUpdateSubscriber>();
         MainFixedUpdateTasks = new Queue<IUpdateSubscriber>();
@@ -90,8 +78,6 @@ public class ArterraRuntime : MonoBehaviour {
         if (instance != this) return;
         instance = null;
         SystemProtocol.Shutdown();
-        AsyncTaskBuffer?.Release();
-        AsyncTaskBuffer = null;
     }
 
 #if UNITY_EDITOR
@@ -105,16 +91,21 @@ public class ArterraRuntime : MonoBehaviour {
     }
     private void LateUpdate() {
         ProcessUpdateTasks(MainLateUpdateTasks);
-        if (!TryGetAsyncTaskBuffer(nameof(LateUpdate), out var cmd))
-            return;
+        GraphicsResourceContext generation = GraphicsGeneration;
+        GraphicsResourceContext rendering = GraphicsRendering;
+        generation.AnswerPolls();
+        rendering.AnswerPolls();
 
-        if (cmd.sizeInBytes == 0)
-            return;
+        if (generation.Commands.sizeInBytes != 0) {
+            if (SystemInfo.supportsAsyncCompute)
+                UnityEngine.Graphics.ExecuteCommandBufferAsync(generation.Commands, UnityEngine.Rendering.ComputeQueueType.Background);
+            else UnityEngine.Graphics.ExecuteCommandBuffer(generation.Commands);
+        }
+        generation.Commands.Clear(); //Clear here so we safeguard in case they are the same command buffer
 
-        if (SystemInfo.supportsAsyncCompute)
-            Graphics.ExecuteCommandBufferAsync(cmd, UnityEngine.Rendering.ComputeQueueType.Background);
-        else Graphics.ExecuteCommandBuffer(cmd);
-        cmd.Clear();
+        if (rendering.Commands.sizeInBytes != 0)
+            UnityEngine.Graphics.ExecuteCommandBuffer(rendering.Commands);
+        rendering.Commands.Clear();
     }
     private void FixedUpdate() { ProcessUpdateTasks(MainFixedUpdateTasks); }
     private void ProcessUpdateTasks(Queue<IUpdateSubscriber> taskQueue) {
@@ -140,30 +131,14 @@ public class ArterraRuntime : MonoBehaviour {
         EventTaskQueue.AddLast(new RuntimeTaskEl {
             type = RuntimeTaskEl.ElType.Task,
             task = config,
-        }); 
+        });
     }
 
     public static void RegisterFence(TaskFence config) {
         EventTaskQueue.AddLast(new RuntimeTaskEl {
             type = RuntimeTaskEl.ElType.Fence,
             fence = config,
-        }); 
-    }
-
-    public static void Dispatch(ComputeShader shader, int kernelIndex, int threadGroupsX, int threadGroupsY, int threadGroupsZ, bool GraphicsQueue = false) {
-        if (!TryGetAsyncTaskBuffer(nameof(Dispatch), out var cmd))
-            return;
-
-        if (GraphicsQueue) shader.Dispatch(kernelIndex, threadGroupsX, threadGroupsY, threadGroupsZ);
-        else cmd.DispatchCompute(shader, kernelIndex, threadGroupsX, threadGroupsY, threadGroupsZ);
-    }
-
-    public static void DispatchIndirect(ComputeShader shader, int kernelIndex, ComputeBuffer argsBuffer, uint argsOffset = 0u, bool GraphicsQueue = false) {
-        if (!TryGetAsyncTaskBuffer(nameof(DispatchIndirect), out var cmd))
-            return;
-
-        if (GraphicsQueue) shader.DispatchIndirect(kernelIndex, argsBuffer, argsOffset);
-        else cmd.DispatchCompute(shader, kernelIndex, argsBuffer, argsOffset);
+        });
     }
 
     private void ProcessEventTasks() {
@@ -171,12 +146,12 @@ public class ArterraRuntime : MonoBehaviour {
             return;
 
         int maxFrameLoad = Config.CURRENT.Quality.Terrain.value.maxFrameLoad;
-        
+
         int frameLoad = 0;
         int iterations = EventTaskQueue.Count;
         if (_nextNode == null || _nextNode.List != EventTaskQueue)
             _nextNode = EventTaskQueue.First;
-        
+
         //Round robin event thingy
         while (iterations-- > 0 && _nextNode != null && EventTaskQueue.Count > 0) {
             var current = _nextNode;
@@ -200,7 +175,7 @@ public class ArterraRuntime : MonoBehaviour {
 
             if (task.processToken?.Invoke() == false)
                 continue;
-            
+
 
             Profiler.BeginSample("Task Number: " + task.id);
             task.task?.Invoke();
@@ -234,8 +209,8 @@ public class ArterraRuntime : MonoBehaviour {
         /// A callback that returns whether or not the job has been cancelled and can be discarded.
         /// </summary>
         public Func<bool> cancelToken;
-        /// <summary> 
-        /// The priority of the task as defined in <see cref="Utils.priorities.planning"/>. 
+        /// <summary>
+        /// The priority of the task as defined in <see cref="Utils.priorities.planning"/>.
         /// Used to identify the load and loading message of the task.
         /// </summary>
         public int id;

@@ -1,6 +1,7 @@
 using Arterra.Configuration;
 using Arterra.Data.Structure.Jigsaw;
 using Arterra.Utils;
+using Arterra.Core.Storage;
 using Arterra.Editor;
 using Unity.Mathematics;
 using UnityEngine;
@@ -10,6 +11,7 @@ using FMOD.Studio;
 using System;
 using System.Text;
 using Arterra.Data.Biome;
+using static Arterra.Core.Storage.SharedResourceManager;
 
 namespace Arterra.Data.Structure.Jigsaw {
     [Serializable]
@@ -70,6 +72,8 @@ public static class Generator {
     }
 
     public static void Initialize() {
+        Structure.Creator structureCreator = new();
+        GraphicsResourceContext gpuContext = structureCreator.GetGraphicsContext();
         offsets = new SSystemOffsets();
         Configuration.Quality.Terrain rSettings = Config.CURRENT.Quality.Terrain.value;
 
@@ -80,118 +84,118 @@ public static class Generator {
         int capSectionCapacity = offsets.maxCapsPerBatch * offsets.maxBatchesPerChunk;
 
         int kernel = AnchorSampler.FindKernel("SamplePoints");
-        AnchorSampler.SetBuffer(kernel, "anchors", UtilityBuffers.GenerationBuffer);
-        AnchorSampler.SetInt("coarseSSystemNoise", jigsaw.CoarseSSystemNoise);
-        AnchorSampler.SetInt("fineSSystemNoise", jigsaw.FineSSystemNoise);
-        AnchorSampler.SetInt("cellSize", jigsaw.CellSize);
-        AnchorSampler.SetInt("cellsPerChunk", cellsPerChunk);
-        AnchorSampler.SetInt("bSTART_anchors", offsets.anchorsStart);
-        AnchorSampler.SetInt("oCellOffset", originOffset);
-        Structure.Generator.SetStructIDSettings(AnchorSampler);
+        gpuContext.SetBuffer(AnchorSampler, kernel, "anchors", gpuContext.Work.Scratch);
+        gpuContext.SetInt(AnchorSampler, "coarseSSystemNoise", jigsaw.CoarseSSystemNoise);
+        gpuContext.SetInt(AnchorSampler, "fineSSystemNoise", jigsaw.FineSSystemNoise);
+        gpuContext.SetInt(AnchorSampler, "cellSize", jigsaw.CellSize);
+        gpuContext.SetInt(AnchorSampler, "cellsPerChunk", cellsPerChunk);
+        gpuContext.SetInt(AnchorSampler, "bSTART_anchors", offsets.anchorsStart);
+        gpuContext.SetInt(AnchorSampler, "oCellOffset", originOffset);
+        structureCreator.SetStructIDSettings(AnchorSampler);
 
         kernel = AnchorSampler.FindKernel("PoissonPrune");
-        AnchorSampler.SetBuffer(kernel, "anchors", UtilityBuffers.GenerationBuffer);
-        AnchorSampler.SetBuffer(kernel, "anchorDict", UtilityBuffers.GenerationBuffer);
-        AnchorSampler.SetBuffer(kernel, "counters", UtilityBuffers.GenerationBuffer);
-        AnchorSampler.SetInt("bCOUNT_dict", offsets.anchorDictCounter);
-        AnchorSampler.SetInt("bSTART_dict", offsets.anchorDictStart);
+        gpuContext.SetBuffer(AnchorSampler, kernel, "anchors", gpuContext.Work.Scratch);
+        gpuContext.SetBuffer(AnchorSampler, kernel, "anchorDict", gpuContext.Work.Scratch);
+        gpuContext.SetBuffer(AnchorSampler, kernel, "counters", gpuContext.Work.Scratch);
+        gpuContext.SetInt(AnchorSampler, "bCOUNT_dict", offsets.anchorDictCounter);
+        gpuContext.SetInt(AnchorSampler, "bSTART_dict", offsets.anchorDictStart);
 
         kernel = GraphConnector.FindKernel("ClearSockets");
-        GraphConnector.SetBuffer(kernel, "counters", UtilityBuffers.GenerationBuffer);
-        GraphConnector.SetBuffer(kernel, "anchorDict", UtilityBuffers.GenerationBuffer);
-        GraphConnector.SetBuffer(kernel, "socketUsage", UtilityBuffers.GenerationBuffer);
-        GraphConnector.SetInt("oCellOffset", originOffset);
-        GraphConnector.SetInt("cellsPerChunk", cellsPerChunk);
-        GraphConnector.SetInt("bCOUNT_dict", offsets.anchorDictCounter);
-        GraphConnector.SetInt("bSTART_dict", offsets.anchorDictStart);
-        GraphConnector.SetInt("bSTART_sockets", offsets.socketUsageStart);
+        gpuContext.SetBuffer(GraphConnector, kernel, "counters", gpuContext.Work.Scratch);
+        gpuContext.SetBuffer(GraphConnector, kernel, "anchorDict", gpuContext.Work.Scratch);
+        gpuContext.SetBuffer(GraphConnector, kernel, "socketUsage", gpuContext.Work.Scratch);
+        gpuContext.SetInt(GraphConnector, "oCellOffset", originOffset);
+        gpuContext.SetInt(GraphConnector, "cellsPerChunk", cellsPerChunk);
+        gpuContext.SetInt(GraphConnector, "bCOUNT_dict", offsets.anchorDictCounter);
+        gpuContext.SetInt(GraphConnector, "bSTART_dict", offsets.anchorDictStart);
+        gpuContext.SetInt(GraphConnector, "bSTART_sockets", offsets.socketUsageStart);
 
         kernel = GraphConnector.FindKernel("SetSocketConnections");
-        GraphConnector.SetBuffer(kernel, "counters", UtilityBuffers.GenerationBuffer);
-        GraphConnector.SetBuffer(kernel, "anchorDict", UtilityBuffers.GenerationBuffer);
-        GraphConnector.SetBuffer(kernel, "socketUsage", UtilityBuffers.GenerationBuffer);
-        GraphConnector.SetBuffer(kernel, "anchors", UtilityBuffers.GenerationBuffer);
-        GraphConnector.SetInt("cellSize", jigsaw.CellSize);
-        GraphConnector.SetInt("connectRadius", jigsaw.MaxConnectionDist);
-        GraphConnector.SetInt("bSTART_anchors", offsets.anchorsStart);
+        gpuContext.SetBuffer(GraphConnector, kernel, "counters", gpuContext.Work.Scratch);
+        gpuContext.SetBuffer(GraphConnector, kernel, "anchorDict", gpuContext.Work.Scratch);
+        gpuContext.SetBuffer(GraphConnector, kernel, "socketUsage", gpuContext.Work.Scratch);
+        gpuContext.SetBuffer(GraphConnector, kernel, "anchors", gpuContext.Work.Scratch);
+        gpuContext.SetInt(GraphConnector, "cellSize", jigsaw.CellSize);
+        gpuContext.SetInt(GraphConnector, "connectRadius", jigsaw.MaxConnectionDist);
+        gpuContext.SetInt(GraphConnector, "bSTART_anchors", offsets.anchorsStart);
 
         kernel = GraphConnector.FindKernel("ConnectGraph");
-        GraphConnector.SetBuffer(kernel, "counters", UtilityBuffers.GenerationBuffer);
-        GraphConnector.SetBuffer(kernel, "anchorDict", UtilityBuffers.GenerationBuffer);
-        GraphConnector.SetBuffer(kernel, "socketUsage", UtilityBuffers.GenerationBuffer);
-        GraphConnector.SetBuffer(kernel, "anchors", UtilityBuffers.GenerationBuffer);
-        GraphConnector.SetBuffer(kernel, "anchorPaths", UtilityBuffers.GenerationBuffer);
-        GraphConnector.SetInt("cellSize", jigsaw.CellSize);
-        GraphConnector.SetInt("connectRadius", jigsaw.MaxConnectionDist);
-        GraphConnector.SetInt("bCOUNT_paths", offsets.anchorPathCounter);
-        GraphConnector.SetInt("bSTART_anchors", offsets.anchorsStart);
-        GraphConnector.SetInt("bSTART_paths", offsets.anchorPathStart);
+        gpuContext.SetBuffer(GraphConnector, kernel, "counters", gpuContext.Work.Scratch);
+        gpuContext.SetBuffer(GraphConnector, kernel, "anchorDict", gpuContext.Work.Scratch);
+        gpuContext.SetBuffer(GraphConnector, kernel, "socketUsage", gpuContext.Work.Scratch);
+        gpuContext.SetBuffer(GraphConnector, kernel, "anchors", gpuContext.Work.Scratch);
+        gpuContext.SetBuffer(GraphConnector, kernel, "anchorPaths", gpuContext.Work.Scratch);
+        gpuContext.SetInt(GraphConnector, "cellSize", jigsaw.CellSize);
+        gpuContext.SetInt(GraphConnector, "connectRadius", jigsaw.MaxConnectionDist);
+        gpuContext.SetInt(GraphConnector, "bCOUNT_paths", offsets.anchorPathCounter);
+        gpuContext.SetInt(GraphConnector, "bSTART_anchors", offsets.anchorsStart);
+        gpuContext.SetInt(GraphConnector, "bSTART_paths", offsets.anchorPathStart);
 
         kernel = SanitateBatches.FindKernel("SelectAnchorPieces");
-        SanitateBatches.SetBuffer(kernel, "anchors", UtilityBuffers.GenerationBuffer);
-        SanitateBatches.SetBuffer(kernel, "anchorDict", UtilityBuffers.GenerationBuffer);
-        SanitateBatches.SetBuffer(kernel, "socketUsage", UtilityBuffers.GenerationBuffer);
-        SanitateBatches.SetBuffer(kernel, "counters", UtilityBuffers.GenerationBuffer);
-        SanitateBatches.SetInt("bCOUNT_dict", offsets.anchorDictCounter);
-        SanitateBatches.SetInt("bSTART_dict", offsets.anchorDictStart);
-        SanitateBatches.SetInt("bSTART_anchors", offsets.anchorsStart);
-        SanitateBatches.SetInt("bSTART_sockets", offsets.socketUsageStart);
-        SanitateBatches.SetInt("bCOUNT_paths", offsets.anchorPathCounter);
-        SanitateBatches.SetInt("bSTART_paths", offsets.anchorPathStart);
-        SanitateBatches.SetInt("bSTART_endpts", offsets.pathEndsStart);
-        SanitateBatches.SetInt("bSTART_pathMeet", offsets.pathMeetStart);
-        SanitateBatches.SetInt("bSTART_anchorConnections", offsets.anchorConnectionStart);
-        SanitateBatches.SetInt("bCOUNT_struct", offsets.intermediateStructCounter);
-        SanitateBatches.SetInt("bSTART_struct", offsets.intermediateStructStart);
-        Structure.Generator.SetStructIDSettings(SanitateBatches);
+        gpuContext.SetBuffer(SanitateBatches, kernel, "anchors", gpuContext.Work.Scratch);
+        gpuContext.SetBuffer(SanitateBatches, kernel, "anchorDict", gpuContext.Work.Scratch);
+        gpuContext.SetBuffer(SanitateBatches, kernel, "socketUsage", gpuContext.Work.Scratch);
+        gpuContext.SetBuffer(SanitateBatches, kernel, "counters", gpuContext.Work.Scratch);
+        gpuContext.SetInt(SanitateBatches, "bCOUNT_dict", offsets.anchorDictCounter);
+        gpuContext.SetInt(SanitateBatches, "bSTART_dict", offsets.anchorDictStart);
+        gpuContext.SetInt(SanitateBatches, "bSTART_anchors", offsets.anchorsStart);
+        gpuContext.SetInt(SanitateBatches, "bSTART_sockets", offsets.socketUsageStart);
+        gpuContext.SetInt(SanitateBatches, "bCOUNT_paths", offsets.anchorPathCounter);
+        gpuContext.SetInt(SanitateBatches, "bSTART_paths", offsets.anchorPathStart);
+        gpuContext.SetInt(SanitateBatches, "bSTART_endpts", offsets.pathEndsStart);
+        gpuContext.SetInt(SanitateBatches, "bSTART_pathMeet", offsets.pathMeetStart);
+        gpuContext.SetInt(SanitateBatches, "bSTART_anchorConnections", offsets.anchorConnectionStart);
+        gpuContext.SetInt(SanitateBatches, "bCOUNT_struct", offsets.intermediateStructCounter);
+        gpuContext.SetInt(SanitateBatches, "bSTART_struct", offsets.intermediateStructStart);
+        structureCreator.SetStructIDSettings(SanitateBatches);
 
         kernel = SanitateBatches.FindKernel("GetRealEndpoints");
-        SanitateBatches.SetBuffer(kernel, "counters", UtilityBuffers.GenerationBuffer);
-        SanitateBatches.SetBuffer(kernel, "anchors", UtilityBuffers.GenerationBuffer);
-        SanitateBatches.SetBuffer(kernel, "anchorPaths", UtilityBuffers.GenerationBuffer);
-        SanitateBatches.SetBuffer(kernel, "endPoints", UtilityBuffers.GenerationBuffer);
+        gpuContext.SetBuffer(SanitateBatches, kernel, "counters", gpuContext.Work.Scratch);
+        gpuContext.SetBuffer(SanitateBatches, kernel, "anchors", gpuContext.Work.Scratch);
+        gpuContext.SetBuffer(SanitateBatches, kernel, "anchorPaths", gpuContext.Work.Scratch);
+        gpuContext.SetBuffer(SanitateBatches, kernel, "endPoints", gpuContext.Work.Scratch);
 
         kernel = SanitateBatches.FindKernel("CountAnchorConnections");
-        SanitateBatches.SetBuffer(kernel, "counters", UtilityBuffers.GenerationBuffer);
-        SanitateBatches.SetBuffer(kernel, "anchorPaths", UtilityBuffers.GenerationBuffer);
-        SanitateBatches.SetBuffer(kernel, "pathMeet", UtilityBuffers.GenerationBuffer);
-        SanitateBatches.SetBuffer(kernel, "anchorConnections", UtilityBuffers.GenerationBuffer);
+        gpuContext.SetBuffer(SanitateBatches, kernel, "counters", gpuContext.Work.Scratch);
+        gpuContext.SetBuffer(SanitateBatches, kernel, "anchorPaths", gpuContext.Work.Scratch);
+        gpuContext.SetBuffer(SanitateBatches, kernel, "pathMeet", gpuContext.Work.Scratch);
+        gpuContext.SetBuffer(SanitateBatches, kernel, "anchorConnections", gpuContext.Work.Scratch);
 
         kernel = SanitateBatches.FindKernel("FilterPathAnchors");
-        SanitateBatches.SetBuffer(kernel, "counters", UtilityBuffers.GenerationBuffer);
-        SanitateBatches.SetBuffer(kernel, "anchorDict", UtilityBuffers.GenerationBuffer);
-        SanitateBatches.SetBuffer(kernel, "anchors", UtilityBuffers.GenerationBuffer);
-        SanitateBatches.SetBuffer(kernel, "SocketCaps", UtilityBuffers.GenerationBuffer);
-        SanitateBatches.SetBuffer(kernel, "anchorConnections", UtilityBuffers.GenerationBuffer);
-        SanitateBatches.SetBuffer(kernel, "genStructures", UtilityBuffers.GenerationBuffer);
-        SanitateBatches.SetInt("oCellOffset", originOffset);
-        SanitateBatches.SetInt("capCapacity", capSectionCapacity);
-        SanitateBatches.SetInt("bSTART_capCounts", offsets.batchSocketCapCounter);
-        SanitateBatches.SetInt("bSTART_caps", offsets.batchSocketCapStart);
+        gpuContext.SetBuffer(SanitateBatches, kernel, "counters", gpuContext.Work.Scratch);
+        gpuContext.SetBuffer(SanitateBatches, kernel, "anchorDict", gpuContext.Work.Scratch);
+        gpuContext.SetBuffer(SanitateBatches, kernel, "anchors", gpuContext.Work.Scratch);
+        gpuContext.SetBuffer(SanitateBatches, kernel, "SocketCaps", gpuContext.Work.Scratch);
+        gpuContext.SetBuffer(SanitateBatches, kernel, "anchorConnections", gpuContext.Work.Scratch);
+        gpuContext.SetBuffer(SanitateBatches, kernel, "genStructures", gpuContext.Work.Scratch);
+        gpuContext.SetInt(SanitateBatches, "oCellOffset", originOffset);
+        gpuContext.SetInt(SanitateBatches, "capCapacity", capSectionCapacity);
+        gpuContext.SetInt(SanitateBatches, "bSTART_capCounts", offsets.batchSocketCapCounter);
+        gpuContext.SetInt(SanitateBatches, "bSTART_caps", offsets.batchSocketCapStart);
 
         kernel = StructurePathfinder.FindKernel("BatchPathfind");
-        StructurePathfinder.SetBuffer(kernel, "batchRanges", UtilityBuffers.GenerationBuffer);
-        StructurePathfinder.SetBuffer(kernel, "batchPathList", UtilityBuffers.GenerationBuffer);
-        StructurePathfinder.SetBuffer(kernel, "endPoints", UtilityBuffers.GenerationBuffer);
-        StructurePathfinder.SetBuffer(kernel, "anchors", UtilityBuffers.GenerationBuffer);
-        StructurePathfinder.SetBuffer(kernel, "anchorPaths", UtilityBuffers.GenerationBuffer);
-        StructurePathfinder.SetBuffer(kernel, "batchVisit", UtilityBuffers.GenerationBuffer);
-        StructurePathfinder.SetBuffer(kernel, "pathMeet", UtilityBuffers.GenerationBuffer);
-        StructurePathfinder.SetBuffer(kernel, "frontierBuffer", UtilityBuffers.GenerationBuffer);
-        StructurePathfinder.SetBuffer(kernel, "pathPrefix", UtilityBuffers.GenerationBuffer);
-        StructurePathfinder.SetInt("bSTART_batchPathList", offsets.batchPathStart);
-        StructurePathfinder.SetInt("bSTART_batchRanges", offsets.batchRangesStart);
-        StructurePathfinder.SetInt("bSTART_endpts", offsets.pathEndsStart);
-        StructurePathfinder.SetInt("bSTART_paths", offsets.anchorPathStart);
-        StructurePathfinder.SetInt("bSTART_anchors", offsets.anchorsStart);
-        StructurePathfinder.SetInt("bSTART_visited", offsets.batchVistStart);
-        StructurePathfinder.SetInt("bSTART_pathMeet", offsets.pathMeetStart);
-        StructurePathfinder.SetInt("bSTART_frontier", offsets.frontierStart);
-        StructurePathfinder.SetInt("bSTART_pathPrefix", offsets.pathPrefixStart);
-        
-        StructurePathfinder.SetBuffer(kernel, "genStructures", UtilityBuffers.GenerationBuffer);
-        StructurePathfinder.SetInt("bCOUNT_struct", offsets.intermediateStructCounter);
-        StructurePathfinder.SetInt("bSTART_struct", offsets.intermediateStructStart);
+        gpuContext.SetBuffer(StructurePathfinder, kernel, "batchRanges", gpuContext.Work.Scratch);
+        gpuContext.SetBuffer(StructurePathfinder, kernel, "batchPathList", gpuContext.Work.Scratch);
+        gpuContext.SetBuffer(StructurePathfinder, kernel, "endPoints", gpuContext.Work.Scratch);
+        gpuContext.SetBuffer(StructurePathfinder, kernel, "anchors", gpuContext.Work.Scratch);
+        gpuContext.SetBuffer(StructurePathfinder, kernel, "anchorPaths", gpuContext.Work.Scratch);
+        gpuContext.SetBuffer(StructurePathfinder, kernel, "batchVisit", gpuContext.Work.Scratch);
+        gpuContext.SetBuffer(StructurePathfinder, kernel, "pathMeet", gpuContext.Work.Scratch);
+        gpuContext.SetBuffer(StructurePathfinder, kernel, "frontierBuffer", gpuContext.Work.Scratch);
+        gpuContext.SetBuffer(StructurePathfinder, kernel, "pathPrefix", gpuContext.Work.Scratch);
+        gpuContext.SetInt(StructurePathfinder, "bSTART_batchPathList", offsets.batchPathStart);
+        gpuContext.SetInt(StructurePathfinder, "bSTART_batchRanges", offsets.batchRangesStart);
+        gpuContext.SetInt(StructurePathfinder, "bSTART_endpts", offsets.pathEndsStart);
+        gpuContext.SetInt(StructurePathfinder, "bSTART_paths", offsets.anchorPathStart);
+        gpuContext.SetInt(StructurePathfinder, "bSTART_anchors", offsets.anchorsStart);
+        gpuContext.SetInt(StructurePathfinder, "bSTART_visited", offsets.batchVistStart);
+        gpuContext.SetInt(StructurePathfinder, "bSTART_pathMeet", offsets.pathMeetStart);
+        gpuContext.SetInt(StructurePathfinder, "bSTART_frontier", offsets.frontierStart);
+        gpuContext.SetInt(StructurePathfinder, "bSTART_pathPrefix", offsets.pathPrefixStart);
+
+        gpuContext.SetBuffer(StructurePathfinder, kernel, "genStructures", gpuContext.Work.Scratch);
+        gpuContext.SetInt(StructurePathfinder, "bCOUNT_struct", offsets.intermediateStructCounter);
+        gpuContext.SetInt(StructurePathfinder, "bSTART_struct", offsets.intermediateStructStart);
 
         int pathfindKernel = StructurePathfinder.FindKernel("BatchPathfind");
         StructurePathfinder.GetKernelThreadGroupSizes(pathfindKernel, out _, out _, out _);
@@ -204,145 +208,146 @@ public static class Generator {
         plannerBacktrackDispatchDivisor = Mathf.Max(1, (int)backtrackThreadsX);
 
         kernel = PathBatchPlanner.FindKernel("CountPathSizes");
-        PathBatchPlanner.SetBuffer(kernel, "counters", UtilityBuffers.GenerationBuffer);
-        PathBatchPlanner.SetBuffer(kernel, "endPoints", UtilityBuffers.GenerationBuffer);
-        PathBatchPlanner.SetBuffer(kernel, "pathPrefix", UtilityBuffers.GenerationBuffer);
-        PathBatchPlanner.SetBuffer(kernel, "pathMeet", UtilityBuffers.GenerationBuffer);
-        PathBatchPlanner.SetInt("bCOUNT_paths", offsets.anchorPathCounter);
-        PathBatchPlanner.SetInt("bSTART_endpts", offsets.pathEndsStart);
-        PathBatchPlanner.SetInt("bSTART_pathPrefix", offsets.pathPrefixStart);
-        PathBatchPlanner.SetInt("bSTART_pathMeet", offsets.pathMeetStart);
-        PathBatchPlanner.SetInt("connectRadius", jigsaw.MaxConnectionDist);
+        gpuContext.SetBuffer(PathBatchPlanner, kernel, "counters", gpuContext.Work.Scratch);
+        gpuContext.SetBuffer(PathBatchPlanner, kernel, "endPoints", gpuContext.Work.Scratch);
+        gpuContext.SetBuffer(PathBatchPlanner, kernel, "pathPrefix", gpuContext.Work.Scratch);
+        gpuContext.SetBuffer(PathBatchPlanner, kernel, "pathMeet", gpuContext.Work.Scratch);
+        gpuContext.SetInt(PathBatchPlanner, "bCOUNT_paths", offsets.anchorPathCounter);
+        gpuContext.SetInt(PathBatchPlanner, "bSTART_endpts", offsets.pathEndsStart);
+        gpuContext.SetInt(PathBatchPlanner, "bSTART_pathPrefix", offsets.pathPrefixStart);
+        gpuContext.SetInt(PathBatchPlanner, "bSTART_pathMeet", offsets.pathMeetStart);
+        gpuContext.SetInt(PathBatchPlanner, "connectRadius", jigsaw.MaxConnectionDist);
 
         kernel = PathBatchPlanner.FindKernel("FinalizePathPlanner");
-        PathBatchPlanner.SetBuffer(kernel, "counters", UtilityBuffers.GenerationBuffer);
-        PathBatchPlanner.SetBuffer(kernel, "pathPrefix", UtilityBuffers.GenerationBuffer);
-        PathBatchPlanner.SetBuffer(kernel, "batchPrefix", UtilityBuffers.GenerationBuffer);
-        PathBatchPlanner.SetBuffer(kernel, "batchRanges", UtilityBuffers.GenerationBuffer);
-        PathBatchPlanner.SetBuffer(kernel, "dispatchArgs", UtilityBuffers.GenerationBuffer);
-        PathBatchPlanner.SetBuffer(kernel, "batchPathList", UtilityBuffers.GenerationBuffer);
-        PathBatchPlanner.SetInt("bCOUNT_paths", offsets.anchorPathCounter);
-        PathBatchPlanner.SetInt("bSTART_pathPrefix", offsets.pathPrefixStart);
-        PathBatchPlanner.SetInt("bSTART_batchPrefix", offsets.batchPrefixStart);
-        PathBatchPlanner.SetInt("bSTART_batchRanges", offsets.batchRangesStart);
-        PathBatchPlanner.SetInt("bSTART_dispatchArgs", offsets.batchDispatchArgsStart);
-        PathBatchPlanner.SetInt("bSTART_batchPathList", offsets.batchPathStart);
-        PathBatchPlanner.SetInt("maxBatchCount", offsets.maxBatchesPerChunk);
-        PathBatchPlanner.SetInt("pathfindDispatchDivisor", plannerPathfindDispatchDivisor);
-        PathBatchPlanner.SetInt("backtrackDispatchDivisor", plannerBacktrackDispatchDivisor);
+        gpuContext.SetBuffer(PathBatchPlanner, kernel, "counters", gpuContext.Work.Scratch);
+        gpuContext.SetBuffer(PathBatchPlanner, kernel, "pathPrefix", gpuContext.Work.Scratch);
+        gpuContext.SetBuffer(PathBatchPlanner, kernel, "batchPrefix", gpuContext.Work.Scratch);
+        gpuContext.SetBuffer(PathBatchPlanner, kernel, "batchRanges", gpuContext.Work.Scratch);
+        gpuContext.SetBuffer(PathBatchPlanner, kernel, "dispatchArgs", gpuContext.Work.Scratch);
+        gpuContext.SetBuffer(PathBatchPlanner, kernel, "batchPathList", gpuContext.Work.Scratch);
+        gpuContext.SetInt(PathBatchPlanner, "bCOUNT_paths", offsets.anchorPathCounter);
+        gpuContext.SetInt(PathBatchPlanner, "bSTART_pathPrefix", offsets.pathPrefixStart);
+        gpuContext.SetInt(PathBatchPlanner, "bSTART_batchPrefix", offsets.batchPrefixStart);
+        gpuContext.SetInt(PathBatchPlanner, "bSTART_batchRanges", offsets.batchRangesStart);
+        gpuContext.SetInt(PathBatchPlanner, "bSTART_dispatchArgs", offsets.batchDispatchArgsStart);
+        gpuContext.SetInt(PathBatchPlanner, "bSTART_batchPathList", offsets.batchPathStart);
+        gpuContext.SetInt(PathBatchPlanner, "maxBatchCount", offsets.maxBatchesPerChunk);
+        gpuContext.SetInt(PathBatchPlanner, "pathfindDispatchDivisor", plannerPathfindDispatchDivisor);
+        gpuContext.SetInt(PathBatchPlanner, "backtrackDispatchDivisor", plannerBacktrackDispatchDivisor);
 
         kernel = PathBatchPlanner.FindKernel("ClearVisitedPathIds");
-        PathBatchPlanner.SetBuffer(kernel, "batchVisit", UtilityBuffers.GenerationBuffer);
-        PathBatchPlanner.SetInt("bSTART_visited", offsets.batchVistStart);
+        gpuContext.SetBuffer(PathBatchPlanner, kernel, "batchVisit", gpuContext.Work.Scratch);
+        gpuContext.SetInt(PathBatchPlanner, "bSTART_visited", offsets.batchVistStart);
 
         kernel = PathSetupRetriever.FindKernel("BacktrackGridPath");
-        PathSetupRetriever.SetBuffer(kernel, "batchRanges", UtilityBuffers.GenerationBuffer);
-        PathSetupRetriever.SetBuffer(kernel, "batchPathList", UtilityBuffers.GenerationBuffer);
-        PathSetupRetriever.SetBuffer(kernel, "pathPrefix", UtilityBuffers.GenerationBuffer);
-        PathSetupRetriever.SetBuffer(kernel, "batchVisit", UtilityBuffers.GenerationBuffer);
-        PathSetupRetriever.SetBuffer(kernel, "endPoints", UtilityBuffers.GenerationBuffer);
-        PathSetupRetriever.SetBuffer(kernel, "SocketCaps", UtilityBuffers.GenerationBuffer);
-        PathSetupRetriever.SetBuffer(kernel, "genStructures", UtilityBuffers.GenerationBuffer);
-        PathSetupRetriever.SetBuffer(kernel, "counters", UtilityBuffers.GenerationBuffer);
-        PathSetupRetriever.SetBuffer(kernel, "anchorPaths", UtilityBuffers.GenerationBuffer);
-        PathSetupRetriever.SetBuffer(kernel, "anchors", UtilityBuffers.GenerationBuffer);
-        PathSetupRetriever.SetBuffer(kernel, "pathMeet", UtilityBuffers.GenerationBuffer);
-        PathSetupRetriever.SetInt("bSTART_batchPathList", offsets.batchPathStart);
-        PathSetupRetriever.SetInt("bSTART_batchRanges", offsets.batchRangesStart);
-        PathSetupRetriever.SetInt("bSTART_pathPrefix", offsets.pathPrefixStart);
-        PathSetupRetriever.SetInt("bSTART_capCounts", offsets.batchSocketCapCounter);
-        PathSetupRetriever.SetInt("bCOUNT_struct", offsets.intermediateStructCounter);
-        PathSetupRetriever.SetInt("bSTART_struct", offsets.intermediateStructStart);
-        PathSetupRetriever.SetInt("bSTART_caps", offsets.batchSocketCapStart);
-        PathSetupRetriever.SetInt("bSTART_paths", offsets.anchorPathStart);
-        PathSetupRetriever.SetInt("bSTART_anchors", offsets.anchorsStart);
-        PathSetupRetriever.SetInt("capCapacity", capSectionCapacity);
-        PathSetupRetriever.SetInt("bSTART_visited", offsets.batchVistStart);
-        PathSetupRetriever.SetInt("bSTART_endpts", offsets.pathEndsStart);
-        PathSetupRetriever.SetInt("bSTART_pathMeet", offsets.pathMeetStart);
-        PathSetupRetriever.SetInt("oCellOffset", originOffset);
+        gpuContext.SetBuffer(PathSetupRetriever, kernel, "batchRanges", gpuContext.Work.Scratch);
+        gpuContext.SetBuffer(PathSetupRetriever, kernel, "batchPathList", gpuContext.Work.Scratch);
+        gpuContext.SetBuffer(PathSetupRetriever, kernel, "pathPrefix", gpuContext.Work.Scratch);
+        gpuContext.SetBuffer(PathSetupRetriever, kernel, "batchVisit", gpuContext.Work.Scratch);
+        gpuContext.SetBuffer(PathSetupRetriever, kernel, "endPoints", gpuContext.Work.Scratch);
+        gpuContext.SetBuffer(PathSetupRetriever, kernel, "SocketCaps", gpuContext.Work.Scratch);
+        gpuContext.SetBuffer(PathSetupRetriever, kernel, "genStructures", gpuContext.Work.Scratch);
+        gpuContext.SetBuffer(PathSetupRetriever, kernel, "counters", gpuContext.Work.Scratch);
+        gpuContext.SetBuffer(PathSetupRetriever, kernel, "anchorPaths", gpuContext.Work.Scratch);
+        gpuContext.SetBuffer(PathSetupRetriever, kernel, "anchors", gpuContext.Work.Scratch);
+        gpuContext.SetBuffer(PathSetupRetriever, kernel, "pathMeet", gpuContext.Work.Scratch);
+        gpuContext.SetInt(PathSetupRetriever, "bSTART_batchPathList", offsets.batchPathStart);
+        gpuContext.SetInt(PathSetupRetriever, "bSTART_batchRanges", offsets.batchRangesStart);
+        gpuContext.SetInt(PathSetupRetriever, "bSTART_pathPrefix", offsets.pathPrefixStart);
+        gpuContext.SetInt(PathSetupRetriever, "bSTART_capCounts", offsets.batchSocketCapCounter);
+        gpuContext.SetInt(PathSetupRetriever, "bCOUNT_struct", offsets.intermediateStructCounter);
+        gpuContext.SetInt(PathSetupRetriever, "bSTART_struct", offsets.intermediateStructStart);
+        gpuContext.SetInt(PathSetupRetriever, "bSTART_caps", offsets.batchSocketCapStart);
+        gpuContext.SetInt(PathSetupRetriever, "bSTART_paths", offsets.anchorPathStart);
+        gpuContext.SetInt(PathSetupRetriever, "bSTART_anchors", offsets.anchorsStart);
+        gpuContext.SetInt(PathSetupRetriever, "capCapacity", capSectionCapacity);
+        gpuContext.SetInt(PathSetupRetriever, "bSTART_visited", offsets.batchVistStart);
+        gpuContext.SetInt(PathSetupRetriever, "bSTART_endpts", offsets.pathEndsStart);
+        gpuContext.SetInt(PathSetupRetriever, "bSTART_pathMeet", offsets.pathMeetStart);
+        gpuContext.SetInt(PathSetupRetriever, "oCellOffset", originOffset);
 
         kernel = PathSetupRetriever.FindKernel("CapDanglingSockets");
-        PathSetupRetriever.SetBuffer(kernel, "counters", UtilityBuffers.GenerationBuffer);
-        PathSetupRetriever.SetBuffer(kernel, "SocketCaps", UtilityBuffers.GenerationBuffer);
-        PathSetupRetriever.SetBuffer(kernel, "genStructures", UtilityBuffers.GenerationBuffer);
-        PathSetupRetriever.SetBuffer(kernel, "danglingDepths", UtilityBuffers.GenerationBuffer);
-        PathSetupRetriever.SetInt("bSTART_danglingDepths", offsets.danglingDepthsStart);
+        gpuContext.SetBuffer(PathSetupRetriever, kernel, "counters", gpuContext.Work.Scratch);
+        gpuContext.SetBuffer(PathSetupRetriever, kernel, "SocketCaps", gpuContext.Work.Scratch);
+        gpuContext.SetBuffer(PathSetupRetriever, kernel, "genStructures", gpuContext.Work.Scratch);
+        gpuContext.SetBuffer(PathSetupRetriever, kernel, "danglingDepths", gpuContext.Work.Scratch);
+        gpuContext.SetInt(PathSetupRetriever, "bSTART_danglingDepths", offsets.danglingDepthsStart);
 
         kernel = StructurePostProcess.FindKernel("InitStructurePruneState");
-        StructurePostProcess.SetBuffer(kernel, "counters", UtilityBuffers.GenerationBuffer);
-        StructurePostProcess.SetBuffer(kernel, "binHeads", UtilityBuffers.GenerationBuffer);
-        StructurePostProcess.SetInt("bCOUNT_final", offsets.finalStructsCounter);
-        StructurePostProcess.SetInt("bCOUNT_binList", offsets.binListCounter);
-        StructurePostProcess.SetInt("bSTART_binHeads", offsets.binHeadsStart);
-        StructurePostProcess.SetInt("chunkSize", rSettings.mapChunkSize);
-        StructurePostProcess.SetInt("binSize", jigsaw.StructureColoringBinSize);
+        gpuContext.SetBuffer(StructurePostProcess, kernel, "counters", gpuContext.Work.Scratch);
+        gpuContext.SetBuffer(StructurePostProcess, kernel, "binHeads", gpuContext.Work.Scratch);
+        gpuContext.SetInt(StructurePostProcess, "bCOUNT_final", offsets.finalStructsCounter);
+        gpuContext.SetInt(StructurePostProcess, "bCOUNT_binList", offsets.binListCounter);
+        gpuContext.SetInt(StructurePostProcess, "bSTART_binHeads", offsets.binHeadsStart);
+        gpuContext.SetInt(StructurePostProcess, "chunkSize", rSettings.mapChunkSize);
+        gpuContext.SetInt(StructurePostProcess, "binSize", jigsaw.StructureColoringBinSize);
 
         kernel = StructurePostProcess.FindKernel("InitDepthTables");
-        StructurePostProcess.SetBuffer(kernel, "counters", UtilityBuffers.GenerationBuffer);
-        StructurePostProcess.SetBuffer(kernel, "maxDepths", UtilityBuffers.GenerationBuffer);
-        StructurePostProcess.SetBuffer(kernel, "danglingDepths", UtilityBuffers.GenerationBuffer);
-        StructurePostProcess.SetInt("bCOUNT_paths", offsets.anchorPathCounter);
-        StructurePostProcess.SetInt("bSTART_capCounts", offsets.batchSocketCapCounter);
-        StructurePostProcess.SetInt("capCapacity", capSectionCapacity);
-        StructurePostProcess.SetInt("bSTART_maxDepths", offsets.maxDepthsStart);
-        StructurePostProcess.SetInt("bSTART_danglingDepths", offsets.danglingDepthsStart);
+        gpuContext.SetBuffer(StructurePostProcess, kernel, "counters", gpuContext.Work.Scratch);
+        gpuContext.SetBuffer(StructurePostProcess, kernel, "maxDepths", gpuContext.Work.Scratch);
+        gpuContext.SetBuffer(StructurePostProcess, kernel, "danglingDepths", gpuContext.Work.Scratch);
+        gpuContext.SetInt(StructurePostProcess, "bCOUNT_paths", offsets.anchorPathCounter);
+        gpuContext.SetInt(StructurePostProcess, "bSTART_capCounts", offsets.batchSocketCapCounter);
+        gpuContext.SetInt(StructurePostProcess, "capCapacity", capSectionCapacity);
+        gpuContext.SetInt(StructurePostProcess, "bSTART_maxDepths", offsets.maxDepthsStart);
+        gpuContext.SetInt(StructurePostProcess, "bSTART_danglingDepths", offsets.danglingDepthsStart);
 
         kernel = StructurePostProcess.FindKernel("BuildStructureBins");
-        StructurePostProcess.SetBuffer(kernel, "counters", UtilityBuffers.GenerationBuffer);
-        StructurePostProcess.SetBuffer(kernel, "intermediateStructures", UtilityBuffers.GenerationBuffer);
-        StructurePostProcess.SetBuffer(kernel, "binHeads", UtilityBuffers.GenerationBuffer);
-        StructurePostProcess.SetBuffer(kernel, "binList", UtilityBuffers.GenerationBuffer);
-        StructurePostProcess.SetInt("bCOUNT_intermediate", offsets.intermediateStructCounter);
-        StructurePostProcess.SetInt("bCOUNT_binList", offsets.binListCounter);
-        StructurePostProcess.SetInt("bSTART_intermediate", offsets.intermediateStructStart);
-        StructurePostProcess.SetInt("bSTART_binHeads", offsets.binHeadsStart);
-        StructurePostProcess.SetInt("bSTART_binList", offsets.binListStart);
-        StructurePostProcess.SetInt("oCellOffset", originOffset);
+        gpuContext.SetBuffer(StructurePostProcess, kernel, "counters", gpuContext.Work.Scratch);
+        gpuContext.SetBuffer(StructurePostProcess, kernel, "intermediateStructures", gpuContext.Work.Scratch);
+        gpuContext.SetBuffer(StructurePostProcess, kernel, "binHeads", gpuContext.Work.Scratch);
+        gpuContext.SetBuffer(StructurePostProcess, kernel, "binList", gpuContext.Work.Scratch);
+        gpuContext.SetInt(StructurePostProcess, "bCOUNT_intermediate", offsets.intermediateStructCounter);
+        gpuContext.SetInt(StructurePostProcess, "bCOUNT_binList", offsets.binListCounter);
+        gpuContext.SetInt(StructurePostProcess, "bSTART_intermediate", offsets.intermediateStructStart);
+        gpuContext.SetInt(StructurePostProcess, "bSTART_binHeads", offsets.binHeadsStart);
+        gpuContext.SetInt(StructurePostProcess, "bSTART_binList", offsets.binListStart);
+        gpuContext.SetInt(StructurePostProcess, "oCellOffset", originOffset);
 
         kernel = StructurePostProcess.FindKernel("CalculateMinDepths");
-        StructurePostProcess.SetBuffer(kernel, "counters", UtilityBuffers.GenerationBuffer);
-        StructurePostProcess.SetBuffer(kernel, "intermediateStructures", UtilityBuffers.GenerationBuffer);
-        StructurePostProcess.SetBuffer(kernel, "binHeads", UtilityBuffers.GenerationBuffer);
-        StructurePostProcess.SetBuffer(kernel, "binList", UtilityBuffers.GenerationBuffer);
-        StructurePostProcess.SetBuffer(kernel, "maxDepths", UtilityBuffers.GenerationBuffer);
-        StructurePostProcess.SetBuffer(kernel, "danglingDepths", UtilityBuffers.GenerationBuffer);
-        StructurePostProcess.SetInt("bCOUNT_paths", offsets.anchorPathCounter);
-        StructurePostProcess.SetInt("bCOUNT_intermediate", offsets.intermediateStructCounter);
-        StructurePostProcess.SetInt("bSTART_capCounts", offsets.batchSocketCapCounter);
-        StructurePostProcess.SetInt("capCapacity", capSectionCapacity);
-        StructurePostProcess.SetInt("bSTART_intermediate", offsets.intermediateStructStart);
-        StructurePostProcess.SetInt("bSTART_binHeads", offsets.binHeadsStart);
-        StructurePostProcess.SetInt("bSTART_binList", offsets.binListStart);
-        StructurePostProcess.SetInt("bSTART_maxDepths", offsets.maxDepthsStart);
-        StructurePostProcess.SetInt("bSTART_danglingDepths", offsets.danglingDepthsStart);
+        gpuContext.SetBuffer(StructurePostProcess, kernel, "counters", gpuContext.Work.Scratch);
+        gpuContext.SetBuffer(StructurePostProcess, kernel, "intermediateStructures", gpuContext.Work.Scratch);
+        gpuContext.SetBuffer(StructurePostProcess, kernel, "binHeads", gpuContext.Work.Scratch);
+        gpuContext.SetBuffer(StructurePostProcess, kernel, "binList", gpuContext.Work.Scratch);
+        gpuContext.SetBuffer(StructurePostProcess, kernel, "maxDepths", gpuContext.Work.Scratch);
+        gpuContext.SetBuffer(StructurePostProcess, kernel, "danglingDepths", gpuContext.Work.Scratch);
+        gpuContext.SetInt(StructurePostProcess, "bCOUNT_paths", offsets.anchorPathCounter);
+        gpuContext.SetInt(StructurePostProcess, "bCOUNT_intermediate", offsets.intermediateStructCounter);
+        gpuContext.SetInt(StructurePostProcess, "bSTART_capCounts", offsets.batchSocketCapCounter);
+        gpuContext.SetInt(StructurePostProcess, "capCapacity", capSectionCapacity);
+        gpuContext.SetInt(StructurePostProcess, "bSTART_intermediate", offsets.intermediateStructStart);
+        gpuContext.SetInt(StructurePostProcess, "bSTART_binHeads", offsets.binHeadsStart);
+        gpuContext.SetInt(StructurePostProcess, "bSTART_binList", offsets.binListStart);
+        gpuContext.SetInt(StructurePostProcess, "bSTART_maxDepths", offsets.maxDepthsStart);
+        gpuContext.SetInt(StructurePostProcess, "bSTART_danglingDepths", offsets.danglingDepthsStart);
 
         kernel = StructurePostProcess.FindKernel("EmitFinalStructures");
-        StructurePostProcess.SetBuffer(kernel, "counters", UtilityBuffers.GenerationBuffer);
-        StructurePostProcess.SetBuffer(kernel, "intermediateStructures", UtilityBuffers.GenerationBuffer);
-        StructurePostProcess.SetBuffer(kernel, "finalStructures", UtilityBuffers.GenerationBuffer);
-        StructurePostProcess.SetBuffer(kernel, "maxDepths", UtilityBuffers.GenerationBuffer);
-        StructurePostProcess.SetBuffer(kernel, "danglingDepths", UtilityBuffers.GenerationBuffer);
-        StructurePostProcess.SetInt("bCOUNT_paths", offsets.anchorPathCounter);
-        StructurePostProcess.SetInt("bCOUNT_intermediate", offsets.intermediateStructCounter);
-        StructurePostProcess.SetInt("bCOUNT_final", offsets.finalStructsCounter);
-        StructurePostProcess.SetInt("bSTART_capCounts", offsets.batchSocketCapCounter);
-        StructurePostProcess.SetInt("capCapacity", capSectionCapacity);
-        StructurePostProcess.SetInt("bSTART_intermediate", offsets.intermediateStructStart);
-        StructurePostProcess.SetInt("bSTART_final", offsets.finalStructsStart);
-        StructurePostProcess.SetInt("bSTART_maxDepths", offsets.maxDepthsStart);
-        StructurePostProcess.SetInt("bSTART_danglingDepths", offsets.danglingDepthsStart);
-        Structure.Generator.SetStructIDSettings(StructurePostProcess);
+        gpuContext.SetBuffer(StructurePostProcess, kernel, "counters", gpuContext.Work.Scratch);
+        gpuContext.SetBuffer(StructurePostProcess, kernel, "intermediateStructures", gpuContext.Work.Scratch);
+        gpuContext.SetBuffer(StructurePostProcess, kernel, "finalStructures", gpuContext.Work.Scratch);
+        gpuContext.SetBuffer(StructurePostProcess, kernel, "maxDepths", gpuContext.Work.Scratch);
+        gpuContext.SetBuffer(StructurePostProcess, kernel, "danglingDepths", gpuContext.Work.Scratch);
+        gpuContext.SetInt(StructurePostProcess, "bCOUNT_paths", offsets.anchorPathCounter);
+        gpuContext.SetInt(StructurePostProcess, "bCOUNT_intermediate", offsets.intermediateStructCounter);
+        gpuContext.SetInt(StructurePostProcess, "bCOUNT_final", offsets.finalStructsCounter);
+        gpuContext.SetInt(StructurePostProcess, "bSTART_capCounts", offsets.batchSocketCapCounter);
+        gpuContext.SetInt(StructurePostProcess, "capCapacity", capSectionCapacity);
+        gpuContext.SetInt(StructurePostProcess, "bSTART_intermediate", offsets.intermediateStructStart);
+        gpuContext.SetInt(StructurePostProcess, "bSTART_final", offsets.finalStructsStart);
+        gpuContext.SetInt(StructurePostProcess, "bSTART_maxDepths", offsets.maxDepthsStart);
+        gpuContext.SetInt(StructurePostProcess, "bSTART_danglingDepths", offsets.danglingDepthsStart);
+        structureCreator.SetStructIDSettings(StructurePostProcess);
         Shader.SetGlobalInt("_StructTestDot", Config.CURRENT.Generation.Structures.value.StructureDictionary.RetrieveIndex("Dot"));
     }
 
     public static bool PlanStructureSystems(int chunkSize, int depth, int3 CCoord) {
+        GraphicsResourceContext gpuContext = GraphicsGeneration;
         if (depth > jigsaw.MaxSystemLoD) return false;
 
         int counterStart = offsets.countersRange.x;
         int counterEnd = offsets.countersRange.y;
-        UtilityBuffers.ClearRange(
-            UtilityBuffers.GenerationBuffer,
+        gpuContext.Work.ClearRange(
+            gpuContext.Work.Scratch,
             counterEnd - counterStart,
             counterStart
         );
@@ -353,88 +358,93 @@ public static class Generator {
         PopulatePathsWithStructures(chunkSize, depth, CCoord);
         PruneIntersectionsAndEmitFinalStructures(chunkSize, depth, CCoord);
 
-        UtilityBuffers.CopyBufferRegion(
+        gpuContext.Work.CopyBufferRegion(
             Generator.offsets.finalStructsCounter,
             Generator.offsets.finalStructsStart,
-            Structure.Generator.offsets.structureCounter,
-            Structure.Generator.offsets.structureStart,
+            Structure.Creator.offsets.structureCounter,
+            Structure.Creator.offsets.structureStart,
             Creator.STRUCTURE_STRIDE_WORD
         );
         return true;
     }
 
     public static void SampleSystemAnchors(int chunkSize, int depth, int3 CCoord) {
+        GraphicsResourceContext gpuContext = GraphicsGeneration;
         int worldChunkSize = chunkSize * (1 << depth);
         int paddedChunkSize = worldChunkSize + jigsaw.MaxConnectionDist * 4;
 
         int cellsPerChunk = chunkSize / jigsaw.CellSize;
         int numCellsPerAxis = Mathf.CeilToInt((float)paddedChunkSize / jigsaw.CellSize);
-        AnchorSampler.SetInts("oCCoord", new int[] {CCoord.x, CCoord.y, CCoord.z});
-        AnchorSampler.SetInt("cellsPerChunk", cellsPerChunk);
-        AnchorSampler.SetInt("numPointsPerAxis", numCellsPerAxis);
-        UtilityBuffers.SetSampleData(AnchorSampler, (float3)(CCoord * chunkSize), 1);
+        gpuContext.SetInts(AnchorSampler, "oCCoord", new int[] {CCoord.x, CCoord.y, CCoord.z});
+        gpuContext.SetInt(AnchorSampler, "cellsPerChunk", cellsPerChunk);
+        gpuContext.SetInt(AnchorSampler, "numPointsPerAxis", numCellsPerAxis);
+        gpuContext.Work.SetSampleData(AnchorSampler, (float3)(CCoord * chunkSize), 1);
 
         int kernel = AnchorSampler.FindKernel("SamplePoints");
         AnchorSampler.GetKernelThreadGroupSizes(kernel, out uint threadGroupSize, out uint _, out _);
         int numGroupsPerAxis = Mathf.CeilToInt(numCellsPerAxis / (float)threadGroupSize);
 
-        AnchorSampler.Dispatch(kernel, numGroupsPerAxis, numGroupsPerAxis, numGroupsPerAxis);
+        gpuContext.Dispatch(AnchorSampler, kernel, numGroupsPerAxis, numGroupsPerAxis, numGroupsPerAxis);
         kernel = AnchorSampler.FindKernel("PoissonPrune");
-        AnchorSampler.Dispatch(kernel, numGroupsPerAxis, numGroupsPerAxis, numGroupsPerAxis);
+        gpuContext.Dispatch(AnchorSampler, kernel, numGroupsPerAxis, numGroupsPerAxis, numGroupsPerAxis);
     }
 
     public static void ConnectGraphAnchors(int chunkSize, int depth, int3 CCoord) {
+        GraphicsResourceContext gpuContext = GraphicsGeneration;
         int worldChunkSize = chunkSize * (1 << depth);
         int paddedChunkSize = worldChunkSize + jigsaw.MaxConnectionDist * 4;
 
         int cellsPerChunk = chunkSize / jigsaw.CellSize;
         int numCellsPerAxis = Mathf.CeilToInt((float)paddedChunkSize / jigsaw.CellSize);
-        GraphConnector.SetInts("oCCoord", new int[] {CCoord.x, CCoord.y, CCoord.z});
-        GraphConnector.SetInt("cellsPerChunk", cellsPerChunk);
-        GraphConnector.SetInt("numPointsPerAxis", numCellsPerAxis);
+        gpuContext.SetInts(GraphConnector, "oCCoord", new int[] {CCoord.x, CCoord.y, CCoord.z});
+        gpuContext.SetInt(GraphConnector, "cellsPerChunk", cellsPerChunk);
+        gpuContext.SetInt(GraphConnector, "numPointsPerAxis", numCellsPerAxis);
 
         int kernel = GraphConnector.FindKernel("ClearSockets");
-        ComputeBuffer args = UtilityBuffers.CountToArgs(GraphConnector, UtilityBuffers.GenerationBuffer, offsets.anchorDictCounter, kernel);
-        GraphConnector.DispatchIndirect(kernel, args);
+        ComputeBuffer args = gpuContext.Args.CountToArgs(GraphConnector, gpuContext.Work.Scratch, offsets.anchorDictCounter, kernel);
+        gpuContext.DispatchIndirect(GraphConnector, kernel, args);
 
         kernel = GraphConnector.FindKernel("SetSocketConnections");
-        args = UtilityBuffers.CountToArgs(GraphConnector, UtilityBuffers.GenerationBuffer, offsets.anchorDictCounter, kernel);
-        GraphConnector.DispatchIndirect(kernel, args);
-        
+        args = gpuContext.Args.CountToArgs(GraphConnector, gpuContext.Work.Scratch, offsets.anchorDictCounter, kernel);
+        gpuContext.DispatchIndirect(GraphConnector, kernel, args);
+
         kernel = GraphConnector.FindKernel("ConnectGraph");
-        args = UtilityBuffers.CountToArgs(GraphConnector, UtilityBuffers.GenerationBuffer, offsets.anchorDictCounter, kernel);
-        GraphConnector.DispatchIndirect(kernel, args);
+        args = gpuContext.Args.CountToArgs(GraphConnector, gpuContext.Work.Scratch, offsets.anchorDictCounter, kernel);
+        gpuContext.DispatchIndirect(GraphConnector, kernel, args);
     }
 
     public static void SanitateComputeBatches(int chunkSize, int depth, int3 CCoord) {
-        UtilityBuffers.SetSampleData(SanitateBatches, (float3)(CCoord * chunkSize), 1);
+        GraphicsResourceContext gpuContext = GraphicsGeneration;
+        gpuContext.Work.SetSampleData(SanitateBatches, (float3)(CCoord * chunkSize), 1);
 
         int kernel = SanitateBatches.FindKernel("SelectAnchorPieces");
-        ComputeBuffer args = UtilityBuffers.CountToArgs(SanitateBatches, UtilityBuffers.GenerationBuffer, offsets.anchorDictCounter, kernel);
-        SanitateBatches.DispatchIndirect(kernel, args);
+        ComputeBuffer args = gpuContext.Args.CountToArgs(SanitateBatches, gpuContext.Work.Scratch, offsets.anchorDictCounter, kernel);
+        gpuContext.DispatchIndirect(SanitateBatches, kernel, args);
 
         kernel = SanitateBatches.FindKernel("GetRealEndpoints");
-        args = UtilityBuffers.CountToArgs(SanitateBatches, UtilityBuffers.GenerationBuffer, offsets.anchorPathCounter, kernel);
-        SanitateBatches.DispatchIndirect(kernel, args);
+        args = gpuContext.Args.CountToArgs(SanitateBatches, gpuContext.Work.Scratch, offsets.anchorPathCounter, kernel);
+        gpuContext.DispatchIndirect(SanitateBatches, kernel, args);
     }
 
     private static void PreparePathPlannerBatches(int chunkSize, int depth) {
+        GraphicsResourceContext gpuContext = GraphicsGeneration;
         int worldChunkSize = chunkSize * (1 << depth);
         worldChunkSize += jigsaw.MaxConnectionDist * 4;
 
-        PathBatchPlanner.SetInt("maxVisitedNodesPerBatch", offsets.maxVisitedNodesPerBatch);
-        PathBatchPlanner.SetInt("maxPathsPerBatch", offsets.maxPathsPerBatch);
-        PathBatchPlanner.SetInt("numVoxelsPerChunk", worldChunkSize);
+        gpuContext.SetInt(PathBatchPlanner, "maxVisitedNodesPerBatch", offsets.maxVisitedNodesPerBatch);
+        gpuContext.SetInt(PathBatchPlanner, "maxPathsPerBatch", offsets.maxPathsPerBatch);
+        gpuContext.SetInt(PathBatchPlanner, "numVoxelsPerChunk", worldChunkSize);
 
         int kernel = PathBatchPlanner.FindKernel("CountPathSizes");
-        ComputeBuffer args = UtilityBuffers.CountToArgs(PathBatchPlanner, UtilityBuffers.GenerationBuffer, offsets.anchorPathCounter, kernel);
-        PathBatchPlanner.DispatchIndirect(kernel, args);
+        ComputeBuffer args = gpuContext.Args.CountToArgs(PathBatchPlanner, gpuContext.Work.Scratch, offsets.anchorPathCounter, kernel);
+        gpuContext.DispatchIndirect(PathBatchPlanner, kernel, args);
 
         kernel = PathBatchPlanner.FindKernel("FinalizePathPlanner");
-        PathBatchPlanner.Dispatch(kernel, 1, 1, 1);
+        gpuContext.Dispatch(PathBatchPlanner, kernel, 1, 1, 1);
     }
 
     private static void LogAppendBufferRegionCounts(string phase) {
+        GraphicsResourceContext gpuContext = GraphicsGeneration;
         const int pathMeetWord = 2;
 
         int counterStart = offsets.anchorDictCounter;
@@ -444,7 +454,7 @@ public static class Generator {
             return;
 
         int[] counters = new int[counterLength];
-        UtilityBuffers.GenerationBuffer.GetData(counters, 0, counterStart, counterLength);
+        gpuContext.Work.Scratch.GetData(counters, 0, counterStart, counterLength);
 
         int anchorDictCount = Mathf.Max(0, counters[offsets.anchorDictCounter - counterStart]);
         int anchorPathCount = Mathf.Max(0, counters[offsets.anchorPathCounter - counterStart]);
@@ -456,7 +466,7 @@ public static class Generator {
 
         if (anchorPathCount > 0) {
             uint[] pathMeetData = new uint[anchorPathCount * pathMeetWord];
-            UtilityBuffers.GenerationBuffer.GetData(pathMeetData, 0, offsets.pathMeetStart * pathMeetWord, pathMeetData.Length);
+            gpuContext.Work.Scratch.GetData(pathMeetData, 0, offsets.pathMeetStart * pathMeetWord, pathMeetData.Length);
             for (int pathIndex = 0; pathIndex < anchorPathCount; pathIndex++) {
                 uint meetIndex = pathMeetData[pathIndex * pathMeetWord];
                 if (meetIndex != uint.MaxValue)
@@ -477,55 +487,57 @@ public static class Generator {
     }
 
     public static void PopulatePathsWithStructures(int chunkSize, int depth, int3 CCoord) {
+        GraphicsResourceContext gpuContext = GraphicsGeneration;
         int worldChunkSize = chunkSize * (1 << depth);
         worldChunkSize += jigsaw.MaxConnectionDist * 4;
 
         int plannerBatchCount = math.min(offsets.maxBatchesPerChunk, jigsaw.MaxBatchExecute);
-        UtilityBuffers.SetSampleData(PathSetupRetriever, (float3)(CCoord * chunkSize), 1);
-        UtilityBuffers.SetSampleData(StructurePathfinder, (float3)(CCoord * chunkSize), 1);
-        PathSetupRetriever.SetInt("numPointsPerAxis", worldChunkSize);
-        StructurePathfinder.SetInt("numPointsPerAxis", worldChunkSize);
-        PathSetupRetriever.SetInt("numVoxelsPerChunk", worldChunkSize);
-        StructurePathfinder.SetInt("numVoxelsPerChunk", worldChunkSize);
+        gpuContext.Work.SetSampleData(PathSetupRetriever, (float3)(CCoord * chunkSize), 1);
+        gpuContext.Work.SetSampleData(StructurePathfinder, (float3)(CCoord * chunkSize), 1);
+        gpuContext.SetInt(PathSetupRetriever, "numPointsPerAxis", worldChunkSize);
+        gpuContext.SetInt(StructurePathfinder, "numPointsPerAxis", worldChunkSize);
+        gpuContext.SetInt(PathSetupRetriever, "numVoxelsPerChunk", worldChunkSize);
+        gpuContext.SetInt(StructurePathfinder, "numVoxelsPerChunk", worldChunkSize);
 
         int kernel = PathBatchPlanner.FindKernel("ClearVisitedPathIds");
-        PathBatchPlanner.SetInt("clearNodeCount", offsets.maxVisitedNodesPerBatch);
+        gpuContext.SetInt(PathBatchPlanner, "clearNodeCount", offsets.maxVisitedNodesPerBatch);
         PathBatchPlanner.GetKernelThreadGroupSizes(kernel, out uint clearThreads, out uint _, out _);
         int clearGroups = Mathf.CeilToInt(offsets.maxVisitedNodesPerBatch / (float)clearThreads);
-        PathBatchPlanner.Dispatch(kernel, clearGroups, 1, 1);
-        
+        gpuContext.Dispatch(PathBatchPlanner, kernel, clearGroups, 1, 1);
+
         for (int index = 0; index < plannerBatchCount; index++) {
             kernel = StructurePathfinder.FindKernel("BatchPathfind");
-            StructurePathfinder.SetInt("batchIndex", index);
+            gpuContext.SetInt(StructurePathfinder, "batchIndex", index);
             uint pathArgsOffsetBytes = GetPlannerDispatchArgsOffsetBytes(index, 0);
-            StructurePathfinder.DispatchIndirect(kernel, UtilityBuffers.GenerationBuffer, pathArgsOffsetBytes);
-            
+            gpuContext.DispatchIndirect(StructurePathfinder, kernel, gpuContext.Work.Scratch, pathArgsOffsetBytes);
+
             kernel = PathSetupRetriever.FindKernel("BacktrackGridPath");
-            PathSetupRetriever.SetInt("batchIndex", index);
+            gpuContext.SetInt(PathSetupRetriever, "batchIndex", index);
             uint backtrackArgsOffsetBytes = GetPlannerDispatchArgsOffsetBytes(index, 1);
-            PathSetupRetriever.DispatchIndirect(kernel, UtilityBuffers.GenerationBuffer, backtrackArgsOffsetBytes);
+            gpuContext.DispatchIndirect(PathSetupRetriever, kernel, gpuContext.Work.Scratch, backtrackArgsOffsetBytes);
         }
 
-        UtilityBuffers.SetSampleData(SanitateBatches, (float3)(CCoord * chunkSize), 1);
-        SanitateBatches.SetInt("numPointsPerAxis", 1);
-        SanitateBatches.SetInt("numVoxelsPerChunk", worldChunkSize);
+        gpuContext.Work.SetSampleData(SanitateBatches, (float3)(CCoord * chunkSize), 1);
+        gpuContext.SetInt(SanitateBatches, "numPointsPerAxis", 1);
+        gpuContext.SetInt(SanitateBatches, "numVoxelsPerChunk", worldChunkSize);
 
         kernel = SanitateBatches.FindKernel("CountAnchorConnections");
-        ComputeBuffer args = UtilityBuffers.CountToArgs(SanitateBatches, UtilityBuffers.GenerationBuffer, offsets.anchorPathCounter, kernel);
-        SanitateBatches.DispatchIndirect(kernel, args);
+        ComputeBuffer args = gpuContext.Args.CountToArgs(SanitateBatches, gpuContext.Work.Scratch, offsets.anchorPathCounter, kernel);
+        gpuContext.DispatchIndirect(SanitateBatches, kernel, args);
 
         kernel = SanitateBatches.FindKernel("FilterPathAnchors");
-        args = UtilityBuffers.CountToArgs(SanitateBatches, UtilityBuffers.GenerationBuffer, offsets.anchorDictCounter, kernel);
-        SanitateBatches.DispatchIndirect(kernel, args);
+        args = gpuContext.Args.CountToArgs(SanitateBatches, gpuContext.Work.Scratch, offsets.anchorDictCounter, kernel);
+        gpuContext.DispatchIndirect(SanitateBatches, kernel, args);
 
         kernel = PathSetupRetriever.FindKernel("CapDanglingSockets");
-        ComputeBuffer capArgs = UtilityBuffers.CountToArgs(PathSetupRetriever, UtilityBuffers.GenerationBuffer, offsets.batchSocketCapCounter, kernel);
-        PathSetupRetriever.DispatchIndirect(kernel, capArgs);
+        ComputeBuffer capArgs = gpuContext.Args.CountToArgs(PathSetupRetriever, gpuContext.Work.Scratch, offsets.batchSocketCapCounter, kernel);
+        gpuContext.DispatchIndirect(PathSetupRetriever, kernel, capArgs);
         //
         //LogAppendBufferRegionCounts("PopulatePathsWithStructures");
     }
 
     private static void PruneIntersectionsAndEmitFinalStructures(int chunkSize, int depth, int3 CCoord) {
+        GraphicsResourceContext gpuContext = GraphicsGeneration;
         int worldChunkSize = chunkSize * (1 << depth);
         worldChunkSize += jigsaw.MaxConnectionDist * 4;
 
@@ -536,32 +548,32 @@ public static class Generator {
         int maxPathsPerChunk = maxCellsPerChunk * 6;
         int binListCapacity = maxPathsPerChunk * 3;
 
-        UtilityBuffers.SetSampleData(StructurePostProcess, (float3)(CCoord * chunkSize), 1);
-        StructurePostProcess.SetInt("numVoxelsPerChunk", worldChunkSize);
-        StructurePostProcess.SetInt("numBinsPerAxis", numBinsPerAxis);
-        StructurePostProcess.SetInt("binListCapacity", binListCapacity);
-        StructurePostProcess.SetInts("oCCoord", new int[] { CCoord.x, CCoord.y, CCoord.z });
+        gpuContext.Work.SetSampleData(StructurePostProcess, (float3)(CCoord * chunkSize), 1);
+        gpuContext.SetInt(StructurePostProcess, "numVoxelsPerChunk", worldChunkSize);
+        gpuContext.SetInt(StructurePostProcess, "numBinsPerAxis", numBinsPerAxis);
+        gpuContext.SetInt(StructurePostProcess, "binListCapacity", binListCapacity);
+        gpuContext.SetInts(StructurePostProcess, "oCCoord", new int[] { CCoord.x, CCoord.y, CCoord.z });
 
         int kernel = StructurePostProcess.FindKernel("InitStructurePruneState");
         StructurePostProcess.GetKernelThreadGroupSizes(kernel, out uint binThreads, out uint _, out _);
         int binGroupsPerAxis = Mathf.CeilToInt(numBinsPerAxis / (float)binThreads);
-        StructurePostProcess.Dispatch(kernel, binGroupsPerAxis, binGroupsPerAxis, binGroupsPerAxis);
+        gpuContext.Dispatch(StructurePostProcess, kernel, binGroupsPerAxis, binGroupsPerAxis, binGroupsPerAxis);
 
         kernel = StructurePostProcess.FindKernel("InitDepthTables");
-        ComputeBuffer args = UtilityBuffers.CountToArgs(StructurePostProcess, UtilityBuffers.GenerationBuffer, offsets.anchorPathCounter, kernel);
-        StructurePostProcess.DispatchIndirect(kernel, args);
+        ComputeBuffer args = gpuContext.Args.CountToArgs(StructurePostProcess, gpuContext.Work.Scratch, offsets.anchorPathCounter, kernel);
+        gpuContext.DispatchIndirect(StructurePostProcess, kernel, args);
 
         kernel = StructurePostProcess.FindKernel("BuildStructureBins");
-        args = UtilityBuffers.CountToArgs(StructurePostProcess, UtilityBuffers.GenerationBuffer, offsets.intermediateStructCounter, kernel);
-        StructurePostProcess.DispatchIndirect(kernel, args);
+        args = gpuContext.Args.CountToArgs(StructurePostProcess, gpuContext.Work.Scratch, offsets.intermediateStructCounter, kernel);
+        gpuContext.DispatchIndirect(StructurePostProcess, kernel, args);
 
         kernel = StructurePostProcess.FindKernel("CalculateMinDepths");
-        args = UtilityBuffers.CountToArgs(StructurePostProcess, UtilityBuffers.GenerationBuffer, offsets.intermediateStructCounter, kernel);
-        StructurePostProcess.DispatchIndirect(kernel, args);
+        args = gpuContext.Args.CountToArgs(StructurePostProcess, gpuContext.Work.Scratch, offsets.intermediateStructCounter, kernel);
+        gpuContext.DispatchIndirect(StructurePostProcess, kernel, args);
 
         kernel = StructurePostProcess.FindKernel("EmitFinalStructures");
-        args = UtilityBuffers.CountToArgs(StructurePostProcess, UtilityBuffers.GenerationBuffer, offsets.intermediateStructCounter, kernel);
-        StructurePostProcess.DispatchIndirect(kernel, args);
+        args = gpuContext.Args.CountToArgs(StructurePostProcess, gpuContext.Work.Scratch, offsets.intermediateStructCounter, kernel);
+        gpuContext.DispatchIndirect(StructurePostProcess, kernel, args);
     }
 
     public struct SSystemOffsets : BufferOffsets {
@@ -600,10 +612,10 @@ public static class Generator {
         public int finalStructsStart;
 
         private int offsetStart; private int offsetEnd;
-        /// <summary> The start of the buffer region that is used by the ssystem generator. 
+        /// <summary> The start of the buffer region that is used by the ssystem generator.
         /// See <see cref="offsetss.bufferStart"/> for more info. </summary>
-        public int bufferStart{get{return offsetStart;}} 
-        /// <summary> The end of the buffer region that is used by the ssystem generator. 
+        public int bufferStart{get{return offsetStart;}}
+        /// <summary> The end of the buffer region that is used by the ssystem generator.
         /// See <see cref="offsetss.bufferEnd"/> for more info. </summary>
         public int bufferEnd{get{return offsetEnd;}}
 
@@ -698,7 +710,7 @@ public static class Generator {
 
             anchorConnectionStart = Mathf.CeilToInt((float)counterEnd / ANCHOR_CONNECTION_WORD);
             int AnchorConnectionEndInd_W = (anchorConnectionStart + maxCellsPerChunk) * ANCHOR_CONNECTION_WORD;
-            
+
             batchPrefixStart = Mathf.CeilToInt((float)AnchorConnectionEndInd_W / BATCH_PREFIX_WORD);
             int BatchPrefixEndInd_W = (batchPrefixStart + maxBatchesPerChunk) * BATCH_PREFIX_WORD;
 
@@ -728,15 +740,15 @@ public static class Generator {
 
             pathMeetStart = Mathf.CeilToInt((float)PathEndsEndInd_W / PATH_MEET_WORD);
             int PathMeetEndInd_W = (pathMeetStart + maxPathsPerChunk) * PATH_MEET_WORD;
-            
+
             batchPathStart = Mathf.CeilToInt((float)PathMeetEndInd_W / PATH_INDEX_WORD);
             int BatchPathsEndInd_W = (batchPathStart + maxPathsPerChunk) * PATH_INDEX_WORD;
 
             //This one is not mathematically accurate upper bound but an estimate
-            batchSocketCapStart = Mathf.CeilToInt((float)BatchPathsEndInd_W / STRUCT_SOCKET_WORD); 
+            batchSocketCapStart = Mathf.CeilToInt((float)BatchPathsEndInd_W / STRUCT_SOCKET_WORD);
             int BatchSocketEndInd_W = (batchSocketCapStart + maxBatchesPerChunk * maxPathsPerBatch) * STRUCT_SOCKET_WORD;
 
-            batchVistStart = Mathf.CeilToInt((float)BatchSocketEndInd_W / VISITED_NODE_WORD); 
+            batchVistStart = Mathf.CeilToInt((float)BatchSocketEndInd_W / VISITED_NODE_WORD);
             int BatchVisitedEndInd_W = (batchVistStart + maxVisitedNodesPerBatch) * VISITED_NODE_WORD;
 
             frontierStart = Mathf.CeilToInt((float)BatchVisitedEndInd_W / FRONTIER_NODE_WORD);
