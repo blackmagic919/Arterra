@@ -66,54 +66,6 @@ public class Creator {
         if(neighborDepths == 0) return;
         GenerateTransition(neighborDepths, chunkSize, IsoLevel);
     }
-    /// <summary>  Generates the mesh for a <see cref="TerrainChunk.VisualChunk"><b>fake</b> visual chunk</see>. Because the map data is
-    /// not stored with only the default map being recreated on demand, a <i>fake mesh</i> is created in the sense that it is
-    /// not only non-interactable, but also cannot be changed within the context of the game. </summary>
-    /// <param name="IsoLevel">The density of the surface of the terrain. See <see cref="Quality.Terrain.IsoLevel"/> for more info.</param>
-    /// <param name="chunkSize">The resolution of the mesh generated for the chunk. Equivalent to the amount of entries per axis within the map saved for this chunk</param>
-    /// <param name="neighborDepths">A bitmap describing the potential difference in depth between this chunk and its neighbors,
-    /// used in generating transition information. See <see cref="OctreeTerrain.BalancedOctree.GetNeighborDepths(uint)"/> and <see cref="GenerateTransition(uint, int, float)"/>
-    /// for more info.</param>
-    public void GenerateFakeMesh(GraphicsResourceContext mapContext, float IsoLevel,
-        int chunkSize, uint neighborDepths, Action onGenerated = null) {
-        GraphicsResourceContext meshContext = GetGraphicsContext();
-        if (mapContext.id == meshContext.id) {
-            CreateFakeMesh();
-            return;
-        }
-
-        Map.Creator.GeoGenOffsets bufferOffsets = Map.Creator.bufferOffsets;
-        int mapSize = chunkSize + 3;
-        int mapPointCount = mapSize * mapSize * mapSize;
-
-        uint mapAddress = mapContext.Memory.AllocateMemoryDirect(mapPointCount, 1);
-        if (mapAddress == 0) return;
-        mapContext.Work.CopyToStorage(mapAddress, bufferOffsets.mapStart,
-            mapPointCount);
-
-        mapContext.Memory.RegisterRebind(mapAddress, mapStorage => {
-            if (!mapContext.Memory.GetDirectAllocation(mapAddress, 1,
-                out _, out _, out _, out int mapStart, out _))
-                return;
-
-            meshContext.PollGraphicsContext(mapContext, _ => {
-                meshContext.Work.CopyBuffer(mapStorage, meshContext.Work.Scratch,
-                    mapStart, bufferOffsets.mapStart, mapPointCount);
-
-                mapContext.PollGraphicsContext(meshContext,
-                    _ => mapContext.Memory.ReleaseMemory(mapAddress));
-
-                CreateFakeMesh();
-            });
-        });
-
-        void CreateFakeMesh() {
-            GenerateMesh(chunkSize, IsoLevel);
-            if (neighborDepths != 0)
-                GenerateTransition(neighborDepths, chunkSize, IsoLevel);
-            onGenerated?.Invoke();
-        }
-    }
     public static void PresetData(GraphicsContextId graphicsContext = GraphicsContextId.Rendering) {
         GraphicsResourceContext gpuContext = Graphics(graphicsContext);
         Configuration.Quality.Terrain rSettings = Config.CURRENT.Quality.Terrain;

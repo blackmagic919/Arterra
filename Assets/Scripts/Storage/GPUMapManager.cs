@@ -161,6 +161,25 @@ namespace Arterra.Core.Storage{
             return true;
         }
 
+        public static UnmanagedChunkReference RegisterChunkUnmanaged(ComputeBuffer mapData, int rdOff = 0, GraphicsContextId viewerId = GraphicsContextId.Generation) {
+            if (!initialized || mapData == null || viewerId == GraphicsContextId.None)
+                return null;
+
+            GraphicsResourceContext viewer = Graphics(viewerId);
+            int mapAxis = mapChunkSize + 3;
+            int mapPointCount = mapAxis * mapAxis * mapAxis;
+            uint addressIndex = viewer.Memory.AllocateMemoryDirect(mapPointCount, 1);
+            if (addressIndex == 0)
+                return null;
+
+            viewer.Work.CopyToStorage(addressIndex, rdOff, mapPointCount);
+            GraphicsFence fence = viewer.Commands.CreateGraphicsFence(
+                GraphicsFenceType.AsyncQueueSynchronisation,
+                SynchronisationStageFlags.AllGPUOperations
+            );
+            return new UnmanagedChunkReference(viewerId, addressIndex, mapPointCount, fence);
+        }
+
         /// <summary>
         /// Registers a visual chunk by copying its map information from working memory to long-term GPU memory,
         /// updating the lookup structure(s) and garbage collecting(permanently) any map information made unaccessible.
@@ -515,6 +534,57 @@ namespace Arterra.Core.Storage{
                 viewerId = GraphicsContextId.None;
             }
         }
+    }
 
+    public class UnmanagedChunkReference {
+        private readonly GraphicsContextId ownerId;
+        private readonly uint addressIndex;
+        private readonly int count;
+        private readonly GraphicsFence fence;
+        private bool released;
+
+        internal UnmanagedChunkReference(GraphicsContextId ownerId, uint addressIndex,
+            int count, GraphicsFence fence) {
+            this.ownerId = ownerId;
+            this.addressIndex = addressIndex;
+            this.count = count;
+            this.fence = fence;
+        }
+
+        public bool CanAccess(GraphicsResourceContext viewer) {
+            if (released || viewer == null)
+                return false;
+            return viewer.id == ownerId || fence.passed;
+        }
+
+        public bool CopyTo(GraphicsResourceContext viewer, ComputeBuffer destination,
+            int destinationOffset) {
+            if (!CanAccess(viewer) || destination == null)
+                return false;
+
+            GraphicsResourceContext owner = Graphics(ownerId);
+            if (!owner.Memory.GetDirectAllocation(addressIndex, 1, out ComputeBuffer source,
+                out _, out _, out int sourceOffset, out int sourceCount) || sourceCount < count)
+                return false;
+
+            return viewer.Work.CopyBuffer(source, destination, sourceOffset,
+                destinationOffset, count, graphicsContext: viewer);
+        }
+
+        public void Release(GraphicsContextId viewerId) {
+            if (released)
+                return;
+            released = true;
+
+            GraphicsResourceContext owner = Graphics(ownerId);
+            GraphicsResourceContext viewer = Graphics(viewerId);
+            if (owner.id == viewer.id) {
+                owner.Memory.ReleaseMemory(addressIndex);
+                return;
+            }
+
+            owner.PollGraphicsContext(viewer,
+                _ => owner.Memory.ReleaseMemory(addressIndex));
+        }
     }
 }

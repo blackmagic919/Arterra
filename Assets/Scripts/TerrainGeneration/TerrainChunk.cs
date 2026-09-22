@@ -380,7 +380,7 @@ namespace Arterra.Engine.Terrain{
 
         /// <summary> Whether or not <see cref="CreateMesh"/> can be called safely for this chunk.</summary>
         /// <returns></returns>
-        protected bool CanCreateMesh() {
+        protected virtual bool CanCreateMesh() {
             int3 MinGCoord = origin - mapChunkSize; int3 MaxGCoord = origin + size + mapChunkSize;
             Status dependentStatus = GetRegionMinimalStatus(MinGCoord, MaxGCoord);
             if(dependentStatus.CreateMap != Status.State.Finished) return false;
@@ -565,6 +565,7 @@ namespace Arterra.Engine.Terrain{
             private int3 sOrigin;
             private int sChunkSize;
             private int mapHandle;
+            private UnmanagedChunkReference unmanagedMap;
 
             /// <summary> Creates a new visual chunk with the the given origin and size. <seealso cref="TerrainChunk"/> </summary>
             public VisualChunk(Transform parent, int3 origin, int size, uint octreeIndex) : base(parent, origin, size, octreeIndex) {
@@ -610,6 +611,8 @@ namespace Arterra.Engine.Terrain{
             public override void ReleaseChunk() {
                 //if we are still holding onto the map handle, release it
                 if (mapHandle != -1) GPUMapManager.UnsubscribeHandle(mapHandle);
+                unmanagedMap?.Release(GraphicsContextId.Generation);
+                unmanagedMap = null;
                 base.ReleaseChunk();
             }
             /// <exclude />
@@ -649,13 +652,18 @@ namespace Arterra.Engine.Terrain{
             /// </summary> <param name="callback"><see cref="TerrainChunk.CreateMapData(Action)"/></param>
             protected override void CreateMapData(Action callback = null) {
                 GraphicsResourceContext gpuContext = GraphicsGeneration;
+                GenerateDefaultMap();
                 if (!GPUMapManager.IsChunkRegisterable(CCoord, depth)) {
+                    Map.Creator.GeoGenOffsets fakeOffsets = Map.Creator.bufferOffsets;
+                    unmanagedMap = GPUMapManager.RegisterChunkUnmanaged(
+                        gpuContext.Work.Scratch, fakeOffsets.mapStart, gpuContext.id);
+                    if (unmanagedMap == null)
+                        return;
                     status.UpdateMap = Status.Complete(status.UpdateMap);
                     callback?.Invoke();
                     return;
                 }
 
-                GenerateDefaultMap();
                 Map.Creator.GeoGenOffsets bufferOffsets = Map.Creator.bufferOffsets;
                 if (mapHandle != -1) GPUMapManager.UnsubscribeHandle(mapHandle);
                 mapHandle = GPUMapManager.RegisterChunkVisual(CCoord, depth, gpuContext.Work.Scratch, bufferOffsets.mapStart);
@@ -676,17 +684,35 @@ namespace Arterra.Engine.Terrain{
                 callback?.Invoke();
             }
 
+            protected override bool CanCreateMesh() {
+                if (unmanagedMap != null)
+                    return unmanagedMap.CanAccess(GraphicsRendering);
+                return base.CanCreateMesh();
+            }
+
             /// <summary>
             /// A visual chunk is fake if it does not have any cached information in the <see cref="GPUMapManager"/>.
             /// If it is a fake visual chunk, it will generate the default map information and create the mesh.
             /// If it is a normal visual chunk, it will create the mesh using the cached map information in the <see cref="GPUMapManager"/>.
             /// </summary> <param name="UpdateCallback"><see cref="TerrainChunk.CreateMesh(Action{ReadbackTask{TVert}.SharedMeshInfo})"/></param>
             protected override void CreateMesh(Action<ReadbackTask<TVert>.SharedMeshInfo> UpdateCallback = null) {
-                if (mapHandle == -1) {
-                    CreateFakeVisualMesh();
+                if (unmanagedMap != null) {
+                    GraphicsResourceContext meshContext = Generator.MeshCreator.GetGraphicsContext();
+                    Map.Creator.GeoGenOffsets fakeOffsets = Map.Creator.bufferOffsets;
+                    if (!unmanagedMap.CopyTo(meshContext, meshContext.Work.Scratch,
+                        fakeOffsets.mapStart))
+                        return;
+
+                    Generator.MeshCreator.GenerateMesh(mapChunkSize, IsoLevel);
+                    if (neighborDepth != 0)
+                        Generator.MeshCreator.GenerateTransition(neighborDepth, mapChunkSize, IsoLevel);
+                    unmanagedMap.Release(meshContext.id);
+                    unmanagedMap = null;
+                    FinishMeshCreation();
                     return;
                 }
 
+                if (mapHandle == -1)  return;
                 int directAddress = GPUMapManager.GetHandle(mapHandle).Address;
                 Generator.MeshCreator.GenerateVisualMesh(CCoord, directAddress, IsoLevel, mapChunkSize, depth, neighborDepth);
                 if (!GPUMapManager.TryBindRegionOperation(origin - mapChunkSize, origin + size + mapChunkSize, Generator.MeshCreator.GetGraphicsContext()))
@@ -696,13 +722,6 @@ namespace Arterra.Engine.Terrain{
                 GPUMapManager.UnsubscribeHandle(mapHandle);
                 mapHandle = -1;
                 FinishMeshCreation();
-            }
-
-            private void CreateFakeVisualMesh() {
-                GenerateDefaultMap();
-                Generator.MeshCreator.GenerateFakeMesh(GraphicsGeneration, IsoLevel,
-                    mapChunkSize, neighborDepth,
-                    () => { if (Active) FinishMeshCreation(); });
             }
 
             private void FinishMeshCreation() {

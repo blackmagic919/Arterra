@@ -12,14 +12,14 @@ namespace Arterra.Core.Storage {
         public static GraphicsResourceContext GraphicsGeneration;
         public static GraphicsResourceContext GraphicsRendering;
 
-        public static void Initialize() {
+        public static void Initialize(bool minimal = false) {
             WorkBuffers.Initialize();
             ArgBuffers.Initialize();
 
-            GraphicsRendering = new GraphicsResourceContext(GraphicsContextId.Rendering);
-            if (SystemInfo.supportsAsyncCompute)
-                GraphicsGeneration = new GraphicsResourceContext(GraphicsContextId.Generation);
-            else GraphicsGeneration = GraphicsRendering;
+            GraphicsRendering = new GraphicsResourceContext(GraphicsContextId.Rendering, autoFlush: minimal);
+            if (SystemInfo.supportsAsyncCompute && !minimal) {
+                GraphicsGeneration = new GraphicsResourceContext(GraphicsContextId.Generation, asyncCompute: true);
+            } else GraphicsGeneration = GraphicsRendering;
             GraphicsContexts = new GraphicsResourceContext[2] {
                 GraphicsGeneration,
                 GraphicsRendering,
@@ -46,6 +46,8 @@ namespace Arterra.Core.Storage {
         public readonly ArgBuffers Args;
         public readonly CommandBuffer Commands;
         public readonly GraphicsContextId id;
+        private readonly bool asyncCompute;
+        private readonly bool autoFlush;
         private LinkedList<FencePoll> Polls;
         private readonly HashSet<ComputeBuffer> readbackSnapshots = new();
         private bool active;
@@ -66,8 +68,11 @@ namespace Arterra.Core.Storage {
             active = true;
         }
 
-        public GraphicsResourceContext(GraphicsContextId id) {
+        public GraphicsResourceContext(GraphicsContextId id, bool asyncCompute = false, bool autoFlush = false) {
             Commands = CommandBufferPool.Get();
+            this.asyncCompute = asyncCompute;
+            this.autoFlush = autoFlush;
+            ClearCommands();
             this.id = id;
             active = true;
             Polls = new LinkedList<FencePoll>();
@@ -75,6 +80,20 @@ namespace Arterra.Core.Storage {
             Args = new ArgBuffers(id);
             Memory = new MemoryOccupancyBalancer(Config.CURRENT.Quality.Memory.value, this);
         }
+
+        // Clear() resets execution flags too, so re-apply after every clear.
+        public void ClearCommands() {
+            Commands.Clear();
+            if (asyncCompute) Commands.SetExecutionFlags(CommandBufferExecutionFlags.AsyncCompute);
+        }
+
+        // Immediately submits any recorded commands when no runtime loop is around to pick them up.
+        private void FlushIfAuto() {
+            if (!autoFlush || Commands.sizeInBytes == 0) return;
+            Graphics.ExecuteCommandBuffer(Commands);
+            ClearCommands();
+        }
+
 
         public void Release() {
             if (!active) return;
@@ -143,106 +162,132 @@ namespace Arterra.Core.Storage {
         }
 
         public void Dispatch(ComputeShader shader, int kernelIndex, int threadGroupsX, int threadGroupsY, int threadGroupsZ) {
-            Commands.DispatchCompute(shader, kernelIndex, threadGroupsX, threadGroupsY, threadGroupsZ);
+            if (autoFlush) shader.Dispatch(kernelIndex, threadGroupsX, threadGroupsY, threadGroupsZ);
+            else Commands.DispatchCompute(shader, kernelIndex, threadGroupsX, threadGroupsY, threadGroupsZ);
         }
 
         public void DispatchIndirect(ComputeShader shader, int kernelIndex, ComputeBuffer argsBuffer, uint argsOffset = 0u) {
-            Commands.DispatchCompute(shader, kernelIndex, argsBuffer, argsOffset);
+            if (autoFlush) shader.DispatchIndirect(kernelIndex, argsBuffer, argsOffset);
+            else Commands.DispatchCompute(shader, kernelIndex, argsBuffer, argsOffset);
         }
 
         public void DispatchIndirect(ComputeShader shader, int kernelIndex, GraphicsBuffer argsBuffer, uint argsOffset = 0u) {
-            Commands.DispatchCompute(shader, kernelIndex, argsBuffer, argsOffset);
+            if (autoFlush) shader.DispatchIndirect(kernelIndex, argsBuffer, argsOffset);
+            else Commands.DispatchCompute(shader, kernelIndex, argsBuffer, argsOffset);
         }
 
         public void SetBool(ComputeShader shader, string name, bool value) => SetInt(shader, name, value ? 1 : 0);
         public void SetBool(ComputeShader shader, int nameID, bool value) => SetInt(shader, nameID, value ? 1 : 0);
 
         public void SetInt(ComputeShader shader, string name, int value) {
-            Commands.SetComputeIntParam(shader, name, value);
+            if (autoFlush) shader.SetInt(name, value);
+            else Commands.SetComputeIntParam(shader, name, value);
         }
 
         public void SetInt(ComputeShader shader, int nameID, int value) {
-            Commands.SetComputeIntParam(shader, nameID, value);
+            if (autoFlush) shader.SetInt(nameID, value);
+            else Commands.SetComputeIntParam(shader, nameID, value);
         }
 
         public void SetInts(ComputeShader shader, string name, params int[] values) {
-            Commands.SetComputeIntParams(shader, name, values);
+            if (autoFlush) shader.SetInts(name, values);
+            else Commands.SetComputeIntParams(shader, name, values);
         }
 
         public void SetInts(ComputeShader shader, int nameID, params int[] values) {
-            Commands.SetComputeIntParams(shader, nameID, values);
+            if (autoFlush) shader.SetInts(nameID, values);
+            else Commands.SetComputeIntParams(shader, nameID, values);
         }
 
         public void SetFloat(ComputeShader shader, string name, float value) {
-            Commands.SetComputeFloatParam(shader, name, value);
+            if (autoFlush) shader.SetFloat(name, value);
+            else Commands.SetComputeFloatParam(shader, name, value);
         }
 
         public void SetFloat(ComputeShader shader, int nameID, float value) {
-            Commands.SetComputeFloatParam(shader, nameID, value);
+            if (autoFlush) shader.SetFloat(nameID, value);
+            else Commands.SetComputeFloatParam(shader, nameID, value);
         }
 
         public void SetFloats(ComputeShader shader, string name, params float[] values) {
-            Commands.SetComputeFloatParams(shader, name, values);
+            if (autoFlush) shader.SetFloats(name, values);
+            else Commands.SetComputeFloatParams(shader, name, values);
         }
 
         public void SetFloats(ComputeShader shader, int nameID, params float[] values) {
-            Commands.SetComputeFloatParams(shader, nameID, values);
+            if (autoFlush) shader.SetFloats(nameID, values);
+            else Commands.SetComputeFloatParams(shader, nameID, values);
         }
 
         public void SetVector(ComputeShader shader, string name, Vector4 value) {
-            Commands.SetComputeVectorParam(shader, name, value);
+            if (autoFlush) shader.SetVector(name, value);
+            else Commands.SetComputeVectorParam(shader, name, value);
         }
 
         public void SetVector(ComputeShader shader, int nameID, Vector4 value) {
-            Commands.SetComputeVectorParam(shader, nameID, value);
+            if (autoFlush) shader.SetVector(nameID, value);
+            else Commands.SetComputeVectorParam(shader, nameID, value);
         }
 
         public void SetVectorArray(ComputeShader shader, string name, Vector4[] values) {
-            Commands.SetComputeVectorArrayParam(shader, name, values);
+            if (autoFlush) shader.SetVectorArray(name, values);
+            else Commands.SetComputeVectorArrayParam(shader, name, values);
         }
 
         public void SetVectorArray(ComputeShader shader, int nameID, Vector4[] values) {
-            Commands.SetComputeVectorArrayParam(shader, nameID, values);
+            if (autoFlush) shader.SetVectorArray(nameID, values);
+            else Commands.SetComputeVectorArrayParam(shader, nameID, values);
         }
 
         public void SetMatrix(ComputeShader shader, string name, Matrix4x4 value) {
-            Commands.SetComputeMatrixParam(shader, name, value);
+            if (autoFlush) shader.SetMatrix(name, value);
+            else Commands.SetComputeMatrixParam(shader, name, value);
         }
 
         public void SetMatrix(ComputeShader shader, int nameID, Matrix4x4 value) {
-            Commands.SetComputeMatrixParam(shader, nameID, value);
+            if (autoFlush) shader.SetMatrix(nameID, value);
+            else Commands.SetComputeMatrixParam(shader, nameID, value);
         }
 
         public void SetMatrixArray(ComputeShader shader, string name, Matrix4x4[] values) {
-            Commands.SetComputeMatrixArrayParam(shader, name, values);
+            if (autoFlush) shader.SetMatrixArray(name, values);
+            else Commands.SetComputeMatrixArrayParam(shader, name, values);
         }
 
         public void SetMatrixArray(ComputeShader shader, int nameID, Matrix4x4[] values) {
-            Commands.SetComputeMatrixArrayParam(shader, nameID, values);
+            if (autoFlush) shader.SetMatrixArray(nameID, values);
+            else Commands.SetComputeMatrixArrayParam(shader, nameID, values);
         }
 
         public void SetBuffer(ComputeShader shader, int kernelIndex, string name, ComputeBuffer buffer) {
-            Commands.SetComputeBufferParam(shader, kernelIndex, name, buffer);
+            if (autoFlush) shader.SetBuffer(kernelIndex, name, buffer);
+            else Commands.SetComputeBufferParam(shader, kernelIndex, name, buffer);
         }
 
         public void SetBuffer(ComputeShader shader, int kernelIndex, int nameID, ComputeBuffer buffer) {
-            Commands.SetComputeBufferParam(shader, kernelIndex, nameID, buffer);
+            if (autoFlush) shader.SetBuffer(kernelIndex, nameID, buffer);
+            else Commands.SetComputeBufferParam(shader, kernelIndex, nameID, buffer);
         }
 
         public void SetBuffer(ComputeShader shader, int kernelIndex, string name, GraphicsBuffer buffer) {
-            Commands.SetComputeBufferParam(shader, kernelIndex, name, buffer);
+            if (autoFlush) shader.SetBuffer(kernelIndex, name, buffer);
+            else Commands.SetComputeBufferParam(shader, kernelIndex, name, buffer);
         }
 
         public void SetBuffer(ComputeShader shader, int kernelIndex, int nameID, GraphicsBuffer buffer) {
-            Commands.SetComputeBufferParam(shader, kernelIndex, nameID, buffer);
+            if (autoFlush) shader.SetBuffer(kernelIndex, nameID, buffer);
+            else Commands.SetComputeBufferParam(shader, kernelIndex, nameID, buffer);
         }
 
+        // ComputeShader.SetTexture only accepts Texture, not RenderTargetIdentifier, so flush right after recording.
         public void SetTexture(ComputeShader shader, int kernelIndex, string name, RenderTargetIdentifier texture, int mipLevel = 0) {
             Commands.SetComputeTextureParam(shader, kernelIndex, name, texture, mipLevel);
+            FlushIfAuto();
         }
 
         public void SetTexture(ComputeShader shader, int kernelIndex, int nameID, RenderTargetIdentifier texture, int mipLevel = 0) {
             Commands.SetComputeTextureParam(shader, kernelIndex, nameID, texture, mipLevel);
+            FlushIfAuto();
         }
 
         public void SetTexture(
@@ -254,6 +299,7 @@ namespace Arterra.Core.Storage {
             RenderTextureSubElement element
         ) {
             Commands.SetComputeTextureParam(shader, kernelIndex, name, texture, mipLevel, element);
+            FlushIfAuto();
         }
 
         public void SetTexture(
@@ -265,6 +311,7 @@ namespace Arterra.Core.Storage {
             RenderTextureSubElement element
         ) {
             Commands.SetComputeTextureParam(shader, kernelIndex, nameID, texture, mipLevel, element);
+            FlushIfAuto();
         }
 
         public void SetConstantBuffer(
@@ -274,7 +321,8 @@ namespace Arterra.Core.Storage {
             int offset,
             int size
         ) {
-            Commands.SetComputeConstantBufferParam(shader, name, buffer, offset, size);
+            if (autoFlush) shader.SetConstantBuffer(name, buffer, offset, size);
+            else Commands.SetComputeConstantBufferParam(shader, name, buffer, offset, size);
         }
 
         public void SetConstantBuffer(
@@ -284,19 +332,24 @@ namespace Arterra.Core.Storage {
             int offset,
             int size
         ) {
-            Commands.SetComputeConstantBufferParam(shader, nameID, buffer, offset, size);
+            if (autoFlush) shader.SetConstantBuffer(nameID, buffer, offset, size);
+            else Commands.SetComputeConstantBufferParam(shader, nameID, buffer, offset, size);
         }
 
+        // No immediate equivalent exists for these, so flush right after recording.
         public void SetParamsFromMaterial(ComputeShader shader, int kernelIndex, Material material) {
             Commands.SetComputeParamsFromMaterial(shader, kernelIndex, material);
+            FlushIfAuto();
         }
 
         public void SetBufferCounterValue(ComputeBuffer buffer, uint value) {
             Commands.SetBufferCounterValue(buffer, value);
+            FlushIfAuto();
         }
 
         public void SetBufferCounterValue(GraphicsBuffer buffer, uint value) {
             Commands.SetBufferCounterValue(buffer, value);
+            FlushIfAuto();
         }
 
         public void SetConstantBuffer(
@@ -306,7 +359,8 @@ namespace Arterra.Core.Storage {
             int offset,
             int size
         ) {
-            Commands.SetComputeConstantBufferParam(shader, name, buffer, offset, size);
+            if (autoFlush) shader.SetConstantBuffer(name, buffer, offset, size);
+            else Commands.SetComputeConstantBufferParam(shader, name, buffer, offset, size);
         }
 
         public void SetConstantBuffer(
@@ -316,14 +370,15 @@ namespace Arterra.Core.Storage {
             int offset,
             int size
         ) {
-            Commands.SetComputeConstantBufferParam(shader, nameID, buffer, offset, size);
+            if (autoFlush) shader.SetConstantBuffer(nameID, buffer, offset, size);
+            else Commands.SetComputeConstantBufferParam(shader, nameID, buffer, offset, size);
         }
 
         // Submit recorded work before GetData blocks for the buffer's GPU writes.
         private void FlushForReadback() {
             if (Commands.sizeInBytes == 0) return;
             Graphics.ExecuteCommandBuffer(Commands);
-            Commands.Clear();
+            ClearCommands();
         }
 
         public void GetData(ComputeBuffer buffer, Array data) {
@@ -346,12 +401,30 @@ namespace Arterra.Core.Storage {
             buffer.GetData(data, managedBufferStartIndex, computeBufferStartIndex, count);
         }
 
-        public void SetBufferData(ComputeBuffer buffer, Array data) => Commands.SetBufferData(buffer, data);
-        public void SetBufferData<T>(ComputeBuffer buffer, List<T> data) where T : struct => Commands.SetBufferData(buffer, data);
-        public void SetBufferData<T>(ComputeBuffer buffer, NativeArray<T> data) where T : struct => Commands.SetBufferData(buffer, data);
-        public void SetBufferData(GraphicsBuffer buffer, Array data) => Commands.SetBufferData(buffer, data);
-        public void SetBufferData<T>(GraphicsBuffer buffer, List<T> data) where T : struct => Commands.SetBufferData(buffer, data);
-        public void SetBufferData<T>(GraphicsBuffer buffer, NativeArray<T> data) where T : struct => Commands.SetBufferData(buffer, data);
+        public void SetBufferData(ComputeBuffer buffer, Array data) {
+            if (autoFlush) buffer.SetData(data);
+            else Commands.SetBufferData(buffer, data);
+        }
+        public void SetBufferData<T>(ComputeBuffer buffer, List<T> data) where T : struct {
+            if (autoFlush) buffer.SetData(data);
+            else Commands.SetBufferData(buffer, data);
+        }
+        public void SetBufferData<T>(ComputeBuffer buffer, NativeArray<T> data) where T : struct {
+            if (autoFlush) buffer.SetData(data);
+            else Commands.SetBufferData(buffer, data);
+        }
+        public void SetBufferData(GraphicsBuffer buffer, Array data) {
+            if (autoFlush) buffer.SetData(data);
+            else Commands.SetBufferData(buffer, data);
+        }
+        public void SetBufferData<T>(GraphicsBuffer buffer, List<T> data) where T : struct {
+            if (autoFlush) buffer.SetData(data);
+            else Commands.SetBufferData(buffer, data);
+        }
+        public void SetBufferData<T>(GraphicsBuffer buffer, NativeArray<T> data) where T : struct {
+            if (autoFlush) buffer.SetData(data);
+            else Commands.SetBufferData(buffer, data);
+        }
 
         public void SetBufferData(
             ComputeBuffer buffer,
@@ -359,7 +432,10 @@ namespace Arterra.Core.Storage {
             int sourceStartIndex,
             int destinationStartIndex,
             int count
-        ) => Commands.SetBufferData(buffer, data, sourceStartIndex, destinationStartIndex, count);
+        ) {
+            if (autoFlush) buffer.SetData(data, sourceStartIndex, destinationStartIndex, count);
+            else Commands.SetBufferData(buffer, data, sourceStartIndex, destinationStartIndex, count);
+        }
 
         public void SetBufferData<T>(
             ComputeBuffer buffer,
@@ -367,7 +443,10 @@ namespace Arterra.Core.Storage {
             int sourceStartIndex,
             int destinationStartIndex,
             int count
-        ) where T : struct => Commands.SetBufferData(buffer, data, sourceStartIndex, destinationStartIndex, count);
+        ) where T : struct {
+            if (autoFlush) buffer.SetData(data, sourceStartIndex, destinationStartIndex, count);
+            else Commands.SetBufferData(buffer, data, sourceStartIndex, destinationStartIndex, count);
+        }
 
         public void SetBufferData<T>(
             ComputeBuffer buffer,
@@ -375,7 +454,10 @@ namespace Arterra.Core.Storage {
             int sourceStartIndex,
             int destinationStartIndex,
             int count
-        ) where T : struct => Commands.SetBufferData(buffer, data, sourceStartIndex, destinationStartIndex, count);
+        ) where T : struct {
+            if (autoFlush) buffer.SetData(data, sourceStartIndex, destinationStartIndex, count);
+            else Commands.SetBufferData(buffer, data, sourceStartIndex, destinationStartIndex, count);
+        }
 
         public void SetBufferData(
             GraphicsBuffer buffer,
@@ -383,7 +465,10 @@ namespace Arterra.Core.Storage {
             int sourceStartIndex,
             int destinationStartIndex,
             int count
-        ) => Commands.SetBufferData(buffer, data, sourceStartIndex, destinationStartIndex, count);
+        ) {
+            if (autoFlush) buffer.SetData(data, sourceStartIndex, destinationStartIndex, count);
+            else Commands.SetBufferData(buffer, data, sourceStartIndex, destinationStartIndex, count);
+        }
 
         public void SetBufferData<T>(
             GraphicsBuffer buffer,
@@ -391,7 +476,10 @@ namespace Arterra.Core.Storage {
             int sourceStartIndex,
             int destinationStartIndex,
             int count
-        ) where T : struct => Commands.SetBufferData(buffer, data, sourceStartIndex, destinationStartIndex, count);
+        ) where T : struct {
+            if (autoFlush) buffer.SetData(data, sourceStartIndex, destinationStartIndex, count);
+            else Commands.SetBufferData(buffer, data, sourceStartIndex, destinationStartIndex, count);
+        }
 
         public void SetBufferData<T>(
             GraphicsBuffer buffer,
@@ -399,7 +487,10 @@ namespace Arterra.Core.Storage {
             int sourceStartIndex,
             int destinationStartIndex,
             int count
-        ) where T : struct => Commands.SetBufferData(buffer, data, sourceStartIndex, destinationStartIndex, count);
+        ) where T : struct {
+            if (autoFlush) buffer.SetData(data, sourceStartIndex, destinationStartIndex, count);
+            else Commands.SetBufferData(buffer, data, sourceStartIndex, destinationStartIndex, count);
+        }
 
         // Readback commands belong on the graphics queue. Snapshot generation data
         // in its own queue so later producers may reuse the original immediately.
@@ -432,6 +523,10 @@ namespace Arterra.Core.Storage {
         }
 
         public void RequestAsyncReadback(ComputeBuffer source, int size, int offset, Action<AsyncGPUReadbackRequest> callback) {
+            if (autoFlush) {
+                AsyncGPUReadback.Request(source, size, offset, callback);
+                return;
+            }
             if (id == GraphicsContextId.Rendering) {
                 Commands.RequestAsyncReadback(source, size, offset, callback);
                 return;
@@ -441,6 +536,10 @@ namespace Arterra.Core.Storage {
         }
 
         public void RequestAsyncReadback(GraphicsBuffer source, int size, int offset, Action<AsyncGPUReadbackRequest> callback) {
+            if (autoFlush) {
+                AsyncGPUReadback.Request(source, size, offset, callback);
+                return;
+            }
             if (id == GraphicsContextId.Rendering) {
                 Commands.RequestAsyncReadback(source, size, offset, callback);
                 return;
@@ -451,6 +550,10 @@ namespace Arterra.Core.Storage {
 
         public void RequestAsyncReadbackIntoNativeArray<T>(ref NativeArray<T> destination, ComputeBuffer source,
             int size, int offset, Action<AsyncGPUReadbackRequest> callback) where T : struct {
+            if (autoFlush) {
+                AsyncGPUReadback.RequestIntoNativeArray(ref destination, source, size, offset, callback);
+                return;
+            }
             if (id == GraphicsContextId.Rendering) {
                 Commands.RequestAsyncReadbackIntoNativeArray(ref destination, source, size, offset, callback);
                 return;

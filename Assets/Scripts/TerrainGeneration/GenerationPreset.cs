@@ -89,7 +89,7 @@ public static class SystemProtocol{
         state = SystemState.Limited;
 
         IRegister.Setup(Config.CURRENT);
-        SharedResourceManager.Initialize();
+        SharedResourceManager.Initialize(true);
         GenerationPreset.MinimalInitialize();
         Chunk.MinimalInitialze();
     }

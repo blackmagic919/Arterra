@@ -17,6 +17,9 @@ public class ArterraRuntime : MonoBehaviour {
     /// The load for each task as ordered in <see cref="Utils.priorities.planning"/>.
     /// Each task's load is cumilated until the frame's load is exceeded at which point generation stops.
     /// </summary>
+    // <remarks>Ideally the task load table should be adaptive approximation, meaning it estimates the load.
+    // Additionally, async tasks should have near zero load as the GPU will do balancing itself. However in practice
+    // we need to research these ideas further </remarks>
     public static readonly int[] taskLoadTable = { 4, 3, 3, 1, 4, 0, 3 };
     /// <summary>
     /// A queue containing subscribed tasks that are executed
@@ -97,15 +100,15 @@ public class ArterraRuntime : MonoBehaviour {
         rendering.AnswerPolls();
 
         if (generation.Commands.sizeInBytes != 0) {
-            if (SystemInfo.supportsAsyncCompute)
+            if (SystemInfo.supportsAsyncCompute) {
                 UnityEngine.Graphics.ExecuteCommandBufferAsync(generation.Commands, UnityEngine.Rendering.ComputeQueueType.Background);
-            else UnityEngine.Graphics.ExecuteCommandBuffer(generation.Commands);
+            } else UnityEngine.Graphics.ExecuteCommandBuffer(generation.Commands);
         }
-        generation.Commands.Clear(); //Clear here so we safeguard in case they are the same command buffer
+        generation.ClearCommands(); //Clear here so we safeguard in case they are the same command buffer
 
         if (rendering.Commands.sizeInBytes != 0)
             UnityEngine.Graphics.ExecuteCommandBuffer(rendering.Commands);
-        rendering.Commands.Clear();
+        rendering.ClearCommands();
     }
     private void FixedUpdate() { ProcessUpdateTasks(MainFixedUpdateTasks); }
     private void ProcessUpdateTasks(Queue<IUpdateSubscriber> taskQueue) {

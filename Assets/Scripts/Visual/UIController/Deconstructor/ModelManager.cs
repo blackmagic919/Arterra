@@ -11,15 +11,15 @@ namespace Arterra.Editor {
         private ComputeShader ModelConstructor;
         private ComputeShader IndexLinker;
         private ComputeShader DrawArgsConstructor;
-        public Arterra.Engine.Terrain.Map.Creator.GeoGenOffsets offsets;
+        public Engine.Terrain.Map.Creator.GeoGenOffsets offsets;
         private uint3 GridSize;
         private float IsoLevel;
 
         private Transform transform;
         private Material[] ModelMaterial =
         new Material[2];
-        private Arterra.Engine.Terrain.Readback.GeometryHandle[] GeoHandles =
-        new Arterra.Engine.Terrain.Readback.GeometryHandle[2];
+        private Engine.Terrain.Readback.GeometryHandle[] GeoHandles =
+        new Engine.Terrain.Readback.GeometryHandle[2];
 
         public const int VERTEX_STRIDE_WORD = 3 + 2;
         public const int TRI_STRIDE_WORD = 3;
