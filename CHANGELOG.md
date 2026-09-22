@@ -1,4 +1,6 @@
 ## [Unreleased]
+
+## [0.1.0] - 2026-09-22
 - Reduced Graphics Memory usage by refining deferred allocation strategy
 - Switched Generation Pipeline (Graphics) to be rendering-async if supported
 - Added animal sounds to all flying animals
