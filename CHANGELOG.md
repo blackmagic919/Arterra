@@ -1,4 +1,6 @@
 ## [Unreleased]
+
+## [0.1.1] - 2026-09-24
 ### Added
 - In game volume controls
 - Dimming of sun flare in sky if sun is obscured by atmospheric effects
