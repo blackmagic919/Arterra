@@ -63,7 +63,8 @@ public static class SegmentedUIEditor
 
     public static void ReleaseDisplay(GameObject content){
         foreach(Transform child in content.transform){ 
-            if(child.gameObject.name.Contains("Option")) GameObject.Destroy(child.gameObject); 
+            if(child.gameObject.name.Contains("Option"))
+                GameObject.Destroy(child.gameObject); 
         }
         content.GetComponent<VerticalLayoutGroup>().padding.left = 0;
     }

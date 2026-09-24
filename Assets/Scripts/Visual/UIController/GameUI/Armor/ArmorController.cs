@@ -301,7 +301,7 @@ namespace Arterra.GamePlay.UI {
             private PlayerCameraSettings S;
             private Transform CamTsf;
             const float height = 0f;
-            const float distance = 7.5f;
+            const float distance = 2.0f;
             private float yaw;
             private float pitch;
             private float2 Rot;

@@ -6,6 +6,7 @@ using System;
 using System.Linq;
 using Unity.Mathematics;
 using Arterra.Core.Storage;
+using Arterra.Configuration;
 
 namespace Arterra.Engine.Audio {
     enum AudioEventsBase {
@@ -123,6 +124,22 @@ namespace Arterra.Engine.Audio {
         Action_StepGravel = AudioEventsBase.SFXAction + 107,
         Action_StepMud = AudioEventsBase.SFXAction + 108,
     }
+    [Serializable]
+    public class Settings : ICloneable{
+        [Range(0, 1)][UIModifiable(CallbackName = "Audio:MasterVolume")]
+        public float MasterVolume = 1;
+        [Range(0, 1)][UIModifiable(CallbackName = "Audio:MusicVolume")]
+        public float MusicVolume = 0.3f; 
+        [Range(0, 1)][UIModifiable(CallbackName = "Audio:SFXVolume")]
+        public float SFXVolume = 1;
+        public object Clone() {
+            return new Settings {
+                MasterVolume = MasterVolume,
+                MusicVolume = MusicVolume,
+                SFXVolume = SFXVolume,
+            };
+        }
+    }
     public class AudioManager : MonoBehaviour {
         public static AudioManager Instance;
         [SerializeField]
@@ -130,9 +147,12 @@ namespace Arterra.Engine.Audio {
         [SerializeField]
         private List<AudioEventReference> AudioReferences;
         private Dictionary<AudioEvents, EventReference> Reference;
+        private Settings settings => Config.CURRENT.GamePlay.Audio.value;
 
         private EventInstance ambience;
         private Bus sfxBus;
+        private Bus masterBus;
+        private Bus musicBus;
 
         void Awake() {
             if (Instance == null) {
@@ -156,8 +176,32 @@ namespace Arterra.Engine.Audio {
 
         public void Initialize() {
             Reference = AudioReferences.ToDictionary(s => s.name, s => s.reference);
+            masterBus = RuntimeManager.GetBus("bus:/");
+            musicBus = RuntimeManager.GetBus("bus:/Music");
             sfxBus = RuntimeManager.GetBus("bus:/SFX");
+            masterBus.setVolume(settings.MasterVolume);
+            musicBus.setVolume(settings.MusicVolume);
+            sfxBus.setVolume(settings.SFXVolume);
+            Config.CURRENT.System.AddHook("Audio:MasterVolume", OnMasterVolumeChanged);
+            Config.CURRENT.System.AddHook("Audio:MusicVolume", OnMusicVolumeChanged);
+            Config.CURRENT.System.AddHook("Audio:SFXVolume", OnSFXVolumeChanged);
             UpdateAmbience(0);
+        }
+
+        private void OnMasterVolumeChanged(ref object volume) {
+            if (volume is not float audioVolume)
+                throw new Exception("Audio: On Change Volume expected callback to be of type float");
+            masterBus.setVolume(audioVolume);
+        }
+        private void OnMusicVolumeChanged(ref object volume) {
+            if (volume is not float audioVolume)
+                throw new Exception("Audio: On Change Volume expected callback to be of type float");
+            musicBus.setVolume(audioVolume);
+        }
+        private void OnSFXVolumeChanged(ref object volume) {
+            if (volume is not float audioVolume)
+                throw new Exception("Audio: On Change Volume expected callback to be of type float");
+            sfxBus.setVolume(audioVolume);
         }
 
         public void Release() {

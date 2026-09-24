@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Text.Json.Serialization;
 using Arterra.Configuration;
 using Arterra.Core.Events;
 using Arterra.Data.Entity.Behavior;
@@ -9,6 +10,7 @@ using UnityEngine;
 namespace Arterra.Data.Entity.Behavior {
     [Serializable]
     class HungerSettings : IBehaviorSetting {
+        [JsonIgnore] public static string Name => "Hunger";
         public Color MaxHungerHealthColor;
         public Color MinHungerHealthColor;
         public Option<List<Modifier>> Modifiers;

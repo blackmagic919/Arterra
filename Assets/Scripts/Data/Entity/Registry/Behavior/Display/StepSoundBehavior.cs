@@ -11,6 +11,7 @@ using Arterra.Data.Material;
 
 namespace Arterra.Data.Entity.Behavior {
     public class StepSoundBehaviorSettings : IBehaviorSetting {
+        [JsonIgnore] public static string Name => "Stepping";
         public float StepDistance = 1.5f;
         public State TouchState = State.Solid;
         public AudioEvents entityStepSound = AudioEvents.None;

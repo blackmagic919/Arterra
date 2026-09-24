@@ -5,6 +5,7 @@ using UnityEngine.Animations;
 using UnityEngine.Rendering;
 using Arterra.Configuration;
 using Arterra.Core.Storage;
+using Arterra.Engine.Rendering;
 using Arterra.Engine.Terrain;
 using Arterra.GamePlay;
 using Arterra.Core;
@@ -63,9 +64,12 @@ public static class WorldDataHandler
     public static WorldData WorldData;
     private static Arterra.Configuration.Gameplay.Environment settings =>  Config.CURRENT.GamePlay.Environment;
     private static LensFlareComponentSRP sunFlare;
+    private static LensFlareComponentSRP moonFlare;
     private static Light Sun;
     private static Light Moon;
     private static ArterraRuntime.IUpdateSubscriber eventTask;
+    private static float sunFlareBaseIntensity = 1.0f;
+    private static float moonFlareBaseIntensity = 1.0f;
 
     // Start is called before the first frame update
     public static void Initialize()
@@ -78,6 +82,9 @@ public static class WorldDataHandler
         Sun.GetComponent<PositionConstraint>().SetSource(0, constraintSource);
         Moon.GetComponent<PositionConstraint>().SetSource(0, constraintSource);
         sunFlare = Sun.GetComponent<LensFlareComponentSRP>();
+        moonFlare = Moon.GetComponent<LensFlareComponentSRP>();
+        sunFlareBaseIntensity = sunFlare != null ? sunFlare.intensity : 1.0f;
+        moonFlareBaseIntensity = moonFlare != null ? moonFlare.intensity : 1.0f;
         eventTask = new ArterraRuntime.IndirectUpdate(Update);
         ArterraRuntime.MainLoopUpdateTasks.Enqueue(eventTask);
     }
@@ -109,26 +116,58 @@ public static class WorldDataHandler
     {
         WorldData.currentTime = WorldData.currentTime.AddSeconds(Time.deltaTime * settings.timeMultiplier);
         float progress = GetDayProgress(WorldData.currentTime.TimeOfDay);
-        UpdateSunFlareShimmer();
 
         float rotation = Mathf.Lerp(0, 360, progress);
         Sun.transform.rotation = Quaternion.AngleAxis(rotation, Vector3.right);
         Moon.transform.rotation = Quaternion.AngleAxis((rotation + 180)%360, Vector3.right);
         UpdateLightSettings(progress);
+        UpdateSunFlareShimmer();
+        UpdateFlareBrightnessFromHeadLuminance();
     }
 
     private static void UpdateSunFlareShimmer(){
-        const float ShimmerRate = 50f;
-        float angleDiff = Vector3.Dot(sunFlare.transform.forward, PlayerHandler.data.Forward);
-        float pulse = Mathf.Sin(angleDiff * ShimmerRate) * 0.5f + 0.5f;
-        sunFlare.lensFlareData.elements[2].uniformScale = 2.5f + 2.5f * pulse;
-        sunFlare.lensFlareData.elements[3].uniformScale = 5 + 2.5f * (1-pulse);
+        if (sunFlare == null || Sun == null)
+            return;
+
+        Camera cam = Camera.main;
+        if (cam == null)
+            return;
+
+        LensFlareDataSRP flareData = sunFlare.lensFlareData;
+        if (flareData == null || flareData.elements == null || flareData.elements.Length <= 3)
+            return;
+
+        // Direction from viewer toward the sun disk for a directional light.
+        Vector3 toSun = -Sun.transform.forward;
+        float alignment = Mathf.Clamp01(Vector3.Dot(cam.transform.forward, toSun));
+        float angleResponse = alignment * alignment * (3.0f - 2.0f * alignment);
+
+        flareData.elements[2].uniformScale = Mathf.Lerp(1.8f, 5.0f, angleResponse);
+        flareData.elements[3].uniformScale = Mathf.Lerp(7.2f, 3.8f, angleResponse);
     }
 
     private static void UpdateLightSettings(float progress)
     {
         Sun.intensity = Mathf.Lerp(0, settings.maxSunIntensity, settings.sunIntensityCurve.value.Evaluate(progress));
         Moon.intensity = Mathf.Lerp(0, settings.maxMoonIntensity, settings.moonIntensityCurve.value.Evaluate(progress));
+    }
+
+    private static void UpdateFlareBrightnessFromHeadLuminance()
+    {
+        if (PlayerHandler.data == null || Sun == null || Moon == null)
+            return;
+
+        bool sunDominant = Sun.intensity >= Moon.intensity;
+        Vector3 lightDirection = sunDominant ? -Sun.transform.forward : -Moon.transform.forward;
+
+        Vector3 headWS = PlayerHandler.data.head;
+        if (!AtmospherePass.TrySampleSingleOriginLuminance(headWS, lightDirection, out Vector3 sampledLuminance))
+            return;
+        //Standard Luminance(Y) Coeffs
+        float luminanceScalar = Mathf.Clamp01(Vector3.Dot(sampledLuminance, new Vector3(0.2126f, 0.7152f, 0.0722f))); 
+
+        if (sunFlare != null) sunFlare.intensity = sunFlareBaseIntensity * (sunDominant ? luminanceScalar : 1.0f);
+        if (moonFlare != null) moonFlare.intensity = moonFlareBaseIntensity * (sunDominant ? 1.0f : luminanceScalar);
     }
 
     public static float GetDayProgress(TimeSpan TimeOfDay)

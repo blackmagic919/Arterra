@@ -387,7 +387,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_Padding:
-    m_Left: 0
+    m_Left: 25
     m_Right: 0
     m_Top: 0
     m_Bottom: 0
@@ -483,15 +483,15 @@ MonoBehaviour:
 
 '
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 91f8276d47e104a308a634431c5f8b34, type: 2}
-  m_sharedMaterial: {fileID: 4000457436351255537, guid: 91f8276d47e104a308a634431c5f8b34, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: 40336f08ec7844843bbac122716bcafe, type: 2}
+  m_sharedMaterial: {fileID: -2078603410892301860, guid: 40336f08ec7844843bbac122716bcafe, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
   m_fontColor32:
     serializedVersion: 2
-    rgba: 4284769380
-  m_fontColor: {r: 0.39215687, g: 0.39215687, b: 0.39215687, a: 1}
+    rgba: 4289703855
+  m_fontColor: {r: 0.6862745, g: 0.6862745, b: 0.6862745, a: 1}
   m_enableVertexGradient: 0
   m_colorMode: 3
   m_fontColorGradient:
@@ -519,6 +519,7 @@ MonoBehaviour:
   m_VerticalAlignment: 512
   m_textAlignment: 65535
   m_characterSpacing: 0
+  m_characterHorizontalScale: 1
   m_wordSpacing: 0
   m_lineSpacing: 0
   m_lineSpacingMax: 0
@@ -613,14 +614,14 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_Material: {fileID: 0}
-  m_Color: {r: 1, g: 1, b: 1, a: 0.5882353}
+  m_Color: {r: 0.88235295, g: 0.88235295, b: 0.88235295, a: 0.98039216}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: 76bf22430a634475ca12b74ee498a87f, type: 3}
+  m_Sprite: {fileID: 21300000, guid: 931c75a9d669d4e25aaa3504fe2e8821, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1

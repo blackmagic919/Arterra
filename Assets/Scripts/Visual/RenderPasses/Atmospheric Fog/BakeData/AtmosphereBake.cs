@@ -54,9 +54,12 @@ namespace Arterra.Engine.Rendering {
         private ComputeBuffer OpticalInfo;
         private ComputeBuffer sunLuminance;
         private ComputeBuffer sunRayLengths;
+        private ComputeBuffer singleOriginLuminanceAccum;
 
         private ComputeShader LuminanceCompute;
         private ComputeShader OpticalDataCompute;
+        private bool singleOriginReadbackPending;
+        private Vector3 singleOriginLuminanceCached = Vector3.one;
         private Arterra.Configuration.Quality.Atmosphere settings;
         public int NumInScatterPoints => 1 << settings.InScatterDetail;
         int LuminanceTextureSizePX => Mathf.Max(settings.LuminanceTextureSizePX, 1);
@@ -77,6 +80,7 @@ namespace Arterra.Engine.Rendering {
             int luminancePixels = LuminanceTextureSizePX * LuminanceTextureSizePX;
             sunLuminance = new ComputeBuffer(luminancePixels * NumLuminancePoints, sizeof(float) * 3, ComputeBufferType.Structured, ComputeBufferMode.Immutable);
             sunRayLengths = new ComputeBuffer(luminancePixels, sizeof(float), ComputeBufferType.Structured, ComputeBufferMode.Immutable);
+            singleOriginLuminanceAccum = new ComputeBuffer(3, sizeof(uint), ComputeBufferType.Raw, ComputeBufferMode.Immutable);
 
             int numOpticalSamples = numPixels * NumInScatterPoints;
             this.OpticalInfo = new ComputeBuffer(numOpticalSamples, sizeof(float) * (3 + 3), ComputeBufferType.Structured, ComputeBufferMode.Immutable);
@@ -88,6 +92,9 @@ namespace Arterra.Engine.Rendering {
             OpticalInfo?.Release();
             sunLuminance?.Release();
             sunRayLengths?.Release();
+            singleOriginLuminanceAccum?.Release();
+            singleOriginReadbackPending = false;
+            singleOriginLuminanceCached = Vector3.one;
         }
 
         public void ExecuteLuminance(CommandBuffer cmd, Vector3 lightDirection) {
@@ -148,10 +155,17 @@ namespace Arterra.Engine.Rendering {
             LuminanceCompute.SetInt("sunWidth", LuminanceTextureSizePX);
             LuminanceCompute.SetInt("IsoLevel", IsoValue);
 
-            LuminanceCompute.SetBuffer(0, "luminance", sunLuminance);
-            LuminanceCompute.SetBuffer(0, "sunRayLengths", sunRayLengths);
+            int luminanceBakeKernel = LuminanceCompute.FindKernel("Bake");
+            int sampleSingleOriginKernel = LuminanceCompute.FindKernel("SampleSingleOrigin");
 
-            GPUMapManager.SetDensitySampleData(LuminanceCompute);
+            LuminanceCompute.SetBuffer(luminanceBakeKernel, "luminance", sunLuminance);
+            LuminanceCompute.SetBuffer(luminanceBakeKernel, "sunRayLengths", sunRayLengths);
+            LuminanceCompute.SetBuffer(sampleSingleOriginKernel, "luminance", sunLuminance);
+            LuminanceCompute.SetBuffer(sampleSingleOriginKernel, "sunRayLengths", sunRayLengths);
+            LuminanceCompute.SetBuffer(sampleSingleOriginKernel, "singleOriginLuminanceAccum", singleOriginLuminanceAccum);
+
+            GPUMapManager.SetDensitySampleData(LuminanceCompute, 0);
+            GPUMapManager.SetDensitySampleData(LuminanceCompute, 1);
         }
 
         void UpdateFrustumLightVolumeData(Vector3 lightDirection) {
@@ -211,10 +225,55 @@ namespace Arterra.Engine.Rendering {
         }
 
         void ExecuteLuminanceMarch(CommandBuffer cmd) {
-            LuminanceCompute.GetKernelThreadGroupSizes(0, out uint threadGroupSize, out _, out _);
+            int luminanceBakeKernel = LuminanceCompute.FindKernel("Bake");
+            LuminanceCompute.GetKernelThreadGroupSizes(luminanceBakeKernel, out uint threadGroupSize, out _, out _);
             int numThreadsPerAxisX = Mathf.CeilToInt(LuminanceTextureSizePX / (float)threadGroupSize);
             int numThreadsPerAxisY = Mathf.CeilToInt(LuminanceTextureSizePX / (float)threadGroupSize);
-            cmd.DispatchCompute(LuminanceCompute, 0, numThreadsPerAxisX, numThreadsPerAxisY, 1);
+            cmd.DispatchCompute(LuminanceCompute, luminanceBakeKernel, numThreadsPerAxisX, numThreadsPerAxisY, 1);
+        }
+
+        public bool TrySampleSingleOriginLuminance(Vector3 rayOriginWS, Vector3 lightDirection, out Vector3 luminanceSample) {
+            luminanceSample = singleOriginLuminanceCached;
+            if (!initialized || !GPUMapManager.initialized)
+                return false;
+
+            GraphicsResourceContext renderContext = SharedResourceManager.GraphicsRendering;
+            if (renderContext == null)
+                return false;
+
+            if (singleOriginReadbackPending)
+                return true;
+
+            renderContext.SetVector(LuminanceCompute, "_SingleRayOriginWS", new Vector4(rayOriginWS.x, rayOriginWS.y, rayOriginWS.z, 1.0f));
+            renderContext.SetBufferData(singleOriginLuminanceAccum, new uint[3]);
+
+            int totalSamples = Mathf.Max(NumLuminancePoints + NumLuminanceOpticalDepthPoints, 1);
+            int sampleSingleOriginKernel = LuminanceCompute.FindKernel("SampleSingleOrigin");
+            LuminanceCompute.GetKernelThreadGroupSizes(sampleSingleOriginKernel, out uint threadGroupSize, out _, out _);
+            int threadGroupsX = Mathf.CeilToInt(totalSamples / (float)threadGroupSize);
+            renderContext.Dispatch(LuminanceCompute, sampleSingleOriginKernel, threadGroupsX, 1, 1);
+
+            singleOriginReadbackPending = true;
+            renderContext.RequestAsyncReadback(singleOriginLuminanceAccum, sizeof(uint) * 3, 0, OnSingleOriginLuminanceReadback);
+            luminanceSample = singleOriginLuminanceCached;
+            return true;
+        }
+
+        void OnSingleOriginLuminanceReadback(AsyncGPUReadbackRequest request) {
+            singleOriginReadbackPending = false;
+            if (!initialized || request.hasError)
+                return;
+
+            var data = request.GetData<uint>();
+            if (data.Length < 3)
+                return;
+
+            Vector3 sunDepth = new Vector3(data[0], data[1], data[2]) / 65536.0f;
+            singleOriginLuminanceCached = new Vector3(
+                Mathf.Exp(-sunDepth.x),
+                Mathf.Exp(-sunDepth.y),
+                Mathf.Exp(-sunDepth.z)
+            );
         }
 
     }

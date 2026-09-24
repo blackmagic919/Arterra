@@ -78,6 +78,14 @@ namespace Arterra.Engine.Rendering
             initialized = false;
         }
 
+        public static bool TrySampleSingleOriginLuminance(Vector3 rayOriginWS, Vector3 lightDirection, out Vector3 luminanceSample) {
+            luminanceSample = Vector3.one;
+            if (!initialized || AtmosphereSettings == null || !GPUMapManager.initialized)
+                return false;
+
+            return AtmosphereSettings.TrySampleSingleOriginLuminance(rayOriginWS, lightDirection, out luminanceSample);
+        }
+
         internal static bool ShouldEnableDeferredForCamera(Camera camera)
         {
             return initialized &&

@@ -215,6 +215,8 @@ namespace Arterra.Configuration {
             public Option<Gameplay.Environment> Environment;
             /// <summary> Settings controlling the optional visual statistics displayed to the player. See <see cref="Gameplay.Statistics"/> for more information. </summary>
             public Option<Gameplay.Statistics> Statistics;
+            /// <summary> Settings controlling the audio of the game </summary>
+            public Option<Engine.Audio.Settings> Audio;
             /// <summary>Shallow clones the object</summary>
             /// <returns>A shallow clone</returns>
 

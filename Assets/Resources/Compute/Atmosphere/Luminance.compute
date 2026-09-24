@@ -1,5 +1,6 @@
 // Each #kernel tells which function to compile; you can have many kernels
 #pragma kernel Bake
+#pragma kernel SampleSingleOrigin
 #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
 #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
 
@@ -11,10 +12,13 @@
 // with cs.SetTexture
 RWStructuredBuffer<float3> luminance;
 RWStructuredBuffer<float> sunRayLengths;
+RWByteAddressBuffer singleOriginLuminanceAccum;
 
 const static uint numThreads = 8;
+const static uint numThreads2 = 32;
 uint sunHeight;
 uint sunWidth;
+float3 _SingleRayOriginWS;
 
 float3 _LightDirection; //Global Variable
 
@@ -86,5 +90,49 @@ void Bake (uint3 id : SV_DispatchThreadID)
         float3 segmentOpticalAverage = segmentOpticalAccum * invOpticalSampleCount;
         cumulativeDepth += segmentOpticalAverage * stepSize;
     }
-    
+}
+
+[numthreads(numThreads2,1,1)]
+void SampleSingleOrigin (uint3 id : SV_DispatchThreadID)
+{
+    uint sampleCount = max(_NumSunDepthPoints + _NumLuminanceOpticalDepthPoints, 1u);
+    if(id.x >= sampleCount || id.y > 0u || id.z > 0u)
+        return;
+
+    uint segmentCount = (_NumSunDepthPoints > 0u) ? (_NumSunDepthPoints - 1u) : 0u;
+    if(id.x >= segmentCount)
+        return;
+
+    float3 lightDir = normalize(_LightDirection);
+    float sunRayLength = raySphere(_WorldSpaceCameraPos, _AtmosphereRadius, _SingleRayOriginWS, lightDir).y;
+    sunRayLength = max(sunRayLength, 0.0f);
+    if(sunRayLength <= 0.0f)
+        return;
+
+    float3 rayStartWS = _SingleRayOriginWS + lightDir * sunRayLength;
+    float3 rayDir = -lightDir;
+
+    float segments = max((float)segmentCount, 1.0f);
+    float stepSize = sunRayLength / segments;
+
+    uint opticalSampleCount = max(_NumLuminanceOpticalDepthPoints, 1u);
+    float invOpticalSampleCount = 1.0f / (float)opticalSampleCount;
+    float isoScale = max((float)IsoLevel, 1.0f);
+
+    float3 segmentOpticalAccum = 0;
+    for(uint opticalSample = 0u; opticalSample < opticalSampleCount; opticalSample++) {
+        float intervalT = ((float)opticalSample + 0.5f) * invOpticalSampleCount;
+        float3 samplePointWS = rayStartWS + rayDir * (stepSize * ((float)id.x + intervalT));
+        OpticalDepth sampleData = SampleOpticalDepth(samplePointWS);
+        segmentOpticalAccum += sampleData.scatterCoeffs * (sampleData.opticalDensity / isoScale);
+    }
+
+    float3 segmentOpticalAverage = segmentOpticalAccum * invOpticalSampleCount;
+    float3 depthContribution = max(segmentOpticalAverage * stepSize, 0.0f);
+    uint3 encodedContribution = (uint3)round(depthContribution * 65536.0f);
+
+    uint ignored;
+    singleOriginLuminanceAccum.InterlockedAdd(0, encodedContribution.x, ignored);
+    singleOriginLuminanceAccum.InterlockedAdd(4, encodedContribution.y, ignored);
+    singleOriginLuminanceAccum.InterlockedAdd(8, encodedContribution.z, ignored);
 }

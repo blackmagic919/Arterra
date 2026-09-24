@@ -488,13 +488,14 @@ namespace Arterra.Core.Storage{
         /// <see cref="GPUMapManager"/> to a compute shader. </summary>
         /// <param name="shader">The compute shader requesting map information. Caller
         /// should ensure this shader is able to recieve the bindings attached here. </param>
-        public static void SetDensitySampleData(ComputeShader shader) {
+        /// <param name="kernel">The kernel which will be set within the shader</param>
+        public static void SetDensitySampleData(ComputeShader shader, int kernel = 0) {
             GraphicsResourceContext gpuContext = GraphicsGeneration;
             if (!initialized)
                 return;
 
-            gpuContext.SetBuffer(shader, 0, ShaderIDProps.ChunkAddressDict, _ChunkAddressDict);
-            gpuContext.SetBuffer(shader, 0, ShaderIDProps.ChunkInfoBuffer, memorySpace.Storage);
+            gpuContext.SetBuffer(shader, kernel, ShaderIDProps.ChunkAddressDict, _ChunkAddressDict);
+            gpuContext.SetBuffer(shader, kernel, ShaderIDProps.ChunkInfoBuffer, memorySpace.Storage);
         }
 
         /// <summary> Attaches all resources necessary to sample map information through
