@@ -291,7 +291,9 @@ namespace Arterra.Engine.Terrain{
             /// mathematically instead.</remarks>
             public uint GetNeighborDepths(uint index) {
                 Node node = octree.nodes[index];
-                int3 delta = (int3)math.sign(node.origin - ViewPosGS);
+                int3 center = node.origin + (int3)node.size / 2;
+                // viewer < center => far side is +; else far side is -
+                int3 delta = math.select(new int3(-1), new int3(1), ViewPosGS < center);
                 uint neighborDepths = 0;
                 for (int i = 0; i < 3; i++) {
                     int3 axisDelta = math.select(0, delta, new bool3(i == 0, i == 1, i == 2));

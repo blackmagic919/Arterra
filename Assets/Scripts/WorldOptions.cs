@@ -1,3 +1,4 @@
+using Arterra.Core.Network;
 using System;
 using System.Collections;
 using UnityEngine;
@@ -25,7 +26,10 @@ namespace Arterra.Configuration {
     /// </summary>
     [CreateAssetMenu(menuName = "Generation/WorldOptions")]
     public class Config : ScriptableObject {
-        private static Config _current;
+        private const uint ConfigReferenceId = 1;
+        private static readonly NetworkVariable<Config> _current = new(ConfigReferenceId, retainValueOnDisconnect: true);
+        internal static NetworkVariable<Config> CurrentVariable => _current;
+        public static void Broadcast() => _current.Broadcast();
         private static Config _template;
         /// <summary>
         /// A singleton instance rooting the settings tree for the currently selected world.
@@ -35,8 +39,8 @@ namespace Arterra.Configuration {
         /// sufficiently describes all settings for the world.
         /// </summary>
         public static Config CURRENT {
-            get => _current;
-            set => _current = value;
+            get => _current.HasValue ? _current.Value : null;
+            set => _current.Value = value;
         }
 
         /// <summary>
@@ -252,6 +256,8 @@ namespace Arterra.Configuration {
             public Option<Intrinsic.TerrainUpdation> TerrainUpdation;
             /// <summary> Controls how the world looks in the main menu. See <see cref="Intrinsic.WorldApperance"/> for mor information. </summary>
             public Option<Intrinsic.WorldApperance> WorldApperance;
+            /// <summary> Controls the settings when enabling multiplayer.  </summary>
+            public Option<NetworkSettings> Network;
 
             /// <summary> The settings for the readback system. See <see cref="Intrinsic.Readback"/> for more information. </summary>
             [UISetting(Ignore = true)]

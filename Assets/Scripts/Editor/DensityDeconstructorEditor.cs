@@ -1,3 +1,5 @@
+using System;
+using System.Threading.Tasks;
 using UnityEditor;
 using UnityEngine;
 
@@ -5,9 +7,24 @@ namespace Arterra.Editor {
     [CustomEditor(typeof(DensityDeconstructor)), CanEditMultipleObjects]
     public class DensityDeconstructorEditor : UnityEditor.Editor
     {
+        private bool loading;
+
+        private async void RunOperation(Func<Task> operation) {
+            if (loading) return;
+            loading = true;
+            try { await operation(); }
+            catch (Exception exception) { Debug.LogException(exception); }
+            finally {
+                loading = false;
+                if (this) Repaint();
+            }
+        }
+
         public override void OnInspectorGUI()
         {
             DensityDeconstructor deconstructor = (DensityDeconstructor)target;
+            if (loading) EditorGUILayout.HelpBox("Loading world configuration…", MessageType.Info);
+            using (new EditorGUI.DisabledScope(loading)) {
 
             if(GUILayout.Button("Exit")){
                 deconstructor.Release();
@@ -31,23 +48,24 @@ namespace Arterra.Editor {
             }
             if (GUILayout.Button("Load"))
             {
-                deconstructor.LoadData();
+                RunOperation(deconstructor.LoadData);
             }
             if(GUILayout.Button("Convert"))
             {
-                deconstructor.ConvertMesh();
+                RunOperation(deconstructor.ConvertMesh);
             }
             if(GUILayout.Button("Resize"))
             {
-                deconstructor.ResizeStructure();
+                RunOperation(deconstructor.ResizeStructure);
             }
             if(GUILayout.Button("Shift"))
             {
-                deconstructor.ShiftStructure();
+                RunOperation(deconstructor.ShiftStructure);
             }
             if(GUILayout.Button("LoadChunk"))
             {
-                deconstructor.LoadChunk();
+                RunOperation(deconstructor.LoadChunk);
+            }
             }
         }
     }

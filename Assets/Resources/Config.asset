@@ -100,7 +100,7 @@ MonoBehaviour:
                   y: 2
                   z: 1
               BehaviorList:
-                value: 050000000600000003000000ed030000010000006a000000690000006600000065000000680000006700000064000000f3030000
+                value: 050000000600000003000000ed030000010000006a00000069000000660000006500000068000000670000000200000064000000f3030000
               Settings:
                 value:
                   value:
@@ -133,8 +133,11 @@ MonoBehaviour:
                         rid: 1481107629540114723
                   - value:
                       value:
+                        rid: 6692794391710662656
+                  - value:
+                      value:
                         rid: 5778504564777156723
-              _prevBehaviorCount: 13
+              _prevBehaviorCount: 14
         Gamemodes:
           value:
             Flight: 0
@@ -143,6 +146,7 @@ MonoBehaviour:
             KeepInventory: 0
             SpectatorView: 0
             ResourceInventory: 0
+            EnableMultiplayer: 0
             ShowCrosshair: 1
         Environment:
           value:
@@ -297,6 +301,11 @@ MonoBehaviour:
           value:
             DisplayEntityStats: 0
             DisplayEntityDamage: 1
+        Audio:
+          value:
+            MasterVolume: 1
+            MusicVolume: 0.3
+            SFXVolume: 1
   _System:
     value:
       value:
@@ -346,6 +355,11 @@ MonoBehaviour:
               z: 0
             GridScale: 0.1
             GridThickness: 2.5
+        Network:
+          value:
+            MaxPlayers: 4
+            IsPrivate: 0
+            Password: 
         ReadBack:
           value: {fileID: 11400000, guid: 96ff26c443a6549bb970c4621009f5d5, type: 2}
         Tooltips:
@@ -1134,3 +1148,9 @@ MonoBehaviour:
         startingPercent: 1.5
         baseStarveRate: 0.0001
         feedMultiplier: 0.1
+    - rid: 6692794391710662656
+      type: {class: StepSoundBehaviorSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        StepDistance: 1.5
+        TouchState: 0
+        entityStepSound: 0

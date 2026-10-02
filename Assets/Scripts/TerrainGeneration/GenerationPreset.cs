@@ -20,6 +20,7 @@ using Arterra.Engine.Rendering;
 using Unity.Mathematics;
 using static Arterra.Core.Storage.SharedResourceManager;
 using MeshGenerator = Arterra.Engine.Terrain.MeshGeneration.Creator;
+using Arterra.Core.Network;
 
 namespace Arterra.Engine.Terrain{
 /// <summary>  The factory protocol for the collective game system. This
@@ -67,6 +68,8 @@ public static class SystemProtocol{
         DizzinessPass.Initialize();
         BlindnessPass.Initialize();
         Chunk.Initialize();
+        OptionsHandler.RefreshDisplayMap();
+        NetworkManager.Initialize();
 
         Structure.Creator.PresetData();
         Surface.Creator.PresetData();

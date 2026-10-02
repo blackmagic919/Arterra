@@ -1,3 +1,4 @@
+using System.Threading.Tasks;
 using System.Collections.Generic;
 using System;
 using Unity.Mathematics;
@@ -147,7 +148,6 @@ namespace Arterra.Editor {
         private void InitializeGrid(bool reloadFromStructure = true) {
             GraphicsResourceContext gpuContext = GraphicsGeneration;
             if (reloadFromStructure || currentState.MapData == null) {
-                if (Config.CURRENT == null) World.Activate();
                 IRegister.Setup(Config.CURRENT); //Initialize Register LUTS
                 SystemProtocol.MinimalStartup(); // Initialize Material Information
                 Structure.Initialize();
@@ -195,14 +195,18 @@ namespace Arterra.Editor {
             Release();
         }
 
-        public void LoadData() {
+        public async Task LoadData() {
+            await World.EnsureInitializedAsync();
+            if (!this || !isActiveAndEnabled) return;
             InitializeGrid(true);
             //Immediately Render Model
             this.UpdateMapData();
             this.modelManager.GenerateModel();
         }
 
-        public void ResizeStructure() {
+        public async Task ResizeStructure() {
+            await World.EnsureInitializedAsync();
+            if (!this || !isActiveAndEnabled) return;
             InitializeGrid(true);
 
             int3 offset = (int3)math.floor(SDFoffset);
@@ -220,7 +224,9 @@ namespace Arterra.Editor {
             this.modelManager.GenerateModel();
         }
 
-        public void ShiftStructure() {
+        public async Task ShiftStructure() {
+            await World.EnsureInitializedAsync();
+            if (!this || !isActiveAndEnabled) return;
             InitializeGrid(true);
 
             int3 offset = (int3)math.floor(SDFoffset);
@@ -236,7 +242,9 @@ namespace Arterra.Editor {
             this.modelManager.GenerateModel();
         }
 
-        public void ConvertMesh() {
+        public async Task ConvertMesh() {
+            await World.EnsureInitializedAsync();
+            if (!this || !isActiveAndEnabled) return;
             Mesh mesh = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/" + loadPath + ".fbx").GetComponent<MeshFilter>().sharedMesh;
             if (mesh == null) throw new Exception("Mesh not found");
             InitializeGrid(true);
@@ -246,7 +254,9 @@ namespace Arterra.Editor {
             this.modelManager.GenerateModel();
         }
 
-        public void LoadChunk() {
+        public async Task LoadChunk() {
+            await World.EnsureInitializedAsync();
+            if (!this || !isActiveAndEnabled) return;
             InitializeGrid(true);
             MapData[] map = Chunk.ReadChunkBin(loadPath, 0, out _);
             if (map == null) return;

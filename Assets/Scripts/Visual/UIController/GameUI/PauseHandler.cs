@@ -29,6 +29,7 @@ namespace Arterra.GamePlay.UI {
                 cb.Invoke(ref obj);
                 settings.Value = (Config.GamePlaySettings)obj;
                 Config.CURRENT._GamePlay = settings;
+                Config.Broadcast();
                 Arterra.Core.Storage.World.SaveOptionsSync();
             }, () => { Exit(); });
 

@@ -1,9 +1,12 @@
+using System.Threading;
 using System.Collections.Generic;
 using UnityEngine;
 using System.IO;
 using System.Threading.Tasks;
 using System;
 using Arterra.Configuration;
+using Arterra.Core.Network;
+using Newtonsoft.Json;
 
 namespace Arterra.Core.Storage {
     /// <summary>
@@ -25,6 +28,10 @@ namespace Arterra.Core.Storage {
         /// Modification or deletion of this list from storage can/will result in the (reversible) loss of <b>all</b> world data even if
         /// the world itself is not deleted. </summary>
         public static LinkedList<WorldMeta> WORLD_SELECTION;
+        private static GalaxyType _galaxyType;
+        /// <summary>The type of galaxy currently being viewed. Galaxy refers to network dimension</summary>
+        public static GalaxyType GALAXY_TYPE => _galaxyType;
+
 
         /// <summary> The tail path name of the display chunk image for each world </summary>
         public const string DisplayChunkPath = "/display_chunk";
@@ -32,42 +39,67 @@ namespace Arterra.Core.Storage {
         /// <summary> The primary startup function for loading the user's game information. Loads the <see cref="Config.TEMPLATE"> template </see>
         /// world configuration(the default world configuration) as well as finding the user's world selection meta data from the file system
         /// to load the user's last selected world's configuration. </summary>
-        public static void Activate() {
+        private static Task initialization;
+
+        /// <summary>Call on Unity's main thread. All consumers share one load; failed loads can be retried.</summary>
+        public static Task EnsureInitializedAsync() {
+            // With domain reload disabled, a completed task can outlive its Unity config object.
+            if (initialization == null || initialization.IsFaulted || initialization.IsCanceled
+                || (initialization.Status == TaskStatus.RanToCompletion && Config.CURRENT == null))
+                initialization = InitializeAsync();
+            return initialization;
+        }
+
+        private static void InitializeTemplates() {
             Config.TEMPLATE = Resources.Load<Config>("Config");
-            Config.CURRENT = Config.Create();
             SegmentedUIEditor.Initialize();
             PaginatedUIEditor.Initialize();
-            LoadMetaSync(); LoadOptionsSync();
+        }
+
+        private static async Task InitializeAsync() {
+            InitializeTemplates();
+            await LoadGalaxy(GalaxyType.Local);
+            if (WORLD_SELECTION.Count == 0) {
+                WORLD_SELECTION.AddFirst(new WorldMeta(Guid.NewGuid().ToString()));
+                await SaveMeta();
+            }
+            await LoadOptions();
         }
 
         /// <summary> Asynchronously loads the world selection meta data object from the corresponding file located
         /// at <see cref="META_LOCATION"/> in the file system. If the file does not exist, a new world selection
         /// meta data object is created and saved to the file system. See <see cref="WORLD_SELECTION"/> for more information. </summary>
         /// <returns>A threaded task that is responsible for loading the meta data.</returns>
-        public static async Task LoadMeta() {
-            if (!File.Exists(META_LOCATION)) {
-                WORLD_SELECTION = new LinkedList<WorldMeta>(new WorldMeta[] { new(Guid.NewGuid().ToString()) });
-                await SaveMeta();
-                return;
+        public static async Task LoadGalaxy(GalaxyType galaxy, CancellationToken cancellationToken = default) {
+            cancellationToken.ThrowIfCancellationRequested();
+            LinkedList<WorldMeta> newSelection;
+            switch (galaxy) {
+                case GalaxyType.Local:
+                    if (!File.Exists(META_LOCATION)) {
+                        newSelection = new LinkedList<WorldMeta>(new[] { new WorldMeta(Guid.NewGuid().ToString()) });
+                        await SaveMeta(newSelection, cancellationToken);
+                    } else {
+                        string data = await File.ReadAllTextAsync(META_LOCATION, cancellationToken);
+                        newSelection = JsonConvert.DeserializeObject<LinkedList<WorldMeta>>(data)
+                            ?? new LinkedList<WorldMeta>();
+                    }
+                    if (newSelection.First != null)
+                        newSelection.First.Value.LastAccessTime = DateTime.Now;
+                    break;
+                case GalaxyType.DirectWAN:
+                    newSelection = new LinkedList<WorldMeta>(
+                        await NetworkManager.QueryWorldMetasAsync(cancellationToken));
+                    break;
+                default:
+                    Debug.Log($"Galaxy type {galaxy} is not implemented yet.");
+                    newSelection = WORLD_SELECTION;
+                    break;
             }
-            string data = await File.ReadAllTextAsync(META_LOCATION);
-            WORLD_SELECTION = Newtonsoft.Json.JsonConvert.DeserializeObject<LinkedList<WorldMeta>>(data); //Does not call constructor
-            WORLD_SELECTION.First.Value.LastAccessTime = DateTime.Now;
-        }
 
-        /// <summary> Asynchronously saves the world selection meta data object to the corresponding file located
-        /// at <see cref="META_LOCATION"/> in the file system. See <see cref="WORLD_SELECTION"/> for more information. </summary>
-        /// <returns> A threaded task that is responsible for saving the meta data. </returns>
-        public static async Task SaveMeta() {
-            using (FileStream fs = new FileStream(META_LOCATION, FileMode.Create, FileAccess.Write, FileShare.None)) {
-                using (StreamWriter writer = new StreamWriter(fs)) {
-                    string data = Newtonsoft.Json.JsonConvert.SerializeObject(WORLD_SELECTION);
-                    await writer.WriteAsync(data);
-                    await writer.FlushAsync();
-                }
-                ;
-            }
-            ;
+            // Commit together, with no await between cancellation check and assignment.
+            cancellationToken.ThrowIfCancellationRequested();
+            WORLD_SELECTION = newSelection;
+            _galaxyType = galaxy;
         }
 
         /// <summary> Asynchronously loads the world configuration of the currently selected world from the file system and
@@ -75,16 +107,64 @@ namespace Arterra.Core.Storage {
         /// element in the <see cref="WORLD_SELECTION"/> list. This function assumes that the <see cref="WORLD_SELECTION"/> has already 
         /// been loaded and is non-empty. If the world does not exist, a new world configuration is created and saved to the file system. </summary>
         /// <returns> A threaded task that is responsible for loading the world configuration. </returns>
-        public static async Task LoadOptions() {
-            string location = WORLD_SELECTION.First.Value.Path + "/Config.json";
-            if (!Directory.Exists(WORLD_SELECTION.First.Value.Path) || !File.Exists(location)) {
-                Config.CURRENT = Config.Create();
-                await SaveOptions();
-                return;
+        public static async Task LoadOptions(CancellationToken cancellationToken = default) {
+            WorldMeta meta = WORLD_SELECTION?.First?.Value
+                ?? throw new InvalidOperationException("Select a world before loading options.");
+            Config loaded;
+            switch (meta.Type) {
+                case GalaxyType.Local:
+                    await NetworkManager.DisconnectClientAsync();
+                    string location = meta.Path + "/Config.json";
+                    if (!File.Exists(location)) {
+                        loaded = Config.Create();
+                        await SaveOptions(meta, loaded, cancellationToken);
+                    } else {
+                        string data = await File.ReadAllTextAsync(location, cancellationToken);
+                        loaded = JsonConvert.DeserializeObject<Config>(data) ?? Config.Create();
+                    }
+                    break;
+                case GalaxyType.DirectWAN:
+                    Config previous = Config.CURRENT;
+                    await NetworkManager.ConnectSessionAsync(meta.SessionId, cancellationToken);
+                    try {
+                        loaded = await Config.CurrentVariable.GetAsync(cancellationToken)
+                            ?? throw new InvalidOperationException("The host returned a null world configuration.");
+                    } catch {
+                        try { await NetworkManager.DisconnectClientAsync(); }
+                        catch (Exception cleanupError) { Debug.LogException(cleanupError); }
+                        if (!TransportManager.Instance.IsRunning && TransportManager.Instance.Configuration == null)
+                            Config.CURRENT = previous;
+                        throw;
+                    }
+                    break;
+                default:
+                    Debug.Log($"Galaxy type {meta.Type} is not implemented yet.");
+                    loaded = Config.CURRENT;
+                    break;
             }
-            string data = await File.ReadAllTextAsync(location);
-            Config.CURRENT = Newtonsoft.Json.JsonConvert.DeserializeObject<Config>(data); //Does not call constructor
+            cancellationToken.ThrowIfCancellationRequested();
+            if (!ReferenceEquals(meta, WORLD_SELECTION?.First?.Value))
+                throw new OperationCanceledException("World selection changed during options loading.");
+            // Remote reads already populate the network variable; do not send them back as writes.
+            if (meta.Type == GalaxyType.Local) Config.CURRENT = loaded;
+        }
 
+        /// <summary> Asynchronously saves the world selection meta data object to the corresponding file located
+        /// at <see cref="META_LOCATION"/> in the file system. See <see cref="WORLD_SELECTION"/> for more information. </summary>
+        /// <returns> A threaded task that is responsible for saving the meta data. </returns>
+        public static Task SaveMeta() {
+            return GALAXY_TYPE == GalaxyType.Local ? SaveMeta(WORLD_SELECTION) : Task.CompletedTask;
+        }
+
+        // Initialization can save its pending selection without publishing it first.
+        private static Task SaveMeta(LinkedList<WorldMeta> selection, CancellationToken token = default) {
+            return File.WriteAllTextAsync(META_LOCATION, JsonConvert.SerializeObject(selection), token);
+        }
+
+        /// <summary> Same as <see cref="SaveMeta"/> but synchronous. See <see cref="SaveMeta"/> for more information. </summary>
+        public static void SaveMetaSync() {
+            if (GALAXY_TYPE != GalaxyType.Local) return;
+            File.WriteAllText(META_LOCATION, JsonConvert.SerializeObject(WORLD_SELECTION));
         }
 
         /// <summary> Asynchronously saves the world configuration of the currently selected world to the file system.
@@ -92,69 +172,27 @@ namespace Arterra.Core.Storage {
         /// and simultaneously should be the first element in the <see cref="WORLD_SELECTION"/> list. Hence, this function
         /// copies the <see cref="Config.CURRENT">object</see> to the location specified by the first element of <see cref="WORLD_SELECTION"/>. </summary>
         /// <returns>A threaded task that is responsible for saving the world configuration.</returns>
-        public static async Task SaveOptions() {
-            string location = WORLD_SELECTION.First.Value.Path + "/Config.json";
-            if (!Directory.Exists(WORLD_SELECTION.First.Value.Path)) Directory.CreateDirectory(WORLD_SELECTION.First.Value.Path);
-            using (FileStream fs = new FileStream(location, FileMode.Create, FileAccess.Write, FileShare.None)) {
-                using (StreamWriter writer = new StreamWriter(fs)) {
-                    string data = Newtonsoft.Json.JsonConvert.SerializeObject(Config.CURRENT);
-                    await writer.WriteAsync(data);
-                    await writer.FlushAsync();
-                }
-                ;
-            }
-            ;
+        public static Task SaveOptions() {
+            return GALAXY_TYPE == GalaxyType.Local
+                ? SaveOptions(WORLD_SELECTION.First.Value, Config.CURRENT) : Task.CompletedTask;
         }
 
-        /// <summary> Same as <see cref="LoadMeta"/> but synchronous. See <see cref="LoadMeta"/> for more information. </summary>
-        public static void LoadMetaSync() {
-            if (!File.Exists(META_LOCATION)) {
-                WORLD_SELECTION = new LinkedList<WorldMeta>(new WorldMeta[] { new(Guid.NewGuid().ToString()) });
-                SaveMetaSync();
-                return;
-            }
-            string data = File.ReadAllText(META_LOCATION);
-            WORLD_SELECTION = Newtonsoft.Json.JsonConvert.DeserializeObject<LinkedList<WorldMeta>>(data); //Does not call constructor
+        // Loading saves the new config before assigning CURRENT; normal saves use the same path.
+        private static Task SaveOptions(WorldMeta meta, Config config, CancellationToken token = default) {
+            token.ThrowIfCancellationRequested();
+            string location = PrepareConfigPath(meta);
+            return File.WriteAllTextAsync(location, JsonConvert.SerializeObject(config), token);
         }
 
-        /// <summary> Same as <see cref="SaveMeta"/> but synchronous. See <see cref="SaveMeta"/> for more information. </summary>
-        public static void SaveMetaSync() {
-            using (FileStream fs = new FileStream(META_LOCATION, FileMode.Create, FileAccess.Write, FileShare.None)) {
-                using (StreamWriter writer = new StreamWriter(fs)) {
-                    string data = Newtonsoft.Json.JsonConvert.SerializeObject(WORLD_SELECTION);
-                    writer.Write(data);
-                    writer.Flush();
-                }
-                ;
-            }
-            ;
-        }
-
-        /// <summary> Same as <see cref="LoadOptions"/> but synchronous. See <see cref="LoadOptions"/> for more information. </summary>
-        public static void LoadOptionsSync() {
-            string location = WORLD_SELECTION.First.Value.Path + "/Config.json";
-            if (!Directory.Exists(WORLD_SELECTION.First.Value.Path) || !File.Exists(location)) {
-                Config.CURRENT = Config.Create();
-                SaveOptionsSync();
-                return;
-            }
-            string data = File.ReadAllText(location);
-            Config.CURRENT = Newtonsoft.Json.JsonConvert.DeserializeObject<Config>(data); //Does not call constructor
+        private static string PrepareConfigPath(WorldMeta meta) {
+            Directory.CreateDirectory(meta.Path);
+            return meta.Path + "/Config.json";
         }
 
         /// <summary> Same as <see cref="SaveOptions"/> but synchronous. See <see cref="SaveOptions"/> for more information. </summary>
         public static void SaveOptionsSync() {
-            string location = WORLD_SELECTION.First.Value.Path + "/Config.json";
-            if (!Directory.Exists(WORLD_SELECTION.First.Value.Path)) Directory.CreateDirectory(WORLD_SELECTION.First.Value.Path);
-            using (FileStream fs = new FileStream(location, FileMode.Create, FileAccess.Write, FileShare.None)) {
-                using (StreamWriter writer = new StreamWriter(fs)) {
-                    string data = Newtonsoft.Json.JsonConvert.SerializeObject(Config.CURRENT);
-                    writer.Write(data);
-                    writer.Flush();
-                }
-                ;
-            }
-            ;
+            if (GALAXY_TYPE != GalaxyType.Local) return;
+            File.WriteAllText(PrepareConfigPath(WORLD_SELECTION.First.Value), JsonConvert.SerializeObject(Config.CURRENT));
         }
 
         /// <summary>
@@ -165,12 +203,12 @@ namespace Arterra.Core.Storage {
         /// </summary>
         /// <param name="meta">The meta data necessary to load the world. <paramref name="meta"/> should be
         /// an entry within <see cref="WORLD_SELECTION"/>, see <seealso cref="WorldMeta"/> for more info. </param>
-        public static void SelectWorld(WorldMeta meta) {
+        public static async Task SelectWorld(WorldMeta meta, CancellationToken cancellationToken = default) {
             WORLD_SELECTION.Remove(meta);
             WORLD_SELECTION.AddFirst(meta);
             meta.LastAccessTime = DateTime.Now;
-            _ = LoadOptions(); //Don't use Task.Run because we want it to be on main thread until await
-            _ = SaveMeta();
+            await LoadOptions(cancellationToken);
+            await SaveMeta();
         }
 
         /// <summary> Creates a new world and selects it. This involves creating adding a first entry within <see cref="WORLD_SELECTION"/>
@@ -207,15 +245,31 @@ namespace Arterra.Core.Storage {
         /// screen is stored here; this is to avoid loading large world configuration files 
         /// when viewing the user's created worlds. </summary>
         public class WorldMeta {
+            /// <summary> The type of state the world being referenced is recorded in.</summary>
+            [HideInInspector]
+            public GalaxyType Type;
+
             /// <summary> The unique identifier of the world in the file system. Unlike the world's <see cref="Name"/>,
             /// this is an absolute unique identifier for the world that should not be changed. </summary>
             [HideInInspector]
             public string Id;
+            [JsonProperty("Path")]
+            private string _meta;
 
             /// <summary> The location of the directory containing the world-specific information in the file system. 
             /// This includes the world configuration, and any modified world data. </summary>
-            [HideInInspector]
-            public string Path;
+            [HideInInspector] [JsonIgnore]
+            public string Path {
+                get { return _meta; }
+                set { _meta = value; }
+            }
+            
+            /// <summary> The sessionId on the remote discovery network if the world is of <see cref="WorldType">WorldType.Remote</see> </summary>
+            [HideInInspector] [JsonIgnore]
+            public string SessionId {
+                get { return _meta; }
+                set { _meta = value; }
+            }
 
             /// <summary> The user-assigned name of the world. This is the name that will be displayed 
             /// in-game and to the user. This does not need to be unique and may be customized for user 
@@ -239,6 +293,15 @@ namespace Arterra.Core.Storage {
                 this.CreationTime = DateTime.Now;
                 this.LastAccessTime = DateTime.Now;
             }
+        }
+        public enum GalaxyType {
+            Local, 
+            DirectWAN,
+            DedicatedServer,
+        }
+
+        public static GalaxyType NextGalaxy(GalaxyType type) {
+            return (GalaxyType)(((int)type + 1) % 3);
         }
     }
 }

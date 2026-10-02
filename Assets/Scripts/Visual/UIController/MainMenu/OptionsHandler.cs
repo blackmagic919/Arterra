@@ -13,6 +13,7 @@ using static Arterra.Core.Storage.World;
 using Arterra.Utils;
 using Arterra.Editor;
 using static Arterra.Core.Storage.SharedResourceManager;
+using Arterra.Core.Network;
 
 namespace Arterra.Data.Intrinsic {
     /// <summary> Settings controlling how the world appears in
@@ -50,9 +51,18 @@ namespace Arterra.GamePlay.UI {
             active = false;
         }
 
-        public static void Activate(Action callback = null) {
+        private void OnDisable() {
+            active = false;
+            spinChunk?.Dispose();
+        }
+
+        public static async void Activate(Action callback = null) {
             if (active) return;
             active = true;
+            var animator = sAnimator;
+            try { await EnsureInitializedAsync(); }
+            catch (Exception exception) { active = false; Debug.LogException(exception); return; }
+            if (!active || !animator || animator != sAnimator) return;
 
             sAnimator.SetTrigger("Unmask");
             new AnimatorAwaitTask(sAnimator, "MaskRockBreak", InitializeDisplay).Invoke();
@@ -64,6 +74,7 @@ namespace Arterra.GamePlay.UI {
         public static void Deactivate(Action callback = null) {
             if (!active) return;
             active = false;
+            spinChunk?.CancelLoad();
 
             _ = SaveOptions();
             sAnimator.SetTrigger("Mask");
@@ -109,14 +120,42 @@ namespace Arterra.GamePlay.UI {
 
             spinChunk.InitializeDisplay();
             ReleaseDisplay(infoContent);
-            CreateOptionDisplay(Config.CURRENT, infoContent, (ChildUpdate cb) => { object wo = Config.CURRENT; cb.Invoke(ref wo); });
+            CreateOptionDisplay(Config.CURRENT, infoContent, (ChildUpdate cb) => {
+                object wo = Config.CURRENT;
+                cb.Invoke(ref wo);
+                Config.Broadcast();
+            });
             infoContent.GetComponent<VerticalLayoutGroup>().padding.left = 0;
         }
 
-        public void LateUpdate() => spinChunk.Render(this);
+        public void LateUpdate() {
+            if (!active) return;
+            spinChunk.Render(this);
+        }
+
+        // Called after host chunk storage initializes, even when no preview UI is open.
+        public static void RefreshDisplayMap() => SingleChunkDisplay.RefreshDisplayMap();
 
         private class SingleChunkDisplay {
-            private string shownWorld;
+            private const uint DisplayMapReferenceId = 2;
+            private static readonly NetworkVariable<uint[]> DisplayMap = new(DisplayMapReferenceId, retainValueOnDisconnect: true);
+
+            // Chunk storage and the material registry must be initialized for the selected local world.
+            public static void RefreshDisplayMap() {
+                if (!NetworkManager.IsActingServer) return;
+                var coord = Config.CURRENT.System.WorldApperance.value.DisplayedChunk;
+                var map = Chunk.ReadChunkMap(coord, 0).map;
+                if (map == null && Chunk.TryFindSavedMapChunk(out coord)) {
+                    Config.CURRENT.System.WorldApperance.value.DisplayedChunk = coord;
+                    Config.CURRENT.System.WorldApperance.IsDirty = true;
+                    map = Chunk.ReadChunkMap(coord, 0).map;
+                }
+                DisplayMap.Value = map == null ? null : Array.ConvertAll(map, point => point.data);
+            }
+
+            private int loadVersion;
+
+            private WorldMeta shownWorld;
             private GameObject ChunkDisplay;
             private GameObject CameraController;
             private ModelManager ChunkModel;
@@ -131,10 +170,33 @@ namespace Arterra.GamePlay.UI {
                 active = false;
             }
 
-            public void InitializeDisplay() {
-                if (WORLD_SELECTION.First.Value.Id == shownWorld) return;
-                shownWorld = WORLD_SELECTION.First.Value.Id;
-                LoadWorldChunkDisplay();
+            public async void InitializeDisplay() {
+                var meta = WORLD_SELECTION.First.Value;
+                if (ReferenceEquals(meta, shownWorld) && active) return;
+                int version = ++loadVersion;
+                Release();
+
+                try {
+                    if (NetworkManager.IsActingServer) {
+                        SystemProtocol.MinimalStartup();
+                        RefreshDisplayMap();
+                    }
+                    uint[] packed = await DisplayMap.GetAsync();
+                    if (version != loadVersion || !ChunkDisplay ||
+                        !ReferenceEquals(meta, WORLD_SELECTION.First.Value)) return;
+
+                    var chunk = packed == null ? null : Array.ConvertAll(packed, bits => new MapData { data = bits });
+                    LoadWorldChunkDisplay(chunk);
+                    shownWorld = meta;
+                } catch (Exception exception) {
+                    if (version == loadVersion) Debug.LogException(exception);
+                }
+            }
+
+            public void CancelLoad() => ++loadVersion;
+            public void Dispose() {
+                CancelLoad();
+                Release();
             }
 
             private void Release() {
@@ -153,25 +215,31 @@ namespace Arterra.GamePlay.UI {
 
                 ChunkModel?.Release();
                 ChunkGrid?.Release();
+                ChunkModel = null;
+                ChunkGrid = null;
             }
 
             public void Render(MonoBehaviour self) {
                 if (!active) return;
+
                 float3 rotSpeed = Config.CURRENT.System.WorldApperance.value.RotateSpeed;
                 CameraController.transform.Rotate(rotSpeed * Time.deltaTime);
                 ChunkModel?.Render();
                 ChunkGrid?.Render();
 
-                if (updatedIcon) return;
+                if (updatedIcon || shownWorld?.Type != GalaxyType.Local) return;
                 updatedIcon = true;
                 self.StartCoroutine(CaptureAtEndOfFrame());
             }
 
             private IEnumerator CaptureAtEndOfFrame() {
+                var meta = shownWorld;
+                int version = loadVersion;
                 yield return new WaitForEndOfFrame();
+                if (!active || version != loadVersion || !ReferenceEquals(meta, WORLD_SELECTION.First.Value)) yield break;
 
                 var cam = CameraController.GetComponentInChildren<Camera>();
-                string savePath = WORLD_SELECTION.First.Value.Path + DisplayChunkPath;
+                string savePath = meta.Path + DisplayChunkPath;
 
                 SaveTextureToFileUtility.SaveRenderTextureToFile(
                     cam.targetTexture,
@@ -180,7 +248,7 @@ namespace Arterra.GamePlay.UI {
             }
 
 
-            private void LoadWorldChunkDisplay() {
+            private void LoadWorldChunkDisplay(MapData[] chunk) {
                 Release();
                 SystemProtocol.MinimalStartup();
                 active = true;
@@ -200,9 +268,8 @@ namespace Arterra.GamePlay.UI {
                 ChunkGrid.GridMaterial.SetFloat("_VertexSize", ChunkGrid.GridMaterial.GetFloat("_VertexSize") * wSettings.GridThickness);
                 ChunkGrid.GenerateModel();
 
-                if (!GetDisplayChunkFromDisk(out MapData[] chunk)) return;
+                if (chunk == null) return;
                 chunk = CustomUtility.RescaleLinearMap(chunk, rSettings.mapChunkSize, 2, 1);
-
                 Transform model = ChunkDisplay.transform.Find("Model");
                 model.position -= (Vector3)(float3)chunkSize / 2.0f;
                 ChunkModel = new ModelManager(
@@ -215,21 +282,6 @@ namespace Arterra.GamePlay.UI {
                 ChunkModel.GenerateModel();
             }
 
-            private bool GetDisplayChunkFromDisk(out MapData[] chunk) {
-                int3 CCoord = Config.CURRENT.System.WorldApperance.value.DisplayedChunk;
-                Chunk.ReadbackInfo info = Chunk.ReadChunkMap(CCoord, 0);
-                chunk = info.map;
-
-                if (chunk != null) return true;
-                if (!Chunk.TryFindSavedMapChunk(out CCoord))
-                    return false;
-                //Update the display chunk coord saved.
-                Config.CURRENT.System.WorldApperance.value.DisplayedChunk = CCoord;
-                Config.CURRENT.System.WorldApperance.IsDirty = true;
-                info = Chunk.ReadChunkMap(CCoord, 0);
-                chunk = info.map;
-                return chunk != null;
-            }
         }
 
     }

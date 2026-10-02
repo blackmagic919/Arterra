@@ -379,7 +379,7 @@ namespace Arterra.Data.Entity.Behavior {
             }
         }
 
-        private class FlightMovementPattern {
+        private class FlightMovementPattern  {
             private static readonly HashSet<string> OverridableStates = new() { "GroundMove:1", "SwimMove:1" };
             private readonly PlayerMovementBehavior owner;
             private bool hasEnabledFlight;

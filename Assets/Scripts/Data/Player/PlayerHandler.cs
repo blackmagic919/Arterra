@@ -41,6 +41,9 @@ namespace Arterra.Configuration.Gameplay{
         /// <summary> Whether or not the player can access the infinite resource inventory </summary>
         [UIModifiable(CallbackName = "Gamemode:ResourceInventory")]
         public bool ResourceInventory;
+        [UIModifiable(CallbackName = "EnableMultiplayer")]
+        // <summary> Whether this world will become available for discovery via the configured network </summary>
+        public bool EnableMultiplayer;
         /// <summary> Whether or not the player's cursor is shown. </summary>
         [UIModifiable(CallbackName = "ToggleUICrosshair")]
         public bool ShowCrosshair;
