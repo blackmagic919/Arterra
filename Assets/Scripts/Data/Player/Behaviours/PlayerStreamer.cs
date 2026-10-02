@@ -31,6 +31,8 @@ namespace Arterra.Data.Entity.Behavior {
                 Behaviors.Indicators,
                 Behaviors.Vitality,
                 Behaviors.PlayerInventories,
+                Behaviors.PlayerCrafting,
+                Behaviors.PlayerArmor,
                 Behaviors.PlayerCamera,
                 Behaviors.PlayerMovement,
                 Behaviors.PlayerInteraction,
@@ -87,6 +89,16 @@ namespace Arterra.Data.Entity.Behavior {
         /// user's input and what they see. See <see cref="StreamingStatus"/> </summary>
         [JsonProperty]
         private StreamingStatus status = StreamingStatus.Activating;
+        private BehaviorEntity.Animal self;
+
+        private void RebindPlayer(object source, object target, object context) {
+            if (!self.VisualActive) return;
+            if (context is not bool bind) return;
+            foreach (var behavior in self.Behaviors) {
+                if (bind) behavior.InitializeVisual(self);
+                else behavior.DisposeVisual(self);
+            }
+        }
 
         /// <summary>Declares required player behavior dependencies.</summary>
         public override void AddBehaviorDependencies(Dictionary<Behaviors, int> hierarchy) {
@@ -95,6 +107,8 @@ namespace Arterra.Data.Entity.Behavior {
             hierarchy.TryAdd(Behaviors.StepSound, hierarchy.Count);
             hierarchy.TryAdd(Behaviors.Vitality, hierarchy.Count);
             hierarchy.TryAdd(Behaviors.PlayerInventories, hierarchy.Count);
+            hierarchy.TryAdd(Behaviors.PlayerCrafting, hierarchy.Count);
+            hierarchy.TryAdd(Behaviors.PlayerArmor, hierarchy.Count);
             hierarchy.TryAdd(Behaviors.PlayerCamera, hierarchy.Count);
             hierarchy.TryAdd(Behaviors.PlayerMovement, hierarchy.Count);
             hierarchy.TryAdd(Behaviors.PlayerInteraction, hierarchy.Count);
@@ -105,29 +119,44 @@ namespace Arterra.Data.Entity.Behavior {
         /// <summary>Initializes root player behavior state for a newly created player entity.</summary>
         public override void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
             status = StreamingStatus.Live;
-            self.eventCtrl.AddEventHandler(GameEvent.Entity_Death, TriggerDetach);
+            this.self = self;
+            self.eventCtrl.AddEventHandler(GameEvent.Entity_RebindPlayer, RebindPlayer);
+
         }
 
         /// <summary>Initializes root player behavior state for a deserialized player entity.</summary>
         public override void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
             status = StreamingStatus.Live;
-            self.eventCtrl.AddEventHandler(GameEvent.Entity_Death, TriggerDetach);
+            this.self = self;
+            self.eventCtrl.AddEventHandler(GameEvent.Entity_RebindPlayer, RebindPlayer);
+
 
             if (self.Is(out VitalityBehavior vitality) && vitality.IsDead) {
-                self.eventCtrl.RaiseEvent(GameEvent.System_Deserialize, self, null);
+                self.eventCtrl.RaiseEvent(GameEvent.System_Deserialize, self.info.rtEntityId, null);
                 if (self.controller != null) SetLayerRecursively(self.controller.transform, LayerMask.NameToLayer("Default"));
             }
         }
 
-        /// <summary>Disables root player behavior and clears active references.</summary>
-        public override void Disable(BehaviorEntity.Animal self) {
+        public override void InitializeVisual(BehaviorEntity.Animal self) {
+            if (self.IsOwner) self.eventCtrl.AddEventHandler(GameEvent.Entity_Death, TriggerDetach);
         }
 
-        private void TriggerDetach(object source, object _trgt, object _ctx) {
+        public override void DisposeVisual(BehaviorEntity.Animal self) {
+            self.eventCtrl.RemoveEventHandler(GameEvent.Entity_Death, TriggerDetach);
+        }
+
+        /// <summary>Disables root player behavior and clears active references.</summary>
+        public override void Disable(BehaviorEntity.Animal self) {
+            self.eventCtrl.RemoveEventHandler(GameEvent.Entity_RebindPlayer, RebindPlayer);
+        }
+
+        private void TriggerDetach(object srcId, object _trgt, object _ctx) {
             if (status == StreamingStatus.Disconnected) return;
             status = StreamingStatus.Disconnected;
-
-            if (source is not BehaviorEntity.Animal player) return;
+            if (srcId is not Guid sourceId) return;
+            if (!EntityManager.TryGetEntity(sourceId, out Entity plEnt))
+                return;
+            if (plEnt is not BehaviorEntity.Animal player) return;
             // Keep detached corpse/view objects on default rendering layer.
             SetLayerRecursively(player.controller.transform, LayerMask.NameToLayer("Default"));
             GameOverHandler.Activate();

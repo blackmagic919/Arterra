@@ -1,3 +1,4 @@
+using System.Threading.Tasks;
 using System.Collections.Generic;
 using System;
 using Unity.Mathematics;
@@ -147,7 +148,6 @@ namespace Arterra.Editor {
         private void InitializeGrid(bool reloadFromStructure = true) {
             GraphicsResourceContext gpuContext = GraphicsGeneration;
             if (reloadFromStructure || currentState.MapData == null) {
-                if (Config.CURRENT == null) World.Activate();
                 IRegister.Setup(Config.CURRENT); //Initialize Register LUTS
                 SystemProtocol.MinimalStartup(); // Initialize Material Information
                 Structure.Initialize();
@@ -195,14 +195,18 @@ namespace Arterra.Editor {
             Release();
         }
 
-        public void LoadData() {
+        public async Task LoadData() {
+            await World.EnsureInitializedAsync();
+            if (!this || !isActiveAndEnabled) return;
             InitializeGrid(true);
             //Immediately Render Model
             this.UpdateMapData();
             this.modelManager.GenerateModel();
         }
 
-        public void ResizeStructure() {
+        public async Task ResizeStructure() {
+            await World.EnsureInitializedAsync();
+            if (!this || !isActiveAndEnabled) return;
             InitializeGrid(true);
 
             int3 offset = (int3)math.floor(SDFoffset);
@@ -220,7 +224,9 @@ namespace Arterra.Editor {
             this.modelManager.GenerateModel();
         }
 
-        public void ShiftStructure() {
+        public async Task ShiftStructure() {
+            await World.EnsureInitializedAsync();
+            if (!this || !isActiveAndEnabled) return;
             InitializeGrid(true);
 
             int3 offset = (int3)math.floor(SDFoffset);
@@ -236,7 +242,9 @@ namespace Arterra.Editor {
             this.modelManager.GenerateModel();
         }
 
-        public void ConvertMesh() {
+        public async Task ConvertMesh() {
+            await World.EnsureInitializedAsync();
+            if (!this || !isActiveAndEnabled) return;
             Mesh mesh = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/" + loadPath + ".fbx").GetComponent<MeshFilter>().sharedMesh;
             if (mesh == null) throw new Exception("Mesh not found");
             InitializeGrid(true);
@@ -246,7 +254,9 @@ namespace Arterra.Editor {
             this.modelManager.GenerateModel();
         }
 
-        public void LoadChunk() {
+        public async Task LoadChunk() {
+            await World.EnsureInitializedAsync();
+            if (!this || !isActiveAndEnabled) return;
             InitializeGrid(true);
             MapData[] map = Chunk.ReadChunkBin(loadPath, 0, out _);
             if (map == null) return;
@@ -517,8 +527,8 @@ namespace Arterra.Editor {
             bool hasPoint = false;
             for (int i = 0, count = Selected.Count; i < count; i++) {
                 uint index = Selected.Dequeue();
-                int3 coord = new int3((int)(index / (GridSize.y * GridSize.z)), (int)((index / GridSize.z) % GridSize.y), (int)(index % GridSize.z));
-                Vector3 worldPoint = this.transform.localToWorldMatrix.MultiplyPoint3x4(new Vector3(coord.x, coord.y, coord.z));
+                int3 MCoord = new int3((int)(index / (GridSize.y * GridSize.z)), (int)((index / GridSize.z) % GridSize.y), (int)(index % GridSize.z));
+                Vector3 worldPoint = this.transform.localToWorldMatrix.MultiplyPoint3x4(new Vector3(MCoord.x, MCoord.y, MCoord.z));
 
                 if (!hasPoint) {
                     min = worldPoint;
@@ -686,8 +696,8 @@ namespace Arterra.Editor {
             if (info == null) return;
             int3 gridSize = (int3)GridSize;
             for (int ind = 0; ind < gridSize.x * gridSize.y * gridSize.z; ind++) {
-                int3 coord = new int3(ind / (gridSize.y * gridSize.z), (ind / gridSize.z) % gridSize.y, ind % gridSize.z);
-                if (!VerifyProfile(info, coord)) continue;
+                int3 MCoord = new int3(ind / (gridSize.y * gridSize.z), (ind / gridSize.z) % gridSize.y, ind % gridSize.z);
+                if (!VerifyProfile(info, MCoord)) continue;
                 currentState.SelectedArray[ind] = true;
             }
         }

@@ -1,3 +1,4 @@
+using Arterra.Core.Events;
 using Arterra.Utils;
 using System;
 using Newtonsoft.Json;
@@ -62,18 +63,22 @@ namespace Arterra.Data.Item
         public void UpdateEItem() { }
 
         public virtual void OnEnter(ItemContext cxt) {
-            if (cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
+            cxt.RegisterEvent(this, GameEvent.Apply_ConvertMaterial, PlayerModifyTerrain);
+
+            if (!cxt.IsOwner || cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
             
                 InputPoller.AddBinding(new ActionBind(
                     "ConvertMaterial",
-                    _ => PlayerModifyTerrain(cxt),
+                    _ => RequestModifyTerrain(cxt),
                     ActionBind.Exclusion.None
                 ), "ITEM::MatConverter:CNV", "5.0::GamePlay");
             
         }
 
         public virtual void OnLeave(ItemContext cxt) {
-            if (cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
+            cxt.UnregisterEvent(GameEvent.Apply_ConvertMaterial);
+
+            if (!cxt.IsOwner || cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
             
                 InputPoller.RemoveBinding("ITEM::MatConverter:CNV", "5.0::GamePlay");
             
@@ -108,6 +113,20 @@ namespace Arterra.Data.Item
 
         private MatConverterAuthoring settings => ItemInfo.Retrieve(Index) as MatConverterAuthoring;
 
+        private void RequestModifyTerrain(ItemContext cxt) {
+            if (!cxt.TryGetHolder(out BehaviorEntity.Animal player) || !player.Is(out PlayerInteractionBehavior interact)) return;
+            if (!interact.RayTestSolid(out float3 hitPt)) return;
+            if (EntityManager.ESTree.FindClosestAlongRay(player.head, hitPt, player.info.rtEntityId, out _, out _)) return;
+            if (settings.MaterialName == null) return;
+            bool CanConvert(int3 GCoord) {
+                MapData map = CPUMapManager.SampleMap(GCoord);
+                return map.material == MatInfo.RetrieveIndex(settings.MaterialName) || IMaterialConverting.CanConvert(map, GCoord, settings.ConverterTag, out ConvertibleToolTag _);
+            }
+            if (!Terraforming.FindTerraformable(hitPt, settings.TerraformRadius, CanConvert, out _)) return;
+            InputPoller.SuspendKeybindPropogation("ConvertMaterial", ActionBind.Exclusion.ExcludeLayer);
+            cxt.RaiseEvent(GameEvent.Apply_ConvertMaterial);
+        }
+
         private void PlayerModifyTerrain(ItemContext cxt) {
             if (!cxt.TryGetHolder(out BehaviorEntity.Animal player)) return;
             if (!player.Is(out PlayerInteractionBehavior interact)) return;
@@ -120,32 +139,34 @@ namespace Arterra.Data.Item
             }
 
             //Exclude only on hit (consume keybind only when pointing at ground)
-            bool targetted = false;
+
             int curMat = MatInfo.RetrieveIndex(settings.MaterialName);
             bool ModifySolid(int3 GCoord, float speed) {
                 MapData mapData = CPUMapManager.SampleMap(GCoord);
                 
                 if (mapData.material == curMat) {
-                    targetted = true;
                     return false;
                 } if (!IMaterialConverting.CanConvert(mapData, GCoord, settings.ConverterTag, out ConvertibleToolTag tag))
                     return false;
-                targetted = true;
                 if (UnityEngine.Random.Range(0.0f, 1.0f) > tag.TerraformSpeed)
                     return false;
                 if (!MaterialData.SwapMaterial(GCoord, curMat, out IItem origItem))
                     return false;
-                if (tag.GivesItem) InventoryController.DropItem(origItem, GCoord);
+                if (tag.GivesItem) PlayerInventoriesBehavior.SpawnDrop(origItem, GCoord);
 
                 AmountRaw -= CustomUtility.GetStaggeredDelta(AmountRaw, -tag.ToolDamage * mapData.density, StackLimit);
                 return true;
             }
             
-            CPUMapManager.Terraform(hitPt, settings.TerraformRadius, ModifySolid, interact.CallOnMapRemoving);
-            if (targetted) InputPoller.SuspendKeybindPropogation("ConvertMaterial", ActionBind.Exclusion.ExcludeLayer);
+            var previousValue = AmountRaw;
+            Terraforming.Terraform(hitPt, settings.TerraformRadius, ModifySolid, interact.CallOnMapRemoving);
             UpdateDisplay();
             
-            if (AmountRaw > 0) return;
+            if (AmountRaw > 0) {
+                if (AmountRaw != previousValue)
+                    cxt.SetDirty();
+                return;
+            }
             //Removes itself
             cxt.TryRemove();
         }

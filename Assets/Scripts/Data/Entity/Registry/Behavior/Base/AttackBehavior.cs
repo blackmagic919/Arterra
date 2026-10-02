@@ -39,20 +39,19 @@ namespace Arterra.Data.Entity.Behavior {
         public bool Attack(Entity target) {
             if (AttackInProgress) return false;
             if (attackCooldown > 0) return false;
-            if (!target.Is<IAttackable>()) return false;
             RefTuple<float> cxt = settings.AttackDuration;
             self.eventCtrl.RaiseEvent(
                 GameEvent.Entity_ReadyAttack,
-                self, target, cxt
+                self.info.rtEntityId, target.info.rtEntityId, cxt
             ); 
             attackProgress = cxt.Value;
-            AttackTarget = target.info.entityId;
+            AttackTarget = target.info.rtEntityId;
             AttackInProgress = true;
             return true;
         }
 
         public override void Update(BehaviorEntity.Animal self) {
-            if (self.context == BehaviorEntity.UpdateContext.JobSync) return;
+            if (self.context != BehaviorEntity.UpdateContext.Simulation) return;
             attackCooldown = math.max(attackCooldown - self.DeltaTime, 0);
             if (!AttackInProgress) return;
             attackProgress = math.max(attackProgress - self.DeltaTime, 0);
@@ -76,18 +75,26 @@ namespace Arterra.Data.Entity.Behavior {
         }
 
         public static void RealAttack(Entity self, Entity target, float damage, float3 knockback) {
-            if (!target.Is(out IAttackable atkTarget)) return;
             RefTuple<(float, float3)> cxt = (damage, knockback);
             self.eventCtrl.RaiseEvent(
                 GameEvent.Entity_Attack,
-                self, target, cxt
+                self.info.rtEntityId, target.info.rtEntityId, cxt
             ); (damage, knockback) = cxt.Value;
-            EntityManager.AddHandlerEvent(() => atkTarget.TakeDamage(damage, knockback, self));
+            target.eventCtrl.EnqueueEvent(
+                GameEvent.Apply_Damage,
+                target.info.rtEntityId,
+                self.info.rtEntityId,
+                (damage, knockback)
+            );
         }
 
         public static void RealAttackIndirect(Entity self, Entity target, float damage, float3 knockback) {
-            if (!target.Is(out IAttackable atkTarget)) return;
-            EntityManager.AddHandlerEvent(() => atkTarget.TakeDamage(damage, knockback, self));
+            target.eventCtrl.EnqueueEvent(
+                GameEvent.Apply_Damage,
+                target.info.rtEntityId,
+                self.info.rtEntityId,
+                (damage, knockback)
+            );
         }
 
         public override void AddSettingsDependencies(Dictionary<Type, IBehaviorSetting> heirarchy) {

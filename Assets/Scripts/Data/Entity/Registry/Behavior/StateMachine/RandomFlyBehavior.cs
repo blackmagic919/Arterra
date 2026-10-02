@@ -45,8 +45,8 @@ namespace Arterra.Data.Entity.Behavior {
 
         
         public override void Update(BehaviorEntity.Animal self) {
+            if (self.context != BehaviorEntity.UpdateContext.Simulation) return;
             if (manager.TaskIndex != settings.TaskName) return;
-            if (self.context == BehaviorEntity.UpdateContext.JobSync) return;
 
             if (path.pathFinder.hasPath) {
                 self.PathCollider.Follow(self, Movement.StaticDirect(

@@ -1,3 +1,4 @@
+using Arterra.Core.Network;
 using System;
 using System.Collections;
 using UnityEngine;
@@ -25,7 +26,6 @@ namespace Arterra.Configuration {
     /// </summary>
     [CreateAssetMenu(menuName = "Generation/WorldOptions")]
     public class Config : ScriptableObject {
-        private static Config _current;
         private static Config _template;
         /// <summary>
         /// A singleton instance rooting the settings tree for the currently selected world.
@@ -34,10 +34,7 @@ namespace Arterra.Configuration {
         /// it is likely the same instance as the <see cref="TEMPLATE"/>. It only means that the tree 
         /// sufficiently describes all settings for the world.
         /// </summary>
-        public static Config CURRENT {
-            get => _current;
-            set => _current = value;
-        }
+        public static Config CURRENT { get; set; }
 
         /// <summary>
         /// A singleton instance rooting the template(default) settings of a world. This should not be
@@ -58,16 +55,16 @@ namespace Arterra.Configuration {
         
         public int Seed;
         /// <exclude />
-        [UISetting(Alias = "Quality")]
+        [UISetting(Alias = "Quality")][UIConditional("RemoteClient:Disable")]
         public DirtyOption<QualitySettings> _Quality;
         /// <exclude />
         [UISetting(Alias = "Gameplay")]
         public DirtyOption<GamePlaySettings> _GamePlay;
         /// <exclude />
-        [UISetting(Alias = "System")]
+        [UISetting(Alias = "System")][UIConditional("RemoteClient:Disable")]
         public DirtyOption<SystemSettings> _System;
         /// <exclude />
-        [UISetting(Alias = "Generation")]
+        [UISetting(Alias = "Generation")][UIConditional("RemoteClient:Disable")]
         public DirtyOption<GenerationSettings> _Generation;
 
         ///<summary> <see cref="QualitySettings"/>  </summary>
@@ -127,13 +124,13 @@ namespace Arterra.Configuration {
             /// <summary>
             /// The events that can trigger tooltips.
             /// </summary>
-            [UISetting(Ignore = true)]
+            [UIHidden]
             public Option<List<GameEvent>> TooltipEvents;
 
             /// <summary>
             /// The events that can dismiss tooltips.
             /// </summary>
-            [UISetting(Ignore = true)]
+            [UIHidden]
             public Option<List<GameEvent>> TooltipDismissorEvents;         
 
             /// <summary>Tool tip events that are not tied to a target but any instance of the event itself.</summary>
@@ -141,7 +138,7 @@ namespace Arterra.Configuration {
             public Option<List<TooltipConfig>> GenericToolTipEvents;
             /// <summary> Tool tip dismissor events that are not tied to a target but any instance of the event itself. </summary>
             /// <remarks>If <see cref="TooltipConfig.TriggerEvent"/> is None, it will auto enqueue on game start </remarks>
-            [UISetting(Ignore = true)]
+            [UIHidden]
             public Option<List<TooltipDismissorConfig>> GenericTooltipDismissorEvents;         
 
         }
@@ -211,6 +208,7 @@ namespace Arterra.Configuration {
             public DirtyOption<BehaviorEntity.AnimalSetting> PlayerSettings = new(){ value = PlayerBehavior.DefaultPlayerAnimalSetting};
             /// <summary> Controls how the player experiences the world. See <see cref="Gameplay.Interaction"/> for more information. </summary>
             public Option<Gameplay.Gamemodes> Gamemodes;
+            [UIConditional("RemoteClient:Disable")]
             /// <summary> Settings controlling environment constants of the world. See <see cref="Gameplay.Environment"/> for more information. </summary>
             public Option<Gameplay.Environment> Environment;
             /// <summary> Settings controlling the optional visual statistics displayed to the player. See <see cref="Gameplay.Statistics"/> for more information. </summary>
@@ -252,9 +250,11 @@ namespace Arterra.Configuration {
             public Option<Intrinsic.TerrainUpdation> TerrainUpdation;
             /// <summary> Controls how the world looks in the main menu. See <see cref="Intrinsic.WorldApperance"/> for mor information. </summary>
             public Option<Intrinsic.WorldApperance> WorldApperance;
+            /// <summary> Controls the settings when enabling multiplayer.  </summary>
+            public Option<NetworkSettings> Network;
 
             /// <summary> The settings for the readback system. See <see cref="Intrinsic.Readback"/> for more information. </summary>
-            [UISetting(Ignore = true)]
+            [UIHidden]
             public Option<Intrinsic.Readback> ReadBack;
 
             public TooltipSettings Tooltips;
@@ -266,7 +266,7 @@ namespace Arterra.Configuration {
             [NonSerialized]
             [HideInInspector]
             [JsonIgnore]
-            [UISetting(Ignore = true, Defaulting = true)]
+            [UIHidden][UISetting(Defaulting = true)]
             public Registry<ChildUpdate> GameplayModifyHooks;
 
             /// <summary>Adds a gameplay hook to <see cref="GameplayModifyHooks"/> while preserving any other
@@ -370,7 +370,7 @@ namespace Arterra.Configuration {
         [SerializeField]
         public T value;
         [HideInInspector]
-        [UISetting(Ignore = true)]
+        [UIHidden]
         private bool isDirty;
 
         /// <summary> Implicitly converts the option to the value it holds. This is useful for obtaining the value</summary>
@@ -425,7 +425,7 @@ namespace Arterra.Configuration {
         [SerializeReference]
         public T value;
         [HideInInspector]
-        [UISetting(Ignore = true)]
+        [UIHidden]
         private bool isDirty;
 
         /// <summary> Implicitly converts the option to the value it holds. This is useful for obtaining the value</summary>
@@ -494,7 +494,7 @@ namespace Arterra.Configuration {
             set => this.value.value = value;
         }
         [HideInInspector]
-        [UISetting(Ignore = true)]
+        [UIHidden]
         private bool isDirty;
 
         /// <summary> Implicitly converts the option to the value it holds. This is useful for obtaining the value</summary>
@@ -555,7 +555,7 @@ namespace Arterra.Configuration {
             set => this.value.value = value;
         }
         [HideInInspector]
-        [UISetting(Ignore = true)]
+        [UIHidden]
         private bool isDirty;
 
         /// <summary> Implicitly converts the option to the value it holds. This is useful for obtaining the value</summary>

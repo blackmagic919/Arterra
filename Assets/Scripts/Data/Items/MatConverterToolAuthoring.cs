@@ -11,6 +11,7 @@ using Arterra.GamePlay.Interaction;
 using Arterra.Configuration;
 using Arterra.GamePlay.UI;
 using Arterra.Data.Entity.Behavior;
+using Arterra.Utils;
 
 
 namespace Arterra.Data.Item
@@ -31,25 +32,44 @@ namespace Arterra.Data.Item
         private MatConverterToolAuthoring settings => ItemInfo.Retrieve(Index) as MatConverterToolAuthoring;
         public override object Clone() => new MatConverterToolItem { data = data, durability = durability };
         public override void OnEnter(ItemContext cxt) {
-            if (cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
+            cxt.RegisterEvent(this, GameEvent.Apply_ConvertToolMaterial, PlayerModifyTerrain);
+            cxt.RegisterEvent(this, GameEvent.Apply_ToolRemove, PlayerRemoveTerrain);
+
+            if (!cxt.IsOwner || cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
             if (cxt.TryGetHolder(out IEventControlled effect) && settings.Model.Enabled) 
-                effect.RaiseEvent(GameEvent.Item_HoldTool, effect, this, ref settings.Model.Value);
+                effect.RaiseEvent(GameEvent.Item_HoldTool, effect is Entity.Entity ? ((Entity.Entity)effect).info.rtEntityId : effect, this, ref settings.Model.Value);
             
-                InputPoller.AddBinding(new ActionBind("ConvertMaterial", _ => PlayerModifyTerrain(cxt)),
+                InputPoller.AddBinding(new ActionBind("ConvertMaterial", _ => RequestModifyTerrain(cxt)),
                     "ITEM::MCTool:CNV", "5.0::GamePlay");
-                InputPoller.AddBinding(new ActionBind("Remove", _ => PlayerRemoveTerrain(cxt)),
+                InputPoller.AddBinding(new ActionBind("Remove", _ => RequestRemoveTerrain(cxt)),
                     "ITEM::MCTool:RM", "5.0::GamePlay");
             
         }
 
         public override void OnLeave(ItemContext cxt) {
-            if (cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
+            cxt.UnregisterEvent(GameEvent.Apply_ConvertToolMaterial);
+            cxt.UnregisterEvent(GameEvent.Apply_ToolRemove);
+
+            if (!cxt.IsOwner || cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
             if (cxt.TryGetHolder(out IEventControlled effect) && settings.Model.Enabled) 
-                effect.RaiseEvent(GameEvent.Item_UnholdTool, effect, this, ref settings.Model.Value);
+                effect.RaiseEvent(GameEvent.Item_UnholdTool, effect is Entity.Entity ? ((Entity.Entity)effect).info.rtEntityId : effect, this, ref settings.Model.Value);
             
             InputPoller.RemoveBinding("ITEM::MCTool:CNV", "5.0::GamePlay");
             InputPoller.RemoveBinding("ITEM::MCTool:RM", "5.0::GamePlay");
             
+        }
+
+        private void RequestModifyTerrain(ItemContext cxt) {
+            if (!cxt.TryGetHolder(out BehaviorEntity.Animal player) || !player.Is(out PlayerInteractionBehavior interact)) return;
+            if (!interact.RayTestSolid(out float3 hitPt)) return;
+            if (EntityManager.ESTree.FindClosestAlongRay(player.head, hitPt, player.info.rtEntityId, out _, out _)) return;
+            bool CanConvert(int3 GCoord) {
+                MapData map = CPUMapManager.SampleMap(GCoord);
+                return IMaterialConverting.CanConvert(map, GCoord, settings.ConverterTag, out ConverterToolTag _);
+            }
+            if (!Terraforming.FindTerraformable(hitPt, settings.TerraformRadius, CanConvert, out _)) return;
+            InputPoller.SuspendKeybindPropogation("ConvertMaterial", ActionBind.Exclusion.ExcludeLayer);
+            cxt.RaiseEvent(GameEvent.Apply_ConvertToolMaterial);
         }
 
         private void PlayerModifyTerrain(ItemContext cxt) {
@@ -59,30 +79,32 @@ namespace Arterra.Data.Item
             if (EntityManager.ESTree.FindClosestAlongRay(player.head, hitPt, player.info.rtEntityId, out _, out _))
                 return;
             
-            bool targetted = false;
+
             bool ModifySolid(int3 GCoord, float speed) {
                 MapData mapData = CPUMapManager.SampleMap(GCoord);
                 int material = mapData.material;
                 if (!IMaterialConverting.CanConvert(mapData, GCoord, settings.ConverterTag, out ConverterToolTag tag))
                     return false;
-                targetted = true;
                 if (UnityEngine.Random.Range(0.0f, 1.0f) >= tag.TerraformSpeed)
                     return false;
                 if (!MaterialData.SwapMaterial(GCoord, MatInfo.RetrieveIndex(tag.ConvertTarget), out IItem origItem))
                     return false;
-                if (tag.GivesItem) InventoryController.DropItem(origItem, GCoord);
+                if (tag.GivesItem) PlayerInventoriesBehavior.SpawnDrop(origItem, GCoord);
                 durability -= tag.ToolDamage * (mapData.density / 255.0f);
                 return true;
             }
 
             if (settings.OnUseAnim.Enabled && player is IEventControlled effectable)
-                effectable.RaiseEvent(GameEvent.Item_UseTool, player, this, ref settings.OnUseAnim.Value);
+                effectable.RaiseEvent(GameEvent.Item_UseTool, player.info.rtEntityId, this, ref settings.OnUseAnim.Value);
 
-            CPUMapManager.Terraform(hitPt, settings.TerraformRadius, ModifySolid, interact.CallOnMapRemoving);
-            if (targetted) InputPoller.SuspendKeybindPropogation("ConvertMaterial", ActionBind.Exclusion.ExcludeLayer);
+            var previousValue = durability;
+            Terraforming.Terraform(hitPt, settings.TerraformRadius, ModifySolid, interact.CallOnMapRemoving);
             UpdateDisplay();
 
-            if (durability > 0) return;
+            if (durability > 0) {
+                if (durability != previousValue) cxt.SetDirty();
+                return;
+            }
             //Removes itself
             cxt.TryRemove();
         }

@@ -73,7 +73,7 @@ namespace Arterra.Engine.Rendering {
         }
 
         public static void Release() {
-            if (material != null) UnityEngine.Object.Destroy(material);
+            CoreUtils.Destroy(material);
             material = null;
             ReleaseHistoryBuffers();
             requestedStrength = 0f;

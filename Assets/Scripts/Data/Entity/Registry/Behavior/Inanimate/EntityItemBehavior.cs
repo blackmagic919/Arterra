@@ -43,7 +43,7 @@ namespace Arterra.Data.Entity.Behavior {
         public IItem[] GetItems() => item.Value == null ? null : new[] { item.Value };
         public void SetItem(IItem value) => item.Value = value;
 
-        public bool Collect(Entity target, Action<IItem> collect, float amount) {
+        private bool Collect(Entity target, float amount) {
             if (item.Value == null) return false;
 
             IItem ret = (IItem)item.Value.Clone();
@@ -53,7 +53,8 @@ namespace Arterra.Data.Entity.Behavior {
             item.Value.AmountRaw -= ret.AmountRaw;
 
             if (item.Value.AmountRaw <= 0) item.Value = null;
-            collect(ret);
+            target.eventCtrl.EnqueueEvent(GameEvent.Entity_RecieveItem,
+                self.info.rtEntityId, target.info.rtEntityId, ret);
             TryReleaseIfEmpty();
             return true;
         }
@@ -77,9 +78,9 @@ namespace Arterra.Data.Entity.Behavior {
                 Item.Create(rItems.RetrieveIndex(settings.DefaultItem), Item.UnitSize);
             }
 
-            self.eventCtrl.AddEventHandler(GameEvent.Entity_Collect, OnCollectedFrom);
-            self.eventCtrl.AddEventHandler(GameEvent.Entity_AttemptMerge, OnAttemptMerge);
-            self.eventCtrl.AddEventHandler(GameEvent.Entity_MergeAbsorb, OnMergedWith);
+            if (self.IsAuthority) self.eventCtrl.AddEventHandler(GameEvent.Entity_Collect, OnCollectedFrom);
+            if (self.IsAuthority) self.eventCtrl.AddEventHandler(GameEvent.Entity_AttemptMerge, OnAttemptMerge);
+            if (self.IsAuthority) self.eventCtrl.AddEventHandler(GameEvent.Entity_MergeAbsorb, OnMergedWith);
 
             self.Register<IEntitySearchItem>(this);
             self.Register<IDecaying>(this);
@@ -91,15 +92,15 @@ namespace Arterra.Data.Entity.Behavior {
 
             this.self = self;
             decomposition = math.min(settings.DecayTime, decomposition);
-            self.eventCtrl.AddEventHandler(GameEvent.Entity_Collect, OnCollectedFrom);
-            self.eventCtrl.AddEventHandler(GameEvent.Entity_AttemptMerge, OnAttemptMerge);
-            self.eventCtrl.AddEventHandler(GameEvent.Entity_MergeAbsorb, OnMergedWith);
+            if (self.IsAuthority) self.eventCtrl.AddEventHandler(GameEvent.Entity_Collect, OnCollectedFrom);
+            if (self.IsAuthority) self.eventCtrl.AddEventHandler(GameEvent.Entity_AttemptMerge, OnAttemptMerge);
+            if (self.IsAuthority) self.eventCtrl.AddEventHandler(GameEvent.Entity_MergeAbsorb, OnMergedWith);
             self.Register<IEntitySearchItem>(this);
             self.Register<IDecaying>(this);
         }
 
         public override void Update(BehaviorEntity.Animal self) {
-            if (self.context == BehaviorEntity.UpdateContext.JobSync) return;
+            if (self.context != BehaviorEntity.UpdateContext.Simulation) return;
             if (TryReleaseIfEmpty()) return;
 
             decomposition -= self.DeltaTime;
@@ -119,9 +120,9 @@ namespace Arterra.Data.Entity.Behavior {
 
         private void OnCollectedFrom(object source, object collector, object cxt) {
             if (cxt == null || item.Value == null) return;
-            Action<IItem> collect; float amount;
-            (collect, amount) = ((Action<IItem>, float))cxt;
-            Collect(collector as Entity, collect, amount);
+            if (cxt is not float amount || collector is not Guid collectorId) return;
+            if (!EntityManager.TryGetEntity(collectorId, out Entity receiver)) return;
+            Collect(receiver, amount);
         }
 
         private void OnAttemptMerge(object source, object target, object cxt) {
@@ -133,7 +134,8 @@ namespace Arterra.Data.Entity.Behavior {
         }
 
         private bool CanMergeByRequestedRule(object target) {
-            if (target is not Entity targetEntity) return false;
+            if (target is not Guid targetId) return false;
+            if (!EntityManager.TryGetEntity(targetId, out Entity targetEntity)) return false;
             if (self == null || !self.active) return false;
             if (!targetEntity.Is(out EntityItemBehavior targetItem)) return false;
             if (targetItem.self == null || !targetItem.self.active) return false;
@@ -147,7 +149,8 @@ namespace Arterra.Data.Entity.Behavior {
         }
 
         private void OnMergedWith(object soruce, object target, object cxt) {
-            if (target == null || target is not Entity tEnt) return;
+            if (target is not Guid targetId) return;
+            if (!EntityManager.TryGetEntity(targetId, out Entity tEnt)) return;
             if (!tEnt.Is(out EntityItemBehavior neighbor)) return;
             if (Item == null || neighbor.Item == null) return;
 
@@ -169,7 +172,7 @@ namespace Arterra.Data.Entity.Behavior {
             if (item.Value != null && item.Value.AmountRaw > 0) return false;
 
             item.Value = null;
-            EntityManager.ReleaseEntity(self.info.entityId);
+            EntityManager.ReleaseEntity(self.info.rtEntityId);
             return true;
         }
     }

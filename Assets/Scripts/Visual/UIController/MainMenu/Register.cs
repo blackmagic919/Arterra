@@ -69,15 +69,15 @@ public struct Catalogue<T> : ICatalgoue, ICloneable where T : Category<T>
 {
     public Option<Category<T>> Category;
     [HideInInspector]
-    [UISetting(Ignore = true, Defaulting = true)]
+    [UIHidden][UISetting(Defaulting = true)]
     [JsonIgnore]
     public List<T> Reg;
     [HideInInspector]
-    [UISetting(Ignore = true, Defaulting = true)]
+    [UIHidden][UISetting(Defaulting = true)]
     [JsonIgnore]
     private Dictionary<string, int> Index;
     [HideInInspector]
-    [UISetting(Ignore = true, Defaulting = true)]
+    [UIHidden][UISetting(Defaulting = true)]
     [JsonIgnore]
     private List<Category<T>.BackEdge> InvertedDependency;
     [HideInInspector][JsonIgnore]
@@ -189,7 +189,7 @@ public struct Catalogue<T> : ICatalgoue, ICloneable where T : Category<T>
     public struct Registry<T> : IRegister, ICloneable {
         public List<Pair> Reg;
         [HideInInspector]
-        [UISetting(Ignore = true)]
+        [UIHidden]
         [JsonIgnore]
         private Dictionary<string, int> Index;
 

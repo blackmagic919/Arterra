@@ -34,7 +34,7 @@ namespace Arterra.Data.Entity.Behavior {
         public void ResetDecay() => manager.TaskDuration = math.max(DecayTime, 0);
 
         public override void Update(BehaviorEntity.Animal self) {
-            if (self.context == BehaviorEntity.UpdateContext.JobSync) return;
+            if (self.context != BehaviorEntity.UpdateContext.Simulation) return;
             
             if (manager.TaskIndex != settings.TaskName) {
                 if (!vitality.IsDead) return;
@@ -46,13 +46,12 @@ namespace Arterra.Data.Entity.Behavior {
                 return;
             }
             //Kill the entity
-            if (manager.TaskDuration <= 0) EntityManager.ReleaseEntity(self.info.entityId);
+            if (manager.TaskDuration <= 0) EntityManager.ReleaseEntity(self.info.rtEntityId);
         }
 
         private void OnCollectedFrom(object self, object collector, object cxt) {
             if (manager.TaskIndex != settings.TaskName) return;
-            Action<IItem> collect; float amount;
-            (collect, amount) = ((Action<IItem>, float))cxt;
+            if (cxt is not float amount) return;
             manager.TaskDuration -= amount;
         }
 
@@ -74,7 +73,7 @@ namespace Arterra.Data.Entity.Behavior {
                 throw new System.Exception("Entity: Death Behavior Requires AnimalInstance to have PathFinderBehavior");
             if (!self.Is(out mod)) mod = null;
             
-            self.eventCtrl.AddEventHandler(Core.Events.GameEvent.Entity_Collect, OnCollectedFrom);
+            if (self.IsAuthority) self.eventCtrl.AddEventHandler(Core.Events.GameEvent.Entity_Collect, OnCollectedFrom);
             self.Register<IDecaying>(this);
         }
 
@@ -87,7 +86,7 @@ namespace Arterra.Data.Entity.Behavior {
                 throw new System.Exception("Entity: Death Behavior Requires AnimalInstance to have PathFinderBehavior");
             if (!self.Is(out mod)) mod = null;
             
-            self.eventCtrl.AddEventHandler(Core.Events.GameEvent.Entity_Collect, OnCollectedFrom);
+            if (self.IsAuthority) self.eventCtrl.AddEventHandler(Core.Events.GameEvent.Entity_Collect, OnCollectedFrom);
             self.Register<IDecaying>(this);
         }
 

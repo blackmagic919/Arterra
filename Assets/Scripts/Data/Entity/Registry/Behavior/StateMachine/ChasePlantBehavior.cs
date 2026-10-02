@@ -45,8 +45,8 @@ namespace Arterra.Data.Entity.Behavior {
         private float WalkSpeed => MMove.Speed(mmove, settings.TaskName, mod, MSettings.WalkSpeed, movement.walkSpeed);
 
         public override void Update(BehaviorEntity.Animal self) {
+            if (self.context != BehaviorEntity.UpdateContext.Simulation) return;
             if (manager.TaskIndex != settings.TaskName) return;
-            if (self.context == BehaviorEntity.UpdateContext.JobSync) return;
             
             self.PathCollider.Follow(self, Movement.StaticDirect(
                 MMove.Profile(mmove, settings.TaskName, self.settings), 

@@ -1,6 +1,8 @@
+using Arterra.GamePlay;
 using Arterra.Configuration;
 using Arterra.Data.Intrinsic;
 using Arterra.Data.Item;
+using Arterra.Data.Entity.Behavior;
 using Arterra.GamePlay.Interaction;
 using TMPro;
 using UnityEngine;
@@ -67,18 +69,16 @@ namespace Arterra.GamePlay.UI {
             if (!ItemSearch.GridContainer.GetMouseSelected(out int index))
                 return;
             Authoring author = ItemSearch.SlotEntries[index];
-            IItem item = author.Item;
-            item.Create(Config.CURRENT.Generation.Items.RetrieveIndex(author.Name), item.StackLimit);
-            InventoryController.Cursor.ClearCursor(InventoryController.AddEntry);
-            InventoryController.Cursor.HoldItem(item);
+            PlayerHandler.Inventory.RequestInteraction(
+                PlayerInventoriesBehavior.InventoryAction.Resource,
+                slot: Config.CURRENT.Generation.Items.RetrieveIndex(author.Name));
             InputPoller.SuspendKeybindPropogation("Select");
         }
 
         public void Activate() {
-            
-                InputPoller.AddBinding(new ActionBind("Select",
-                    ResourceInputSelect, ActionBind.Exclusion.None),
-                    "ResourceInventory:SEL", "3.5::Window");
+            InputPoller.AddBinding(new ActionBind("Select", ResourceInputSelect,
+                ActionBind.Exclusion.None, ActionBind.Policy.Down),
+                "ResourceInventory:SEL", "3.5::Window");
             
             InventoryRoot.SetActive(true);
             ItemSearch.Activate();

@@ -52,28 +52,28 @@ public class Creator
     /// will be generated in the same location in the same world regardless of any other factors. </remarks>
     /// <param name="readback" >The <see cref="AsyncGenInfoReadback"/> task responsible for batching intermediate generation
     /// information to be readback to the CPU.</param>
-    /// <param name="chunkCoord">The coordinate, in <see cref="TerrainChunk.CCoord"/>Chunk Space, of the chunk whose structures
-    /// are planned. If the chunk spans multiple <paramref name="chunkCoord">ChunkCoords</paramref>, this is the coordinate of the origin of
+    /// <param name="CCoord">The coordinate, in <see cref="TerrainChunk.CCoord"/>Chunk Space, of the chunk whose structures
+    /// are planned. If the chunk spans multiple <paramref name="CCoord">ChunkCoords</paramref>, this is the coordinate of the origin of
     /// the region. </param>
     /// <param name="offset">The offset in grid space of the origin of the chunk. This should be
-    /// equvalent to (<paramref name="chunkCoord"/> * <paramref name="chunkSize"/>)</param>
+    /// equvalent to (<paramref name="CCoord"/> * <paramref name="chunkSize"/>)</param>
     /// <param name="chunkSize">The size of the chunk a <see cref="TerrainChunk.RealChunk">real chunk</see> in grid space. The atomic
     /// unit for guaranteed determinstic sampling of chunk structures. </param>
     /// <param name="IsoLevel">The density of the surface of the terrain. See <see cref="Configuration.Quality.Terrain.IsoLevel"/> for more info. </param>
     /// <param name="depth"> The distance of the chunk from a leaf node within the <see cref="OctreeTerrain.octree">chunk octree</see>. Identifies
     /// the size of the chunk relative to a <see cref="TerrainChunk.RealChunk"> real chunk </see>. See <see cref="TerrainChunk.depth"/> for more info. </param>
-    public void PlanStructuresGPU(AsyncGenInfoReadback readback, int3 chunkCoord, float3 offset, int chunkSize, float IsoLevel, int depth=0)
+    public void PlanStructuresGPU(AsyncGenInfoReadback readback, int3 CCoord, float3 offset, int chunkSize, float IsoLevel, int depth=0)
     {
         GraphicsResourceContext gpuContext = GetGraphicsContext();
         ReleaseStructure();
         //Sample system structures
-        if(Jigsaw.Generator.PlanStructureSystems(chunkSize, depth, chunkCoord))
+        if(Jigsaw.Generator.PlanStructureSystems(chunkSize, depth, CCoord))
             gpuContext.Work.ClearRange(
                 gpuContext.Work.Scratch, 6, 1);
         else gpuContext.Work.ClearRange(
             gpuContext.Work.Scratch, 7, 0);
 
-        SampleStructureLoD(Config.CURRENT.Generation.Structures.value.maxLoD, chunkSize, depth, chunkCoord);
+        SampleStructureLoD(Config.CURRENT.Generation.Structures.value.maxLoD, chunkSize, depth, CCoord);
         IdentifyStructures(offset, IsoLevel);
 
         this.StructureDataIndex = gpuContext.Memory.AllocateMemory(
@@ -269,17 +269,17 @@ public class Creator
     /// <param name="chunkSize">The size of a <see cref="TerrainChunk.RealChunk"/> in grid space. </param>
     /// <param name="depth">The distance of the chunk from a leaf node within the <see cref="OctreeTerrain.octree">chunk octree</see>. Identifies
     /// the size of the chunk relative to a <see cref="TerrainChunk.RealChunk"> real chunk </see>. See <see cref="TerrainChunk.depth"/> for more info. </param>
-    /// <param name="chunkCoord">The coordinate, in <see cref="TerrainChunk.CCoord">Chunk Space</see>, of the chunk whose structures
-    /// are planned. If the chunk spans multiple <paramref name="chunkCoord">ChunkCoords</paramref>, this is the coordinate of the origin of
+    /// <param name="CCoord">The coordinate, in <see cref="TerrainChunk.CCoord">Chunk Space</see>, of the chunk whose structures
+    /// are planned. If the chunk spans multiple <paramref name="CCoord">ChunkCoords</paramref>, this is the coordinate of the origin of
     /// the region. </param>
-    public void SampleStructureLoD(int maxLoD, int chunkSize, int depth, int3 chunkCoord)
+    public void SampleStructureLoD(int maxLoD, int chunkSize, int depth, int3 CCoord)
     {
         GraphicsResourceContext gpuContext = GetGraphicsContext();
         //base depthL is the base chunk axis size to sample maximum detail
         int numChunksPerAxis = maxLoD + (1<<depth) + 1;
         int numChunksMax = numChunksPerAxis * numChunksPerAxis * numChunksPerAxis;
 
-        gpuContext.SetInts(StructureLoDSampler, ShaderIDProps.OriginCCoord, new int[] { chunkCoord.x, chunkCoord.y, chunkCoord.z });
+        gpuContext.SetInts(StructureLoDSampler, ShaderIDProps.OriginCCoord, new int[] { CCoord.x, CCoord.y, CCoord.z });
         gpuContext.SetInt(StructureLoDSampler, ShaderIDProps.MapChunkSize, chunkSize);
         gpuContext.SetInt(StructureLoDSampler, ShaderIDProps.BaseDepthLoD, depth);
 

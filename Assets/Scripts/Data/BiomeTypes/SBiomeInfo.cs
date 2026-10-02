@@ -77,7 +77,7 @@ public struct SurfaceBiome : IBiomeCondition{
 
     /// <exclude><remarks> This is an internal pointer to the biome's generation information that is populated by the <see cref="BDict"/> </remarks> </exclude>
     [HideInInspector]
-    [UISetting(Ignore = true)]
+    [UIHidden]
     [JsonIgnore]
     public int biome;
 

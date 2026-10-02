@@ -1,3 +1,5 @@
+using Rule = UIConditional.Rule;
+using System.Collections.Generic;
 using System;
 using System.Reflection;
 using UnityEditor;
@@ -8,7 +10,7 @@ using static SegmentedUIEditor;
 [System.Serializable]
 public struct Optional<T>
 {
-    [UISetting(Ignore = true)]
+    [UIHidden]
     public bool Enabled;
     public T Value;
 
@@ -60,12 +62,13 @@ public class PageOptionalSerializer : PaginatedUIEditor.IConverter {
         return type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Optional<>);
     }
 
-    public void Serialize(GameObject page, GameObject parent, FieldInfo field, object value, ParentUpdate OnUpdate) {
+    public void Serialize(GameObject page, GameObject parent, FieldInfo field, object value, ParentUpdate OnUpdate, Rule rule, HashSet<string> displayFlags) {
         //Don't capture because multiple listeners can reaquire latest state 
         FieldInfo enabledField = value.GetType().GetField("Enabled");
         bool enabled = (bool)enabledField.GetValue(value);
         Toggle toggleField = UnityEngine.Object.Instantiate(Resources.Load<GameObject>("Prefabs/PaginatedUI/Bool_Input"), parent.transform).GetComponent<Toggle>();
         toggleField.isOn = enabled;
+        toggleField.interactable = rule != Rule.Disable;
         toggleField.onValueChanged.AddListener((bool nState) => OnUpdate((ref object parent) => {
             value = field.GetValue(parent);
             if (nState == enabled) return;
@@ -88,7 +91,7 @@ public class PageOptionalSerializer : PaginatedUIEditor.IConverter {
                     page.SetActive(true);
                 });
 
-                CreatePageDisplay(value, newPage, OnUpdate);
+                CreatePageDisplay(value, newPage, OnUpdate, rule, displayFlags);
             });
         }
 
@@ -104,23 +107,24 @@ public class PageOptionalSerializer : PaginatedUIEditor.IConverter {
 public class SegmentOptionalSerializer : SegmentedUIEditor.IConverter {
     public bool CanConvert(Type iType, Type fType) { return iType.IsGenericType && iType.GetGenericTypeDefinition() == typeof(Optional<>); }
 
-    public void Serialize(GameObject parent, FieldInfo field, object value, ParentUpdate OnUpdate) {
+    public void Serialize(GameObject parent, FieldInfo field, object value, ParentUpdate OnUpdate, Rule rule, HashSet<string> displayFlags) {
         //Don't capture because multiple listeners can reaquire latest state 
         FieldInfo enabledField = value.GetType().GetField("Enabled");
         bool enabled = (bool)enabledField.GetValue(value);
         Toggle toggleField = UnityEngine.Object.Instantiate(Resources.Load<GameObject>("Prefabs/SegmentedUI/Bool_Input"), parent.transform.GetChild(0)).GetComponent<Toggle>();
         toggleField.isOn = enabled;
+        toggleField.interactable = rule != Rule.Disable;
         toggleField.onValueChanged.AddListener((bool nState) => OnUpdate((ref object pObject) => {
             value = field.GetValue(pObject);
             if (nState == enabled) return;
             enabled = nState;
 
-            if (enabled) CreateOptionDisplay(value, parent, OnUpdate);
+            if (enabled) CreateOptionDisplay(value, parent, OnUpdate, rule, displayFlags);
             else ReleaseDisplay(parent);
             SegmentedUIEditor.ForceLayoutRefresh(parent.transform);
         }));
 
-        if (enabled) CreateOptionDisplay(value, parent, OnUpdate);
+        if (enabled) CreateOptionDisplay(value, parent, OnUpdate, rule, displayFlags);
     }
 
     public void Deserialize(ref object destination, ref object source) { //Default Behavior

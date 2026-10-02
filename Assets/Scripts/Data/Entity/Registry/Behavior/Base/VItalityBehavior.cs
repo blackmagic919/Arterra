@@ -4,6 +4,7 @@ using Arterra.Data.Entity;
 using Newtonsoft.Json;
 using Arterra.Data.Item;
 using Arterra.Core.Events;
+using Arterra.Core.Network;
 using TerrainCollider = Arterra.GamePlay.Interaction.TerrainCollider;
 using System.Collections.Generic;
 using System;
@@ -16,10 +17,7 @@ using Arterra.Engine.Audio;
 namespace Arterra.Data.Entity.Behavior {
     /// <summary> An interface for all object that can be attacked and take damage. It is up to the 
     /// implementer to decide how the request to take damage is handled. </summary>
-    public interface IAttackable {
-        public void Interact(Entity caller, IItem item = null);
-        public void Collect(Entity caller, Action<IItem> Collect, float collectRate);
-        public bool TakeDamage(float damage, float3 knockback, Entity attacker = null);
+    public interface IVitality {
         public bool IsDead { get; }
     }
     
@@ -83,14 +81,15 @@ namespace Arterra.Data.Entity.Behavior {
         }
     }
 
-    public class VitalityBehavior : SpeciesBehavior, IAttackable {
+    public class VitalityBehavior : SpeciesBehavior, IVitality {
         [JsonIgnore] public Decomposition Decomposition;
         [JsonIgnore] public PhysicalitySetting stats;
 
         private BehaviorEntity.Animal self;
         private Modifier mod;
 
-        private float MaxHealth => Modifier.Get(mod, MSettings.MaxHealth, stats.MaxHealth);
+        [JsonProperty] private NetworkVariable<float> netHealth = new("Health", NetworkPermission.Server);
+        [JsonIgnore] public float MaxHealth => Modifier.Get(mod, MSettings.MaxHealth, stats.MaxHealth);
         private float NaturalRegen => Modifier.Get(mod, MSettings.NaturalRegen, stats.NaturalRegen);
         private float InvincTime => Modifier.Get(mod, MSettings.InvincTime, stats.InvincTime);
 
@@ -98,49 +97,60 @@ namespace Arterra.Data.Entity.Behavior {
         [JsonIgnore] public float healthPercent => health / MaxHealth;
         [JsonIgnore] public bool IsDead => health <= 0;
 
-        public float health;
+        [JsonIgnore] public float health { get => netHealth.Value; set => netHealth.Value = value; }
         public float invincibility;
         public bool TriggeredDeath;
         private float MaxAccDamage;
         public const float FallDmgThresh = 10;
 
-        public void Interact(Entity caller, IItem item) => self.eventCtrl.RaiseEvent(GameEvent.Entity_Interact, self, caller, item);
 
-        public void Collect(Entity caller, Action<IItem> collect, float amount) {
-            if (IsDead && Decomposition != null) collect(Decomposition.LootItem(mod, amount, ref self.random));
-            self.eventCtrl.RaiseEvent(GameEvent.Entity_Collect, self, caller, (collect, amount));
+        public void Collect(object recieverId, object selfId, object ctx) {
+            if (ctx is not float amount) return;
+
+            Entity reciever;
+            if (recieverId is Guid entityId) 
+                EntityManager.TryGetEntity(entityId, out reciever);
+            else reciever = null;
+            
+            IItem collectedItem = null;
+            if (IsDead && Decomposition != null) 
+                collectedItem = Decomposition.LootItem(mod, amount, ref self.random);
+            self.eventCtrl.RaiseEvent(GameEvent.Entity_Collect, selfId, recieverId, amount);
+            reciever?.eventCtrl.EnqueueEvent(GameEvent.Entity_RecieveItem, selfId, recieverId, collectedItem);
         }
 
         public bool IsKillingBlow(float damage) => MaxAccDamage < health && damage > health;
 
-        public bool TakeDamage(float damage, float3 knockback, Entity attacker = null) {
-            if (damage < MaxAccDamage) return false;
+        public void TakeDamage(object sourceId, object attackerId, object context) {
+            if (self == null || !self.IsAuthority) return;
+            if (context is not (float damage, float3 knockback)) return;
+            if (damage < MaxAccDamage) return;
+
             RefTuple<(float, float3)> cxt = (damage - MaxAccDamage, knockback);
-            self.eventCtrl.RaiseEvent(GameEvent.Entity_Damaged, self, attacker, cxt);
+            self.eventCtrl.RaiseEvent(GameEvent.Entity_Damaged, sourceId, attackerId, cxt);
             (damage, knockback) = cxt.Value;
-            if (damage == 0) return false;
+            if (damage == 0) return;
             
             MaxAccDamage += damage;
             self.velocity += knockback;
-            return true;
         }
 
         private void FlushDeltaHealth(float delta) {
             RefTuple<float> cxt = new RefTuple<float>(delta);
-            self.eventCtrl.RaiseEvent(GameEvent.Entity_FlushHealthDelta, self, null, cxt);
+            self.eventCtrl.RaiseEvent(GameEvent.Entity_FlushHealthDelta,
+                self.info.rtEntityId, null, cxt);
             delta = cxt.Value;
             health = math.clamp(health + delta, 0, MaxHealth);
         }
 
 
         public override void Update(BehaviorEntity.Animal self) {
-            if (self.context == BehaviorEntity.UpdateContext.JobSync) return;
-            if (self.context == BehaviorEntity.UpdateContext.Main) return;
+            if (self.context != BehaviorEntity.UpdateContext.Simulation) return;
             TryApplyAccDamage();
 
             if (IsDead) {
                 if (TriggeredDeath) return;
-                self.eventCtrl.RaiseEvent(GameEvent.Entity_Death, self, null);
+                self.eventCtrl.RaiseEvent(GameEvent.Entity_Death, self.info.rtEntityId, null);
                 TriggeredDeath = true;
                 return;
             }
@@ -177,6 +187,8 @@ namespace Arterra.Data.Entity.Behavior {
                 throw new System.Exception("Entity: Vitality Behavior Requires AnimalSettings to have PhysicalitySettings");
             if (!setting.Is(out Decomposition)) Decomposition = null;
             if (!self.Is(out mod)) mod = null;
+            if (self.IsAuthority) self.eventCtrl.AddEventHandler(GameEvent.Apply_Damage, TakeDamage);
+            if (self.IsAuthority) self.eventCtrl.AddEventHandler(GameEvent.Apply_Collect, Collect);
 
             this.self = self;
             invincibility = 0;
@@ -187,7 +199,8 @@ namespace Arterra.Data.Entity.Behavior {
             TriggeredDeath = false;
             self.weight = this.weight;
 
-            self.Register<IAttackable>(this);
+            netHealth.Register(self);
+            self.Register<IVitality>(this);
         }
 
         public override void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
@@ -195,15 +208,21 @@ namespace Arterra.Data.Entity.Behavior {
                 throw new System.Exception("Entity: Vitality Behavior Requires Animal to have PhysicalitySettings");
             if (!setting.Is(out Decomposition)) Decomposition = null;
             if (!self.Is(out mod)) mod = null;
+            if (self.IsAuthority) self.eventCtrl.AddEventHandler(GameEvent.Apply_Damage, TakeDamage);
+            if (self.IsAuthority) self.eventCtrl.AddEventHandler(GameEvent.Apply_Collect, Collect);
 
             this.self = self;
             invincibility = 0;
             self.weight = this.weight;
 
-            self.Register<IAttackable>(this);
+            netHealth.Register(self);
+            self.Register<IVitality>(this);
         }
 
-        public void Disable() {
+        public override void Disable(BehaviorEntity.Animal self) {
+            self.eventCtrl.RemoveEventHandler(GameEvent.Apply_Damage, TakeDamage);
+            self.eventCtrl.RemoveEventHandler(GameEvent.Apply_Collect, Collect);
+            netHealth?.Dispose();
             this.self = null;
         }
     }

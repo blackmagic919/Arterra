@@ -1,4 +1,6 @@
 using System.Collections.Generic;
+using System.Threading.Tasks;
+using Arterra.Core;
 using System.Linq;
 using UnityEngine;
 using Unity.Collections;
@@ -20,6 +22,8 @@ using Arterra.Engine.Rendering;
 using Unity.Mathematics;
 using static Arterra.Core.Storage.SharedResourceManager;
 using MeshGenerator = Arterra.Engine.Terrain.MeshGeneration.Creator;
+using Arterra.Core.Network;
+using Arterra.Core.Network.Authentication;
 
 namespace Arterra.Engine.Terrain{
 /// <summary>  The factory protocol for the collective game system. This
@@ -28,6 +32,7 @@ namespace Arterra.Engine.Terrain{
 /// be added to this protocol with awareness of its dependencies. </summary>
 public static class SystemProtocol{
     private static SystemState state = SystemState.Inactive;
+    public static Task ShutdownTask { get; private set; } = Task.CompletedTask;
 
     static SystemProtocol() {　Reset();　}
 
@@ -37,10 +42,13 @@ public static class SystemProtocol{
     /// <summary> Performs the proper startup protocol when the <b>world</b> is initialized
     /// (this excludes when the main menu is displayed). This is a static factory protocol and only
     /// changes when modifying the system's functionality through its source code. </summary>
-    public static void Startup(){
+    public static async Task Startup(){
         if (state == SystemState.Active) return;
         if (state != SystemState.Inactive) Shutdown();
+        if (!ShutdownTask.IsCompletedSuccessfully)
+            throw new System.InvalidOperationException("Await SystemProtocol.ShutdownTask before starting another world.");
         state = SystemState.Active;
+        NetworkManager.Initialize();
 
         IRegister.Setup(Config.CURRENT);
         SharedResourceManager.Initialize();
@@ -59,18 +67,19 @@ public static class SystemProtocol{
         //We need to make sure keybinds are rebound in the same order
         //as the state they were saved at
         InputPoller.Initialize();
-        PlayerHandler.Initialize();
         GameUIManager.Initialize();
 
         AtmospherePass.Initialize();
         NauseaPass.Initialize();
         DizzinessPass.Initialize();
         BlindnessPass.Initialize();
-        Chunk.Initialize();
+        if (World.WORLD_SELECTION.First.Value.Local != null) Chunk.Initialize();
+        OptionsHandler.RefreshDisplayMap();
 
         Structure.Creator.PresetData();
         Surface.Creator.PresetData();
         Map.Creator.PresetData();
+        EntityGenerator.Initialize();
         MeshGenerator.PresetData();
         SubChunkShaderGraph.PresetData();
         RegionReconstructor.PresetData();
@@ -78,7 +87,19 @@ public static class SystemProtocol{
 
         Readback.AsyncGenInfoReadback.PresetData();
         Readback.AsyncMeshReadback.PresetData();
-        OctreeTerrain.Initialize();
+
+        if (!await NetworkManager.StartSessionAsync() || state != SystemState.Active)
+            return;
+        PlayerHandler.Initialize(InitializePlayerWorld);
+
+        void InitializePlayerWorld() {
+            GameUIManager.InitializePlayerUI();
+            ChunkGenerationDriver.Initialize(NetworkManager.IsActingServer
+                ? new LocalChunkSource() : new ClientSource(PlayerHandler.GetPlayerId()));
+            VisualChunkGenerationDriver.Initialize(ChunkGenerationDriver.Local.Source);
+            OctreeTerrain.Initialize();
+            LoadingHandler.Activate();
+        }
     }
 
     /// <summary>  Sets up the minimal amount of information to operate and use
@@ -86,48 +107,75 @@ public static class SystemProtocol{
     public static void MinimalStartup() {
         if (state == SystemState.Limited) return;
         if (state != SystemState.Inactive) Shutdown();
+        if (!ShutdownTask.IsCompletedSuccessfully)
+            throw new System.InvalidOperationException("Await SystemProtocol.ShutdownTask before starting another world.");
         state = SystemState.Limited;
 
         IRegister.Setup(Config.CURRENT);
         SharedResourceManager.Initialize(true);
         GenerationPreset.MinimalInitialize();
-        Chunk.MinimalInitialze();
+        if (World.WORLD_SELECTION.First.Value.Local != null) Chunk.MinimalInitialze();
     }
 
     /// <summary> Performs the proper shutdown protocol depending on what system state the game is in
     /// returning the system to a clean uninitialized state. This is a static factory protocol and
     /// only changes when modifying the system's functionality through its source code. </summary>
     public static void Shutdown() {
-        switch(state) {
-            case SystemState.Active:
-                ShutdownAll();
-                break;
-            case SystemState.Limited:
-                ShutdownMinimal();
-                break;
-            default:
-                Debug.Log("System not active");
-                break;
+        if (state == SystemState.Active || (state == SystemState.Stopping && ShutdownTask.IsFaulted)) {
+            state = SystemState.Stopping;
+            ShutdownTask = ShutdownAll();
+            _ = ReportShutdown(ShutdownTask);
+        } else if (state == SystemState.Limited) {
+            ShutdownMinimal();
+            state = SystemState.Inactive;
+            ShutdownTask = Task.CompletedTask;
         }
-
-        state = SystemState.Inactive;
     }
 
-    private static void ShutdownAll(){
+    private static async Task ReportShutdown(Task shutdown) {
+        try { await shutdown; }
+        catch (System.Exception exception) { Debug.LogException(exception); }
+    }
+
+    private static async Task ShutdownAll() {
+        var shutdownTimer = System.Diagnostics.Stopwatch.StartNew();
         // Startup marks state as Active before all systems are guaranteed initialized.
         // Shutdown must therefore tolerate partially initialized systems.
         static void TryShutdown(System.Action action, string systemName) {
+            var timer = System.Diagnostics.Stopwatch.StartNew();
             try {
                 action?.Invoke();
             } catch (System.Exception ex) {
-                Debug.LogWarning($"ShutdownAll: Failed while releasing {systemName}: {ex.Message}");
+                Debug.LogWarning($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Shutdown] Failed {systemName} after {timer.ElapsedMilliseconds} ms: {ex}");
             }
         }
 
+        static async Task TryShutdownAsync(System.Func<Task> action, string systemName) {
+            var timer = System.Diagnostics.Stopwatch.StartNew();
+            try {
+                await action();
+            } catch (System.Exception ex) {
+                Debug.LogWarning($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Shutdown] Failed {systemName} after {timer.ElapsedMilliseconds} ms: {ex}");
+            }
+        }
+
+        TryShutdown(() => TerrainUpdate.Release(), nameof(TerrainUpdate));
+        TryShutdown(() => EntityManager.FlushPendingHandlers(), nameof(EntityManager));
+        TryShutdown(() => PlayerConnection.DisconnectPlayers(), nameof(PlayerConnection));
+        // ReleaseAsync stops local networking immediately; remote session deletion can finish later.
+        Task networkShutdown = TryShutdownAsync(() => NetworkManager.ReleaseAsync(), nameof(NetworkManager));
+        TryShutdown(() => ChunkGenerationDriver.Local?.Source.Dispose(), nameof(ChunkSource));
+        TryShutdown(() => VisualChunkGenerationDriver.Local?.Dispose(), nameof(VisualChunkGenerationDriver));
+        TryShutdown(() => CPUMapManager.StopGeneration(), "Stop chunk generation");
+        TryShutdown(() => MapGenerationPipeline.ReleaseAll(), nameof(MapGenerationPipeline));
+        TryShutdown(() => ArterraRuntime.FinishGraphics(), "Drain submitted GPU work");
         TryShutdown(() => OctreeTerrain.Disable(), nameof(OctreeTerrain));
+        TryShutdown(() => ChunkGenerationDriver.Local?.Release(), nameof(ChunkGenerationDriver));
+        // Detach chunks and flush entity handlers now; await remaining saves after resource teardown.
+        Task cpuMapShutdown = TryShutdownAsync(() => CPUMapManager.ReleaseAsync(), nameof(CPUMapManager));
         TryShutdown(() => AudioManager.Instance?.Release(), nameof(AudioManager));
-        TryShutdown(() => EntityManager.Release(), nameof(EntityManager));
         TryShutdown(() => PlayerHandler.Release(), nameof(PlayerHandler));
+        TryShutdown(() => EntityManager.Release(), nameof(EntityManager));
         TryShutdown(() => Rendering.LightBaker.Release(), nameof(Rendering.LightBaker));
         TryShutdown(() => AtmospherePass.Release(), nameof(AtmospherePass));
         TryShutdown(() => NauseaPass.Release(), nameof(NauseaPass));
@@ -135,11 +183,12 @@ public static class SystemProtocol{
         TryShutdown(() => BlindnessPass.Release(), nameof(BlindnessPass));
         TryShutdown(() => SubChunkShaderGraph.Unset(), nameof(SubChunkShaderGraph));
         TryShutdown(() => Readback.AsyncMeshReadback.Release(), nameof(Readback.AsyncMeshReadback));
-        TryShutdown(() => CPUMapManager.Release(), nameof(CPUMapManager));
         TryShutdown(() => GPUMapManager.Release(), nameof(GPUMapManager));
         TryShutdown(() => GenerationPreset.Release(), nameof(GenerationPreset));
         TryShutdown(() => WorldDataHandler.Release(), nameof(WorldDataHandler));
         TryShutdown(() => SharedResourceManager.Release(), nameof(SharedResourceManager));
+        await Task.WhenAll(cpuMapShutdown, networkShutdown);
+        state = SystemState.Inactive;
     }
 
     private static void ShutdownMinimal() {
@@ -151,6 +200,7 @@ public static class SystemProtocol{
         Inactive,
         Active,
         Limited,
+        Stopping,
     }
 }
 

@@ -127,7 +127,7 @@ namespace Arterra.Configuration {
 
         protected void LaunchProjectile(Entity entity, Entity parent, float3 position, float3 velocity, Action<Entity> cb) {
             var entityInfo = Config.CURRENT.Generation.Entities;
-            if(parent != null) entity.RegisterConstructor(ProjectileFlightBehavior.Build(parent.info.entityId));
+            if(parent != null) entity.RegisterConstructor(ProjectileFlightBehavior.Build(parent.info.rtEntityId));
             EntityManager.AddHandlerEvent(() => AudioManager.CreateEvent(FireSound, position));
             EntityManager.CreateEntity(position, (uint)entity.Index, entity, () => {
                 entity.transform.position = position;
@@ -214,19 +214,12 @@ namespace Arterra.Configuration {
     }
 
     [Serializable]
-    public struct TooltipConfig : ICloneable {
-
-        // The time since this popup is enqueued (potentially displayed)  before we auto-acknowledge this popup. 
-        // If the popup is only auto-acknowledged by another event, set this to TimeSpan.Infinity.
-
-        public float AcknowledgeTime; // in seconds
+    public class TooltipConfig : GamePlay.UI.PopupHandler.PopupConfig, ICloneable {
 
         // Once the event is enqueued(potentially displayed), the event that when triggered will auto-acknowledge
         // this popup (i.e. dequeuing it). If the popup is only auto-acknowledged after a certain time, 
         // set this to EventType.None
         public GameEvent AcknowledgeEvent;
-
-        public TooltipPriority Priority;
 
         // Used to distinguish, for example, between OnInteractEntity and OnAttackEntity since they both read this tag.
         // If the tag is EventType.None then trigger on any of these.
@@ -244,17 +237,7 @@ namespace Arterra.Configuration {
 
         public bool BlockingTooltips;
 
-        public object Clone() {
-            return new TooltipConfig {
-                AcknowledgeTime = AcknowledgeTime,
-                AcknowledgeEvent = AcknowledgeEvent,
-                Priority = Priority,
-                TriggerEvent = TriggerEvent,
-                TriggerTime = TriggerTime,
-                BlockingTooltips = BlockingTooltips,
-                PrefabPath = PrefabPath
-            };
-        }
+        public object Clone() => MemberwiseClone();
     }
 
     // Tooltip dismissor tag data
@@ -425,7 +408,7 @@ namespace Arterra.Configuration {
 
         public Option<List<Pair>> Reg;
         [HideInInspector]
-        [UISetting(Ignore = true)]
+        [UIHidden]
         [JsonIgnore]
         private Dictionary<Tags, int> Index;
 

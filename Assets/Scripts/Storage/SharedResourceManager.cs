@@ -108,6 +108,8 @@ namespace Arterra.Core.Storage {
             CommandBufferPool.Release(Commands);
         }
 
+        internal bool HasPendingPolls => active && Polls != null && Polls.Count != 0;
+
         public void AnswerPolls() {
             if (!active) return;
             if (!active || Polls == null || Polls.Count == 0)

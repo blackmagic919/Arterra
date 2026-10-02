@@ -8,18 +8,26 @@ namespace Arterra.Core.Events {
         public const int Material_Base = 2000;
         public const int Action_Base = 3000;
         public const int System_Base = 4000;
+        public const int Apply_Base = 5000;
     }
 
     public enum GameEvent {
+        Material_InventorySlots = 6000,
+        Apply_MaterialInventory = 6001,
+        Apply_MaterialRecipe = 6002,
+        Apply_MaterialGrind = 6003,
+        Apply_CloseMaterial = 6004,
+        Entity_OpenMaterial = 6005,
         None = -1, // Placeholder for no event
 
         General_Notifcation = -2, // General notification event
 
         Entity_Death = GameEventBases.Entity_Base + 0,
-        Entity_Respawn = GameEventBases.Entity_Base + 1,
+        //Source and Target is ACTUAL ENTITY not Id here
+        Entity_Respawn = GameEventBases.Entity_Base + 1, 
         Entity_Damaged = GameEventBases.Entity_Base + 2,
         Entity_Attack = GameEventBases.Entity_Base + 3,
-        Entity_Jump = GameEventBases.Entity_Base + 4,
+        Entity_RebindPlayer = GameEventBases.Entity_Base + 4,
         Entity_Mate = GameEventBases.Entity_Base + 5,
         Entity_Guided = GameEventBases.Entity_Base + 6,
         Entity_Fed = GameEventBases.Entity_Base + 7,
@@ -45,11 +53,17 @@ namespace Arterra.Core.Events {
         Entity_MergeAbsorb = GameEventBases.Entity_Base + 26,
         Entity_MergeAbsorbed = GameEventBases.Entity_Base + 27,
         Entity_AttemptMerge = GameEventBases.Entity_Base + 28,
+        Entity_RecieveItem = GameEventBases.Entity_Base + 29,
 
         Entity_ItemHeld = GameEventBases.Entity_Base + 29,
         Entity_TouchMatSolid = GameEventBases.Entity_Base + 30,
         Entity_TouchMatLiquid = GameEventBases.Entity_Base + 31,
         Entity_DamageIndication = GameEventBases.Entity_Base + 32,
+        Entity_CanMount = GameEventBases.Entity_Base + 33,
+        Entity_AddModifier = GameEventBases.Entity_Base + 34,
+        Entity_RemoveModifier = GameEventBases.Entity_Base + 35,
+        Entity_SetInventorySlot = GameEventBases.Entity_Base + 36,
+        Entity_CraftInsufficient = GameEventBases.Entity_Base + 37,
 
         
         Item_ConsumeFood = GameEventBases.Item_Base + 0,
@@ -60,6 +74,8 @@ namespace Arterra.Core.Events {
         Item_ReleaseBow = GameEventBases.Item_Base + 5,
         Item_DrawRod = GameEventBases.Item_Base + 6,
         Item_ReleaseRod = GameEventBases.Item_Base + 7,
+        Item_MutateItem = GameEventBases.Item_Base + 8,
+        Item_FishingLine = GameEventBases.Item_Base + 9,
 
 
         Action_Jump = GameEventBases.Action_Base + 0,
@@ -78,12 +94,47 @@ namespace Arterra.Core.Events {
         Action_OpenMortar = GameEventBases.Action_Base + 13,
         Action_Mount = GameEventBases.Action_Base + 14,
         Action_Dismount = GameEventBases.Action_Base + 15,
-        Action_Mounted = GameEventBases.Action_Base + 15,
+        Action_Mounted = GameEventBases.Action_Base + 19,
         Action_Dismounted = GameEventBases.Action_Base + 16,
         Action_Run = GameEventBases.Action_Base + 17,
         Action_Walk = GameEventBases.Action_Base + 18,
 
         System_Deserialize = GameEventBases.System_Base + 0,
+
+        Apply_Damage = GameEventBases.Apply_Base + 0,
+        Apply_Collect = GameEventBases.Apply_Base + 1,
+        Apply_EntityMate = GameEventBases.Apply_Base + 2,
+        Apply_Jump = GameEventBases.Apply_Base + 3,
+        Apply_ToggleFly = GameEventBases.Apply_Base + 4,
+        Apply_Attack = GameEventBases.Apply_Base + 5,
+        Apply_PlaceTerrain = GameEventBases.Apply_Base + 6,
+        Apply_RemoveTerrain = GameEventBases.Apply_Base + 7,
+        Apply_ConsumeItem = GameEventBases.Apply_Base + 8,
+        Apply_PlaceBoat = GameEventBases.Apply_Base + 9,
+        Apply_EmptyBucket = GameEventBases.Apply_Base + 10,
+        Apply_FillBucket = GameEventBases.Apply_Base + 11,
+        Apply_ToolRemove = GameEventBases.Apply_Base + 12,
+        Apply_ConvertMaterial = GameEventBases.Apply_Base + 13,
+        Apply_ConvertToolMaterial = GameEventBases.Apply_Base + 14,
+        Apply_WeaponAttack = GameEventBases.Apply_Base + 15,
+        Apply_DrawBow = GameEventBases.Apply_Base + 16,
+        Apply_ReleaseBow = GameEventBases.Apply_Base + 17,
+        Apply_CancelBow = GameEventBases.Apply_Base + 18,
+        Apply_PenAdd = GameEventBases.Apply_Base + 19,
+        Apply_PenRemove = GameEventBases.Apply_Base + 20,
+        Apply_PlaceStructure = GameEventBases.Apply_Base + 21,
+        Apply_DrawRod = GameEventBases.Apply_Base + 22,
+        Apply_CastRod = GameEventBases.Apply_Base + 23,
+        Apply_ReelRod = GameEventBases.Apply_Base + 24,
+        Apply_ReleaseRod = GameEventBases.Apply_Base + 25,
+        Apply_CancelRod = GameEventBases.Apply_Base + 26,
+        Apply_DropItem = GameEventBases.Apply_Base + 27,
+        Apply_InventoryInteraction = GameEventBases.Apply_Base + 28,
+        Apply_Craft = GameEventBases.Apply_Base + 29,
+        Apply_MatchRecipe = GameEventBases.Apply_Base + 30,
+        Apply_ClearCrafting = GameEventBases.Apply_Base + 31,
+
+
     }
 
     public enum EventHandlePriority {
@@ -135,11 +186,13 @@ namespace Arterra.Core.Events {
 
     // Event control class implement a common control using EventHandlerList
     public class EventControl {
-        private Dictionary<int, LinkedList<(int, RefEventHandler)>> events = new Dictionary<int, LinkedList<(int, RefEventHandler)>>();
+        protected Dictionary<int, LinkedList<(int, RefEventHandler)>> events = new Dictionary<int, LinkedList<(int, RefEventHandler)>>();
+        protected bool isConsumed = false;
 
+        public virtual void ConsumeEvent() => isConsumed = true;
 
         // Methods to add, remove, and raise events
-        public void AddEventHandler(GameEvent type, RefEventHandler handler, EventHandlePriority priority = EventHandlePriority.Commutative3) {
+        public virtual void AddEventHandler(GameEvent type, RefEventHandler handler, EventHandlePriority priority = EventHandlePriority.Commutative3) {
             int eventKey = (int)type;
             if (!events.TryGetValue(eventKey, out var handlers)) {
                 handlers = new LinkedList<(int, RefEventHandler)>();
@@ -157,7 +210,7 @@ namespace Arterra.Core.Events {
             else handlers.AddBefore(node, entry);
         }
         
-        public void RemoveEventHandler(GameEvent type, RefEventHandler handler) {
+        public virtual void RemoveEventHandler(GameEvent type, RefEventHandler handler) {
             int eventKey = (int)type;
             if (!events.TryGetValue(eventKey, out var handlers)) {
                 return;
@@ -175,7 +228,7 @@ namespace Arterra.Core.Events {
             if (handlers.Count == 0) events.Remove(eventKey);
         }
 
-        public void RemoveEventHandler(GameEvent type) {
+        public virtual void RemoveEventHandler(GameEvent type) {
             events.Remove((int)type);
         }
 
@@ -195,31 +248,43 @@ namespace Arterra.Core.Events {
             return lambda;
         }            
 
-        public void RaiseEvent(GameEvent type, object actor, object target, object ctx = null) {
+        public virtual void RaiseEvent(GameEvent type, object actor, object target, object ctx = null) {
             // this  could be entity / player/ item.... 
             // Eventqueu.
             if (!events.TryGetValue((int)type, out var handlers))
                 return;
+            
+            bool prevConsumed = isConsumed;
+            isConsumed = false;
 
-            var node = handlers.First;
-            while (node != null) {
-                var next = node.Next;
-                node.Value.Item2?.Invoke(actor, target, ctx);
-                node = next;
-            }
-        }
-
-        /// <summary> Cache the event callback to avoid repeated dictionary lookups. </summary>
-        public Action<object, object, object> GetRaiseEventAction(GameEvent type) {
-            if (!events.TryGetValue((int)type, out var handlers))
-                return null;
-            return (actor, target, ctx) => {
+            try {
                 var node = handlers.First;
                 while (node != null) {
                     var next = node.Next;
                     node.Value.Item2?.Invoke(actor, target, ctx);
+                    if (isConsumed) break;
                     node = next;
                 }
+            } finally { isConsumed = prevConsumed; }
+        }
+
+        /// <summary> Cache the event callback to avoid repeated dictionary lookups. </summary>
+        public virtual Action<object, object, object> GetRaiseEventAction(GameEvent type) {
+            if (!events.TryGetValue((int)type, out var handlers))
+                return null;
+            return (actor, target, ctx) => {
+                bool prevConsumed = isConsumed;
+                isConsumed = false;
+
+                try {
+                    var node = handlers.First;
+                    while (node != null) {
+                        var next = node.Next;
+                        node.Value.Item2?.Invoke(actor, target, ctx);
+                        if (isConsumed) break;
+                        node = next;
+                    }
+                } finally { isConsumed = prevConsumed; }
             };
         }
     }

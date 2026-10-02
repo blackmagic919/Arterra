@@ -37,7 +37,6 @@ namespace Arterra.Engine.Rendering
         {
             renderPassEvent = passSettings.renderPassEvent;
             ConfigureInput(ScriptableRenderPassInput.Color);
-            initialized = false;
         }
 
         public static void Initialize()
@@ -69,7 +68,7 @@ namespace Arterra.Engine.Rendering
 
         public static void Release()
         {
-            if (material != null) UnityEngine.Object.Destroy(material);
+            CoreUtils.Destroy(material);
             material = null;
             Shader.DisableKeyword(DeferredKeyword);
             depthCopyPass?.Dispose();

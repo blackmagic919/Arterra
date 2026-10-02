@@ -1,4 +1,5 @@
 using System;
+using Arterra.Core.Network;
 using Arterra.Configuration.Gameplay;
 using Arterra.Core.Events;
 using Arterra.Editor;
@@ -75,8 +76,7 @@ namespace Arterra.Data.Entity.Behavior {
         }
 
         public override void Update(BehaviorEntity.Animal self) {
-            if (self.context == BehaviorEntity.UpdateContext.JobSync) return;
-            if (self.context == BehaviorEntity.UpdateContext.Main) return;
+            if (self.context != BehaviorEntity.UpdateContext.Simulation) return;
 
             UpdateStarveRateModifier();
             progress += self.DeltaTime;
@@ -96,20 +96,24 @@ namespace Arterra.Data.Entity.Behavior {
         }
 
         private void UpdateStarveRateModifier() {
+            if (!NetworkManager.IsActingServer) return;
             if (starveRateModifierId == Guid.Empty) return;
             if (!mod.TryGetModifier(starveRateModifierId, out SettingModifier modifier)) return;
-            modifier.value = StaminaMultiplier;
+            float value = StaminaMultiplier;
+            if (modifier.value == value) return;
+            modifier.value = value;
+            mod.SetDirty(MSettings.StarveRate, modifier.Id);
         }
 
         private void HookExertionEvent() {
-            self?.eventCtrl.AddEventHandler(GameEvent.Entity_ExertHunger, HandleExertHunger);
+            if (self.IsAuthority) self?.eventCtrl.AddEventHandler(GameEvent.Entity_ExertHunger, HandleExertHunger);
         }
 
         private void UnhookExertionEvent() {
             self?.eventCtrl.RemoveEventHandler(GameEvent.Entity_ExertHunger, HandleExertHunger);
         }
 
-        private void HandleExertHunger(object actor, object target, object cxt) {
+        private void HandleExertHunger(object srcId, object _, object cxt) {
             if (cxt is not RefTuple<float> deltaCtx) return;
             deltaCtx.Value *= deltaCtx.Value <= 0 ? StaminaMultiplier : (2 - StaminaMultiplier);
         }

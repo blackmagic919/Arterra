@@ -1,3 +1,5 @@
+using Arterra.Data.Entity.Behavior;
+using Arterra.GamePlay;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -117,12 +119,10 @@ namespace Arterra.Data.Intrinsic.Furnace {
         private Transform RecipeDisplay;
         private FurnaceFormula ActiveRecipe = null;
         private AnimatorAwaitTask ClosingTask;
-        private StackInventory[] FurnaceInvs;
         private StackInventory[] InvDisplays;
         private TextMeshProUGUI FuelTemp;
         private IngredientTable IngredientList;
-        public FurnaceRecipeSearch(FurnaceMaterial settings, Transform furnaceMenu, StackInventory[] FurnaceInvs, int numFormulas) {
-            this.FurnaceInvs = FurnaceInvs;
+        public FurnaceRecipeSearch(FurnaceMaterial settings, Transform furnaceMenu, int numFormulas, Action<FurnaceFormula> matchRecipe) {
             Menu = furnaceMenu.transform.Find("SearchArea");
             SearchInput = Menu.Find("SearchBar").GetComponentInChildren<TMP_InputField>();
             SearchContainer = Menu.Find("RecipeShelf").GetChild(0).GetChild(0);
@@ -164,7 +164,7 @@ namespace Arterra.Data.Intrinsic.Furnace {
             InvDisplays[(int)FurnaceMaterial.InvIndex.Output].InitializeVerticalDisplay(right, true);
             Button MatchButton = displayFurnace.GetComponent<Button>();
             MatchButton.onClick.AddListener(() => {
-                MatchRecipe(ActiveRecipe);
+                matchRecipe(ActiveRecipe);
                 EventSystem.current.SetSelectedGameObject(null);
             });
         }
@@ -181,8 +181,8 @@ namespace Arterra.Data.Intrinsic.Furnace {
             animator.SetBool("IsOpen", true);
             ToggleSearch.Lock();
             
-                InputPoller.AddBinding(new ActionBind("Select",
-                    FormulaMenuSelect, ActionBind.Exclusion.None),
+                InputPoller.AddBinding(new ActionBind("Select", FormulaMenuSelect,
+                    ActionBind.Exclusion.None, ActionBind.Policy.Down),
                     "MAT::FurnaceSearch:SEL", "3.5::Window");
             
         }
@@ -243,14 +243,14 @@ namespace Arterra.Data.Intrinsic.Furnace {
             } 
         }
 
-        private float DisplayNormalizationFactor(FurnaceFormula formula) {
+        private static float DisplayNormalizationFactor(FurnaceFormula formula) {
             float minOutput = float.MaxValue;
             foreach(FurnaceMaConversion c in formula.Outputs.value) {
                 minOutput = math.min(minOutput, c.Rate);
             } return 1 / minOutput;
         }
 
-        public void MatchRecipe(FurnaceFormula recipe) {
+        public static void MatchRecipe(FurnaceFormula recipe, StackInventory[] FurnaceInvs, PlayerInventoriesBehavior player) {
             if (recipe == null) return;
             Dictionary<int, int> Deficit = new Dictionary<int, int>();
             Dictionary<int, int> Surplus = new Dictionary<int, int>();
@@ -260,7 +260,7 @@ namespace Arterra.Data.Intrinsic.Furnace {
             float normalization = DisplayNormalizationFactor(recipe);
             bool alreadyMatch = true; float maxBatchPossible = float.MaxValue;
             uint tempCapacity = FurnaceInvs[0].capacity + FurnaceInvs[1].capacity + FurnaceInvs[2].capacity;
-            InventoryController.Inventory tempInv = new InventoryController.Inventory(2 * (int)tempCapacity);
+            Inventory tempInv = new Inventory(2 * (int)tempCapacity);
             FurnaceInvs[0].CopyTo(tempInv, 0, 0); offset += FurnaceInvs[0].capacity;
             FurnaceInvs[1].CopyTo(tempInv, 0, (int)offset); offset += FurnaceInvs[0].capacity;
             
@@ -277,7 +277,7 @@ namespace Arterra.Data.Intrinsic.Furnace {
                 int required = Deficit[item];
                 if (alreadyMatch) required = Mathf.FloorToInt(required * maxBatchPossible);
                 if (surplus > required) continue;
-                surplus += InventoryController.RemoveStackable(required - surplus, item,
+                surplus += player.RemoveStackable(required - surplus, item,
                     OnRemoved: item => tempInv.AddStackable(item));
                 Surplus[item] = surplus;
             }
@@ -289,11 +289,11 @@ namespace Arterra.Data.Intrinsic.Furnace {
                 IItem item = tempInv.Info[i];
                 if (item == null) continue;
                 item = item.Clone() as IItem;
-                InventoryController.AddEntry(item);
+                player.AddItem(item);
                 tempInv.RemoveEntry(i);
             }
 
-            void AccumulateInvSurplus(InventoryController.Inventory inv) {
+            void AccumulateInvSurplus(Inventory inv) {
                 for (int i = 0; i < inv.Capacity; i++) {
                     IItem item = inv.PeekItem(i);
 
@@ -305,7 +305,7 @@ namespace Arterra.Data.Intrinsic.Furnace {
                 }
             }
 
-            void AccumulateRequiredIngredients(InventoryController.Inventory inv, List<FurnaceMaConversion> ingList) {
+            void AccumulateRequiredIngredients(Inventory inv, List<FurnaceMaConversion> ingList) {
                 AccumulateInvSurplus(inv);
                 for (int i = 0; i < ingList.Count; i++) {
                     FurnaceMaConversion ing = ingList[i];
@@ -330,7 +330,7 @@ namespace Arterra.Data.Intrinsic.Furnace {
                 }
             }
 
-            void PlaceRequiredIngredients(InventoryController.Inventory dest, List<FurnaceMaConversion> ingList) {
+            void PlaceRequiredIngredients(Inventory dest, List<FurnaceMaConversion> ingList) {
                 for (int i = 0; i < ingList.Count; i++) {
                     FurnaceMaConversion ing = ingList[i];
                     int index = recipe.Index(ing);

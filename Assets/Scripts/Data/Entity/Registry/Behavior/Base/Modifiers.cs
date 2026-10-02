@@ -3,7 +3,7 @@ using Newtonsoft.Json;
 using System.Collections.Generic;
 using System;
 using UnityEngine;
-using System.Linq;
+using Arterra.Core.Events;
 
 namespace Arterra.Data.Entity.Behavior {
 
@@ -17,16 +17,29 @@ namespace Arterra.Data.Entity.Behavior {
         public const int Player = 6000;
         public const int GroupStep = -65536;
 
-        public Dictionary<MSettings, List<SettingModifier>>  ModifiedSettings;
+        public Dictionary<MSettings, List<SettingModifier>> ModifiedSettings;
         [JsonIgnore]
         private Dictionary<Guid, SettingModifier> ModifierIndex;
         [JsonIgnore]
         public Genetics genes;
+        private BehaviorEntity.Animal self;
+        private void Register(BehaviorEntity.Animal entity) {
+            self = entity;
+            entity.eventCtrl.AddEventHandler(GameEvent.Entity_AddModifier, AddModifierEvent);
+            entity.eventCtrl.AddEventHandler(GameEvent.Entity_RemoveModifier, RemoveModifierEvent);
+        }
+
+        public override void Disable(BehaviorEntity.Animal self) {
+            self.eventCtrl.RemoveEventHandler(GameEvent.Entity_AddModifier, AddModifierEvent);
+            self.eventCtrl.RemoveEventHandler(GameEvent.Entity_RemoveModifier, RemoveModifierEvent);
+            this.self = null;
+        }
 
         public override void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
             if (!self.Is(out genes)) genes = null;
             ModifiedSettings = new Dictionary<MSettings, List<SettingModifier>>();
             ModifierIndex = new Dictionary<Guid, SettingModifier>();
+            Register(self);
         }
 
         public override void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
@@ -42,6 +55,7 @@ namespace Arterra.Data.Entity.Behavior {
                     ModifierIndex[modifier.Id] = modifier;
                 }
             }
+            Register(self);
         }
 
         public static float Get(Modifier self, MSettings name, float defaultValue) {
@@ -65,20 +79,40 @@ namespace Arterra.Data.Entity.Behavior {
         }
 
         public void ApplyModifier(MSettings name, SettingModifier modifier) {
-            modifier._Create();
-            ModifierIndex[modifier.Id] = modifier;
-            if(!ModifiedSettings.TryGetValue(name, out List<SettingModifier> mList)) 
-                ModifiedSettings[name] = new List<SettingModifier>{ modifier };
-            else {
-                mList.Add(modifier); mList.Sort((a, b) => a.type.CompareTo(b.type));
-            } 
+            if (self?.IsAuthority != true) return;
+            if (modifier.Id == Guid.Empty) modifier._Create();
+            self.eventCtrl.RaiseEvent(GameEvent.Entity_AddModifier, self.info.rtEntityId, name, modifier);
         }
 
-        public void RemoveModifier(MSettings name, Guid Id) {
-            if(!ModifiedSettings.TryGetValue(name, out List<SettingModifier> mList)) 
-                return;
-            mList = mList.Where(m => m.Id != Id).ToList();
-            if (mList.Count == 0) ModifiedSettings.Remove(name);
+        private void AddModifierEvent(object source, object target, object context) {
+            if (self?.active != true || target is not MSettings name || context is not SettingModifier modifier) return;
+            if (!ModifiedSettings.TryGetValue(name, out var list))
+                ModifiedSettings[name] = list = new List<SettingModifier>();
+            int index = list.FindIndex(m => m.Id == modifier.Id);
+            if (index < 0) list.Add(modifier);
+            else list[index] = modifier;
+            list.Sort((a, b) => a.type.CompareTo(b.type));
+            ModifierIndex[modifier.Id] = modifier;
+        }
+
+        public void RemoveModifier(MSettings name, Guid id) {
+            if (self?.IsAuthority != true) return;
+            if (!ModifierIndex.ContainsKey(id)) return;
+            self.eventCtrl.RaiseEvent(GameEvent.Entity_RemoveModifier, self.info.rtEntityId, name, id);
+        }
+
+        private void RemoveModifierEvent(object source, object target, object context) {
+            if (self?.active != true || target is not MSettings name || context is not Guid id) return;
+            if (!ModifiedSettings.TryGetValue(name, out var list)) return;
+            if (list.RemoveAll(m => m.Id == id) == 0) return;
+            ModifierIndex.Remove(id);
+            if (list.Count == 0) ModifiedSettings.Remove(name);
+        }
+
+        public void SetDirty(MSettings name, Guid modifierId) {
+            if (self?.IsAuthority != true) return;
+            if (!ModifierIndex.TryGetValue(modifierId, out var modifier)) return;
+            self.eventCtrl.RaiseEvent(GameEvent.Entity_AddModifier, self.info.rtEntityId, name, modifier);
         }
 
         public bool TryGetModifier(Guid Id, out SettingModifier m) {
@@ -235,7 +269,7 @@ namespace Arterra.Data.Entity.Behavior {
     }
 
     public class SettingModifier {
-        private Guid id;
+        [JsonProperty] public Guid Id { get; private set; }
         public MType type;
         public float value;
         public enum MType {
@@ -251,8 +285,7 @@ namespace Arterra.Data.Entity.Behavior {
         }
 
 
-        public void _Create() => id = Guid.NewGuid();
-        public Guid Id => id;
+        public void _Create() => Id = Guid.NewGuid();
 
         public float ApplyModiifer(float input) {
             return type switch {

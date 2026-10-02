@@ -1,3 +1,7 @@
+using Arterra.Core.Network;
+using Arterra.Core.Events;
+using System;
+using Arterra.Data.Entity.Behavior;
 using System.Collections;
 using Arterra.Core.Storage;
 using Newtonsoft.Json;
@@ -44,41 +48,13 @@ namespace Arterra.Data.Material
         }
 
 
-        private MortarInventory OpenedInventory = null;
         public override bool OnRemoving(int3 GCoord, Entity.Entity caller) {
-            if (caller == null || caller.info.entityType != Config.CURRENT.Generation.Entities.RetrieveIndex("Player"))
-                return false;
-            if (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift))
-                return false;
+            if (!NetworkManager.IsActingServer || caller == null || !caller.Is(out PlayerInventoriesBehavior player)) return false;
             MapData info = CPUMapManager.SampleMap(GCoord);
             if (info.IsNull || !info.IsSolid) return false;
-
-            if (!VerifyStructurePlaceement(GCoord)) {
-                DropInventoryContent(GCoord);
-                return false;
-            }
-
-            float progress = (info.SolidDensity - CPUMapManager.IsoValue) /
-                             (255.0f - CPUMapManager.IsoValue);
-            if (!CPUMapManager.GetOrCreateMapMeta(GCoord, () => new MortarInventory(GCoord, MaxSlotCount), out OpenedInventory))
-                return false;
-
-            OpenedInventory.InitializeDisplay(this);
-            InventoryController.Activate();
-            
-                //Overrides the default inventory close window
-                InputPoller.AddContextFence("MAT::Container", "3.5::Window", ActionBind.Exclusion.None);
-                InputPoller.AddBinding(new ActionBind("Open Inventory",
-                _ => DeactivateWindow(), ActionBind.Exclusion.ExcludeLayer), "MAT::Mortar:CL", "3.5::Window");
-                //Naturally propogate to inventory handles unless suspended manually
-                InputPoller.AddBinding(new ActionBind("Deselect", DeselectDrag, ActionBind.Exclusion.None), "MAT::Mortar:DS", "3.5::Window");
-                InputPoller.AddBinding(new ActionBind("Select", SelectDrag, ActionBind.Exclusion.None), "MAT::Mortar:SL", "3.5::Window");
-                InputPoller.AddBinding(new ActionBind("SelectPartial", SelectPartial),  "MAT::Mortar:SELP", "3.5::Window");
-                InputPoller.AddBinding(new ActionBind("SelectAll", SelectAll), "MAT::Mortar:SELA", "3.0::AllWindow");
-
-            
-            PanelNavbarManager.Add(OpenedInventory, name);
-            PanelNavbarManager.Activate(name);
+            if (!VerifyStructurePlaceement(GCoord)) { DropInventoryContent(GCoord); return false; }
+            if (!CPUMapManager.GetOrCreateMapMeta(GCoord, () => new MortarInventory(GCoord, MaxSlotCount), out var inventory)) return false;
+            player.OpenMaterial(inventory);
             return true;
         }
 
@@ -92,8 +68,6 @@ namespace Arterra.Data.Material
             if (info.IsNull || amount.IsNull) return null;
             if (!info.IsSolid) return null;
 
-            if (OpenedInventory != null && math.all(OpenedInventory.position == GCoord))
-                DeactivateWindow();
             int SolidDensity = info.SolidDensity - amount.SolidDensity;
             if (!VerifyStructurePlaceement(GCoord) || SolidDensity < CPUMapManager.IsoValue)
                 DropInventoryContent(GCoord);
@@ -105,97 +79,10 @@ namespace Arterra.Data.Material
             if (!CPUMapManager.TryGetExistingMapMeta(GCoord, out MortarInventory cont))
                 return;
             foreach (IItem item in cont.Inventory.Info)
-                InventoryController.DropItem(item, GCoord);
+                PlayerInventoriesBehavior.SpawnDrop(item, GCoord);
             CPUMapManager.SetExistingMapMeta<object>(GCoord, null);
         }
 
-
-        public override void OnPlaced(int3 GCoord, in MapData amount) {
-            MapData info = CPUMapManager.SampleMap(GCoord);
-            if (info.IsNull || amount.IsNull) return;
-            if (OpenedInventory != null && math.all(OpenedInventory.position == GCoord))
-                DeactivateWindow();
-        }
-
-        private void DeactivateWindow() {
-            //IMPORTANT: The order in which these functions are called is VERY important
-            PanelNavbarManager.Remove(name);
-            PanelNavbarManager.Deactivate();
-            if (OpenedInventory != null) {
-                
-                    InputPoller.RemoveBinding("MAT::Mortar:SELA", "3.0::AllWindow");
-                    InputPoller.RemoveContextFence("MAT::Mortar", "3.5::Window");
-                    OpenedInventory = null;
-                
-            }
-            InventoryController.Deactivate();
-        }
-
-        // Helper function to find which inventory and index is being selected
-        private bool SelectInventorySlot(out IInventory inv, out int slotIndex) {
-            MortarInventory cont = OpenedInventory;
-            inv = null;
-
-            if (cont.Inventory.Display.GetMouseSelected(out slotIndex)) {
-                inv = cont.Inventory;
-                return true;
-            }
-            
-            return false;
-        }
-
-        private void SelectPartial(float _ = 0) {
-            if (!SelectInventorySlot(out IInventory inv, out int slotIndex))
-                return;
-
-            if (!InventoryController.SelectPartial((out IInventory _inv, out int index) => {
-                _inv = inv;
-                index = slotIndex;
-                return true;
-            })) {
-                return;
-            }
-            OpenedInventory.StartAutoCrushingProcess();
-            InputPoller.SuspendKeybindPropogation("SelectPartial", ActionBind.Exclusion.ExcludeLayer);
-        }
-
-        private void SelectDrag(float _ = 0) {
-            // Check if we are clicking on a valid inventory slot
-            if (!SelectInventorySlot(out IInventory inv, out int slotIndex))
-                return;
-
-            if (!InventoryController.Select((out IInventory _inv, out int index) => {
-                _inv = inv;
-                index = slotIndex;
-                return true;
-            })) {
-                return;
-            }
-            
-            OpenedInventory.StartAutoCrushingProcess();
-            InputPoller.SuspendKeybindPropogation("Select", ActionBind.Exclusion.ExcludeLayer);
-        }
-
-        private void DeselectDrag(float _ = 0) {
-            // Check if we are clicking on a valid inventory slot
-            if (!SelectInventorySlot(out IInventory inv, out int slotIndex))
-                return;
-
-            if (!InventoryController.DeselectDrag((out IInventory _inv, out int index) => {
-                _inv = inv;
-                index = slotIndex;
-                return true;
-            })) {
-                return;
-            }
-
-            OpenedInventory.StartAutoCrushingProcess();
-            InputPoller.SuspendKeybindPropogation("Deselect", ActionBind.Exclusion.ExcludeLayer);
-        }
-
-        private void SelectAll(float _ = 0) {
-            InventoryController.SelectAll(OpenedInventory.Inventory);
-        }
 
         public enum InvIndex {
             Input = 0,
@@ -204,10 +91,10 @@ namespace Arterra.Data.Material
 
 
         // This object will be serialized into the map meta data to store the inventory of the Mortar
-        public class MortarInventory : MaterialInstance, PanelNavbarManager.INavPanel {
+        public class MortarInventory : MaterialInventory {
             private static WaitForSeconds _waitForSeconds1_0 = new WaitForSeconds(1.0f);
 
-            //public InventoryController.Inventory inv;
+            //public Inventory inv;
             public StackInventory Inventory;
 
             [JsonIgnore]
@@ -218,6 +105,29 @@ namespace Arterra.Data.Material
             private MortarMaterial settings;
             [JsonIgnore]
             private MortarRecipeSearch RecipeSearch;
+
+            [JsonIgnore] protected override Inventory[] Inventories => new Inventory[] { Inventory };
+            protected override void InitializeSimulation() {
+                Authoring.Is(out PlaceableStructureMat material);
+                settings = (MortarMaterial)material;
+                if (!NetworkManager.IsActingServer) return;
+                Events.AddEventHandler(GameEvent.Apply_MaterialRecipe, Match);
+                Events.AddEventHandler(GameEvent.Apply_MaterialGrind, Grind);
+            }
+
+            private void Match(object actor, object target, object context) {
+                if (!GetPlayer(actor, out var player) || target is not int index) return;
+                var recipes = Config.CURRENT.System.MortarFormulas.Reg;
+                if ((uint)index >= recipes.Count) return;
+                MortarRecipeSearch.MatchRecipe(recipes[index], Inventory, player);
+                FlushChanges();
+            }
+
+            private void Grind(object actor, object target, object context) {
+                if (!GetPlayer(actor, out _) || context is not float elapsed) return;
+                TryGrind(elapsed);
+                FlushChanges();
+            }
 
             [JsonConstructor]
             public MortarInventory() {
@@ -249,11 +159,11 @@ namespace Arterra.Data.Material
                 }
             }
 
-            internal void InitializeDisplay(MortarMaterial settings) {
+            protected override void CreateDisplay() {
                 root = GameObject.Instantiate(Resources.Load<GameObject>("Prefabs/GameUI/Mortar/Mortar"));
                 Transform mortRegion = root.transform.GetChild(0).GetChild(0);
                 GameObject center = mortRegion.Find("Input").gameObject;
-                RecipeSearch = new MortarRecipeSearch(settings, root.transform, Inventory, settings.MaxRecipeSlotCount);
+                RecipeSearch = new MortarRecipeSearch(settings, root.transform, settings.MaxRecipeSlotCount, recipe => RequestRecipe(Config.CURRENT.System.MortarFormulas.Reg.IndexOf(recipe)));
 
                 Animator mortarAnimator = root.GetComponent<Animator>();
                 HoldDownUI holdTrigger = mortRegion.Find("Pestle").GetComponent<HoldDownUI>();
@@ -261,7 +171,7 @@ namespace Arterra.Data.Material
                 holdTrigger.ClearAllListeners();
                 mortarAnimator.SetBool("IsGrinding", false); 
                 holdTrigger.AddHeldListener(() => {
-                    TryGrind(Time.deltaTime);
+                    RequestGrind(Time.deltaTime);
                 });
                 holdTrigger.AddDownListener(() => {
                    mortarAnimator.SetBool("IsGrinding", true); 
@@ -271,10 +181,10 @@ namespace Arterra.Data.Material
                 });
 
                 Inventory.InitializeHorizontalDisplay(center, false);
-                this.settings = settings;
+
             }
 
-            public void Release() {
+            protected override void ReleaseDisplay() {
                 if (root == null) return;
                 Inventory.ReleaseStackDisplay();
                 RecipeSearch?.Deactivate();
@@ -306,14 +216,11 @@ namespace Arterra.Data.Material
             }
 
 
-            public Sprite GetNavIcon() => Config.CURRENT.Generation.Textures.Retrieve(
+            protected override GameEvent OpenEvent => settings.OpenEvent;
+            public override Sprite GetNavIcon() => Config.CURRENT.Generation.Textures.Retrieve(
                 settings.Names.value[settings.DisplayIcon]).self;
-            public GameObject GetDispContent() => root;
-            public void Activate() {
-                root.SetActive(true);
-                PlayerHandler.data.eventCtrl.RaiseEvent(settings.OpenEvent, PlayerHandler.data, null);
-            }
-            public void Deactivate() => root.SetActive(false);
+            public override GameObject GetDispContent() => root;
+
         }
     }
 

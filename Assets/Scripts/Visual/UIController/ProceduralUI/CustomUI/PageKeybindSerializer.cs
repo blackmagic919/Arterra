@@ -1,3 +1,4 @@
+using Rule = UIConditional.Rule;
 using System;
 using System.Collections.Generic;
 using System.Reflection;
@@ -15,9 +16,7 @@ using Arterra.Configuration.Gameplay;
 public class PageKeybindSerializer : IConverter{
     private readonly Dictionary<KeyBind.BindPoll, Color> ConditionColors = new (){
         {KeyBind.BindPoll.Axis, Color.blue},
-        {KeyBind.BindPoll.Down, Color.green},
         {KeyBind.BindPoll.Hold, Color.gray},
-        {KeyBind.BindPoll.Up, Color.red},
         {KeyBind.BindPoll.Exclude, Color.black}
     };
 
@@ -30,9 +29,10 @@ public class PageKeybindSerializer : IConverter{
     };
 
     public bool CanConvert(Type type){ return typeof(KeyBind).IsAssignableFrom(type); }
-    public void Serialize(GameObject page, GameObject parent, FieldInfo field, object value, ParentUpdate OnUpdate){
+    public void Serialize(GameObject page, GameObject parent, FieldInfo field, object value, ParentUpdate OnUpdate, Rule rule, HashSet<string> displayFlags){
         GameObject KeybindName = parent.transform.Find("Name").gameObject;
         Button RebindButton = parent.AddComponent<Button>();
+        RebindButton.interactable = rule != Rule.Disable;
         RebindButton.onClick.AddListener(async () => {
             ClearKeybinds(parent.transform);
             Option<List<KeyBind.Binding>> nBindings = await ListenKeypress();
@@ -43,12 +43,12 @@ public class PageKeybindSerializer : IConverter{
                 nKeyBind.bindings = nBindings;
 
                 field.SetValue(option, nKeyBind);
-                ReflectKeybind(parent, field, nKeyBind, OnUpdate);
+                ReflectKeybind(parent, field, nKeyBind, OnUpdate, rule);
                 ForceLayoutRefresh(parent.transform);
             });
         });
         
-        ReflectKeybind(parent, field, (KeyBind)value, OnUpdate);
+        ReflectKeybind(parent, field, (KeyBind)value, OnUpdate, rule);
         ForceLayoutRefresh(parent.transform);
     }
 
@@ -59,7 +59,7 @@ public class PageKeybindSerializer : IConverter{
         }
     }
     
-    private void ReflectKeybind(GameObject parent, FieldInfo field, KeyBind keybind, ParentUpdate OnUpdate){
+    private void ReflectKeybind(GameObject parent, FieldInfo field, KeyBind keybind, ParentUpdate OnUpdate, Rule rule){
         ClearKeybinds(parent.transform);
         List<KeyBind.Binding> bindings = keybind.Bindings;
 
@@ -89,6 +89,7 @@ public class PageKeybindSerializer : IConverter{
 
             int index = i;//capture index
             Button pollTypeButton = bindKey.AddComponent<Button>();
+            pollTypeButton.interactable = rule != Rule.Disable;
             pollTypeButton.onClick.AddListener(() => {
                 binding.PollType = (KeyBind.BindPoll)(((int)binding.PollType + 1) % Enum.GetValues(typeof(KeyBind.BindPoll)).Length);
                 GetKeyBind(index, (KeyBind.Binding Binding) => {
@@ -99,6 +100,7 @@ public class PageKeybindSerializer : IConverter{
             });
 
             Button conjButton = bindConjunction.AddComponent<Button>();
+            conjButton.interactable = rule != Rule.Disable;
             conjButton.onClick.AddListener(() => {
                 binding.IsAlias = !binding.IsAlias;
                 GetKeyBind(index, (KeyBind.Binding Binding) => {

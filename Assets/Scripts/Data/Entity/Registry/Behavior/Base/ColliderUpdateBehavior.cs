@@ -31,7 +31,7 @@ namespace Arterra.Data.Entity.Behavior {
             };
         }
     }
-    public class ColliderUpdateBehavior : SpeciesBehavior, IMultiCollider {
+    public class ColliderUpdateBehavior : SpeciesBehavior, IMultiCollider, IBindAfterDeserialize {
         private const string GravityStateName = "ColliderUpdateBehavior::Base";
 
         [JsonIgnore] public ColliderUpdateSettings settings;
@@ -47,9 +47,9 @@ namespace Arterra.Data.Entity.Behavior {
         public void MultiplyFrictionNonPersisted(float value) => friction *= value;
 
         public override void Update(BehaviorEntity.Animal self) {
-            if (self.context == BehaviorEntity.UpdateContext.JobSync)
-                return;
-            if (self.context == BehaviorEntity.UpdateContext.Main)
+            if (self.context == BehaviorEntity.UpdateContext.ClientSimulation){
+                collider.TriggerContact(self);
+            } if (self.context != BehaviorEntity.UpdateContext.Simulation)
                 return;
             
             switch (Interaction) {
@@ -84,7 +84,7 @@ namespace Arterra.Data.Entity.Behavior {
                 throw new System.Exception("Entity: MapInteractBehavior Requires AnimalSettings to have MapInteractorSettings");
             this.collider = new TerrainCollider(setting.collider, GCoord);
             this.collider.SetGravityState(GravityStateName, TerrainCollider.GravityPriority.Default, settings.UseGravity);
-            self.Register<IMultiCollider>(this);
+            BindAfterDeserialize(self);
             ResetInteractionType();
         }
 
@@ -94,9 +94,10 @@ namespace Arterra.Data.Entity.Behavior {
             
             GCoord = (int3)math.floor(Collider.transform.position);
             this.collider.SetGravityState(GravityStateName, TerrainCollider.GravityPriority.Default, settings.UseGravity);
-            self.Register<IMultiCollider>(this);
             ResetInteractionType();
         }
+
+        public void BindAfterDeserialize(BehaviorEntity.Animal self) => self.Register<IMultiCollider>(this);
 
         public static float GetColliderDist(Entity a, Entity b) {
             if (a == null || b == null) return float.PositiveInfinity;

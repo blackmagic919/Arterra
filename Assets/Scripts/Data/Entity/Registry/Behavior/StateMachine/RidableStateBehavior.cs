@@ -42,7 +42,7 @@ public class RidableStateBehavior : SpeciesBehavior {
             manager.Transition(settings.OnDismount);
     }
 
-    public void WalkInDirection(object src, object caller, object cxt) {
+    private void OnGuided(object srcId, object clrId, object cxt) {
         aim = (cxt as RefTuple<float3>).Value;
          if (MMove.MovementType(mmove, settings.TaskName) != Movement.FollowType.Planar)
             aim = math.normalizesafe(aim);
@@ -56,11 +56,12 @@ public class RidableStateBehavior : SpeciesBehavior {
     }
 
     public override void Update(BehaviorEntity.Animal self) {
+        if (self.context is not (BehaviorEntity.UpdateContext.Simulation or BehaviorEntity.UpdateContext.Sync)) return;
         if (HatesMounter()) ridable?.Dismount();
         if (manager.TaskIndex < settings.TaskName)
             manager.Transition(settings.TaskName);
         if (manager.TaskIndex != settings.TaskName) return;
-        if (self.context == BehaviorEntity.UpdateContext.JobSync) return;
+        if (self.context != BehaviorEntity.UpdateContext.Simulation) return;
         
         if (ridable.RiderTarget == Guid.Empty) {
             manager.Transition(settings.OnDismount);
@@ -80,11 +81,11 @@ public class RidableStateBehavior : SpeciesBehavior {
         aim = float3.zero;
         return ridable.RiderTarget != Guid.Empty;
     }
-    private void Mounted(object src, object interactor, object reject) {
-        RefTuple<bool> valid = reject as RefTuple<bool>;
+    private void CanMount(object src, object interactor, object reject) {
+        if (reject is not RefTuple<bool> valid) return;
+        if (interactor is not Guid riderId) return;
+        if (!EntityManager.TryGetEntity(riderId, out Entity rider)) return;
         if (relations != null
-            && interactor != null
-            && interactor is Entity rider
             && relations.GetAffection(rider.info.rtEntityId)
             < AllowRideAffinity
         ) {
@@ -92,14 +93,16 @@ public class RidableStateBehavior : SpeciesBehavior {
             return;   
         }
         
-        if (manager.TaskIndex < settings.TaskName) 
+    }
+
+    private void Mounted(object src, object interactor, object context) {
+        if (manager.TaskIndex < settings.TaskName)
             manager.Transition(settings.TaskName);
     }
 
-
     public override void AddBehaviorDependencies(Dictionary<Behaviors, int> heirarchy) {
         heirarchy.TryAdd(Behaviors.StateMachine, heirarchy.Count);
-        //Deactivated unless IAttackable is implemented
+        //Deactivated unless IVitality is implemented
     }
 
     public override void AddSettingsDependencies(Dictionary<Type, IBehaviorSetting> heirarchy) {
@@ -121,9 +124,10 @@ public class RidableStateBehavior : SpeciesBehavior {
         if (!self.Is(out mod)) mod = null;
         
         manager.RegisterTransition(settings.TaskName, TransitionTo);
-        self.eventCtrl.AddEventHandler(Core.Events.GameEvent.Entity_Guided, WalkInDirection);
-        self.eventCtrl.AddEventHandler(Core.Events.GameEvent.Action_Mounted, Mounted);
-        self.eventCtrl.AddContextlessEventHandler(Core.Events.GameEvent.Action_Dismounted, OnDismounted);
+        if (self.IsAuthority) self.eventCtrl.AddEventHandler(GameEvent.Entity_Guided, OnGuided);
+        if (self.IsAuthority) self.eventCtrl.AddEventHandler(GameEvent.Entity_CanMount, CanMount);
+        if (self.IsAuthority) self.eventCtrl.AddEventHandler(GameEvent.Action_Mounted, Mounted);
+        if (self.IsAuthority) self.eventCtrl.AddContextlessEventHandler(GameEvent.Action_Dismounted, OnDismounted);
         this.self = self;
     }
 
@@ -141,13 +145,15 @@ public class RidableStateBehavior : SpeciesBehavior {
         if (!self.Is(out mod)) mod = null;
         
         manager.RegisterTransition(settings.TaskName, TransitionTo);
-        self.eventCtrl.AddEventHandler(Core.Events.GameEvent.Entity_Guided, WalkInDirection);
-        self.eventCtrl.AddEventHandler(Core.Events.GameEvent.Action_Mounted, Mounted);
-        self.eventCtrl.AddContextlessEventHandler(Core.Events.GameEvent.Action_Dismounted, OnDismounted);
+        if (self.IsAuthority) self.eventCtrl.AddEventHandler(GameEvent.Entity_Guided, OnGuided);
+        if (self.IsAuthority) self.eventCtrl.AddEventHandler(GameEvent.Entity_CanMount, CanMount);
+        if (self.IsAuthority) self.eventCtrl.AddEventHandler(GameEvent.Action_Mounted, Mounted);
+        if (self.IsAuthority) self.eventCtrl.AddContextlessEventHandler(GameEvent.Action_Dismounted, OnDismounted);
         this.self = self;
     }
 
     public override void Disable(BehaviorEntity.Animal self) {
+        self.eventCtrl.RemoveEventHandler(GameEvent.Entity_Guided, OnGuided);
         this.self = null;
     }
 

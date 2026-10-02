@@ -10,6 +10,7 @@ using Arterra.Core.Events;
 using Arterra.Configuration;
 using Arterra.GamePlay.Interaction;
 using Arterra.Data.Entity.Behavior;
+using Arterra.Utils;
 
 namespace Arterra.Data.Item
 {
@@ -65,19 +66,23 @@ namespace Arterra.Data.Item
         }
         public void UpdateEItem() { }
         public virtual void OnEnter(ItemContext cxt) {
-            if (cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
+            cxt.RegisterEvent(this, GameEvent.Apply_ToolRemove, PlayerRemoveTerrain);
+
+            if (!cxt.IsOwner || cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
             if (cxt.TryGetHolder(out IEventControlled effect) && settings.Model.Enabled) 
-                effect.RaiseEvent(GameEvent.Item_HoldTool, effect, this, ref settings.Model.Value);
+                effect.RaiseEvent(GameEvent.Item_HoldTool, effect is Entity.Entity ? ((Entity.Entity)effect).info.rtEntityId : effect, this, ref settings.Model.Value);
             
                 InputPoller.AddBinding(new ActionBind("Remove",
-                    _ => PlayerRemoveTerrain(cxt)),
+                    _ => RequestRemoveTerrain(cxt)),
                     "ITEM::Tool:RM", "5.0::GamePlay");
             
         }
         public virtual void OnLeave(ItemContext cxt) {
-            if (cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
+            cxt.UnregisterEvent(GameEvent.Apply_ToolRemove);
+
+            if (!cxt.IsOwner || cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
             if (cxt.TryGetHolder(out IEventControlled effect) && settings.Model.Enabled) 
-                effect.RaiseEvent(GameEvent.Item_UnholdTool, effect, this, ref settings.Model.Value);
+                effect.RaiseEvent(GameEvent.Item_UnholdTool, effect is Entity.Entity ? ((Entity.Entity)effect).info.rtEntityId : effect, this, ref settings.Model.Value);
             InputPoller.RemoveBinding("ITEM::Tool:RM", "5.0::GamePlay");
         }
 
@@ -104,12 +109,17 @@ namespace Arterra.Data.Item
         }
 
 
+        protected void RequestRemoveTerrain(ItemContext cxt) {
+            if (settings.ToolTag == TagRegistry.Tags.None) return;
+            InputPoller.SuspendKeybindPropogation("Remove", ActionBind.Exclusion.ExcludeLayer);
+            cxt.RaiseEvent(GameEvent.Apply_ToolRemove);
+        }
+
         protected void PlayerRemoveTerrain(ItemContext cxt) {
             if (settings.ToolTag == TagRegistry.Tags.None) return;
             if (!cxt.TryGetHolder(out BehaviorEntity.Animal player)) return;
             if (!player.Is(out PlayerInteractionBehavior interact)) return;
 
-            InputPoller.SuspendKeybindPropogation("Remove", ActionBind.Exclusion.ExcludeLayer);
             if (!interact.RayTestSolid(out float3 hitPt)) return;
             if (EntityManager.ESTree.FindClosestAlongRay(player.head, hitPt, player.info.rtEntityId, out _, out _))
                 return;
@@ -129,13 +139,17 @@ namespace Arterra.Data.Item
                 return true;
             }
 
-            CPUMapManager.Terraform(hitPt, settings.TerraformRadius, RemoveSolid, interact.CallOnMapRemoving);
+            float previousDurability = durability;
+            Terraforming.Terraform(hitPt, settings.TerraformRadius, RemoveSolid, interact.CallOnMapRemoving);
             UpdateDisplay();
 
             if (settings.OnUseAnim.Enabled && player is IEventControlled effectable)
-                effectable.RaiseEvent(GameEvent.Item_UseTool, player, this, ref settings.OnUseAnim.Value);
+                effectable.RaiseEvent(GameEvent.Item_UseTool, player.info.rtEntityId, this, ref settings.OnUseAnim.Value);
 
-            if (durability > 0) return;
+            if (durability > 0) {
+                if (durability != previousDurability) cxt.SetDirty();
+                return;
+            }
             //Removes itself
             cxt.TryRemove();
         }

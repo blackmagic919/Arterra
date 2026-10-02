@@ -1,3 +1,7 @@
+using Arterra.Core.Network;
+using Arterra.Core.Events;
+using System;
+using Arterra.Data.Entity.Behavior;
 using System.Collections;
 using Arterra.Core.Storage;
 using Newtonsoft.Json;
@@ -62,43 +66,13 @@ namespace Arterra.Data.Material
             materialData.Register(typeof(PlaceableStructureMat), this);
         }
 
-        private FurnaceInventory OpenedInventory = null;
         public override bool OnRemoving(int3 GCoord, Entity.Entity caller) {
-            if (caller == null || caller.info.entityType != Config.CURRENT.Generation.Entities.RetrieveIndex("Player"))
-                return false;
-            if (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift))
-                return false;
+            if (!NetworkManager.IsActingServer || caller == null || !caller.Is(out PlayerInventoriesBehavior player)) return false;
             MapData info = CPUMapManager.SampleMap(GCoord);
             if (info.IsNull || !info.IsSolid) return false;
-
-            if (!VerifyStructurePlaceement(GCoord)) {
-                DropInventoryContent(GCoord);
-                return false;
-            }
-
-            float progress = (info.SolidDensity - CPUMapManager.IsoValue) /
-                             (255.0f - CPUMapManager.IsoValue);
-            if (!CPUMapManager.GetOrCreateMapMeta(GCoord, () => new FurnaceInventory
-                (GCoord, MaxInputSlotCount, MaxOutputSlotCount, MaxFuelSlotCount),
-                out OpenedInventory))
-                return false;
-
-            OpenedInventory.InitializeDisplay(this);
-            InventoryController.Activate();
-            
-                //Overrides the default inventory close window
-                InputPoller.AddContextFence("MAT::Container", "3.5::Window", ActionBind.Exclusion.None);
-                InputPoller.AddBinding(new ActionBind("Open Inventory",
-                _ => DeactivateWindow(), ActionBind.Exclusion.ExcludeLayer), "MAT::Furnace:CL", "3.5::Window");
-                //Naturally propogate to inventory handles unless suspended manually
-                InputPoller.AddBinding(new ActionBind("Deselect", DeselectDrag, ActionBind.Exclusion.None), "MAT::Furnace:DS", "3.5::Window");
-                InputPoller.AddBinding(new ActionBind("Select", SelectDrag, ActionBind.Exclusion.None), "MAT::Furnace:SL", "3.5::Window");
-                InputPoller.AddBinding(new ActionBind("SelectPartial", SelectPartial),  "MAT::Furnace:SELP", "3.5::Window");
-                InputPoller.AddBinding(new ActionBind("SelectAll", SelectAll), "MAT::Furnace:SELA", "3.0::AllWindow");
-
-            
-            PanelNavbarManager.Add(OpenedInventory, name);
-            PanelNavbarManager.Activate(name);
+            if (!VerifyStructurePlaceement(GCoord)) { DropInventoryContent(GCoord); return false; }
+            if (!CPUMapManager.GetOrCreateMapMeta(GCoord, () => new FurnaceInventory(GCoord, MaxInputSlotCount, MaxOutputSlotCount, MaxFuelSlotCount), out var inventory)) return false;
+            player.OpenMaterial(inventory);
             return true;
         }
 
@@ -112,8 +86,6 @@ namespace Arterra.Data.Material
             if (info.IsNull || amount.IsNull) return null;
             if (!info.IsSolid) return null;
 
-            if (OpenedInventory != null && math.all(OpenedInventory.position == GCoord))
-                DeactivateWindow();
             int SolidDensity = info.SolidDensity - amount.SolidDensity;
             if (!VerifyStructurePlaceement(GCoord) || SolidDensity < CPUMapManager.IsoValue)
                 DropInventoryContent(GCoord);
@@ -125,111 +97,14 @@ namespace Arterra.Data.Material
             if (!CPUMapManager.TryGetExistingMapMeta(GCoord, out FurnaceInventory cont))
                 return;
             foreach (IItem item in cont.FuelInventory.Info)
-                InventoryController.DropItem(item, GCoord);
+                PlayerInventoriesBehavior.SpawnDrop(item, GCoord);
             foreach (IItem item in cont.InputInventory.Info)
-                InventoryController.DropItem(item, GCoord);
+                PlayerInventoriesBehavior.SpawnDrop(item, GCoord);
             foreach (IItem item in cont.OutputInventory.Info)
-                InventoryController.DropItem(item, GCoord);
+                PlayerInventoriesBehavior.SpawnDrop(item, GCoord);
             CPUMapManager.SetExistingMapMeta<object>(GCoord, null);
         }
 
-
-        public override void OnPlaced(int3 GCoord, in MapData amount) {
-            MapData info = CPUMapManager.SampleMap(GCoord);
-            if (info.IsNull || amount.IsNull) return;
-            if (OpenedInventory != null && math.all(OpenedInventory.position == GCoord))
-                DeactivateWindow();
-        }
-
-        private void DeactivateWindow() {
-            //IMPORTANT: The order in which these functions are called is VERY important
-            PanelNavbarManager.Remove(name);
-            PanelNavbarManager.Deactivate();
-            if (OpenedInventory != null) {
-                
-                    InputPoller.RemoveBinding("MAT::Furnace:SELA", "3.0::AllWindow");
-                    InputPoller.RemoveContextFence("MAT::Furnace", "3.5::Window");
-                    OpenedInventory = null;
-                
-            }
-            InventoryController.Deactivate();
-        }
-
-        // Helper function to find which inventory and index is being selected
-        private bool SelectInventorySlot(out IInventory inv, out int invIndex, out int slotIndex) {
-            FurnaceInventory cont = OpenedInventory;
-            inv = null;
-            invIndex = -1;
-            slotIndex = -1;
-            for (int i = 0; i < cont.invs.Length; i++) { // last inventory is output only, skip it
-                var subInv = cont.invs[i];
-                if (subInv.Display.GetMouseSelected(out slotIndex)) {
-                    inv = subInv;
-                    invIndex = i;
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        private void SelectPartial(float _ = 0) {
-            if (!SelectInventorySlot(out IInventory inv, out int invIndex, out int slotIndex))
-                return;
-
-            if (!InventoryController.SelectPartial((out IInventory _inv, out int index) => {
-                _inv = inv;
-                index = slotIndex;
-                return true;
-            })) {
-                return;
-            }
-            OpenedInventory.StartMeltingProcess(FuelTag);
-            OpenedInventory.RecalculateTemperature();
-            InputPoller.SuspendKeybindPropogation("SelectPartial", ActionBind.Exclusion.ExcludeLayer);
-        }
-
-        private void SelectDrag(float _ = 0) {
-            // Check if we are clicking on a valid inventory slot
-            if (!SelectInventorySlot(out IInventory inv, out int invIndex, out int slotIndex))
-                return;
-
-            if (!InventoryController.Select((out IInventory _inv, out int index) => {
-                _inv = inv;
-                index = slotIndex;
-                return true;
-            })) {
-                return;
-            }
-            
-            OpenedInventory.StartMeltingProcess(FuelTag);
-            OpenedInventory.RecalculateTemperature();
-            InputPoller.SuspendKeybindPropogation("Select", ActionBind.Exclusion.ExcludeLayer);
-        }
-
-        private void DeselectDrag(float _ = 0) {
-            // Check if we are clicking on a valid inventory slot
-            if (!SelectInventorySlot(out IInventory inv, out int invIndex, out int slotIndex))
-                return;
-
-            if (!InventoryController.DeselectDrag((out IInventory _inv, out int index) => {
-                _inv = inv;
-                index = slotIndex;
-                return true;
-            })) {
-                return;
-            }
-
-            OpenedInventory.StartMeltingProcess(FuelTag);
-            OpenedInventory.RecalculateTemperature();
-            InputPoller.SuspendKeybindPropogation("Deselect", ActionBind.Exclusion.ExcludeLayer);
-        }
-
-        private void SelectAll(float _ = 0) {
-            InventoryController.SelectAll(OpenedInventory.FuelInventory);
-            InventoryController.SelectAll(OpenedInventory.InputInventory);
-            InventoryController.SelectAll(OpenedInventory.OutputInventory);
-            OpenedInventory.RecalculateTemperature();
-        }
 
         public enum InvIndex {
             Input = 0,
@@ -238,7 +113,7 @@ namespace Arterra.Data.Material
         }
 
         // This object will be serialized into the map meta data to store the inventory of the furnace
-        public class FurnaceInventory : MaterialInstance, PanelNavbarManager.INavPanel {
+        public class FurnaceInventory : MaterialInventory {
             public StackInventory[] invs;
 
             [JsonIgnore]
@@ -261,6 +136,26 @@ namespace Arterra.Data.Material
             private FurnaceRecipeSearch RecipeSearch;
 
 
+            [JsonIgnore] protected override Inventory[] Inventories => invs;
+            protected override void InitializeSimulation() {
+                Authoring.Is(out PlaceableStructureMat material);
+                settings = (FurnaceMaterial)material;
+                if (!NetworkManager.IsActingServer) return;
+                Events.AddEventHandler(GameEvent.Apply_MaterialRecipe, Match);
+                StartMeltingProcess(settings.FuelTag);
+            }
+
+            private void Match(object actor, object target, object context) {
+                if (!GetPlayer(actor, out var player) || target is not int index) return;
+                var recipes = Config.CURRENT.System.FurnaceFormulas.Reg;
+                if ((uint)index >= recipes.Count) return;
+                FurnaceRecipeSearch.MatchRecipe(recipes[index], invs, player);
+                AfterInteraction();
+                FlushChanges();
+            }
+            protected override void AfterInteraction() => StartMeltingProcess(settings.FuelTag);
+            protected override void RefreshDisplay() => RecalculateTemperature();
+            private bool melting;
             public FurnaceInventory() {
                 //Do nothing: this is for newtonsoft deserializer
             }
@@ -280,30 +175,32 @@ namespace Arterra.Data.Material
             }
             
             public void StartMeltingProcess(TagRegistry.Tags fuelTag) {
+                if (!NetworkManager.IsActingServer || !Initialized || melting) return;
                 if (FurnaceFormula.GetMatchingFormula(fuelTag, FuelInventory, InputInventory, OutputInventory) == null)
                     return;
+                melting = true;
                 LightFurnace();
                 ArterraRuntime.MainCoroutines.Enqueue(UpdateRoutine());
             }
 
-            internal void InitializeDisplay(FurnaceMaterial settings) {
+            protected override void CreateDisplay() {
                 root = GameObject.Instantiate(Resources.Load<GameObject>("Prefabs/GameUI/Furnace/Furnace"));
                 Temperature = root.transform.GetChild(0).GetChild(0).Find("Temperature").GetComponent<TextMeshProUGUI>();
                 GameObject left = root.transform.GetChild(0).GetChild(0).Find("Fuel").gameObject;
                 GameObject center = root.transform.GetChild(0).GetChild(0).Find("Input").gameObject;
                 GameObject right = root.transform.GetChild(0).GetChild(0).Find("Output").gameObject;
-                RecipeSearch = new FurnaceRecipeSearch(settings, root.transform, invs, settings.MaxRecipeSlotCount);
+                RecipeSearch = new FurnaceRecipeSearch(settings, root.transform, settings.MaxRecipeSlotCount, recipe => RequestRecipe(Config.CURRENT.System.FurnaceFormulas.Reg.IndexOf(recipe)));
                 invs[(int)InvIndex.Fuel].InitializeHorizontalDisplay(left, false);
                 invs[(int)InvIndex.Input].InitializeHorizontalDisplay(center, false);
                 invs[(int)InvIndex.Output].InitializeVerticalDisplay(right, true);
-                this.settings = settings;
+
 
                 if (FurnaceFormula.GetMatchingFormula(settings.FuelTag, FuelInventory, InputInventory, OutputInventory) == null) 
                     root.GetComponent<Image>().sprite = Resources.Load<Sprite>("Prefabs/GameUI/Furnace/FurnaceUnlit");
                 else root.GetComponent<Image>().sprite = Resources.Load<Sprite>("Prefabs/GameUI/Furnace/FurnaceLit");
             }
 
-            public void Release() {
+            protected override void ReleaseDisplay() {
                 if (root == null) return;
                 foreach (var inv in invs)
                     inv.ReleaseStackDisplay();
@@ -314,9 +211,10 @@ namespace Arterra.Data.Material
             }
 
             private IEnumerator UpdateRoutine() {
-                while (true) {
+                while (Initialized && NetworkManager.IsActingServer) {
                     yield return new WaitForSeconds(1.0f); // Update every second
 
+                    if (!Initialized) break;
                     var formula = FurnaceFormula.GetMatchingFormula(
                         settings.FuelTag, FuelInventory, InputInventory, OutputInventory);
 
@@ -361,11 +259,14 @@ namespace Arterra.Data.Material
                         RecalculateTemperature();
                         //Run out of output space
                         if (item.AmountRaw > 0) {
+                            FlushChanges();
                             PutOutFurnace();
                             yield break;
                         }
                     }
+                    FlushChanges();
                 }
+                melting = false;
             }
 
             public void RecalculateTemperature() {
@@ -397,6 +298,7 @@ namespace Arterra.Data.Material
             }
 
             private void PutOutFurnace() {
+                melting = false;
                 if (root != null) root.GetComponent<Image>().sprite = Resources.Load<Sprite>("Prefabs/GameUI/Furnace/FurnaceUnlit");
                 var matInfo = Config.CURRENT.Generation.Materials.value.MaterialDictionary;
                 int unlitIndex = matInfo.RetrieveIndex(settings.UnlitFurnaceMaterial);
@@ -406,18 +308,15 @@ namespace Arterra.Data.Material
                 CPUMapManager.SetMap(data, position);
             }
 
-            public Sprite GetNavIcon() => Config.CURRENT.Generation.Textures.Retrieve(
+            protected override GameEvent OpenEvent => settings.OpenEvent;
+            public override Sprite GetNavIcon() => Config.CURRENT.Generation.Textures.Retrieve(
                 settings.Names.value[settings.DisplayIcon]).self;
-            public GameObject GetDispContent() => root;
-            public void Activate(){
-                root.SetActive(true);
-                PlayerHandler.data.eventCtrl.RaiseEvent(settings.OpenEvent, PlayerHandler.data, null);
-            }
-            public void Deactivate() => root.SetActive(false);
+            public override GameObject GetDispContent() => root;
+
         }
     }
 
-    public class StackInventory : InventoryController.Inventory {
+    public class StackInventory : Inventory {
         private GameObject ExpandIcon;
         private bool HideOnEmpty;
         public int stackLimit;
@@ -507,6 +406,16 @@ namespace Arterra.Data.Material
             if(ExpandIcon == null) return;
             ExpandIcon.transform.SetAsLastSibling();
             ExpandIcon.SetActive(freeSlots > 0 && capacity < stackLimit);
+        }
+
+        public void RefreshReplicatedDisplay() {
+            count = 0;
+            foreach (var item in Info) if (item != null) count++;
+            if (HideOnEmpty && parent != null) parent.SetActive(count != 0);
+            if (ExpandIcon != null) {
+                ExpandIcon.transform.SetAsLastSibling();
+                ExpandIcon.SetActive(freeSlots > 0 && capacity < stackLimit);
+            }
         }
 
         public void ReleaseStackDisplay() {

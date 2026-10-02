@@ -47,9 +47,13 @@ namespace Arterra.Data.Entity.Behavior {
         public int SelectedAttack;
         private bool PlayingAttack;
 
-        public void OnPrepareAttack(object self, object target, object cxt) {
+        public void OnPrepareAttack(object selfId, object targetId, object cxt) {
+            if (selfId is not Guid selfGuid) return;
+            if (!EntityManager.TryGetEntity(selfGuid, out Entity self)) return;
+            if (self is not BehaviorEntity.Animal selfAnimal) return;
+            float attackProb = selfAnimal.random.NextFloat();
+
             RefTuple<float> data = cxt as RefTuple<float>;
-            float attackProb = (self as BehaviorEntity.Animal).random.NextFloat();
             
             // Binary search to find which attack variant the probability falls into
             int left = 0, right = settings.Variants.value.Count - 1;
@@ -65,7 +69,7 @@ namespace Arterra.Data.Entity.Behavior {
             data.Value = settings.Variants.value[SelectedAttack].AttackDuration;
         }
 
-        public void OnAttack(object self, object target, object cxt) {
+        public void OnAttack(object srcId, object tgtId, object cxt) {
             if (SelectedAttack < 0) return;
             RefTuple<(float dmg, float3 kb)> atk = cxt as RefTuple<(float dmg, float3 kb)>;
             atk.Value.dmg = settings.Variants.value[SelectedAttack].AttackDamage;
@@ -74,7 +78,7 @@ namespace Arterra.Data.Entity.Behavior {
         }
 
         public override void Update(BehaviorEntity.Animal self) {
-            if (self.context == BehaviorEntity.UpdateContext.Job) return;
+            if (self.context != BehaviorEntity.UpdateContext.Sync) return;
             if(animated == null || attack == null) return;
             
             if (!attack.AttackInProgress) PlayingAttack = false;
@@ -95,8 +99,8 @@ namespace Arterra.Data.Entity.Behavior {
                 throw new System.Exception("Entity: MultiAttack Behavior Requires AnimalSettings to have MultiAttackSettings");
             if (!self.Is(out animated)) animated = null;
             if (!self.Is(out attack)) attack = null;
-            self.eventCtrl.AddEventHandler(GameEvent.Entity_ReadyAttack, OnPrepareAttack);
-            self.eventCtrl.AddEventHandler(GameEvent.Entity_Attack, OnAttack);
+            if (self.IsAuthority) self.eventCtrl.AddEventHandler(GameEvent.Entity_ReadyAttack, OnPrepareAttack);
+            if (self.IsAuthority) self.eventCtrl.AddEventHandler(GameEvent.Entity_Attack, OnAttack);
             SelectedAttack = -1;
             PlayingAttack = false;
         }
@@ -106,8 +110,8 @@ namespace Arterra.Data.Entity.Behavior {
                 throw new System.Exception("Entity: MultiAttack Behavior Requires AnimalSettings to have MultiAttackSettings");
             if (!self.Is(out animated)) animated = null;
             if (!self.Is(out attack)) attack = null;
-            self.eventCtrl.AddEventHandler(GameEvent.Entity_ReadyAttack, OnPrepareAttack);
-            self.eventCtrl.AddEventHandler(GameEvent.Entity_Attack, OnAttack);
+            if (self.IsAuthority) self.eventCtrl.AddEventHandler(GameEvent.Entity_ReadyAttack, OnPrepareAttack);
+            if (self.IsAuthority) self.eventCtrl.AddEventHandler(GameEvent.Entity_Attack, OnAttack);
             PlayingAttack = false;
         }
     }

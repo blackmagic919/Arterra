@@ -1,0 +1,232 @@
+using System;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
+using Arterra.Core.Network;
+using Arterra.Data.Entity;
+using LiteNetLib;
+
+namespace Arterra.Core.Events {
+    /// <summary>Event forwarding for a shared instance. Register its ID on installation; dispose on release.</summary>
+    public sealed class NetworkEventControl : EventControl, IDisposable {
+        private readonly NetEventStream<RaisedEvent> networkEventStream;
+        private readonly ControlStream<GameEvent> subscriptionStream;
+        private readonly ControlStream<GameEvent> unsubscriptionStream;
+        private readonly ControlStream<bool> syncStream;
+        private readonly ConcurrentDictionary<GameEvent, HashSet<NetPeer>> remoteSubscription = new();
+
+        public NetworkEventControl() {
+            networkEventStream = new NetEventStream<RaisedEvent>("EventControl:Events",
+                NetworkPermission.All, NetworkPermission.All, RecieveEventAsync) {
+                GameEventTypeGetter = GetGameEventType
+            };
+            subscriptionStream = new ControlStream<GameEvent>("EventControl:Subscriptions", RecieveRemoteSubscription);
+            unsubscriptionStream = new ControlStream<GameEvent>("EventControl:Unsubscriptions", RecieveRemoteUnsubscription);
+            syncStream = new ControlStream<bool>("EventControl:Sync", RecieveSync);
+        }
+
+        public event Action<GameEvent, NetPeer> RemoteSubscribed;
+
+        public void Register(Entity self) => Register(self.info.rtEntityId);
+
+        public void Register(Guid rootId) {
+            networkEventStream.Register(rootId);
+            subscriptionStream.Register(rootId);
+            unsubscriptionStream.Register(rootId);
+            syncStream.Register(rootId);
+            TransportManager.Instance.PeerDisconnected += RemovePeer;
+            Sync();
+        }
+
+        // Requests need only the root reference, not a completed exchange of handler subscriptions.
+        public void RaiseServerEvent(GameEvent type, Guid actor, object target, object context = null) {
+            var ev = new RaisedEvent(type, actor, target, context);
+            networkEventStream.Fire(ev, RecieveEvent);
+        }
+
+        // Exchange current subscriptions; gameplay events are never replayed.
+        public void Sync() {
+            if (!TransportManager.Instance.IsRunning) return;
+            PublishSubscriptions();
+            syncStream.Fire(true);
+        }
+
+        private void RecieveSync(bool _, NetPeer peer) {
+            if (peer == null) return;
+            PublishSubscriptions();
+        }
+
+        private void PublishSubscriptions() {
+            foreach (int type in events.Keys)
+                subscriptionStream.Fire((GameEvent)type);
+        }
+
+        public override void AddEventHandler(GameEvent type, RefEventHandler handler, EventHandlePriority priority = EventHandlePriority.Commutative3) {
+            bool hadHandlers = events.ContainsKey((int)type);
+            base.AddEventHandler(type, handler, priority);
+            if (!hadHandlers) {
+                subscriptionStream.Fire(type);
+            }
+        }
+
+        public override void RemoveEventHandler(GameEvent type, RefEventHandler handler) {
+            bool hadHandlers = events.ContainsKey((int)type);
+            base.RemoveEventHandler(type, handler);
+            if (hadHandlers && !events.ContainsKey((int)type)) {
+                unsubscriptionStream.Fire(type);
+            }
+        }
+
+        public override void RemoveEventHandler(GameEvent type) {
+            bool hadHandlers = events.ContainsKey((int)type);
+            base.RemoveEventHandler(type);
+            if (hadHandlers) {
+                unsubscriptionStream.Fire(type);
+            }
+        }
+
+        public override void RaiseEvent(GameEvent type, object actor, object target, object ctx = null) 
+            => RaiseEvent(type, actor, target, ctx, false);
+        public void RaiseEvent(GameEvent type, object actor, object target, object ctx = null, bool local = false) {
+            RaisedEvent newEvent = new (type, actor, target, ctx);
+            if (remoteSubscription.TryGetValue(type, out var subscribers) && !local) {
+                var recipients = NetworkManager.IsActingServer
+                    ? subscribers
+                    : null;
+                networkEventStream.Fire(newEvent, RecieveEvent, recipients);
+            } else RecieveEvent(newEvent);
+        }
+
+        public void EnqueueEvent(GameEvent type, object actor, object target, object ctx = null, bool local = false) {
+            RaisedEvent newEvent = new (type, actor, target, ctx);
+            if (remoteSubscription.TryGetValue(type, out var subscribers) && !local) {
+                var recipients = NetworkManager.IsActingServer
+                    ? subscribers
+                    : null;
+                networkEventStream.Fire(newEvent, recipients: recipients);
+            } else RecieveEventAsync(newEvent);
+        }
+
+        private void RecieveEvent(RaisedEvent ev) => 
+            base.RaiseEvent(ev.type, ev.source, ev.target, ev.context);
+
+        // Read only the leading event discriminator, never deserialize its entity/behavior arguments.
+        private static GameEvent? GetGameEventType(byte[] payload) {
+            using var stream = new System.IO.MemoryStream(payload, false);
+            using var text = new System.IO.StreamReader(stream);
+            using var reader = new JsonTextReader(text);
+            while (reader.Read()) {
+                if (reader.TokenType != JsonToken.PropertyName || reader.Depth != 1
+                    || (string)reader.Value != "type") continue;
+                return reader.Read() && reader.TokenType == JsonToken.Integer
+                    ? (GameEvent)Convert.ToInt32(reader.Value) : null;
+            }
+            return null;
+        }
+
+        private void RecieveEventAsync(RaisedEvent ev) => 
+            EntityManager.AddHandlerEvent(() => base.RaiseEvent(ev.type, ev.source, ev.target, ev.context));
+        public override Action<object, object, object> GetRaiseEventAction(GameEvent type) => GetRaiseEventAction(type, false);
+        public Action<object, object, object> GetRaiseEventAction(GameEvent type, bool local = false) =>
+            (actor, target, ctx) => RaiseEvent(type, actor, target, ctx, local);
+        
+
+        private void RecieveRemoteSubscription(GameEvent type, NetPeer peer) {
+            if (peer == null) return;
+            // Remote mutations run on the transport tick; worker threads only inspect the outer dictionary.
+            if (remoteSubscription.TryGetValue(type, out var peers)) {
+                if (!peers.Add(peer)) return;
+            } else remoteSubscription[type] = new HashSet<NetPeer> { peer };
+            RemoteSubscribed?.Invoke(type, peer);
+        }
+
+        private void RecieveRemoteUnsubscription(GameEvent type, NetPeer peer) {
+            if (peer == null || !remoteSubscription.TryGetValue(type, out var peers)) return;
+            peers.Remove(peer);
+            if (peers.Count == 0) remoteSubscription.TryRemove(type, out _);
+        }
+
+        private void RemovePeer(NetPeer peer) {
+            foreach (var type in remoteSubscription.Keys) RecieveRemoteUnsubscription(type, peer);
+        }
+
+        public void Dispose() {
+            TransportManager.Instance.PeerDisconnected -= RemovePeer;
+            networkEventStream.Dispose();
+            subscriptionStream.Dispose();
+            unsubscriptionStream.Dispose();
+            syncStream.Dispose();
+            remoteSubscription.Clear();
+            RemoteSubscribed = null;
+        }
+
+        [JsonConverter(typeof(RaisedEventConverter))]
+        private struct RaisedEvent {
+            public GameEvent type;
+            public object source;
+            public object target;
+            public object context;
+
+            public RaisedEvent(GameEvent type, object source, object target, object context) {
+                this.type = type;
+                this.source = source;
+                this.target = target;
+                this.context = context;
+            }
+        }
+
+        // Object-typed arguments otherwise lose Guid/float and custom-converter types.
+        private sealed class RaisedEventConverter : JsonConverter {
+            public override bool CanConvert(Type type) => type == typeof(RaisedEvent);
+
+            public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer) {
+                RaisedEvent ev = (RaisedEvent)value;
+                writer.WriteStartObject();
+                writer.WritePropertyName("type"); serializer.Serialize(writer, ev.type);
+                writer.WritePropertyName("source"); WriteArgument(writer, ev.source, serializer);
+                writer.WritePropertyName("target"); WriteArgument(writer, ev.target, serializer);
+                writer.WritePropertyName("context"); WriteArgument(writer, ev.context, serializer);
+                writer.WriteEndObject();
+            }
+
+            private static void WriteArgument(JsonWriter writer, object value, JsonSerializer serializer) {
+                if (value == null) { writer.WriteNull(); return; }
+                Type type = value.GetType();
+                serializer.SerializationBinder.BindToName(type, out string assembly, out string name);
+                writer.WriteStartObject();
+                writer.WritePropertyName("assembly"); writer.WriteValue(assembly);
+                writer.WritePropertyName("type"); writer.WriteValue(name);
+                writer.WritePropertyName("value"); serializer.Serialize(writer, value, type);
+                writer.WriteEndObject();
+            }
+
+            public override object ReadJson(JsonReader reader, Type type, object existing, JsonSerializer serializer) {
+                JObject ev = JObject.Load(reader);
+                return new RaisedEvent(ev["type"].ToObject<GameEvent>(serializer),
+                    ReadArgument(ev["source"], serializer), ReadArgument(ev["target"], serializer),
+                    ReadArgument(ev["context"], serializer));
+            }
+
+            private static object ReadArgument(JToken argument, JsonSerializer serializer) {
+                if (argument == null || argument.Type == JTokenType.Null) return null;
+                Type type = serializer.SerializationBinder.BindToType(
+                    (string)argument["assembly"], (string)argument["type"]);
+                return argument["value"].ToObject(type, serializer);
+            }
+        }
+
+        // Subscription control is between each client and the server, never relayed to other clients.
+        private sealed class ControlStream<T> : NetEventStream<T> {
+            private readonly Action<T, NetPeer> receive;
+
+            public ControlStream(string name, Action<T, NetPeer> receive)
+                : base(name, NetworkPermission.All, NetworkPermission.All) {
+                this.receive = receive;
+            }
+
+            protected override void ReceiveRemoteWrite(T data, NetPeer peer) => Receive(data, peer);
+            protected override void Receive(T data, NetPeer peer) => receive(data, peer);
+        }
+    }
+}

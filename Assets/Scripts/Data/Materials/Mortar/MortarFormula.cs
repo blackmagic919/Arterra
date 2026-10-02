@@ -1,3 +1,5 @@
+using Arterra.Data.Entity.Behavior;
+using Arterra.GamePlay;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -138,11 +140,9 @@ namespace Arterra.Data.Intrinsic.Mortar {
         private Transform RecipeDisplay;
         private MortarFormula ActiveRecipe = null;
         private AnimatorAwaitTask ClosingTask;
-        private StackInventory MortarInv;
         private StackInventory[] InvDisplays;
         private IngredientTable IngredientList;
-        public MortarRecipeSearch(MortarMaterial settings, Transform mortarMenu, StackInventory MortarInv, int numFormulas) {
-            this.MortarInv = MortarInv;
+        public MortarRecipeSearch(MortarMaterial settings, Transform mortarMenu, int numFormulas, Action<MortarFormula> matchRecipe) {
             Menu = mortarMenu.transform.Find("SearchArea");
             SearchInput = Menu.Find("SearchBar").GetComponentInChildren<TMP_InputField>();
             SearchContainer = Menu.Find("RecipeShelf").GetChild(0).GetChild(0);
@@ -183,7 +183,7 @@ namespace Arterra.Data.Intrinsic.Mortar {
             InvDisplays[(int)FurnaceMaterial.InvIndex.Output].InitializeVerticalDisplay(right, true);
             Button MatchButton = displayMortar.GetComponent<Button>();
             MatchButton.onClick.AddListener(() => {
-                MatchRecipe(ActiveRecipe);
+                matchRecipe(ActiveRecipe);
                 EventSystem.current.SetSelectedGameObject(null);
             });
         }
@@ -200,8 +200,8 @@ namespace Arterra.Data.Intrinsic.Mortar {
             animator.SetBool("IsOpen", true);
             ToggleSearch.Lock();
             
-                InputPoller.AddBinding(new ActionBind("Select",
-                    FormulaMenuSelect, ActionBind.Exclusion.None),
+                InputPoller.AddBinding(new ActionBind("Select", FormulaMenuSelect, 
+                    ActionBind.Exclusion.None, ActionBind.Policy.Down),
                     "MAT::MortarSearch:SEL", "3.5::Window");
             
         }
@@ -261,14 +261,14 @@ namespace Arterra.Data.Intrinsic.Mortar {
             } 
         }
 
-        private float DisplayNormalizationFactor(MortarFormula formula) {
+        private static float DisplayNormalizationFactor(MortarFormula formula) {
             float minOutput = float.MaxValue;
             foreach(MortarMaConversion c in formula.Outputs.value) {
                 minOutput = math.min(minOutput, c.Rate);
             } return 1 / minOutput;
         }
 
-        public void MatchRecipe(MortarFormula recipe) {
+        public static void MatchRecipe(MortarFormula recipe, StackInventory MortarInv, PlayerInventoriesBehavior player) {
             if (recipe == null) return;
             Dictionary<int, int> Deficit = new Dictionary<int, int>();
             Dictionary<int, int> Surplus = new Dictionary<int, int>();
@@ -277,7 +277,7 @@ namespace Arterra.Data.Intrinsic.Mortar {
             uint offset = 0;
             float normalization = DisplayNormalizationFactor(recipe);
             bool alreadyMatch = true; float maxBatchPossible = float.MaxValue;
-            InventoryController.Inventory tempInv = new InventoryController.Inventory(2 * (int)MortarInv.capacity);
+            Inventory tempInv = new Inventory(2 * (int)MortarInv.capacity);
             MortarInv.CopyTo(tempInv, 0, 0); offset += MortarInv.capacity;
             
             AccumulateRequiredIngredients(MortarInv, recipe.Inputs.value);
@@ -291,7 +291,7 @@ namespace Arterra.Data.Intrinsic.Mortar {
                 int required = Deficit[item];
                 if (alreadyMatch) required = Mathf.FloorToInt(required * maxBatchPossible);
                 if (surplus > required) continue;
-                surplus += InventoryController.RemoveStackable(required - surplus, item,
+                surplus += player.RemoveStackable(required - surplus, item,
                     OnRemoved: item => tempInv.AddStackable(item));
                 Surplus[item] = surplus;
             }
@@ -303,11 +303,11 @@ namespace Arterra.Data.Intrinsic.Mortar {
                 IItem item = tempInv.Info[i];
                 if (item == null) continue;
                 item = item.Clone() as IItem;
-                InventoryController.AddEntry(item);
+                player.AddItem(item);
                 tempInv.RemoveEntry(i);
             }
 
-            void AccumulateInvSurplus(InventoryController.Inventory inv) {
+            void AccumulateInvSurplus(Inventory inv) {
                 for (int i = 0; i < inv.Capacity; i++) {
                     IItem item = inv.PeekItem(i);
 
@@ -319,7 +319,7 @@ namespace Arterra.Data.Intrinsic.Mortar {
                 }
             }
 
-            void AccumulateRequiredIngredients(InventoryController.Inventory inv, List<MortarMaConversion> ingList) {
+            void AccumulateRequiredIngredients(Inventory inv, List<MortarMaConversion> ingList) {
                 AccumulateInvSurplus(inv);
                 for (int i = 0; i < ingList.Count; i++) {
                     MortarMaConversion ing = ingList[i];
@@ -344,7 +344,7 @@ namespace Arterra.Data.Intrinsic.Mortar {
                 }
             }
 
-            void PlaceRequiredIngredients(InventoryController.Inventory dest, List<MortarMaConversion> ingList) {
+            void PlaceRequiredIngredients(Inventory dest, List<MortarMaConversion> ingList) {
                 for (int i = 0; i < ingList.Count; i++) {
                     MortarMaConversion ing = ingList[i];
                     int index = recipe.Index(ing);

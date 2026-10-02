@@ -17,7 +17,7 @@ namespace Arterra.Data.Entity.Behavior {
         
         public Option<List<GeneFeature>> Genes;
         public List<GeneFeature> Genetics => Genes.value;
-        [JsonIgnore][HideInInspector][UISetting(Ignore = true)]
+        [JsonIgnore][HideInInspector][UIHidden]
         public Dictionary<MSettings, int> GeneIndex;
         public void Preset(uint entityType, BehaviorEntity.AnimalSetting setting) {
             GeneIndex = new Dictionary<MSettings, int>();

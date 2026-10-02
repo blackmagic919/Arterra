@@ -44,15 +44,15 @@ namespace Arterra.Data.Entity.Behavior {
         }
 
         public override void Update(BehaviorEntity.Animal self) {
-            if (self.context != BehaviorEntity.UpdateContext.Job) return;
+            if (self.context != BehaviorEntity.UpdateContext.Simulation) return;
             if (!CheckTerrainCollision(self)) return;
-            self.eventCtrl.RaiseEvent(Core.Events.GameEvent.Entity_ProjectileHit, self, null);
+            self.eventCtrl.RaiseEvent(Core.Events.GameEvent.Entity_ProjectileHit, self.info.rtEntityId, null);
         }
 
         private bool CheckTerrainCollision(BehaviorEntity.Animal self) {
             TerrainCollider collider = self.Collider;
             if (collider == null) return false;
-            if (!TerrainCollider.SampleCollision((float3)self.transform.position, self.transform.size * 1.05f, EntityJob.cxt.mapContext, out float3 gDir))
+            if (!TerrainCollider.SampleCollision((float3)self.transform.position, self.transform.size * 1.05f, out float3 gDir))
                 return false;
 
             float3 forward = math.normalizesafe(-gDir, math.forward(self.transform.rotation));
@@ -67,7 +67,7 @@ namespace Arterra.Data.Entity.Behavior {
                     self.velocity = 0;
                     break;
                 case ProjectileTerrainSettings.GroundInteraction.Destroy:
-                    EntityManager.ReleaseEntity(self.info.entityId);
+                    EntityManager.ReleaseEntity(self.info.rtEntityId);
                     break;
                 case ProjectileTerrainSettings.GroundInteraction.Bounce:
                     float3 dir = math.normalize(gDir);

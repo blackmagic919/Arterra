@@ -9,46 +9,63 @@ namespace Arterra.Data.Entity.Behavior {
         private BehaviorEntity.Animal self;
         private InidcatorsBehavior indicator;
         private ColliderUpdateBehavior collider;
-        private VitalityBehavior vit;
         public override void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
             if (!self.Is(out collider)) collider = null;
             if (!self.Is(out indicator)) indicator = null;
-            if (!self.Is(out vit)) vit = null;
             this.self = self;
             OnStartup();
         }
         public override void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
             if (!self.Is(out collider)) collider = null;
             if (!self.Is(out indicator)) indicator = null;
-            if (!self.Is(out vit)) vit = null;
             this.self = self;
             OnStartup();
         }
 
         public override void Disable(BehaviorEntity.Animal self) {
-            self.eventCtrl.RemoveEventHandler(Core.Events.GameEvent.Entity_Damaged, BlockDamage);
+            self.eventCtrl.RemoveEventHandler(GameEvent.Entity_Damaged, BlockDamage);
             Config.CURRENT.System.RemoveHook("Gamemode:Intangibility", ToggleIntangibility);
             Config.CURRENT.System.RemoveHook("Gamemode:Invulnerability", ToggleInvulnerability);
-            UnMapStatDisplay();
-            self = null;
+            this.self = null;
+        }
+
+        private readonly System.Collections.Generic.List<GameObject> ownerLayers = new();
+
+        private void UpdateOwnerLayers() {
+            int layer = LayerMask.NameToLayer(self.IsOwner ? "Self" : "Default");
+            foreach (var obj in ownerLayers) if (obj != null) obj.layer = layer;
         }
 
         private void OnStartup() {
+            int selfLayer = LayerMask.NameToLayer("Self");
+            foreach (Transform child in self.controller.gameObject.GetComponentsInChildren<Transform>(true))
+                if (child.gameObject.layer == selfLayer) ownerLayers.Add(child.gameObject);
+            UpdateOwnerLayers();
+
             Config.CURRENT.System.AddHook("Gamemode:Intangibility", ToggleIntangibility);
             Config.CURRENT.System.AddHook("Gamemode:Invulnerability", ToggleInvulnerability);
-            self.eventCtrl.AddContextlessEventHandler(GameEvent.Entity_Death, (_, _) => self.RemoveBehavior(Id));
+            if (self.IsAuthority) self.eventCtrl.AddContextlessEventHandler(GameEvent.Entity_Death, (_, _) => self.RemoveBehavior(Id));
             
             object intangibility = Config.CURRENT.GamePlay.Gamemodes.value.Intangiblity;
             object invulnerability = Config.CURRENT.GamePlay.Gamemodes.value.Invulnerability;
             ToggleIntangibility(ref intangibility);
             ToggleInvulnerability(ref invulnerability);
             
-            if (indicator == null) return;
+        }
+
+        public override void InitializeVisual(BehaviorEntity.Animal self) {
+            UpdateOwnerLayers();
+            if (!self.IsOwner || indicator == null) return;
             Config.CURRENT.System.RemoveHook("Statistics:Display", indicator.ToggleStatDisplay);
-            ReMapStatDisplay(!(bool)invulnerability);
+            ReMapStatDisplay(!Config.CURRENT.GamePlay.Gamemodes.value.Invulnerability);
+        }
+
+        public override void DisposeVisual(BehaviorEntity.Animal self) {
+            if (self.IsOwner) UnMapStatDisplay();
         }
 
         private void ReMapStatDisplay(bool active) {
+            if (!self.IsOwner || !self.VisualActive || indicator == null) return;
             indicator.SetStatDisplay(active);
             if (!active) return;
 
@@ -71,7 +88,7 @@ namespace Arterra.Data.Entity.Behavior {
         }
 
         private void ToggleIntangibility(ref object intangibility) {
-            if (collider == null) return;
+            if (collider == null || (!self.IsAuthority && !self.IsOwner)) return;
             bool IsTangible = !(bool)intangibility;
             if (IsTangible) collider.SetInteractionType(ColliderUpdateSettings.InteractType.Regular);
             else collider.SetInteractionType(ColliderUpdateSettings.InteractType.None);
@@ -81,7 +98,7 @@ namespace Arterra.Data.Entity.Behavior {
             bool IsVulnerable = !(bool)invulnerability;
             ReMapStatDisplay(IsVulnerable);
 
-            if (collider == null) return;
+            if (!self.IsAuthority) return;
             if (!IsVulnerable) {
                 self.eventCtrl.AddEventHandler(GameEvent.Entity_Damaged, BlockDamage, EventHandlePriority.OverridePrimier);
                 self.eventCtrl.AddEventHandler(GameEvent.Entity_FlushHealthDelta, BlockNegativeDelta, EventHandlePriority.OverridePrimier);
@@ -95,13 +112,13 @@ namespace Arterra.Data.Entity.Behavior {
             }
         }
 
-        private void BlockDamage(object self, object _, object cxt) {
+        private void BlockDamage(object srcId, object _, object cxt) {
             RefTuple<(float dmg, float3 kb)> info = (RefTuple<(float, float3)>)cxt;
             info.Value.dmg = 0;
             info.Value.kb = 0;
         }
 
-        private void BlockNegativeDelta(object self, object _, object cxt) {
+        private void BlockNegativeDelta(object srcId, object _, object cxt) {
             RefTuple<float> info = (RefTuple<float>)cxt;
             info.Value = math.max(info.Value, 0);
         }

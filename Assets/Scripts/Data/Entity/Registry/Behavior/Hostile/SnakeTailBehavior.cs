@@ -50,7 +50,7 @@ namespace Arterra.Data.Entity.Behavior
         private AnimatedBehavior animated;
         
         [JsonProperty] private TailSegment[] appendages;
-        private IAttackable selfAtk;
+        private IVitality selfAtk;
         private float SlitherProgress;
         private uint LastOverrideState;
 
@@ -103,10 +103,8 @@ namespace Arterra.Data.Entity.Behavior
         }
 
         public override void Update(BehaviorEntity.Animal self) {
-            if (self.context != BehaviorEntity.UpdateContext.JobSync)
-                CoreUpdate(self);
-            if (self.context != BehaviorEntity.UpdateContext.Job)
-                ControllerUpdate(self);
+            if (self.context == BehaviorEntity.UpdateContext.Simulation) CoreUpdate(self);
+            if (self.context == BehaviorEntity.UpdateContext.Visual) ControllerUpdate(self);
         }
 
         private void CoreUpdate(BehaviorEntity.Animal self) {
@@ -170,19 +168,17 @@ namespace Arterra.Data.Entity.Behavior
 
         public override void Disable(BehaviorEntity.Animal self) {
             if (appendages == null) return;
-            foreach(TailSegment l in appendages) l.Disable();
+            foreach(TailSegment l in appendages) l?.Disable();
         }
 
 
-        private class TailSegment : LeadHeadBehavior.Appendage, IAttackable {
+        private class TailSegment : LeadHeadBehavior.Appendage {
             private const string TailGravityStateName = "SnakeTailBehavior::Tail";
 
             [JsonIgnore]
             private SnakeTailBehavior st;
             [JsonIgnore]
             public SnakeTailSettings.SegmentSettings settings;
-            private IAttackable selfAtk;
-
             //Ignored
             private TerrainCollider PrevSegment;
             private TailSegment NextSegment;
@@ -193,15 +189,7 @@ namespace Arterra.Data.Entity.Behavior
             [JsonIgnore]  public float3 desiredBody => center - math.mul(PrevSegment.transform.rotation, settings.RestOffset);
             [JsonIgnore]  private float3 center => (float3)collider.transform.position + collider.transform.size / 2;
 
-            public bool IsDead => selfAtk.IsDead;
-            public void Interact(Entity caller, IItem item = null) => selfAtk.Interact(caller, item);
-            public void Collect(Entity caller,  Action<IItem> collect, float collectRate) => selfAtk.Collect(caller, collect, collectRate);
-            public bool TakeDamage(float damage, float3 knockback, Entity attacker = null) {
-                if (selfAtk.TakeDamage(damage, float3.zero, attacker)) {
-                    velocity += knockback;
-                    return true;
-                } return false;
-            }
+           
             
 
             [JsonConstructor]
@@ -214,7 +202,6 @@ namespace Arterra.Data.Entity.Behavior
                 base.Initialize(self, settings, root);
                 SetConstraint<MultiParentConstraint>();
 
-                if(!self.Is(out selfAtk)) throw new Exception("Entity: SnakeTail expected entity to be IAttackable"); 
                 if(!self.Is(out st)) throw new Exception("Entity: SnakeTail expected entity to be SnakeTaileBehavior");
                 active = false;
             }
@@ -224,7 +211,6 @@ namespace Arterra.Data.Entity.Behavior
                 SetConstraint<MultiParentConstraint>();
 
                 this.settings = settings as SnakeTailSettings.SegmentSettings;
-                if (!self.Is(out selfAtk)) throw new Exception("Entity: SnakeTail expected entity to be IAttackable"); 
                 if(!self.Is(out st)) throw new Exception("Entity: SnakeTail expected entity to be SnakeTaileBehavior");
                 active = true;
             }

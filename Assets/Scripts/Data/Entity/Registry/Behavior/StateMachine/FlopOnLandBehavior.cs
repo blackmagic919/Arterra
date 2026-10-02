@@ -31,23 +31,25 @@ namespace Arterra.Data.Entity.Behavior{
         private float FlopStrength => Modifier.Get(mod, MSettings.FlopStrength, settings.FlopStrength);
         private float DryOutTime => Modifier.Get(mod, MSettings.DryOutTime, settings.DryOutTime);
         public override void Update(BehaviorEntity.Animal self) {
+            if (self.context != BehaviorEntity.UpdateContext.Simulation) return;
             if (settings.TaskName != manager.TaskIndex) return;
-            if (self.context == BehaviorEntity.UpdateContext.JobSync) return;
             
             if (TerrainCollider.SampleCollision(self.origin, new float3(self.settings.collider.size.x,
-                -settings.JumpStickDist, self.settings.collider.size.z), EntityJob.cxt.mapContext, out _)) {
-                self.velocity.y += FlopStrength;
+                -settings.JumpStickDist, self.settings.collider.size.z), out _)) {
+                self.velocity += new float3(0, FlopStrength, 0);
             }
         }
 
-        public void OnEntityInWater(object self, object _, object density) {
+        public void OnEntityInWater(object srcId, object _, object density) {
             dryOutProgress = DryOutTime;
             if (settings.TaskName != manager.TaskIndex) return;
             manager.Transition(settings.OnEnterWater);
         }
 
-        public void OnEntityInAir(object self, object _, object density) {
-            if (self is not BehaviorEntity.Animal animal) return;
+        public void OnEntityInAir(object srcId, object _, object density) {
+            if (srcId is not Guid sourceId) return;
+            if (!EntityManager.TryGetEntity(sourceId, out Entity source)) return;
+            if (source is not BehaviorEntity.Animal animal) return;
             dryOutProgress -= animal.DeltaTime;
             if (dryOutProgress <= 0) mInteract.ProcessSuffocation(animal, (float)density);
             manager.Transition(settings.TaskName);
@@ -72,8 +74,8 @@ namespace Arterra.Data.Entity.Behavior{
                 throw new System.Exception("Entity: FlopOnLand Behavior Requires AnimalInstance to have MapInteractBehavior");
             if (!self.Is(out mod)) mod = null;
 
-            self.eventCtrl.AddEventHandler(Core.Events.GameEvent.Entity_InLiquid, OnEntityInWater);
-            self.eventCtrl.AddEventHandler(Core.Events.GameEvent.Entity_InGas, OnEntityInAir);
+            if (self.IsAuthority) self.eventCtrl.AddEventHandler(Core.Events.GameEvent.Entity_InLiquid, OnEntityInWater);
+            if (self.IsAuthority) self.eventCtrl.AddEventHandler(Core.Events.GameEvent.Entity_InGas, OnEntityInAir);
         }
 
         public override void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord){
@@ -85,8 +87,8 @@ namespace Arterra.Data.Entity.Behavior{
                 throw new System.Exception("Entity: FlopOnLand Behavior Requires AnimalInstance to have MapInteractBehavior");
             if (!self.Is(out mod)) mod = null;
             
-            self.eventCtrl.AddEventHandler(Core.Events.GameEvent.Entity_InLiquid, OnEntityInWater);
-            self.eventCtrl.AddEventHandler(Core.Events.GameEvent.Entity_InGas, OnEntityInAir);
+            if (self.IsAuthority) self.eventCtrl.AddEventHandler(Core.Events.GameEvent.Entity_InLiquid, OnEntityInWater);
+            if (self.IsAuthority) self.eventCtrl.AddEventHandler(Core.Events.GameEvent.Entity_InGas, OnEntityInAir);
         }
     }
 }

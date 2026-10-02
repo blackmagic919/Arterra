@@ -1,9 +1,13 @@
 #pragma kernel Identify
+#pragma kernel PrepareAllocation
+#pragma kernel InitializeCandidates
+#pragma kernel LoadCount
 #pragma kernel Prune
+#pragma kernel AddNeighbor
 
 #include "Assets/Resources/Compute/Utility/Random.hlsl"
 #include "Assets/Resources/Compute/Utility/GetIndex.hlsl"
-#include "Assets/Resources/Compute/MapData/CCoordHash.hlsl"
+
 
 const static int numThreads = 8;
 const static int numThreadsFlat = 256;
@@ -44,13 +48,28 @@ StructuredBuffer<PrefixCounters> _BiomePrefCount;
 StructuredBuffer<enititySetting> _BiomeEntities;
 uint GPConfig;
 
-StructuredBuffer<uint> _MemoryBuffer;
-StructuredBuffer<CInfo> _AddressDict;
+struct deferredEntity {
+    entityInfo entity;
+    uint pending;
+    uint anyState;
+};
+RWStructuredBuffer<deferredEntity> Candidates;
+StructuredBuffer<uint2> CandidateAddresses;
+uint CandidateAddress;
+StructuredBuffer<uint> NeighborMap;
+uint NeighborMapStart;
+uint NeighborIndex;
+int3 NeighborOffset;
+int3 OutputOffset;
+static const uint HAS_ANY = 1;
+static const uint MATCHED_ANY = 2;
+uint bCOUNTER_entities;
+uint bCOUNTER_prune;
+uint bCOUNTER_allocation;
 int3 CCoord;
 
 RWStructuredBuffer<uint> counter;
-uint bCOUNTER_entities;
-uint bCOUNTER_prune;
+
 
 StructuredBuffer<int> BiomeMap;
 uint bSTART_biome;
@@ -90,65 +109,94 @@ void Identify (uint3 id : SV_DispatchThreadID)
 }
 
 
-/*
-* z
-* ^       .--------.
-* |      /|       /| 
-* |     / |      / | <- Above Ground           y
-* |    .--+-----.  |                         /\
-* |    |  |     |  |                         /
-* |    |  .-----+--.                        /
-* |    | /|_____|_/| <- At least one       /
-* |    |/______./ /     below ground      /
-* |  xyz________|/                       /
-* |                                     /
-* +------------------------------------> x  
-* Two Regions, x & y: (∀x(b(x)) v ¬∃x) ^ (∃y(b(y)) v ¬∃y))
-*/
-
-uint SampleMapData(uint3 coord){
-    uint3 dCC = floor(coord / (float)numPointsPerAxis);
-    coord -= dCC * numPointsPerAxis;
-    CInfo chunkHandle = _AddressDict[HashCoord(CCoord + dCC)];
-    if(!Contains(chunkHandle, CCoord))
-        return asuint(-1);
-    else{
-        uint address = chunkHandle.address + indexFromCoord(coord);
-        return _MemoryBuffer[address];
-    }
-}
-
-uint density(uint data) { return data & 0x000000FF; }
-uint viscosity(uint data) { return (data & 0x0000FF00) >> 8; }
-uint material(uint data) { return (data & 0x7FFF0000) >> 16; }
-bool InBounds(uint data, uint bounds) { 
-    uint density = data & 0xFF; uint viscosity = (data >> 8) & 0xFF;
-    return density >= (bounds & 0xFF) && density <= ((bounds >> 8) & 0xFF) && viscosity >= ((bounds >> 16) & 0xFF) && viscosity <= ((bounds >> 24) & 0xFF); 
+// Entry zero stores the candidate count. Subsequent entries retain candidate state across passes.
+[numthreads(1,1,1)]
+void PrepareAllocation(uint3 id : SV_DispatchThreadID) {
+    counter[bCOUNTER_allocation] = counter[bCOUNTER_entities] + 1;
 }
 
 [numthreads(numThreadsFlat,1,1)]
-void Prune(uint3 id : SV_DispatchThreadID){
-    if(id.x >= counter[bCOUNTER_entities])
-        return;
-    
-    entityInfo entity = chunkEntities[bSTART_entities + id.x];
-    entityBound bounds = _EntityInfo[entity.entityIndex];
-    uint entityLength = bounds.boundSize.x * bounds.boundSize.y * bounds.boundSize.z;
-
-    bool allC = true; bool anyC = false; bool any0 = false;
-    for(uint i = 0; i < entityLength; i++){
-        uint3 offsetCoord = uint3(i / (bounds.boundSize.y * bounds.boundSize.z), 
-                                (i / bounds.boundSize.z) % bounds.boundSize.y, 
-                                i % bounds.boundSize.z);
-        entityCheck check = _EntityProfile[bounds.boundStart + i];
-
-        bool valid = InBounds(SampleMapData(entity.position + offsetCoord), check.bounds);
-        allC = allC && (valid || !(check.flags & 0x1));
-        anyC = anyC || (valid && (check.flags & 0x2));
-        any0 = any0 || (check.flags & 0x2);
-    }  if(!allC || (any0 && !anyC)) return;
-    
-    uint appendInd = 0;
-    InterlockedAdd(counter[bCOUNTER_prune], 1, appendInd);
-    chunkEntities[bSTART_prune + appendInd] = entity;
+void InitializeCandidates(uint3 id : SV_DispatchThreadID) {
+    uint address = CandidateAddresses[CandidateAddress].y;
+    uint count = counter[bCOUNTER_entities];
+    if (id.x == 0) {
+        deferredEntity header = (deferredEntity)0;
+        header.entity.position.x = count;
+        Candidates[address] = header;
+    }
+    if (id.x >= count) return;
+    deferredEntity candidate = (deferredEntity)0;
+    candidate.entity = chunkEntities[bSTART_entities + id.x];
+    uint3 size = _EntityInfo[candidate.entity.entityIndex].boundSize;
+    // Host validation rejects oversized profiles too. Empty profiles impose no conditions.
+    if (all(size <= numPointsPerAxis)) {
+        candidate.pending = 1; // Always visit the origin, including an empty profile.
+        if (all(size > 0)) {
+            uint3 upper = ((uint3)candidate.entity.position + size - 1) / numPointsPerAxis;
+            for (uint region = 1; region < 8; region++) {
+                uint3 offset = uint3(region >> 2, (region >> 1) & 1, region & 1);
+                if (all(offset <= upper)) candidate.pending |= 1u << region;
+            }
+        }
+    }
+    Candidates[address + id.x + 1] = candidate;
 }
+
+[numthreads(1,1,1)]
+void LoadCount(uint3 id : SV_DispatchThreadID) {
+    counter[bCOUNTER_entities] = Candidates[CandidateAddresses[CandidateAddress].y].entity.position.x;
+    counter[bCOUNTER_prune] = 0;
+}
+
+bool InBounds(uint data, uint bounds) {
+    uint density = data & 0xFF;
+    uint viscosity = (data >> 8) & 0xFF;
+    return density >= (bounds & 0xFF) && density <= ((bounds >> 8) & 0xFF) &&
+        viscosity >= ((bounds >> 16) & 0xFF) && viscosity <= ((bounds >> 24) & 0xFF);
+}
+
+void CheckRegion(uint index) {
+    if (index >= counter[bCOUNTER_entities]) return;
+    uint address = CandidateAddresses[CandidateAddress].y + index + 1;
+    deferredEntity candidate = Candidates[address];
+    uint bit = 1u << NeighborIndex;
+    if ((candidate.pending & bit) == 0) return; // Rejected, consumed, or already checked.
+
+    entityBound profile = _EntityInfo[candidate.entity.entityIndex];
+    int3 start = max(int3(0,0,0), NeighborOffset * (int)numPointsPerAxis - candidate.entity.position);
+    int3 end = min((int3)profile.boundSize,
+        (NeighborOffset + 1) * (int)numPointsPerAxis - candidate.entity.position);
+    for (int x = start.x; x < end.x; x++)
+    for (int y = start.y; y < end.y; y++)
+    for (int z = start.z; z < end.z; z++) {
+        uint p = (x * profile.boundSize.y + y) * profile.boundSize.z + z;
+        entityCheck check = _EntityProfile[profile.boundStart + p];
+        int3 local = candidate.entity.position + int3(x,y,z) - NeighborOffset * (int)numPointsPerAxis;
+        bool valid = InBounds(NeighborMap[NeighborMapStart + indexFromCoord(local)], check.bounds);
+        if (!valid && (check.flags & 1u) != 0) {
+            candidate.pending = 0;
+            Candidates[address] = candidate;
+            return;
+        }
+        if ((check.flags & 2u) != 0) {
+            candidate.anyState |= HAS_ANY;
+            if (valid) candidate.anyState |= MATCHED_ANY;
+        }
+    }
+    candidate.pending &= ~bit;
+    Candidates[address] = candidate; // Zero also marks final acceptance/rejection as consumed.
+    if (candidate.pending != 0) return;
+    if ((candidate.anyState & HAS_ANY) != 0 && (candidate.anyState & MATCHED_ANY) == 0) return;
+
+    uint appendIndex;
+    InterlockedAdd(counter[bCOUNTER_prune], 1, appendIndex);
+    entityInfo accepted = candidate.entity;
+    accepted.position -= OutputOffset * (int)numPointsPerAxis;
+    chunkEntities[bSTART_prune + appendIndex] = accepted;
+}
+
+[numthreads(numThreadsFlat,1,1)]
+void Prune(uint3 id : SV_DispatchThreadID) { CheckRegion(id.x); }
+
+[numthreads(numThreadsFlat,1,1)]
+void AddNeighbor(uint3 id : SV_DispatchThreadID) { CheckRegion(id.x); }

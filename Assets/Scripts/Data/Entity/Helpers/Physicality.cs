@@ -85,31 +85,31 @@ public class MinimalVitality {
     }
 
     public void ProcessInSolid(Entity self, float density) {
-        self.eventCtrl.RaiseEvent(Arterra.Core.Events.GameEvent.Entity_InSolid, self, null, density);
+        self.eventCtrl.RaiseEvent(GameEvent.Entity_InSolid, self.info.rtEntityId, null, density);
         ProcessSuffocation(self, density);
     }
 
     private void ProcessSuffocation(Entity self, float density) {
         if (density <= 0) return;
-        if (!self.Is<IAttackable>()) return;
-        IAttackable target = (IAttackable)self;
+        if (!self.Is(out IVitality target)) return;
         if (target.IsDead) return;
-        EntityManager.AddHandlerEvent(() => target.TakeDamage(density / 255.0f, 0, null));
+        self.eventCtrl.EnqueueEvent(GameEvent.Apply_Damage,
+            self.info.rtEntityId, null, (density / 255.0f, float3.zero));
     }
 
     public void ProcessInGas(Entity self, float density) {
-        self.eventCtrl.RaiseEvent(Arterra.Core.Events.GameEvent.Entity_InGas, self, null, density);
+        self.eventCtrl.RaiseEvent(GameEvent.Entity_InGas, self.info.rtEntityId, null, density);
         breath = HoldBreathTime;
     }
 
     public void ProcessInLiquid(Entity self, ref TerrainCollider tCollider, float density) {
-        self.eventCtrl.RaiseEvent(Arterra.Core.Events.GameEvent.Entity_InLiquid, self, null, density);
+        self.eventCtrl.RaiseEvent(GameEvent.Entity_InLiquid, self.info.rtEntityId, null, density);
         breath = math.max(breath - EntityJob.cxt.deltaTime, 0);
         tCollider.transform.velocity += EntityJob.cxt.deltaTime * -EntityJob.cxt.gravity;
         tCollider.SetGravityState(AquaticGravityStateName, TerrainCollider.GravityPriority.Environment, false);
         if (breath > 0) return;
         //If dead don't process suffocation
-        if (self.Is(out IAttackable target) && target.IsDead) return;
+        if (self.Is(out IVitality target) && target.IsDead) return;
         ProcessSuffocation(self, density);
     }
 
@@ -120,7 +120,7 @@ public class MinimalVitality {
         breath = math.min(breath + EntityJob.cxt.deltaTime, -Epsilon);
         tCollider.SetGravityState(AquaticGravityStateName, TerrainCollider.GravityPriority.Environment, false);
 
-        if (self.Is(out IAttackable target) && target.IsDead) { //If dead float to the surface
+        if (self.Is(out IVitality target) && target.IsDead) { //If dead float to the surface
             tCollider.transform.velocity += EntityJob.cxt.deltaTime * -EntityJob.cxt.gravity;
             return; //don't process suffocation
         }
@@ -133,7 +133,7 @@ public class MinimalVitality {
         breath = math.max(breath - EntityJob.cxt.deltaTime, 0);
         tCollider.RemoveGravityState(AquaticGravityStateName);
 
-        if (self.Is(out IAttackable target) && target.IsDead) return; //If dead don't process suffocation
+        if (self.Is(out IVitality target) && target.IsDead) return; //If dead don't process suffocation
         if (breath <= 0) ProcessSuffocation(self, density);
     }
 }
@@ -174,7 +174,7 @@ public class MediumVitality : MinimalVitality {
     public bool Attack(Entity target) {
         if (AttackInProgress) return false;
         if (attackCooldown > 0) return false;
-        if (!target.Is<IAttackable>()) return false;
+        if (!target.Is<IVitality>()) return false;
         attackProgress = AStats.AttackDuration;
         AttackTarget = target.info.rtEntityId;
         AttackInProgress = true;
@@ -196,7 +196,6 @@ public class MediumVitality : MinimalVitality {
         
         if (!EntityManager.TryGetEntity(AttackTarget, out Entity target))
             return;
-        if (!target.Is<IAttackable>()) return;
         if (ColliderUpdateBehavior.GetColliderDist(target, self) > AttackDistance)
             return;
         float damage = AttackDamage;
@@ -208,8 +207,10 @@ public class MediumVitality : MinimalVitality {
         RefTuple<(float, float3)> cxt = (damage, knockback);
         self.eventCtrl.RaiseEvent(
             GameEvent.Entity_Attack,
-            self, target, cxt
+            self.info.rtEntityId,
+            target.info.rtEntityId, cxt
         ); (damage, knockback) = cxt.Value;
-        EntityManager.AddHandlerEvent(() => target.As<IAttackable>().TakeDamage(damage, knockback, self));
+        target.eventCtrl.EnqueueEvent(GameEvent.Apply_Damage,
+            target.info.rtEntityId, self.info.rtEntityId, (damage, knockback));
     }
 }

@@ -79,7 +79,10 @@ namespace Arterra.Data.Entity.Behavior {
 
         public Guid TaskTarget;
         public int3 TaskPosition;
-        public EntitySMTasks TaskIndex;
+        [JsonProperty] private Core.Network.NetworkVariable<EntitySMTasks> task = new("TaskIndex");
+        [JsonIgnore] public EntitySMTasks TaskIndex { get => task.Value; set => task.Value = value; }
+
+        public override void Disable(BehaviorEntity.Animal self) => task?.Dispose();
         public float TaskDuration;
 
         public override void AddBehaviorDependencies(Dictionary<Behaviors, int> heirarchy) {}
@@ -94,10 +97,11 @@ namespace Arterra.Data.Entity.Behavior {
             if (!self.Is(out collider)) collider = null;
 
             ConditionalTransitions = new Dictionary<EntitySMTasks, Func<bool> >();
+            TaskDuration = (float)CustomUtility.Sample(self.random, settings.AverageStartDuration, settings.AverageStartDurationVariance);
             TaskIndex = settings.StartTask;
             TaskPosition = (int3)GCoord;
-            TaskDuration = (float)CustomUtility.Sample(self.random, settings.AverageStartDuration, settings.AverageStartDurationVariance);
             TaskTarget = Guid.Empty;
+            task.Register(self);
 
         }
 
@@ -108,12 +112,13 @@ namespace Arterra.Data.Entity.Behavior {
             if (!self.Is(out collider)) collider = null;
 
             ConditionalTransitions = new Dictionary<EntitySMTasks, Func<bool>>();
+            task.Register(self);
         }
 
         public override void Update(BehaviorEntity.Animal self) {
-            if (self.context != BehaviorEntity.UpdateContext.JobSync)
+            if (self.context == BehaviorEntity.UpdateContext.Simulation)
                 CoreUpdate(self);
-            if (self.context != BehaviorEntity.UpdateContext.Job)
+            if (self.context == BehaviorEntity.UpdateContext.Sync)
                 ControllerUpdate(self);
         }
 

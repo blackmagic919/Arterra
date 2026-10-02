@@ -59,7 +59,7 @@ namespace Arterra.Data.Entity.Behavior {
         public bool StopMating() => vitality.healthPercent < MateThreshold;
 
         public override void Update(BehaviorEntity.Animal self) {
-            if (self.context == BehaviorEntity.UpdateContext.JobSync) return;
+            if (self.context != BehaviorEntity.UpdateContext.Simulation) return;
             if (manager.TaskIndex == settings.Task1Name)
                 ChaseMate();
             else if (manager.TaskIndex == settings.Task2Name)
@@ -98,8 +98,8 @@ namespace Arterra.Data.Entity.Behavior {
             ), WalkSpeed(settings.Task1Name), movement.rotSpeed, self.DeltaTime, GameEvent.Action_Walk);
             float mateDist = ColliderUpdateBehavior.GetColliderDist(self, mate);
             if (mateDist < manager.settings.ContactDistance) {
-                EntityManager.AddHandlerEvent(() => mate.As<IMateable>().MateWith(self));
-                reproduction.MateWith(mate);
+                mate.eventCtrl.RaiseEvent(GameEvent.Apply_EntityMate, mate.info.rtEntityId, self.info.rtEntityId);
+                self.eventCtrl.RaiseEvent(GameEvent.Apply_EntityMate, self.info.rtEntityId, mate.info.rtEntityId);
                 return;
             }
             if (path.pathFinder.hasPath) return;
@@ -123,11 +123,11 @@ namespace Arterra.Data.Entity.Behavior {
             return FindMate();
         }
 
-        private void TransitionToMate(object source, object target, object _) {
+        private void TransitionToMate(object srcId, object tgtId, object _) {
             manager.TaskDuration = settings.PregnacyLength;
             manager.Transition(settings.Task2Name);
         }
-        private void TestMate(object source, object target, object allow) {
+        private void TestMate(object srcId, object tgtId, object allow) {
             ((RefTuple<bool>)allow).Value &= BeginMate() & (manager.TaskIndex < settings.Task2Name);
         }
 
@@ -161,8 +161,8 @@ namespace Arterra.Data.Entity.Behavior {
             if (!self.Is(out mod)) mod = null;
             
             manager.RegisterTransition(settings.Task1Name, TransitionTo);
-            self.eventCtrl.AddEventHandler(GameEvent.Entity_CanMate, TestMate);
-            self.eventCtrl.AddEventHandler(GameEvent.Entity_Mate, TransitionToMate);
+            if (self.IsAuthority) self.eventCtrl.AddEventHandler(GameEvent.Entity_CanMate, TestMate);
+            if (self.IsAuthority) self.eventCtrl.AddEventHandler(GameEvent.Entity_Mate, TransitionToMate);
             this.self = self;
         }
 
@@ -184,8 +184,8 @@ namespace Arterra.Data.Entity.Behavior {
             if (!self.Is(out mod)) mod = null;
             
             manager.RegisterTransition(settings.Task1Name, TransitionTo);
-            self.eventCtrl.AddEventHandler(GameEvent.Entity_CanMate, TestMate);
-            self.eventCtrl.AddEventHandler(GameEvent.Entity_Mate, TransitionToMate);
+            if (self.IsAuthority) self.eventCtrl.AddEventHandler(GameEvent.Entity_CanMate, TestMate);
+            if (self.IsAuthority) self.eventCtrl.AddEventHandler(GameEvent.Entity_Mate, TransitionToMate);
             this.self = self;
         }
 

@@ -59,31 +59,33 @@ namespace Arterra.Data.Entity.Behavior {
         public override void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
             if (!self.Is(out mod)) mod = null;
             progress = 0f;
-            if (PlayerHandler.data != null && self.info.entityId == PlayerHandler.data.info.entityId)
-                NauseaPass.SetActive(true);
+
             self.Register(this);
         }
 
         public override void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
             if (!self.Is(out mod)) mod = null;
-            if (PlayerHandler.data != null && self.info.entityId == PlayerHandler.data.info.entityId)
-                NauseaPass.SetActive(true);
+
             self.Register(this);
         }
 
-        public override void Disable(BehaviorEntity.Animal self) {
-            self.Unregister(typeof(NauseaEffect));
-            if (PlayerHandler.data == null || self.info.entityId != PlayerHandler.data.info.entityId)
-                return;
-            NauseaPass.SetActive(false);
+        public override void InitializeVisual(BehaviorEntity.Animal self) {
+            if (self.IsOwner) NauseaPass.SetActive(true);
         }
+        public override void DisposeVisual(BehaviorEntity.Animal self) {
+            if (self.IsOwner) NauseaPass.SetActive(false);
+        }
+        public override void Disable(BehaviorEntity.Animal self) => self.Unregister(typeof(NauseaEffect));
 
         public override void Update(BehaviorEntity.Animal self) {
-            if (self.context == BehaviorEntity.UpdateContext.JobSync) return;
+            if (self.context == BehaviorEntity.UpdateContext.Simulation) {
+                progress += self.DeltaTime;
+                if (progress > _duration) self.RemoveBehavior(Id);
+            }
+            if (self.context != BehaviorEntity.UpdateContext.Visual || !self.IsOwner) return;
+            if (!self.IsAuthority) progress += self.DeltaTime;
 
-            progress += self.DeltaTime;
-
-            if (PlayerHandler.data != null && self.info.entityId == PlayerHandler.data.info.entityId) {
+            if (PlayerHandler.data != null && self.info.rtEntityId == PlayerHandler.data.info.rtEntityId) {
                 float duration = _duration;
                 float envelope;
                 if (float.IsPositiveInfinity(duration)) {
@@ -99,8 +101,7 @@ namespace Arterra.Data.Entity.Behavior {
                 NauseaPass.SetNausea(normalized * envelope, 0.16f);
             }
 
-            if (progress > _duration)
-                self.RemoveBehavior(((Behavior)this).Id);
+
         }
     }
 }

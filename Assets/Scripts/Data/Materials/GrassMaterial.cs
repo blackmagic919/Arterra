@@ -1,3 +1,4 @@
+using Arterra.Data.Entity.Behavior;
 using UnityEngine;
 using Unity.Mathematics;
 using Unity.Burst;
@@ -65,7 +66,7 @@ namespace Arterra.Data.Material{
                             out Item.IItem origItem))
                             continue;
                         if (tag.GivesItem)
-                            InventoryController.DropItem(origItem, GCoord);
+                            PlayerInventoriesBehavior.SpawnDrop(origItem, GCoord);
                     }
                 }
             }

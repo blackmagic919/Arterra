@@ -1,3 +1,4 @@
+using Rule = UIConditional.Rule;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -14,7 +15,7 @@ using System.Linq;
 //Therefore it already has its own page and doesn't need to create another
 public class PageListSerializer : IConverter{
     public bool CanConvert(Type type){ return type.IsGenericType && type.GetGenericTypeDefinition() == typeof(List<>); }
-    public void Serialize(GameObject page, GameObject parent, FieldInfo field, object value, ParentUpdate OnUpdate){
+    public void Serialize(GameObject page, GameObject parent, FieldInfo field, object value, ParentUpdate OnUpdate, Rule rule, HashSet<string> displayFlags){
         object cValue = value; //Capture the object to streamline changes
         void ChildRequest(ChildUpdate childCallback) { 
             void ParentReceive(ref object parentObject){
@@ -36,28 +37,30 @@ public class PageListSerializer : IConverter{
                 GameObject.Destroy(newPage); 
                 page.SetActive(true);
             });
-            CreateList((IList)cValue, newPage, ChildRequest);
+            CreateList((IList)cValue, newPage, ChildRequest, rule, displayFlags);
             ForceLayoutRefresh(GetPageContent(newPage));
             
             Button listAdd = UnityEngine.Object.Instantiate(Resources.Load<GameObject>("Prefabs/PaginatedUI/ListAdd"), GetPageHeader(newPage)).GetComponent<Button>();
             Button listRemove = UnityEngine.Object.Instantiate(Resources.Load<GameObject>("Prefabs/PaginatedUI/ListRemove"), GetPageHeader(newPage)).GetComponent<Button>();
             ForceLayoutRefresh(GetPageHeader(newPage));
+            listAdd.interactable = rule != Rule.Disable;
             listAdd.onClick.AddListener(() => {
                 ChildRequest((ref object parentObj) => {
                     cValue = parentObj; 
                     ((IList)cValue).Add(CreateInstance(field.FieldType.GetGenericArguments()[0]));
                     ReleaseAllChildren(GetPageContent(newPage).gameObject);
-                    CreateList((IList)cValue, newPage, ChildRequest);
+                    CreateList((IList)cValue, newPage, ChildRequest, rule, displayFlags);
                     ForceLayoutRefresh(GetPageContent(newPage));
                 });
             });
+            listRemove.interactable = rule != Rule.Disable;
             listRemove.onClick.AddListener(() => {
                 if(((IList)cValue).Count == 0) return;
                 ChildRequest((ref object parentObj) => {
                     cValue = parentObj; 
                     ((IList)cValue).RemoveAt(((IList)cValue).Count - 1);
                     ReleaseAllChildren(GetPageContent(newPage).gameObject); 
-                    CreateList((IList)cValue, newPage, ChildRequest);
+                    CreateList((IList)cValue, newPage, ChildRequest, rule, displayFlags);
                     ForceLayoutRefresh(GetPageContent(newPage));
                 });
             });
@@ -78,7 +81,7 @@ public class PageListSerializer : IConverter{
         };
     }
 
-    private static void CreateList(IList list, GameObject page, ParentUpdate OnUpdate){
+    private static void CreateList(IList list, GameObject page, ParentUpdate OnUpdate, Rule rule, HashSet<string> displayFlags){
         for(int i = 0; i < list.Count; i++) {
             object cObject = list[i]; object value = cObject; Type cObjType = cObject.GetType();
 
@@ -113,7 +116,7 @@ public class PageListSerializer : IConverter{
             
             if(name != null){ elementText.text = name.ToString(); }
             else elementText.text = "Element " + i.ToString() + ": ";
-            CreateInputField(field, value, key, page, nUpdate);
+            CreateInputField(field, value, key, page, nUpdate, rule, displayFlags);
         }
     }
 

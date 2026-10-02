@@ -1,3 +1,6 @@
+using Unity.Collections;
+using System.Collections.Generic;
+using Arterra.Utils;
 using Unity.Mathematics;
 using UnityEngine;
 using Arterra.Data.Material;
@@ -10,6 +13,7 @@ using Arterra.GamePlay;
 using System.Threading;
 using System;
 using Arterra.Core;
+using Arterra.Core.Network;
 
 namespace Arterra.Data.Intrinsic{
     /// <summary>
@@ -62,6 +66,17 @@ namespace Arterra.Engine.Terrain{
     /// is updated.
     /// </summary>
     public static class TerrainUpdate {
+        public static void CompleteJobs() => Executor?.CompleteBlocking();
+
+        private static void RefreshChunk(int3 CCoord) => Executor?.QueueChunk(CCoord);
+
+        public static void Release() {
+            CPUMapManager.RemoveOnCreateChunk(RefreshChunk);
+            CPUMapManager.RemoveOnReleaseChunk(RefreshChunk);
+            Executor?.Release();
+            Executor = null;
+        }
+
         private static Catalogue<MaterialData> MaterialDictionary;
         private static ConcurrentQueue<int3> UpdateCoordinates; //GCoord
         private static TerrainUpdation settings;
@@ -87,6 +102,8 @@ namespace Arterra.Engine.Terrain{
             UpdateCoordinates = new ConcurrentQueue<int3>();
             IncludedCoords = new FlagList(numPoints);
             Executor = new Manager();
+            CPUMapManager.AddOnCreateChunk(RefreshChunk);
+            CPUMapManager.AddOnReleaseChunk(RefreshChunk);
             ArterraRuntime.MainFixedUpdateTasks.Enqueue(Executor);
             UpdateTick = 0;
         }
@@ -123,9 +140,13 @@ namespace Arterra.Engine.Terrain{
             private JobHandle randHandle;
             private PropogatedUpdates propogatedUpdates;
             private RandomUpdates randomUpdates;
+            private SharedNativeAppendArray<int3> chunkCoordinates;
+            private readonly Dictionary<int3, int> coordinateSlots = new();
+            private readonly ConcurrentQueue<int3> chunkChanges = new();
 
             /// <summary>  Default constructor sets the manager to active. </summary>
             public Manager() {
+                chunkCoordinates = new SharedNativeAppendArray<int3>(CPUMapManager.numChunks);
                 propogatedUpdates = new PropogatedUpdates();
                 randomUpdates = new RandomUpdates();
                 propogatedUpdates.seed = new Unity.Mathematics.Random((uint)GetHashCode());
@@ -138,32 +159,67 @@ namespace Arterra.Engine.Terrain{
                 active = true;
             }
 
-            /// <summary> Completes the asyncronous Job Operation. Blocks main thread
-            /// until the job has completed. </summary>
+            /// <summary>Polls completion without waiting for running jobs.</summary>
             public bool Complete() {
                 if (!dispatched) return true;
                 if (!propHandle.IsCompleted || !randHandle.IsCompleted)
                     return false;
+                CompleteBlocking();
+                return true;
+            }
+            public void CompleteBlocking() {
+                if (!dispatched) return;
                 propHandle.Complete();
                 randHandle.Complete();
                 dispatched = false;
-                return true;
             }
+
+            internal void QueueChunk(int3 CCoord) => chunkChanges.Enqueue(CCoord);
+
+            private void FlushChunkChanges() {
+                while (chunkChanges.TryDequeue(out int3 CCoord)) {
+                    bool hasSlot = coordinateSlots.TryGetValue(CCoord, out int slot);
+                    if (CPUMapManager.TryGetChunkInfo(CCoord, out _)) {
+                        if (!hasSlot) coordinateSlots.Add(CCoord, chunkCoordinates.Add(CCoord));
+                    } else if (hasSlot) {
+                        chunkCoordinates.Remove(slot);
+                        coordinateSlots.Remove(CCoord);
+
+                        // Removal moved the last coordinate into this slot.
+                        if (slot < chunkCoordinates.Length)
+                            coordinateSlots[chunkCoordinates[slot]] = slot;
+                    }
+                }
+            }
+
+            public void Release() {
+                active = false;
+                CompleteBlocking();
+                chunkCoordinates.Dispose();
+                coordinateSlots.Clear();
+                chunkChanges.Clear();
+            }
+
             /// <summary>
             /// Updates the map entries in the update queue. 
             /// The map entries are updated in the order they were added.
             /// </summary> <param name="mono"><see cref="IUpdateSubscriber.Update"/> </param>
             public void Update(MonoBehaviour mono) {
+                if (!NetworkManager.IsActingServer) return;
                 if (!PlayerHandler.active) return;
                 UpdateTick = (UpdateTick + 1) % settings.UpdateTickDelay;
                 if (UpdateTick != 0) return;
                 if (!Complete()) return;
+
+                // Jobs are finished; queued changes may now resize or compact the array.
+                FlushChunkChanges();
                 propogatedUpdates.seed.NextUInt();
                 randomUpdates.seed.NextUInt();
 
                 int count = math.min(UpdateCoordinates.Count, settings.MaximumTickUpdates);
+                randomUpdates.coordinates = chunkCoordinates.array;
                 propHandle = propogatedUpdates.Schedule(count, 64);
-                randHandle = randomUpdates.Schedule(CPUMapManager.numChunks, 64);
+                randHandle = randomUpdates.Schedule(chunkCoordinates.Length, 64);
                 dispatched = true;
             }
 
@@ -178,15 +234,15 @@ namespace Arterra.Engine.Terrain{
                 /// <summary> Executes the point update in parallel. </summary>
                 /// <param name="index">The index of the job-thread executing the task</param>
                 public void Execute(int index) {
-                    if (!UpdateCoordinates.TryDequeue(out int3 coord))
+                    if (!UpdateCoordinates.TryDequeue(out int3 GCoord))
                         return;
-                    IncludedCoords.ClearFlag(HashFlag(coord));
+                    IncludedCoords.ClearFlag(HashFlag(GCoord));
 
-                    MapData mapData = CPUMapManager.SampleMap(coord);
+                    MapData mapData = CPUMapManager.SampleMap(GCoord);
                     if (!MaterialDictionary.Contains(mapData.material))
                         return; //Invalid Data
                     Unity.Mathematics.Random prng = new((seed.state ^ (uint)index) | 1u);
-                    MaterialDictionary.Retrieve(mapData.material).PropogateMaterialUpdate(coord, prng);
+                    MaterialDictionary.Retrieve(mapData.material).PropogateMaterialUpdate(GCoord, prng);
                 }
             }
 
@@ -194,6 +250,7 @@ namespace Arterra.Engine.Terrain{
             /// Random updates are performed on a per-chunk basis, and each chunk
             /// is processed in its own job thread. </summary>
             public struct RandomUpdates : IJobParallelFor {
+                [ReadOnly] public NativeArray<int3> coordinates;
                 /// <summary> Random values referencable by materials; Materials are processed in parallel,
                 /// thus this isn't thread safe, but that adds to the randomness. /// </summary>
                 public Unity.Mathematics.Random seed;
@@ -205,14 +262,12 @@ namespace Arterra.Engine.Terrain{
                 public int numPointsChunk;
                 /// <summary> Executes the random update in parallel. Each job thread is responsible for
                 /// processing a single chunk of the map. The chunk is identified by its index in the
-                /// <see cref="CPUMapManager.AddressDict"/> dictionary. </summary>
+                /// compact coordinate array. </summary>
                 /// <param name="index"></param>
                 public void Execute(int index) {
-                    CPUMapManager.ChunkMapInfo info = CPUMapManager.AddressDict[index];
-                    if (!info.valid) return;
+                    if (!CPUMapManager.TryGetChunkInfo(coordinates[index], out var info) || !info.HasMap) return;
                     Unity.Mathematics.Random prng = new((seed.state ^ (uint)index) | 1u);
                     int3 CCoord = info.CCoord;
-                    int CIndex = CPUMapManager.HashCoord(CCoord);
                     for (uint i = 0; i < numUpdatesPerChunk; i++) {
                         //Generate a random point in the chunk
                         int3 MCoord = new(
@@ -221,7 +276,7 @@ namespace Arterra.Engine.Terrain{
                             (int)(prng.NextUInt() % mapChunkSize)
                         );
                         int MIndex = MCoord.x * mapChunkSize * mapChunkSize + MCoord.y * mapChunkSize + MCoord.z;
-                        MapData mapData = CPUMapManager.SectionedMemory[CIndex * numPointsChunk + MIndex];
+                        MapData mapData = info.ChunkData[info.Offset + MIndex];
                         if (!MaterialDictionary.Contains(mapData.material)) {
                             Debug.LogError($"Encountered unknown material {mapData.material} at chunk {CCoord}");
                             return;

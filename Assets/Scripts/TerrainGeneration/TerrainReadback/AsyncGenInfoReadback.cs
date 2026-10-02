@@ -7,10 +7,12 @@ using UnityEngine.Rendering;
 using Arterra.Utils;
 using Arterra.Core.Storage;
 using static Arterra.Core.Storage.SharedResourceManager;
+using System.Threading.Tasks;
 
 namespace Arterra.Engine.Terrain.Readback {
     public class AsyncGenInfoReadback {
         private int Allocation = -1;
+        private TaskCompletionSource<bool> pending;
         private static ComputeShader GenPointRealloc;
         public GraphicsContextId GraphicsContext;
         private readonly Structure.Creator StructureCreator;
@@ -36,12 +38,15 @@ namespace Arterra.Engine.Terrain.Readback {
         public GraphicsResourceContext GetGraphicsContext() => Graphics(GraphicsContext);
 
         public void Release() {
+            pending?.TrySetCanceled();
+            pending = null;
             if (Allocation <= 0) return;
             GetGraphicsContext().Memory.ReleaseMemory((uint)Allocation);
             Allocation = -1;
         }
 
         public int AddGenPoints(ComputeBuffer countBuffer, int countOffset, int tempCounter) {
+            if (pending != null) throw new InvalidOperationException("Cannot append points during readback.");
             GraphicsResourceContext gpuContext = GetGraphicsContext();
             if (Allocation <= 0) {
                 Allocation = (int)gpuContext.Memory.AllocateMemory(countBuffer, GenPoint.size, countOffset);
@@ -68,41 +73,65 @@ namespace Arterra.Engine.Terrain.Readback {
             ComputeBuffer args = gpuContext.Args.CountToArgs(GenPointRealloc, countBuffer, countOffset: tempCounter, kernel: kernel);
             gpuContext.DispatchIndirect(GenPointRealloc, kernel, args);
 
-            Release(); //Release previous allocation
+            gpuContext.Memory.ReleaseMemory((uint)Allocation);
             Allocation = nAllocation;
 
             return Allocation;
         }
 
-        public void BeginGenInfoReadback(int3 CCoord, byte cxt){
-            GraphicsResourceContext gpuContext = GetGraphicsContext();
-            if (Allocation <= 0) return; //No alloc exists
+        /// <summary>Completes after processing the points. Calls during an active readback share its task.</summary>
+        public Task GenInfoReadback(int3 CCoord, byte cxt) {
+            if (pending != null) return pending.Task;
+            if (Allocation <= 0) return Task.CompletedTask;
+            var completion = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            var gpuContext = GetGraphicsContext();
             uint allocation = (uint)Allocation;
-            //This call ensures that readback is only called with a stable permanent allocation
-            gpuContext.Memory.RegisterRebind(
-                allocation,
-                _1 => {
-                    if (!gpuContext.Memory.GetDirectAllocation(
-                        allocation, GenPoint.size, out ComputeBuffer block,
-                        out _, out _, out int start, out int count)) return;
-                    gpuContext.RequestAsyncReadback(block, size: count * GenPoint.size * 4,
-                        offset: start * GenPoint.size * 4,
-                        req => ProcessGenPoints(req.GetData<GenPoint>(), CCoord, cxt));
-                }
-            );
+            pending = completion;
+            try {
+                gpuContext.Memory.RegisterRebind(allocation, storage => {
+                    if (pending != completion) return;
+                    try {
+                        if (!gpuContext.Memory.GetDirectAllocation(allocation, GenPoint.size,
+                            out ComputeBuffer block, out _, out _, out int start, out int count))
+                            throw new InvalidOperationException("Generation-point allocation is unavailable.");
+                        if (count == 0) { Finish(); return; }
+                        gpuContext.RequestAsyncReadback(block, count * GenPoint.sizeRaw,
+                            start * GenPoint.sizeRaw, request => {
+                                if (pending != completion) return;
+                                try {
+                                    if (request.hasError) throw new InvalidOperationException("Generation-point readback failed.");
+                                    ProcessGenPoints(request.GetData<GenPoint>(), CCoord, cxt);
+                                    Finish();
+                                } catch (Exception exception) { Finish(exception); }
+                            });
+                    } catch (Exception exception) { Finish(exception); }
+                });
+            } catch (Exception exception) { Finish(exception); }
+            return completion.Task;
+
+            void Finish(Exception error = null) {
+                if (pending != completion) return;
+                pending = null;
+                Allocation = -1;
+                try { gpuContext.Memory.ReleaseMemory(allocation); } catch (Exception exception) { error ??= exception; }
+                if (error == null) completion.TrySetResult(true);
+                else completion.TrySetException(error);
+            }
         }
 
         /// <summary> Flag to create entities from structure meta </summary>
         public const int CREATE_ENTITIES = 0x1;
         /// <summary> Flag to create entities from structure meta </summary>
         public const int CREATE_META = 0x2;
+        /// <summary>Process planned entity points without enabling structure entity generation.</summary>
+        public const int CREATE_PLANNED_ENTITIES = 0x4;
 
         private void ProcessGenPoints(NativeArray<GenPoint> points, int3 CCoord, byte cxt) {
-            Release();
             foreach(GenPoint point in points) {
                 switch (point.type) {
                     case GenPoint.GenType.Entity:
-                        EntityManager.InitializeChunkEntity(point, CCoord, cxt);
+                        if ((cxt & (CREATE_ENTITIES | CREATE_PLANNED_ENTITIES)) != 0)
+                            EntityManager.InitializeChunkEntity(point, CCoord, (byte)(cxt | CREATE_ENTITIES));
                         break;
                     case GenPoint.GenType.StructureMeta:
                         StructureCreator.InitializeStructureMeta(point, CCoord, cxt);

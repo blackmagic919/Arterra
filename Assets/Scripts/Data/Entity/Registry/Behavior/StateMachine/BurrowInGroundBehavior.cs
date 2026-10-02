@@ -26,11 +26,11 @@ namespace Arterra.Data.Entity.Behavior{
         public Option<List<EntitySMTasks>> EscapingTargetStates = new () {value = new () {
             EntitySMTasks.RunFromTarget, EntitySMTasks.RunFromPredator
         }};
-        [JsonIgnore][UISetting(Ignore = true)][HideInInspector]
+        [JsonIgnore][UIHidden][HideInInspector]
         public HashSet<EntitySMTasks> _EscapeTargetStates;
         public float GroundStickDist = 0.05f;
 
-        [HideInInspector][UISetting(Ignore = true)][JsonIgnore]
+        [HideInInspector][UIHidden][JsonIgnore]
         public Profiles paths;
         
         public struct Profiles {
@@ -96,7 +96,7 @@ namespace Arterra.Data.Entity.Behavior{
         private float UnburrowThresh => Modifier.Get(mod, MSettings.UnburrowThresh, settings.UnburrowThresh);
         private float DigDist => Modifier.Get(mod, MSettings.DigDist, settings.DigDist);
         public override void Update(BehaviorEntity.Animal self) {
-            if (self.context == BehaviorEntity.UpdateContext.JobSync) return;
+            if (self.context != BehaviorEntity.UpdateContext.Simulation) return;
             bool IsBurrowing = true;
             if (manager.TaskIndex == settings.Task1Name) 
                 BurrowUnderground(self);
@@ -179,7 +179,7 @@ namespace Arterra.Data.Entity.Behavior{
             if (dist < BurrowMinDist || dist > BurrowMaxDist) {
                 return false;}
             if (!GamePlay.Interaction.TerrainCollider.SampleCollision(self.origin, new float3(self.settings.collider.size.x,
-                -settings.GroundStickDist, self.settings.collider.size.z), EntityJob.cxt.mapContext, out _)){
+                -settings.GroundStickDist, self.settings.collider.size.z), out _)){
                 return false;}
             
             float3 digDir = Vector3.down;
@@ -201,7 +201,7 @@ namespace Arterra.Data.Entity.Behavior{
             return true;
         }
 
-        private void OnHitBurrowing(object src, object atkr, object info) {
+        private void OnHitBurrowing(object srcId, object atkrId, object info) {
             byte contact = TerrainInteractor.SampleContact(self.position, self.transform.size, out _, null);
             RefTuple<(float dmg, float3 kb)> data = (RefTuple<(float, float3)>)info;
             //Stop kb if fully underground
@@ -213,7 +213,7 @@ namespace Arterra.Data.Entity.Behavior{
             manager.Transition(settings.OnHitOutState);
         }
 
-        private void OnInSolid(object src, object _, object cxt) {
+        private void OnInSolid(object srcId, object _, object cxt) {
             mInteract.breath = math.max(mInteract.breath - self.DeltaTime, 0);
             if (mInteract.breath > 0) return;
             mInteract.ProcessSuffocation(self, (float)cxt);
@@ -224,8 +224,8 @@ namespace Arterra.Data.Entity.Behavior{
             IsAttached = isBurrowing;
 
             if (IsAttached) {
-                self.eventCtrl.AddEventHandler(GameEvent.Entity_InSolid, OnInSolid);
-                self.eventCtrl.AddEventHandler(GameEvent.Entity_Damaged, OnHitBurrowing);
+                if (self.IsAuthority) self.eventCtrl.AddEventHandler(GameEvent.Entity_InSolid, OnInSolid);
+                if (self.IsAuthority) self.eventCtrl.AddEventHandler(GameEvent.Entity_Damaged, OnHitBurrowing);
                 mInteract?.SetInteractionType(MapInteractorSettings.InteractType.SubTerraneal);
                 collider?.SetInteractionType(ColliderUpdateSettings.InteractType.NoGround);
             } else {

@@ -26,7 +26,7 @@ namespace Arterra.Data.Entity.Behavior {
         private float _duration => Modifier.Get(mod, MSettings.Recieve_ShockedDuration, Duration);
         private float MoveMultiplier => math.clamp(1f - _strength, 0f, 1f);
 
-        private string PlayerFenceName => self == null ? null : $"Shocked:MovementFence::{self.info.entityId}";
+        private string PlayerFenceName => self == null ? null : $"Shocked:MovementFence::{self.info.rtEntityId}";
 
         public override TempBehavior Create(BehaviorEntity.Animal self = null) {
             if (self == null || !self.Is(out Modifier inflictMod))
@@ -57,7 +57,7 @@ namespace Arterra.Data.Entity.Behavior {
             progress = 0f;
 
             HookMovementEvents();
-            AttachParticle(self);
+
         }
 
         public override void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
@@ -67,32 +67,36 @@ namespace Arterra.Data.Entity.Behavior {
             self.Register(this);
 
             HookMovementEvents();
-            AttachParticle(self);
+
+        }
+
+        public override void InitializeVisual(BehaviorEntity.Animal self) => AttachParticle(self);
+        public override void DisposeVisual(BehaviorEntity.Animal self) {
+            if (particleInstance != null) {
+                UnityEngine.Object.Destroy(particleInstance);
+                particleInstance = null;
+            }
         }
 
         public override void Disable(BehaviorEntity.Animal self) {
             UnhookMovementEvents();
 
-            if (particleInstance != null) {
-                UnityEngine.Object.Destroy(particleInstance);
-                particleInstance = null;
-            }
+
 
             this.self = null;
             self.Unregister(typeof(ShockedEffect));
         }
 
         public override void Update(BehaviorEntity.Animal self) {
-            if (self.context == BehaviorEntity.UpdateContext.JobSync) return;
-            if (self.context == BehaviorEntity.UpdateContext.Main) return;
+            if (self.context != BehaviorEntity.UpdateContext.Simulation) return;
 
             progress += self.DeltaTime;
             if (progress > _duration) self.RemoveBehavior(Id);
         }
 
         private void HookMovementEvents() {
-            self?.eventCtrl.AddEventHandler(GameEvent.Action_Run, HandleMoveDelta);
-            self?.eventCtrl.AddEventHandler(GameEvent.Action_Walk, HandleMoveDelta);
+            if (self.IsAuthority || self.IsOwner) self?.eventCtrl.AddEventHandler(GameEvent.Action_Run, HandleMoveDelta);
+            if (self.IsAuthority || self.IsOwner) self?.eventCtrl.AddEventHandler(GameEvent.Action_Walk, HandleMoveDelta);
         }
 
         private void UnhookMovementEvents() {

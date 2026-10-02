@@ -21,14 +21,10 @@ namespace Arterra.GamePlay.UI {
             NavBar = Menu.transform.Find("Bar").Find("Viewport").Find("Content").gameObject;
             Content = Menu.transform.Find("Content").gameObject;
             SelectedPanel = null;
-
-
-            Add(new CraftingMenuController(Config.CURRENT.System.Crafting), "Crafting");
-            Add(new ArmorController(Config.CURRENT.System.Armor), "Armor");
         }
 
         public static void Release() {
-            foreach (NavPanel panel in NavPanels.Values) {
+            foreach (NavPanel panel in NavPanels.Values.ToArray()) {
                 panel.Release();
             }
         }
@@ -39,15 +35,16 @@ namespace Arterra.GamePlay.UI {
             NavPanels.TryAdd(name, newPanel);
         }
 
-        public static void Remove(string name) {
+        public static void Remove(string name, bool release = true) {
             if (name == null) return;
             if (!TryGetValue(name, out NavPanel panel)) return;
 
-            panel.Release();
             NavPanels.Remove(name);
+            panel.Release(release);
             if (!name.Equals(SelectedPanel)) return;
             SelectedPanel = null;
-            if (NavPanels.Count == 0) return;
+            // Removing a behavior during teardown must not activate another panel.
+            if (!release || NavPanels.Count == 0) return;
             SelectedPanel = NavPanels.First().Key;
             NavPanels[SelectedPanel].Activate();
         }
@@ -110,10 +107,10 @@ namespace Arterra.GamePlay.UI {
             public void Deactivate() {
                 NavHandler?.Deactivate();
             }
-            public void Release() {
+            public void Release(bool releaseHandler = true) {
                 if (PanelItem != null)
                     GameObject.Destroy(PanelItem);
-                NavHandler.Release();
+                if (releaseHandler) NavHandler.Release();
             }
         }
 

@@ -15,11 +15,11 @@ namespace Arterra.Data.Material{
         public Catalogue<MaterialData> MaterialDictionary;
         /// <summary> The liquid fine wave texture that is blended with <see cref="liquidCoarseWave"/> to create waves. This can
         /// be tuned by <see cref="MaterialData.liquidData"/> depending on the liquid that is being displayed. </summary>
-        [UISetting(Ignore = true)]
+        [UIHidden]
         public Option<Texture2D>liquidFineWave;
         /// <summary> The liquid coarse wave texture that is blended with <see cref="liquidFineWave"/> to create waves. This can
         /// be tuned by <see cref="MaterialData.liquidData"/> depending on the liquid that is being displayed. </summary>
-        [UISetting(Ignore = true)]
+        [UIHidden]
         public Option<Texture2D> liquidCoarseWave;
     }
 }

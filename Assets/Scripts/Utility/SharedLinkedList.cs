@@ -1,4 +1,5 @@
 using System;
+using Unity.Collections;
 
 namespace Arterra.Utils {
     [Serializable]
@@ -6,6 +7,9 @@ namespace Arterra.Utils {
         public LListNode[] array;
         private int _length;
         public readonly int Length => _length;
+
+        public readonly ref T this[uint index] => ref array[index].value;
+        public readonly ref T this[int index] => ref array[index].value;
 
         public SharedLinkedList(int length) {
             int totalNodes = Math.Max(length + 1, 2);
@@ -96,4 +100,57 @@ namespace Arterra.Utils {
             public T value;
         }
     }
+
+    /// <summary>
+    /// Compact native storage. Removal moves the last item into the vacated slot.
+    /// Mutate or grow only after jobs reading the array have completed.
+    /// </summary>
+    public struct SharedNativeAppendArray<T> : IDisposable where T : unmanaged {
+        public NativeArray<T> array;
+        private int _length;
+        public readonly int Length => _length;
+
+        public T this[int index] {
+            readonly get => array[index];
+            set => array[index] = value;
+        }
+
+        public SharedNativeAppendArray(int capacity) {
+            array = new NativeArray<T>(Math.Max(capacity, 1), Allocator.Persistent);
+            _length = 0;
+        }
+
+        public int Add(T value) {
+            if (_length == array.Length) Grow();
+            int index = _length++;
+            array[index] = value;
+            return index;
+        }
+
+        public void Remove(int index) {
+            if ((uint)index >= (uint)_length)
+                throw new ArgumentOutOfRangeException(nameof(index));
+
+            _length--;
+            if (index != _length) array[index] = array[_length];
+            array[_length] = default;
+        }
+
+        private void Grow() {
+            if (array.Length >= int.MaxValue / 2)
+                throw new InvalidOperationException("SharedNativeAppendArray exceeded max supported size.");
+
+            var grown = new NativeArray<T>(array.Length * 2, Allocator.Persistent);
+            NativeArray<T>.Copy(array, grown, _length);
+            array.Dispose();
+            array = grown;
+        }
+
+        public void Dispose() {
+            if (array.IsCreated) array.Dispose();
+            array = default;
+            _length = 0;
+        }
+    }
+
 }

@@ -1,3 +1,5 @@
+using Arterra.Data.Item;
+using Arterra.Core.Events;
 using System;
 using Newtonsoft.Json;
 using Unity.Mathematics;
@@ -56,14 +58,20 @@ namespace Arterra.Data.Item
 
         public void UpdateEItem(){}
         public void OnEnter(ItemContext cxt) {
-            if (cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
+            cxt.RegisterEvent(this, GameEvent.Apply_PenAdd,
+                (context, bounds) => InteractionHandler.Apply(this, context, bounds, true));
+            cxt.RegisterEvent(this, GameEvent.Apply_PenRemove,
+                (context, bounds) => InteractionHandler.Apply(this, context, bounds, false));
+            if (!cxt.IsOwner || cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
             handler?.Release();
             handler = InteractionHandler.Create(this, cxt);
         }
 
         public void OnLeave(ItemContext cxt) {
-            if (cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
-            handler.Release();
+            cxt.UnregisterEvent(GameEvent.Apply_PenAdd);
+            cxt.UnregisterEvent(GameEvent.Apply_PenRemove);
+            if (!cxt.IsOwner || cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
+            handler?.Release();
             handler = null;
         }
 
@@ -114,11 +122,13 @@ namespace Arterra.Data.Item
             h.cxt = cxt;
 
             
-                InputPoller.AddBinding(new ActionBind("Remove", _ => h.OnTerrainRemove(cxt), ActionBind.Exclusion.ExcludeLayer), "ITEM::Pen:RM", "5.0::GamePlay");
-                InputPoller.AddBinding(new ActionBind("Place", _ => h.OnTerrainAdd(cxt), ActionBind.Exclusion.ExcludeLayer), "ITEM::Pen:PL", "5.0::GamePlay");
+                InputPoller.AddBinding(new ActionBind("Remove", _ => h.RequestEdit(GameEvent.Apply_PenRemove), ActionBind.Exclusion.ExcludeLayer), "ITEM::Pen:RM", "5.0::GamePlay");
+                InputPoller.AddBinding(new ActionBind("Place", _ => h.RequestEdit(GameEvent.Apply_PenAdd), ActionBind.Exclusion.ExcludeLayer), "ITEM::Pen:PL", "5.0::GamePlay");
                 //When SelectPoint is triggered, DragPoint will also be triggered on the same frame, make sure SelectPoint happens first 
-                InputPoller.AddBinding(new ActionBind("PenDrag", h.DragPoint, ActionBind.Exclusion.ExcludeLayer), "ITEM::Pen:DR", "5.0::GamePlay");
-                InputPoller.AddBinding(new ActionBind("PenFocus", h.SelectPoint, ActionBind.Exclusion.ExcludeLayer), "ITEM::Pen:SEL", "5.0::GamePlay");
+                InputPoller.AddBinding(new ActionBind("PenDraw", h.DragPoint, ActionBind.Exclusion.ExcludeLayer), "ITEM::Pen:DR", "5.0::GamePlay");
+                InputPoller.AddBinding(new ActionBind("PenDraw", h.SelectPoint,
+                    ActionBind.Exclusion.ExcludeLayer, ActionBind.Policy.Down),
+                    "ITEM::Pen:SEL", "5.0::GamePlay");
             
             return h;
         }
@@ -173,47 +183,68 @@ namespace Arterra.Data.Item
             Selector.transform.localScale = SelectBounds.size + new Vector3(1, 1, 1);
         }
 
-        public void OnTerrainAdd(ItemContext cxt)
+        private void RequestEdit(GameEvent type) {
+            object bounds = Selector == null ? null : ((int3)(float3)SelectBounds.min, (int3)(float3)SelectBounds.max);
+            cxt.RaiseEvent(type, bounds);
+        }
+
+        public static void Apply(PenItem item, ItemContext context, object argument, bool adding) {
+            var operation = new InteractionHandler { item = item, cxt = context };
+            if (argument != null) {
+                if (argument is not ValueTuple<int3, int3> bounds) return;
+                float3 size = (float3)bounds.Item2 - bounds.Item1;
+                if (math.any(size < 0) || GetVolume(size + 1) > item.settings.MaximumSelectionVolume) return;
+                operation.SelectBounds = new Bounds { min = (float3)bounds.Item1, max = (float3)bounds.Item2 };
+            }
+            float previousDurability = item.durability;
+            if (adding) operation.OnTerrainAdd(context, argument != null);
+            else operation.OnTerrainRemove(context, argument != null);
+            if (item.durability > 0 && item.durability != previousDurability) context.SetDirty();
+        }
+
+        public void OnTerrainAdd(ItemContext cxt, bool hasSelection)
         {
-            if (Selector == null)
+            if (!hasSelection)
             {
                 if (!FindNearest(out int3 hitCoord)) return;
                 if (!FindNextSolidMat(out IItem nextSlot)) return;
                 AddNextSolidWithDurability(cxt, hitCoord, nextSlot);
                 return;
             }
-            int3 coord = 0;
-            for (coord.x = (int)SelectBounds.min.x; coord.x <= SelectBounds.max.x; coord.x++)
+            int3 GCoord = 0;
+            for (GCoord.x = (int)SelectBounds.min.x; GCoord.x <= SelectBounds.max.x; GCoord.x++)
             {
-                for (coord.y = (int)SelectBounds.min.y; coord.y <= SelectBounds.max.y; coord.y++)
+                for (GCoord.y = (int)SelectBounds.min.y; GCoord.y <= SelectBounds.max.y; GCoord.y++)
                 {
-                    for (coord.z = (int)SelectBounds.min.z; coord.z <= SelectBounds.max.z; coord.z++)
+                    for (GCoord.z = (int)SelectBounds.min.z; GCoord.z <= SelectBounds.max.z; GCoord.z++)
                     {
+                        if (item.durability <= 0) return;
                         if (!FindNextSolidMat(out IItem slot)) return;
-                        AddNextSolidWithDurability(cxt, coord, slot);
+                        AddNextSolidWithDurability(cxt, GCoord, slot);
                     }
                 }
             }
         }
 
 
-        public void OnTerrainRemove(ItemContext cxt)
+        public void OnTerrainRemove(ItemContext cxt, bool hasSelection)
         {
-            if (Selector == null)
+            if (!hasSelection)
             {
                 if (!FindNearest(out int3 hitCoord)) return;
                 RemoveSolidWithDurability(cxt, hitCoord);
                 return;
             }
 
-            int3 coord = 0;
-            for (coord.x = (int)SelectBounds.min.x; coord.x <= SelectBounds.max.x; coord.x++)
+            int3 GCoord = 0;
+            for (GCoord.x = (int)SelectBounds.min.x; GCoord.x <= SelectBounds.max.x; GCoord.x++)
             {
-                for (coord.y = (int)SelectBounds.min.y; coord.y <= SelectBounds.max.y; coord.y++)
+                for (GCoord.y = (int)SelectBounds.min.y; GCoord.y <= SelectBounds.max.y; GCoord.y++)
                 {
-                    for (coord.z = (int)SelectBounds.min.z; coord.z <= SelectBounds.max.z; coord.z++)
+                    for (GCoord.z = (int)SelectBounds.min.z; GCoord.z <= SelectBounds.max.z; GCoord.z++)
                     {
-                        RemoveSolidWithDurability(cxt, coord);
+                        if (item.durability <= 0) return;
+                        RemoveSolidWithDurability(cxt, GCoord);
                     }
                 }
             }
@@ -334,7 +365,7 @@ namespace Arterra.Data.Item
         private bool FindNextSolidMat(out IItem slotItem)
         {
             int start = cxt.InvId; slotItem = null;
-            if (!cxt.TryGetInventory(out InventoryController.Inventory inv))
+            if (!cxt.TryGetInventory(out Inventory inv))
                 return false;
             int capacity = (int)inv.capacity;
             for (int slot = (start + 1) % capacity; slot != start; slot = (slot + 1) % capacity) {

@@ -50,7 +50,7 @@ public class Noise : Category<Noise>
     /// from the range 0 to 1 to the same range. By modifying the curve, one can create localized regions of generation
     /// that conform to a specific shape or pattern. 
     /// </summary>
-    [SerializeField][UISetting(Ignore = true)][JsonIgnore]
+    [SerializeField][UIHidden][JsonIgnore]
     public Option<AnimationCurve> interpolation;
 
     public override void OnValidate()

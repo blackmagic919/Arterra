@@ -19,7 +19,7 @@ MonoBehaviour:
   bindings:
     value:
     - Key: 324
-      PollType: 3
+      PollType: 2
       IsAlias: 0
   AdditionalTriggerCount: 0
   references:

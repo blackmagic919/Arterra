@@ -16,7 +16,7 @@ namespace Arterra.Engine.Rendering
         public Catalogue<TesselSettings> settings = default;
         public Option<List<TesselLevel>> detailLevels = default;
         [JsonIgnore]
-        [UISetting(Ignore = true)]
+        [UIHidden]
         public Option<Material> material;
         [JsonIgnore] private ComputeShader tesselCompute;
         [JsonIgnore] private ComputeBuffer variantTable;

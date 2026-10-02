@@ -38,8 +38,7 @@ namespace Arterra.Data.Entity.Behavior {
         private float AttackDistance => Modifier.Get(mod, MSettings.AttackDistance, attack.settings.AttackDistance);
         
         public override void Update(BehaviorEntity.Animal self) {
-            if (self.context == BehaviorEntity.UpdateContext.JobSync)
-                return;
+            if (self.context != BehaviorEntity.UpdateContext.Simulation) return;
             if (manager.TaskIndex != settings.TaskName) return;
             if (!EntityManager.TryGetEntity(manager.TaskTarget, out Entity target)) {
                 manager.TaskTarget = Guid.Empty;
@@ -51,7 +50,7 @@ namespace Arterra.Data.Entity.Behavior {
             if (preyDist > AttackDistance) {
                 manager.Transition(settings.OnSeperateTarget);
                 return;
-            } if (!target.Is(out IAttackable atkTarget)) {
+            } if (!target.Is(out IVitality atkTarget)) {
                 manager.TaskTarget = Guid.Empty;
                 manager.Transition(settings.OnLostTarget);
                 return;

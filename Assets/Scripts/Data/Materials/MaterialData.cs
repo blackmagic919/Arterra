@@ -175,7 +175,7 @@ namespace Arterra.Data.Material
             MaterialInstance authoring = new (GCoord, mapData.material);
             if (authoring.Authoring.OnRemoving(GCoord, caller))
                 return false;
-            caller?.eventCtrl.RaiseEvent(Core.Events.GameEvent.Entity_RemoveMaterial, caller, authoring, mapData);
+            caller?.eventCtrl.RaiseEvent(Core.Events.GameEvent.Entity_RemoveMaterial, caller.info.rtEntityId, authoring, mapData);
             ReplacedItem = authoring.Authoring.OnRemoved(GCoord, mapData);
 
             authoring = new (GCoord, newMaterial);
@@ -185,7 +185,7 @@ namespace Arterra.Data.Material
                 return false;
             }
             mapData.material = newMaterial;
-            caller?.eventCtrl.RaiseEvent(Core.Events.GameEvent.Entity_PlaceMaterial, caller, authoring, mapData);
+            caller?.eventCtrl.RaiseEvent(Core.Events.GameEvent.Entity_PlaceMaterial, caller.info.rtEntityId, authoring, mapData);
             authoring.Authoring.OnPlaced(GCoord, mapData);
             CPUMapManager.SetMap(mapData, GCoord);
             return true;
@@ -511,6 +511,11 @@ namespace Arterra.Data.Material
     /// to represent a material at one specific position and are not always persisted.
     /// </summary>
     public class MaterialInstance : IRegistered {
+        [JsonProperty] public Guid Id { get; private set; } = Guid.NewGuid();
+        public virtual void Initialize() { }
+        public virtual void Dispose() { }
+
+
         /// <summary>The material authoring controlling generic logic of the material.
         /// This is logic that does not require metadata and is applied to all materials </summary>
         [JsonIgnore] public MaterialData Authoring;

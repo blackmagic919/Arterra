@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using Arterra.Configuration;
 using Arterra.Core.Storage;
 using Arterra.Data.Structure;
-using Unity.Burst;
 using Unity.Mathematics;
 using UnityEngine;
 using static Arterra.Data.Entity.EntitySetting;
@@ -32,8 +31,7 @@ namespace Arterra.Data.Entity.Behavior {
         }
 
         public override void Update(BehaviorEntity.Animal self) {
-            if (self.context == BehaviorEntity.UpdateContext.JobSync) return;
-            if (self.context == BehaviorEntity.UpdateContext.Main) return;
+            if (self.context != BehaviorEntity.UpdateContext.Simulation) return;
             updateCycles++;
         }
 
@@ -255,7 +253,7 @@ namespace Arterra.Data.Entity.Behavior {
                 } 
             }
         }
-        [BurstCompile]
+
         public struct PathFinder {
             
             public int PathMapSize;
@@ -283,10 +281,8 @@ namespace Arterra.Data.Entity.Behavior {
                 UnsafeUtility.MemClear((void*)SetPtr, SetSize * 16);
             }
 
-            [BurstCompile]
             public readonly unsafe void Release(){ UnsafeUtility.Free((void*)SetPtr, Allocator.Persistent); }
-            
-            [BurstCompile]
+
             public unsafe void AddNode(int3 ECoord, int score, int prev){
                 int index = ECoord.x * PathMapSize * PathMapSize + ECoord.y * PathMapSize + ECoord.z;
                 int heapPos = HeapEnd;
@@ -314,7 +310,6 @@ namespace Arterra.Data.Entity.Behavior {
                 MapPtr[index].zw = new int2(heapPos, prev);
             }
 
-            [BurstCompile]
             public unsafe int2 RemoveNode(){
                 int2 result = MapPtr[1].xy;
                 int2 last = MapPtr[HeapEnd - 1].xy;
@@ -337,7 +332,6 @@ namespace Arterra.Data.Entity.Behavior {
             }
         }
 
-        [BurstCompile]
         public unsafe static bool VerifyProfile(in int3 GCoord, in ProfileInfo info, in EntityJob.Context context, bool UseExFlag = true){
             bool allC = true; bool anyC = false; bool any0 = false;
             uint3 dC = new (0);
@@ -347,7 +341,7 @@ namespace Arterra.Data.Entity.Behavior {
                         uint index = dC.x * info.bounds.y * info.bounds.z + dC.y * info.bounds.z + dC.z;
                         ProfileE profile = context.Profile[index + info.profileStart];
                         if(profile.ExFlag && UseExFlag) continue;
-                        bool valid = profile.bounds.Contains(CPUMapManager.SampleMap(GCoord + (int3)dC, context.mapContext));
+                        bool valid = profile.bounds.Contains(CPUMapManager.SampleMap(GCoord + (int3)dC));
                         allC = allC && (valid || !profile.AndFlag);
                         anyC = anyC || (valid && profile.OrFlag);
                         any0 = any0 || profile.OrFlag;
@@ -417,7 +411,6 @@ namespace Arterra.Data.Entity.Behavior {
             new (1, 1, -1, 17),
         };
 
-        [BurstCompile]
         private static int Get3DDistance(in int3 dist)
         {
             int minDist = math.min(dist.x, math.min(dist.y, dist.z));

@@ -10,6 +10,7 @@ using System.Collections.Concurrent;
 using UnityEngine.Profiling;
 using Arterra.Core.Storage;
 using System.Threading.Tasks;
+using System.Threading;
 using System.Linq;
 using Arterra.Configuration;
 using Arterra.Data.Entity;
@@ -21,16 +22,15 @@ using Arterra.Utils;
 using Arterra.Data.Structure;
 using Arterra.Core;
 using static Arterra.Core.Storage.SharedResourceManager;
+using Arterra.Core.Network;
 
 public static class EntityManager
 {
-    private static EntityGenOffsets bufferOffsets;
-    private static ComputeShader entityGenShader;
-    private static ComputeShader entityTranscriber;
     public static HashSet<Entity> EntityReg;
+    public static Dictionary<Guid, int3> EntitySubCCoord; //Trakcs the last chunk coordinate the chunk pushed to listeners
     public static Dictionary<Guid, Entity> EntityIndex; //tracks location in handler of entityGUID
-    public static STree ESTree; //BVH of entities updated synchronously
     public static ConcurrentQueue<Action> HandlerEvents; //Buffered updates to modify entities(since it can't happen while job is executing)
+    public static STree ESTree; //BVH of entities updated synchronously
     public static Entity[] CurUpdateEntities;
     private static volatile EntityJob Executor; //Job that updates all entities
     const int MAX_ENTITY_COUNT = 10000; //10k ~ 5mb
@@ -40,52 +40,69 @@ public static class EntityManager
     }
 
     public static bool TryGetEntity(Guid identifier, out Entity entity){
-        if (EntityIndex.TryGetValue(identifier, out entity)) {
-            return true;
-        }
-        return false;
-    }
-
-    public static void FlushUpdateCycle() {
-        while(HandlerEvents.TryDequeue(out Action action)){
-            action.Invoke();
-        } HandlerEvents.Clear();
-
-        if (EntityIndex.Count == 0) return;
-        CurUpdateEntities = EntityReg.ToArray();
-        foreach (Entity entity in CurUpdateEntities) {
-            ESTree.AssertEntityLocation(entity);
-            entity.UpdateJobSync();
-        }
+        entity = null;
+        return EntityIndex != null && EntityIndex.TryGetValue(identifier, out entity);
     }
 
     public static void InitializeChunkEntity(GenPoint genInfo, int3 CCoord, byte cxt){
         if ((AsyncGenInfoReadback.CREATE_ENTITIES & cxt) == 0) return; //No Gen
         int mapSize = Config.CURRENT.Quality.Terrain.value.mapChunkSize;
         int3 GCoord = CCoord * mapSize + genInfo.position;
-        Authoring authoring = Config.CURRENT.Generation.Entities.Reg[(int)genInfo.index];
-        Entity newEntity = authoring.Entity;
-        AddHandlerEvent(() => InitializeE(newEntity, GCoord, genInfo.index));
+        CreateEntity(GCoord, genInfo.index);
     }
 
-    public static Entity CreateEntity(float3 GCoord, uint entityIndex, Entity sEntity = null, Action cb = null) {
+    public static Entity CreateEntity(float3 GCoord, uint entityIndex, Entity sEntity = null, Action cb = null,
+        Action<Exception> onError = null, CancellationToken token = default) {
+        if (!NetworkManager.IsActingServer)
+            throw new UnauthorizedAccessException($"Only the authority can create entities (type={entityIndex}, position={GCoord}).");
+
         if (sEntity == null) {
             Authoring authoring = Config.CURRENT.Generation.Entities.Reg[(int)entityIndex];
             sEntity = authoring.Entity;
         }
 
         AddHandlerEvent(() => {
-            InitializeE(sEntity, GCoord, entityIndex);
-            cb?.Invoke();
+            try {
+                token.ThrowIfCancellationRequested();
+                InitializeE(sEntity, GCoord, entityIndex);
+                cb?.Invoke();
+            } catch (Exception exception) {
+                if (onError == null) throw;
+                onError(exception);
+            }
         });
         return sEntity;
     }
-    public static Entity DeserializeEntity(Entity sEntity, Action cb = null){
+    public static Entity DeserializeEntity(Entity sEntity, Action cb = null,
+        Action<Exception> onError = null, CancellationToken token = default){
         AddHandlerEvent(() => {
-            DeserializeE(sEntity);
-            cb?.Invoke();
+            try {
+                token.ThrowIfCancellationRequested();
+                DeserializeE(sEntity);
+                cb?.Invoke();
+            } catch (Exception exception) {
+                if (onError == null) throw;
+                onError(exception);
+            }
         });
         return sEntity;
+    }
+
+    public static async Task<Entity> CreateEntityAsync(float3 GCoord, uint entityIndex,
+        Entity entity = null, CancellationToken token = default) {
+        var completion = new TaskCompletionSource<Entity>(TaskCreationOptions.RunContinuationsAsynchronously);
+        using var cancellation = token.Register(() => completion.TrySetCanceled());
+        entity = CreateEntity(GCoord, entityIndex, entity,
+            () => completion.TrySetResult(entity), error => completion.TrySetException(error), token);
+        return await completion.Task;
+    }
+
+    public static async Task<Entity> DeserializeEntityAsync(Entity entity, CancellationToken token = default) {
+        var completion = new TaskCompletionSource<Entity>(TaskCreationOptions.RunContinuationsAsynchronously);
+        using var cancellation = token.Register(() => completion.TrySetCanceled());
+        DeserializeEntity(entity, () => completion.TrySetResult(entity),
+            error => completion.TrySetException(error), token);
+        return await completion.Task;
     }
 
     public static void ReleaseEntity(Guid entityId, Action cb = null) {
@@ -100,63 +117,87 @@ public static class EntityManager
         });
     }
 
-    public static void ReleaseChunkEntities(int3 CCoord, bool await = false) {
-        int mapChunkSize = Config.CURRENT.Quality.Terrain.value.mapChunkSize;
-        CPUMapManager.ChunkMapInfo mapInfo = CPUMapManager.AddressDict[CPUMapManager.HashCoord(CCoord)];
-        if (!mapInfo.valid) return;
-        //mapinfo.CCoord is coord of previous chunk
-        Bounds bounds = new(((float3)mapInfo.CCoord + 0.5f) * mapChunkSize, (float3)mapChunkSize);
+    public static void CompleteJobs() => Executor?.Complete();
 
-        HashSet<Entity> Entities = new HashSet<Entity>();
-        ESTree.QueryExclusive(bounds, (entity) => {
-            if (entity == null) return;
-            if (!TryGetEntity(entity.info.rtEntityId, out entity)) return; //get root entity
-            //If it's inactive it most likely has been recently released by another chunk and
-            // moved in the way of this chunk before it can be properly released from memory
-            if (!entity.active) return;
-            //This is the only entity that is not serialized and saved
-            if (entity.info.rtEntityId == PlayerHandler.data.info.rtEntityId) return;
-            //This will immediately mark the entity as inactive
-            if(Entities.Add(entity)) ReleaseEntity(entity.info.rtEntityId);
-        });
-        Task awaitableTask = Task.Run(() => Chunk.SaveEntitiesToJsonAsync(Entities.ToList(), mapInfo.CCoord));
-        if (await) awaitableTask.Wait();
+    public static Task InitializeChunkEntitiesAsync(List<Entity> entities, CancellationToken token = default) {
+        if (entities == null) return Task.CompletedTask;
+        var tasks = new List<Task>(entities.Count);
+        foreach (var entity in entities) tasks.Add(DeserializeEntityAsync(entity, token));
+        return Task.WhenAll(tasks);
+    }
+
+    public static void FlushPendingHandlers() {
+        CompleteJobs();
+        if (HandlerEvents == null) return;
+        while (HandlerEvents.TryDequeue(out Action action)) action();
+    }
+
+    public static async Task ReleaseChunkEntitiesAsync(int3 CCoord, bool save = true) {
+        if (ESTree.tree == null) return;
+        var entities = GetChunkEntities(CCoord);
+        entities.RemoveAll(entity => entity.IsOwner || (!PlayerHandler.Players.IsEmpty && PlayerHandler.Players.Values.Contains(entity)));
+        if (entities.Count != 0) {
+            var released = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            foreach (var entity in entities) ReleaseEntity(entity.info.rtEntityId);
+            // The FIFO handler queue runs after the current entity job completes.
+            AddHandlerEvent(() => released.TrySetResult(true));
+            await released.Task;
+        }
+        if (save) await Chunk.SaveEntitiesToJsonAsync(entities, CCoord);
     }
     public static void ReleaseE(Guid entityId){
         if(!EntityIndex.TryGetValue(entityId, out Entity entity))
             return;
 
         entity.active = false;
+        if (entity.IsAuthority && EntitySubCCoord.TryGetValue(entityId, out var CCoord)
+            && CPUMapManager.TryGetChunkInfo(CCoord, out var chunk)) {
+            foreach (var driver in chunk.Generation.GetDriverSet()) driver.Source.LeaveEntity(entityId);
+        }
         EntityReg.Remove(entity);
         EntityIndex.Remove(entityId);
         ESTree.Delete(entityId);
+        EntitySubCCoord.Remove(entityId);
         entity.Disable();
     }
 
-    public static void InitializeE(Entity nEntity, float3 GCoord, uint entityIndex) {
+    private static void InitializeE(Entity nEntity, float3 GCoord, uint entityIndex) {
         Authoring authoring = Config.CURRENT.Generation.Entities.Reg[(int)entityIndex];
         nEntity.info.rtEntityId = Guid.NewGuid();
-        nEntity.info.entityId = nEntity.info.rtEntityId;
         nEntity.info.entityType = entityIndex;
         nEntity.active = true;
 
+        EntityIndex.Add(nEntity.info.rtEntityId, nEntity);
         EntityReg.Add(nEntity);
-        if (EntityIndex.ContainsKey(nEntity.info.entityId)) Debug.Log($"Found entity with duplicate Ids {nEntity.info.entityId}");
-        EntityIndex[nEntity.info.entityId] = nEntity;
         nEntity.Initialize(authoring.Setting, authoring.Controller, GCoord);
+        nEntity.transform.Register(nEntity);
         ESTree.Insert(nEntity);
+        InitializeLocalVisual(nEntity);
     }
 
-    public static void DeserializeE(Entity sEntity){
+    private static void DeserializeE(Entity sEntity){
+        if (sEntity == null) throw new System.ArgumentNullException(nameof(sEntity));
+        if (sEntity.info.rtEntityId == Guid.Empty)
+            throw new ArgumentException("A loaded entity must have its shared runtime ID.", nameof(sEntity));
+        // Initial snapshots may overlap incremental enters. Never initialize a live ID twice.
+        if (EntityIndex.ContainsKey(sEntity.info.rtEntityId)) return;
         var reg = Config.CURRENT.Generation.Entities;
         Authoring authoring = reg.Retrieve((int)sEntity.info.entityType);
         sEntity.active = true;
 
+        EntityIndex.Add(sEntity.info.rtEntityId, sEntity);
         EntityReg.Add(sEntity);
-        if (EntityIndex.ContainsKey(sEntity.info.entityId)) Debug.Log($"Found entity with duplicate Ids {sEntity.info.entityId}");
-        EntityIndex[sEntity.info.entityId] = sEntity;
         sEntity.Deserialize(authoring.Setting, authoring.Controller, out _);
+        sEntity.transform.Register(sEntity);
         ESTree.Insert(sEntity);
+        InitializeLocalVisual(sEntity);
+    }
+
+    private static void InitializeLocalVisual(Entity entity) {
+        if (!entity.IsAuthority || (ChunkGenerationDriver.Local != null
+            && CPUMapManager.TryGetChunkInfo(GetChunkCoordinate(entity.position), out var chunk)
+            && chunk.Generation.GetDriverSet().Contains(ChunkGenerationDriver.Local)))
+            entity.InitializeVisual();
     }
     public static void DeserializeEntities(List<Entity> entities){
         if(entities == null) return;
@@ -167,39 +208,14 @@ public static class EntityManager
 
 
     public static void Initialize() {
-        GraphicsResourceContext gpuContext = GraphicsGeneration;
         ESTree = new STree(MAX_ENTITY_COUNT * 2 + 1);
         EntityReg = new HashSet<Entity>();
         EntityIndex = new Dictionary<Guid, Entity>();
+        EntitySubCCoord = new Dictionary<Guid, int3>();
         HandlerEvents = new ConcurrentQueue<Action>();
         Executor = new EntityJob();
         ArterraRuntime.MainFixedUpdateTasks.Enqueue(Executor);
         Indicators.Initialize();
-
-        int numPointsPerAxis = Config.CURRENT.Quality.Terrain.value.mapChunkSize;
-        int numPoints = numPointsPerAxis * numPointsPerAxis * numPointsPerAxis;
-
-        bufferOffsets = new EntityGenOffsets(0, numPoints, GenPoint.size);
-        entityGenShader = Resources.Load<ComputeShader>("Compute/TerrainGeneration/Entities/EntityIdentifier");
-        entityTranscriber = Resources.Load<ComputeShader>("Compute/TerrainGeneration/Entities/EntityTranscriber");
-
-        int kernel = entityGenShader.FindKernel("Identify");
-        gpuContext.SetBuffer(entityGenShader, kernel, "chunkEntities", gpuContext.Work.Scratch);
-        gpuContext.SetBuffer(entityGenShader, kernel, "counter", gpuContext.Work.Scratch);
-        gpuContext.SetBuffer(entityGenShader, kernel, "BiomeMap", gpuContext.Work.Scratch);
-        gpuContext.SetInt(entityGenShader, "GPConfig", (int)GenPoint.GenType.Entity);
-        kernel = entityGenShader.FindKernel("Prune");
-        gpuContext.SetBuffer(entityGenShader, kernel, "chunkEntities", gpuContext.Work.Scratch);
-        gpuContext.SetBuffer(entityGenShader, kernel, "counter", gpuContext.Work.Scratch);
-        gpuContext.SetInt(entityGenShader, "bCOUNTER_entities", bufferOffsets.entityCounter);
-        gpuContext.SetInt(entityGenShader, "bCOUNTER_prune", bufferOffsets.prunedCounter);
-        gpuContext.SetInt(entityGenShader, "bSTART_entities", bufferOffsets.entityStart);
-        gpuContext.SetInt(entityGenShader, "bSTART_prune", bufferOffsets.prunedStart);
-
-        gpuContext.SetBuffer(entityTranscriber, 0, "chunkEntities", gpuContext.Work.Scratch);
-        gpuContext.SetBuffer(entityTranscriber, 0, "counter", gpuContext.Work.Scratch);
-        gpuContext.SetInt(entityTranscriber, "bCOUNTER_entities", bufferOffsets.prunedCounter);
-        gpuContext.SetInt(entityTranscriber, "bSTART_entities", bufferOffsets.prunedStart);
 
         EnsurePlayerEntity();
 
@@ -234,10 +250,10 @@ public static class EntityManager
         for(int x = 0; x < setting.profile.bounds.x; x++) {
         for(int y = 0; y < setting.profile.bounds.y; y++) {
         for(int z = 0; z < setting.profile.bounds.z; z++) {
-            int3 coord = new (x, y, z);
+            int3 profileMCoord = new (x, y, z);
             ProfileE profile = default;
             StructureData.CheckInfo check = default;
-            if (math.any(coord == 0)) {
+            if (math.any(profileMCoord == 0)) {
                 check.MinLiquid = 0; check.MaxLiquid = (uint)MapData.MaxDensity;
                 check.MinSolid = (uint)(MapData.MaxDensity * rSettings.IsoLevel);
                 check.MaxSolid = (uint)MapData.MaxDensity;
@@ -248,7 +264,7 @@ public static class EntityManager
                 check.MaxSolid = (uint)(MapData.MaxDensity * rSettings.IsoLevel);
                 profile.flags = ProfileE.AND;
             } profile.bounds = check;
-            int index = CustomUtility.irregularIndexFromCoord(coord, new int2(y, z));
+            int index = CustomUtility.irregularIndexFromCoord(profileMCoord, new int2(y, z));
             playerProfile[index] = profile;
         }}} //Construct profile from size
 
@@ -269,64 +285,76 @@ public static class EntityManager
     public static void Release() {
         Executor?.Complete();
         foreach (Entity entity in EntityReg) {
+            entity.active = false;
             entity.Disable();
         }
+        EntitySubCCoord.Clear();
+        EntityIndex.Clear();
+        EntityReg.Clear();
+        HandlerEvents.Clear();
+        CurUpdateEntities = Array.Empty<Entity>();
         List<Authoring> EntityDictionary = Config.CURRENT.Generation.Entities.Reg;
         foreach (Authoring entity in EntityDictionary) entity.Setting.Unset();
     }
 
-    public static void PlanEntities(AsyncGenInfoReadback readback, int biomeStart, int3 CCoord, int chunkSize){
-        GraphicsResourceContext gpuContext = GraphicsGeneration;
-        int numPointsAxes = chunkSize;
-        gpuContext.Work.ClearRange(gpuContext.Work.Scratch, 3, bufferOffsets.bufferStart);
+    public static void FlushUpdateCycle() {
+        while(HandlerEvents.TryDequeue(out Action action)){
+            action.Invoke();
+        }
 
-        int kernel = entityGenShader.FindKernel("Identify");
-        gpuContext.SetInt(entityGenShader, ShaderIDProps.StartBiome, biomeStart);
-        gpuContext.SetInt(entityGenShader, ShaderIDProps.NumPointsPerAxis, numPointsAxes);
-        gpuContext.SetInts(entityGenShader, ShaderIDProps.CCoord, new int[] { CCoord.x, CCoord.y, CCoord.z });
-
-        entityGenShader.GetKernelThreadGroupSizes(kernel, out uint threadGroupSize, out _, out _);
-        int numThreadsPerAxis = Mathf.CeilToInt(numPointsAxes / (float)threadGroupSize);
-        gpuContext.Dispatch(entityGenShader, kernel, numThreadsPerAxis, numThreadsPerAxis, numThreadsPerAxis);
-
-        kernel = entityGenShader.FindKernel("Prune");
-        gpuContext.SetBuffer(entityGenShader, kernel, ShaderIDProps.MemoryBuffer, GPUMapManager.Storage);
-        gpuContext.SetBuffer(entityGenShader, kernel, ShaderIDProps.AddressDict, GPUMapManager.Address);
-
-        ComputeBuffer args = gpuContext.Args.CountToArgs(entityGenShader, gpuContext.Work.Scratch, bufferOffsets.entityCounter, kernel: kernel);
-        gpuContext.DispatchIndirect(entityGenShader, kernel, args);
-
-        kernel = entityTranscriber.FindKernel("CSMain");
-        int address = readback.AddGenPoints(gpuContext.Work.Scratch, bufferOffsets.prunedCounter, bufferOffsets.tempCounter);
-        gpuContext.SetBuffer(entityTranscriber, kernel, ShaderIDProps.MemoryBuffer, gpuContext.Memory.GetBlockBuffer(address));
-        gpuContext.SetBuffer(entityTranscriber, kernel, ShaderIDProps.AddressDict, gpuContext.Memory.Address);
-        gpuContext.SetInt(entityTranscriber, ShaderIDProps.AddressIndex, (int)address);
-
-        args = gpuContext.Args.CountToArgs(entityTranscriber, gpuContext.Work.Scratch, bufferOffsets.prunedCounter, kernel: kernel);
-        gpuContext.DispatchIndirect(entityTranscriber, kernel, args);
-    }
-
-    public struct EntityGenOffsets: BufferOffsets{
-        public int entityCounter;
-        public int prunedCounter;
-        public int tempCounter;
-        public int entityStart;
-        public int prunedStart;
-        private int offsetStart; private int offsetEnd;
-        public int bufferStart{get{return offsetStart;}} public int bufferEnd{get{return offsetEnd;}}
-
-        public EntityGenOffsets(int bufferStart, int numPoints, int entityStride){
-            offsetStart = bufferStart;
-            entityCounter = bufferStart;
-            prunedCounter = bufferStart + 1;
-            tempCounter = bufferStart + 2;
-            entityStart = Mathf.CeilToInt((float)(bufferStart+3) / entityStride);
-            prunedStart = entityStart + numPoints;
-            int prunedEnd_W = (prunedStart + numPoints) * entityStride;
-            offsetEnd = prunedEnd_W;
+        if (EntityIndex.Count == 0) { CurUpdateEntities = Array.Empty<Entity>(); return; }
+        CurUpdateEntities = EntityReg.ToArray();
+        foreach (Entity entity in CurUpdateEntities) {
+            ESTree.AssertEntityLocation(entity);
+            UpdateSubscribedListeners(entity);
+            entity.UpdateJobSync();
         }
     }
 
+    private static void UpdateSubscribedListeners(Entity entity) {
+        //No listeners if not acting server
+        if (!NetworkManager.IsActingServer) return; 
+        bool hasPrev; Guid entityId = entity.info.rtEntityId;
+        if (!EntitySubCCoord.TryGetValue(entityId, out int3 pCCoord))
+            hasPrev = false;
+        else hasPrev = true;
+
+        int3 CCoord = GetChunkCoordinate(entity.position);
+        if (hasPrev && math.all(pCCoord == CCoord)) return;
+
+        HashSet<ChunkGenerationDriver> oldDrivers;
+        HashSet<ChunkGenerationDriver> newDrivers;
+        if (hasPrev && CPUMapManager.TryGetChunkInfo(pCCoord, out CPUMapManager.ChunkMapInfo info))
+            oldDrivers = info.Generation?.GetDriverSet() ?? new HashSet<ChunkGenerationDriver>();
+        else oldDrivers = new HashSet<ChunkGenerationDriver>();
+        if (CPUMapManager.TryGetChunkInfo(CCoord, out info)) 
+            newDrivers = info.Generation?.GetDriverSet() ?? new HashSet<ChunkGenerationDriver>();
+        else newDrivers = new HashSet<ChunkGenerationDriver>();
+
+        IEnumerable<ChunkGenerationDriver> enteringDrivers = newDrivers.Except(oldDrivers);
+        IEnumerable<ChunkGenerationDriver> leavingDrivers = oldDrivers.Except(newDrivers);
+        foreach(ChunkGenerationDriver driver in enteringDrivers) {
+            driver.Source.EnterEntity(entity);
+        } foreach(ChunkGenerationDriver driver in leavingDrivers) {
+            driver.Source.LeaveEntity(entityId);
+        }
+        EntitySubCCoord[entityId] = CCoord;
+    }
+
+    public static int3 GetChunkCoordinate(float3 GCoord) => CPUMapManager.GSToCS((int3)math.floor(GCoord));
+
+    /// <summary>Fresh origin-based chunk membership.</summary>
+    public static List<Entity> GetChunkEntities(int3 CCoord) {
+        int size = Config.CURRENT.Quality.Terrain.value.mapChunkSize;
+        var result = new HashSet<Entity>();
+        if (ESTree.tree == null) return new List<Entity>();
+        ESTree.QueryExclusive(new Bounds(((float3)CCoord + 0.5f) * size, (float3)size), candidate => {
+            // Spatial aliases resolve to their root before membership is checked.
+            if (candidate == null || !TryGetEntity(candidate.info.rtEntityId, out var entity) || !entity.active) return;
+            if (math.all(GetChunkCoordinate(entity.position) == CCoord)) result.Add(entity);
+        });
+        return result.ToList();
+    }
 
     //More like a BVH, or a dynamic R-Tree
     public struct STree{
@@ -342,8 +370,8 @@ public static class EntityManager
 
         public readonly ref TreeNode this[Guid entityId]{
             get{
-                if(SpatialIndex.ContainsKey(entityId))
-                    return ref tree[SpatialIndex[entityId]];
+                if(SpatialIndex.TryGetValue(entityId, out uint index))
+                    return ref tree[index];
                 throw new KeyNotFoundException($"Entity with ID {entityId} not found.");
             }
         }
@@ -367,7 +395,7 @@ public static class EntityManager
 
         public void AssertEntityLocation(Entity entity){
             Bounds nBounds = new Bounds(entity.position, entity.transform.size);
-            AssertEntityLocation(entity.info.entityId, nBounds);
+            AssertEntityLocation(entity.info.rtEntityId, nBounds);
         }
 
         //We allow this option to support objects with multiple bounds
@@ -375,9 +403,10 @@ public static class EntityManager
         //Every unique bound must have a unique ID, but they can be associated to the same
         //Entity under EntityIndex
         public void AssertEntityLocation(Guid entityId, Bounds bounds){
-            if(!this.Contains(entityId)) return;
-            if(Contains(this[this[entityId].Parent].bounds, bounds)){
-                this[entityId].bounds = bounds;
+            if(!SpatialIndex.TryGetValue(entityId, out uint index)) return;
+            ref TreeNode node = ref tree[index];
+            if(Contains(tree[node.Parent].bounds, bounds)){
+                node.bounds = bounds;
                 return;
             }
             this.Delete(entityId);
@@ -387,7 +416,7 @@ public static class EntityManager
         public void Insert(Entity entity){
             float3 colliderSize = entity.transform.size;
             Bounds eEBounds = new (entity.position, colliderSize);
-            Insert(eEBounds, entity.info.entityId);
+            Insert(eEBounds, entity.info.rtEntityId);
         }
 
         public void Insert(Bounds bounds, Guid eId){
@@ -434,8 +463,8 @@ public static class EntityManager
         public void Delete(Guid entityId){
             if(tree == null) return;
             if(length <= 1) return;
-            if(!SpatialIndex.ContainsKey(entityId)) return;
-            int index = (int)SpatialIndex[entityId];
+            if(!SpatialIndex.TryGetValue(entityId, out uint spatialIndex)) return;
+            int index = (int)spatialIndex;
             SpatialIndex.Remove(entityId);
 
             if(index > length - 1 || index == 0) return;
@@ -499,7 +528,7 @@ public static class EntityManager
             if (node.IsLeaf) {
                 Entity entity = node.GetLeaf;
                 //We use entity.position because some entities could have multiple bounds
-                if (ContainsExclusive(bounds, entity.position))
+                if (entity != null && ContainsExclusive(bounds, entity.position))
                     action.Invoke(entity);
                 return;
             }
@@ -669,13 +698,6 @@ public class EntityJob : Arterra.Core.ArterraRuntime.IUpdateSubscriber{
         accumulatedTime = 0;
         cxt = new Context{
             Profile = (ProfileE*)GenerationPreset.entityHandle.entityProfileArray.GetUnsafePtr(),
-            mapContext = new CPUMapManager.MapContext{
-                MapData = (MapData*)CPUMapManager.SectionedMemory.GetUnsafePtr(),
-                AddressDict = (CPUMapManager.ChunkMapInfo*)CPUMapManager.AddressDict.GetUnsafePtr(),
-                mapChunkSize = Config.CURRENT.Quality.Terrain.value.mapChunkSize,
-                numChunksAxis = CPUMapManager.numChunksAxis,
-                IsoValue = (int)Math.Round(Config.CURRENT.Quality.Terrain.value.IsoLevel * 255.0),
-            },
 
             gravity = Physics.gravity / Config.CURRENT.Quality.Terrain.value.lerpScale,
             deltaTime = 0,
@@ -705,6 +727,8 @@ public class EntityJob : Arterra.Core.ArterraRuntime.IUpdateSubscriber{
         accumulatedTime = 0;
 
         EntityManager.FlushUpdateCycle();
+        // Non-authority animals route this job update through ClientSimulation.
+        if (EntityManager.CurUpdateEntities == null || EntityManager.CurUpdateEntities.Length == 0) return;
         handle = cxt.Schedule(EntityManager.CurUpdateEntities.Length, 16);
         dispatched = true;
     }
@@ -712,12 +736,11 @@ public class EntityJob : Arterra.Core.ArterraRuntime.IUpdateSubscriber{
     public struct Context: IJobParallelFor{
         [NativeDisableUnsafePtrRestriction]
         [ReadOnly] public unsafe ProfileE* Profile;
-        [ReadOnly] public CPUMapManager.MapContext mapContext;
         [ReadOnly] public float3 gravity;
         [ReadOnly] public float deltaTime;
         [ReadOnly] public float totDeltaTime;
         [ReadOnly] public int UpdateCount;
-        public unsafe void Execute(int index){
+        public void Execute(int index){
             Profiler.BeginSample(EntityManager.CurUpdateEntities[index].GetType().ToString());
             EntityManager.CurUpdateEntities[index].Update();
             Profiler.EndSample();

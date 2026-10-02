@@ -134,7 +134,7 @@ namespace Arterra.Engine.Terrain{
         public static TerrainChunk.Status GetRegionMinimalStatus(int3 MinGCoord, int3 MaxGCoord) {
             TerrainChunk.Status status  = new () {
                 ReadSaveState = TerrainChunk.Status.State.Finished,
-                CreateMap = TerrainChunk.Status.State.Finished,
+                PublishMap = TerrainChunk.Status.State.Finished,
                 SetMap = TerrainChunk.Status.State.Finished,
                 ShrinkMap = TerrainChunk.Status.State.Finished,
                 UpdateMesh = TerrainChunk.Status.State.Finished,
@@ -145,7 +145,7 @@ namespace Arterra.Engine.Terrain{
             Bounds region = new Bounds((float3)center, (float3)size);
             octree.IterateChunksInRegion(region, c => {
                 status.ReadSaveState = (TerrainChunk.Status.State)math.min((int)c.status.ReadSaveState, (int)status.ReadSaveState);
-                status.CreateMap = (TerrainChunk.Status.State)math.min((int)c.status.CreateMap, (int)status.CreateMap);
+                status.PublishMap = (TerrainChunk.Status.State)math.min((int)c.status.PublishMap, (int)status.PublishMap);
                 status.SetMap = (TerrainChunk.Status.State)math.min((int)c.status.SetMap, (int)status.SetMap);
                 status.ShrinkMap = (TerrainChunk.Status.State)math.min((int)c.status.ShrinkMap, (int)status.ShrinkMap);
                 status.UpdateMesh = (TerrainChunk.Status.State)math.min((int)c.status.UpdateMesh, (int)status.UpdateMesh);
@@ -291,7 +291,9 @@ namespace Arterra.Engine.Terrain{
             /// mathematically instead.</remarks>
             public uint GetNeighborDepths(uint index) {
                 Node node = octree.nodes[index];
-                int3 delta = (int3)math.sign(node.origin - ViewPosGS);
+                int3 center = node.origin + (int3)node.size / 2;
+                // viewer < center => far side is +; else far side is -
+                int3 delta = math.select(new int3(-1), new int3(1), ViewPosGS < center);
                 uint neighborDepths = 0;
                 for (int i = 0; i < 3; i++) {
                     int3 axisDelta = math.select(0, delta, new bool3(i == 0, i == 1, i == 2));

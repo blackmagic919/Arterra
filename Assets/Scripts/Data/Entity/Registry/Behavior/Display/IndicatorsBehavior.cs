@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Arterra.Configuration;
 using Arterra.Configuration.Gameplay;
@@ -62,7 +63,7 @@ public static class Indicators {
 #endif
         }
 
-        SelectionIndicator = Object.Instantiate(Resources.Load<GameObject>("Prefabs/GameUI/Effects/Selection"));
+        SelectionIndicator = UnityEngine.Object.Instantiate(Resources.Load<GameObject>("Prefabs/GameUI/Effects/Selection"));
         DamageIndicator = Resources.Load<GameObject>("Prefabs/GameUI/Effects/DamageEffect");
         BarIndicator = Resources.Load<GameObject>("Prefabs/GameUI/Stats/EntityStats");
         SelectionIndicator.SetActive(false);
@@ -130,7 +131,7 @@ public static class Indicators {
 
     //Audio
     public static void PlayWaterSplash(Entity entity, float weight = 1) {
-        if (entity == null || !entity.active) return;
+        if (entity == null || !entity.active || !entity.VisualActive) return;
         float strength = math.length(entity.velocity);
         if (strength <= 4) return;
         strength *= weight / 1500; //arbitrary rescaling
@@ -164,7 +165,8 @@ public class InidcatorsBehavior : SpeciesBehavior {
     private GameObject controller;
     private BehaviorEntity.Animal self;
     private bool InWater;
-    private void OnEnterWater(object source, object target, object density) {
+    private float damageDelay;
+    private void OnEnterWater(object srcId, object _, object density) {
         if (InWater) return;
         InWater = true;
         float weight = vit != null ? vit.weight : 1;
@@ -172,25 +174,28 @@ public class InidcatorsBehavior : SpeciesBehavior {
     }
 
 
-    private void OnEnterGas(object source, object target, object density) {
+    private void OnEnterGas(object srcId, object _, object density) {
         if (!InWater) return;
         InWater = false;
         float weight = vit != null ? vit.weight : 1;
         AddHandlerEvent(() => Indicators.PlayWaterSplash(self, weight));
     }
 
-    private void OnDamaged(object self, object attacker, object cxt) {
+    private void OnDamaged(object srcId, object atkrId, object cxt) {
         if (cxt is not RefTuple<(float damage, float3 kb)> d1) return;
-        float thresh = vit != null ? vit.stats.MaxHealth * 0.01f : 0.1f;
+        damageDelay = vit?.stats.InvincTime ?? 0f;
+        float thresh = vit != null ? vit.MaxHealth * 0.01f : 0.1f;
         if (d1.Value.damage < thresh) return;
-        if (self is not Entity selfE) return;
+        if (srcId is not Guid sourceId) return;
+        if (!TryGetEntity(sourceId, out Entity selfE)) return;
         
-        selfE.eventCtrl.RaiseEvent(GameEvent.Entity_DamageIndication, self, attacker, cxt);
+        selfE.eventCtrl.RaiseEvent(GameEvent.Entity_DamageIndication, srcId, atkrId, cxt);
         if (cxt is not RefTuple<(float damage, float3 kb)> data) return;
 
-        EntityManager.AddHandlerEvent(() => {
+        AddHandlerEvent(() => {
+            if (!selfE.VisualActive || !selfE.active) return;
             Indicators.DisplayDamageParticle(selfE.position, data.Value.kb); 
-            Indicators.PlayDamageTick(selfE, data.Value.damage/vit.stats.MaxHealth); 
+            Indicators.PlayDamageTick(selfE, data.Value.damage / (vit?.MaxHealth ?? 1f));
         });
     }
 
@@ -229,34 +234,11 @@ public class InidcatorsBehavior : SpeciesBehavior {
        if(multiplier != null) multiplier.text = effect.count <= 1 ? null : $"x{Effects[iconName].Item1}";
     }
 
-    private void OnAddBehavior(object source, object behavior) {
-        if (behavior is not IEffect behaviorEffect) return;
-        try {
-            AddEffect(behaviorEffect);   
-        } catch(System.Exception e) {
-            Debug.Log(Config.CURRENT.Generation.Entities.RetrieveName((int)self.info.entityType));
-        }
-    }
+    private void OnAddBehavior(object source, object behavior, object context) => SetupEffectWindow();
+    private void OnRemoveBehavior(object source, object behavior, object context) => SetupEffectWindow();
 
-    private void OnRemoveBehavior(object source, object behavior) {
-        if (behavior is not IEffect behaviorEffect) return;
-        if (Effects == null) return;
-
-        string iconName = behaviorEffect.Icon;
-        if (!Effects.TryGetValue(iconName, out var effectData))
-            return;
-
-        if (effectData.Item1 > 1) {
-            Effects[iconName] = (effectData.Item1 - 1, effectData.Item2);
-            SetCount(iconName);
-            return;
-        }
-
-        GameObject.Destroy(effectData.Item2.gameObject);
-        Effects.Remove(iconName);
-    }
-
-    public override void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
+    public override void InitializeVisual(BehaviorEntity.Animal self) {
+            var setting = self.settings;
         if (!self.Is(out vit)) vit = null;
         if (!self.Is(out map)) map = null;
         this.controller = self.controller.gameObject;
@@ -265,15 +247,7 @@ public class InidcatorsBehavior : SpeciesBehavior {
         SetStatDisplay(Stats.DisplayEntityStats);
         HookEvents();
     }
-    public override void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
-        if (!self.Is(out vit)) vit = null;
-        if (!self.Is(out map)) map = null;
-        this.controller = self.controller.gameObject;
-        this.self = self;
 
-        SetStatDisplay(Stats.DisplayEntityStats);
-        HookEvents();
-    }
 
     public void SetStatDisplay(bool IsActive) {
         object display = IsActive;
@@ -283,7 +257,7 @@ public class InidcatorsBehavior : SpeciesBehavior {
     public void ToggleStatDisplay(ref object IsActive) {
         this.active = (bool)IsActive;
         if (stats != null) GameObject.Destroy(stats);
-        if (!self.active) return;
+        if (self == null || !self.active || !self.VisualActive) return;
         if (!active) return;
         
         stats = GameObject.Instantiate(Indicators.BarIndicator, controller.transform);
@@ -297,28 +271,36 @@ public class InidcatorsBehavior : SpeciesBehavior {
     private void HookEvents() {
         self.eventCtrl.AddEventHandler(GameEvent.Entity_InLiquid, OnEnterWater);
         self.eventCtrl.AddEventHandler(GameEvent.Entity_InGas, OnEnterGas);
-        self.eventCtrl.AddContextlessEventHandler(GameEvent.Entity_AddBehavior, OnAddBehavior);
-        self.eventCtrl.AddContextlessEventHandler(GameEvent.Entity_RemoveBehavior, OnRemoveBehavior);
+        self.eventCtrl.AddEventHandler(GameEvent.Entity_AddBehavior, OnAddBehavior, EventHandlePriority.CommutativeFinal);
+        self.eventCtrl.AddEventHandler(GameEvent.Entity_RemoveBehavior, OnRemoveBehavior, EventHandlePriority.CommutativeFinal);
         self.eventCtrl.AddEventHandler(GameEvent.Entity_Damaged, OnDamaged);
         Config.CURRENT.System.AddHook("Statistics:Display", ToggleStatDisplay);
     }
     
-    public override void Disable(BehaviorEntity.Animal self) {
+    public override void DisposeVisual(BehaviorEntity.Animal self) {
         Config.CURRENT.System.RemoveHook("Statistics:Display", ToggleStatDisplay);
+        self.eventCtrl.RemoveEventHandler(GameEvent.Entity_InLiquid, OnEnterWater);
+        self.eventCtrl.RemoveEventHandler(GameEvent.Entity_InGas, OnEnterGas);
+        self.eventCtrl.RemoveEventHandler(GameEvent.Entity_AddBehavior, OnAddBehavior);
+        self.eventCtrl.RemoveEventHandler(GameEvent.Entity_RemoveBehavior, OnRemoveBehavior);
+        self.eventCtrl.RemoveEventHandler(GameEvent.Entity_Damaged, OnDamaged);
+        if (stats != null) GameObject.Destroy(stats);
+        stats = null; healthStat = null; damageStat = null; breathStat = null; effectWindow = null;
+        Effects?.Clear();
+        active = false;
+        damageDelay = 0;
         this.self = null;
     }
     
 
     public override void Update(BehaviorEntity.Animal self) {
-        if (self.context == BehaviorEntity.UpdateContext.Job)
-            return;
-        if (self.context == BehaviorEntity.UpdateContext.Fixed)
-            return;
+            if (self.context != BehaviorEntity.UpdateContext.Visual) return;
         
+        damageDelay = math.max(0, damageDelay - self.DeltaTime);
         if(!active) return;
         if(healthStat != null && vit != null) healthStat.fillAmount = vit.healthPercent;
         if(breathStat != null && map != null) breathStat.fillAmount = math.fmod(map.breathPercent, 1);;
-        if(vit.invincibility > 0) return;
+        if (damageDelay > 0) return;
         if(damageStat != null && vit != null) damageStat.fillAmount = math.max(vit.healthPercent, damageStat.fillAmount - 0.01f);
     }
 

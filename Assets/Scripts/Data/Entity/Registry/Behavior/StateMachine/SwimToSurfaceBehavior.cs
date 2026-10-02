@@ -11,7 +11,7 @@ namespace Arterra.Data.Entity.Behavior{
         public EntitySMTasks TaskName = EntitySMTasks.ApproachSurface;
         public EntitySMTasks OnReachSurface = EntitySMTasks.Idle;
         public MMove.SubProfiles SurfaceProfile;
-        [JsonIgnore][UISetting(Ignore = true)][HideInInspector]
+        [JsonIgnore][UIHidden][HideInInspector]
         public EntitySetting.ProfileInfo _Profile;
 
         //Proxy Test is not a real state and cannot be transitioned to, instead, it is used to 
@@ -68,8 +68,8 @@ namespace Arterra.Data.Entity.Behavior{
         private float RunSpeed => MMove.Speed(mmove, settings.TaskName, mod, MSettings.RunSpeed, movement.runSpeed);
 
         public override void Update(BehaviorEntity.Animal self) {
+            if (self.context != BehaviorEntity.UpdateContext.Simulation) return;
             if (manager.TaskIndex != settings.TaskName) return;
-            if (self.context == BehaviorEntity.UpdateContext.JobSync) return;
             
             if (path.pathFinder.hasPath) {
                 self.PathCollider.Follow(self, Movement.StaticDirect(

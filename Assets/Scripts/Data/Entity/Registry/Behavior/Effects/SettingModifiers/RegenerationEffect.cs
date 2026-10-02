@@ -1,4 +1,5 @@
 using System;
+using Arterra.Core.Network;
 using Arterra.Editor;
 using Newtonsoft.Json;
 using Unity.Mathematics;
@@ -61,8 +62,7 @@ namespace Arterra.Data.Entity.Behavior {
         }
 
         public override void Update(BehaviorEntity.Animal self) {
-            if (self.context == BehaviorEntity.UpdateContext.JobSync) return;
-            if (self.context == BehaviorEntity.UpdateContext.Main) return;
+            if (self.context != BehaviorEntity.UpdateContext.Simulation) return;
 
             UpdateRegenModifier();
             progress += self.DeltaTime;
@@ -81,9 +81,13 @@ namespace Arterra.Data.Entity.Behavior {
         }
 
         private void UpdateRegenModifier() {
+            if (!NetworkManager.IsActingServer) return;
             if (regenModifierId == Guid.Empty) return;
             if (!mod.TryGetModifier(regenModifierId, out SettingModifier modifier)) return;
-            modifier.value = RegenDelta;
+            float value = RegenDelta;
+            if (modifier.value == value) return;
+            modifier.value = value;
+            mod.SetDirty(MSettings.NaturalRegen, modifier.Id);
         }
     }
 }

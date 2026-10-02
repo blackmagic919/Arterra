@@ -44,13 +44,13 @@ namespace Arterra.GamePlay.UI {
         public void ReapplyHandles() {
             for (int i = 0; i < Info.Length; i++) {
                 if (Info[i] == null) continue;
-                Info[i].OnEnter(OnAddElement(new ItemContext(this, i)));
+                Info[i].OnEnter(OnAddElement?.Invoke(new ItemContext(this, i)) ?? new ItemContext(this, i));
             }
         }
         public void UnapplyHandles() {
             for (int i = 0; i < Info.Length; i++) {
                 if (Info[i] == null) continue;
-                Info[i].OnLeave(OnRemoveElement(new ItemContext(this, i)));
+                Info[i].OnLeave(OnRemoveElement?.Invoke(new ItemContext(this, i)) ?? new ItemContext(this, i));
             }
         }
 
@@ -78,7 +78,7 @@ namespace Arterra.GamePlay.UI {
 
             for (int SlotIndex = 0; SlotIndex < Info.Length; SlotIndex++) {
                 IItem mat = Info[SlotIndex];
-                if (mat.Index != KeyIndex) continue;
+                if (mat == null || mat.Index != KeyIndex) continue;
 
                 delta = mat.AmountRaw - math.max(mat.AmountRaw - remainder, 0);
                 mat.AmountRaw -= delta; remainder -= delta;
@@ -88,6 +88,7 @@ namespace Arterra.GamePlay.UI {
                     OnRemove(removed);
                 }
                 if (mat.AmountRaw == 0) RemoveEntry(SlotIndex);
+                else if (delta != 0) NotifyChange(SlotIndex);
             }
             return start - remainder;
         }
@@ -109,9 +110,10 @@ namespace Arterra.GamePlay.UI {
             foreach (int pSlot in placeSlots) {
                 Info[pSlot] = aItem;
                 ItemContext cxt = new ItemContext(this, pSlot);
-                Info[pSlot].OnEnter(OnAddElement(cxt));
+                Info[pSlot].OnEnter(OnAddElement?.Invoke(cxt) ?? cxt);
                 AttachDisplay(pSlot);
             }
+            NotifyChange(slot);
             return true;
         }
 
@@ -139,9 +141,10 @@ namespace Arterra.GamePlay.UI {
             foreach (int pSlot in placeSlots) {
                 Info[pSlot] = aItem;
                 ItemContext cxt = new ItemContext(this, pSlot);
-                Info[pSlot].OnEnter(OnAddElement(cxt));
+                Info[pSlot].OnEnter(OnAddElement?.Invoke(cxt) ?? cxt);
                 AttachDisplay(pSlot);
             }
+            NotifyChange(head);
             return true;
         }
 
@@ -155,11 +158,25 @@ namespace Arterra.GamePlay.UI {
             int[] placeSlots = slots.FindAll(s => s.GroupReference == matchSlot.GroupReference)
                 .Select(s => system.RetrieveIndex(s.PlaceableSlot)).ToArray();
             foreach (int pSlot in placeSlots) {
-                ClearDisplay(slot);
+                ClearDisplay(pSlot);
                 ItemContext cxt = new ItemContext(this, pSlot);
-                Info[pSlot].OnLeave(OnRemoveElement(cxt));
+                Info[pSlot].OnLeave(OnRemoveElement?.Invoke(cxt) ?? cxt);
                 Info[pSlot] = null;
             }
+            NotifyChange(slot);
+        }
+
+        public void RefreshSlot(int slot, Action update) {
+            for (int i = 0; i < Info.Length; i++)
+                if (ReferenceEquals(Info[i], Info[slot])) ClearDisplay(i);
+            update();
+            for (int i = 0; i < Info.Length; i++)
+                if (ReferenceEquals(Info[i], Info[slot])) AttachDisplay(i);
+        }
+
+        private void NotifyChange(int slot) {
+            ItemContext context = new(this, slot);
+            (OnAddElement?.Invoke(context) ?? context).SetDirty();
         }
 
         public IItem LootItem() {

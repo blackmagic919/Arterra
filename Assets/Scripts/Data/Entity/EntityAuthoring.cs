@@ -20,7 +20,7 @@ public abstract class Authoring : Category<Authoring>{
     public virtual EntitySetting Setting{get; set;}
     /// <summary> A reference to the controller responsible for displaying the entity. The controller is the visual gameobject
     /// representing the entity whose display is managed by Unity. </summary>
-    [UISetting(Ignore = true)][JsonIgnore]
+    [UIHidden][JsonIgnore]
     public Option<GameObject> Controller;
     /// <summary> A list of points defining the profile of the entity, the list is linearly encoded through the dimensions
     /// specified in <see cref="EntitySetting.ProfileInfo"/>. See <see cref="ProfileE"/> for more information </summary>
@@ -39,6 +39,15 @@ public abstract class Entity: IRegistered, IEventControlled{
     /// the entity has been released. Once this flag is set to false, it cannot be set to true without risking race
     /// conditions and undefined behavior. </summary>
     public bool active;
+
+    [JsonIgnore] public bool IsAuthority => Arterra.Core.Network.NetworkManager.IsActingServer;
+    [JsonIgnore] public bool IsOwner => info.rtEntityId != Guid.Empty
+        && Arterra.GamePlay.PlayerHandler.data != null
+        && Arterra.GamePlay.PlayerHandler.data.info.rtEntityId == info.rtEntityId;
+    [JsonIgnore] public virtual bool VisualActive => false;
+
+    public virtual void InitializeVisual() { }
+    public virtual void DisposeVisual() { }
 
     /// <summary> The entity's virtual update function. This will be called every game tick within a Unity Job to 
     /// perform computational-heavy tasks related to the entity. Only the Entity in question is provided mutual
@@ -102,7 +111,7 @@ public abstract class Entity: IRegistered, IEventControlled{
     /// require knowledge of other entity's velocities; however entities that aren't spatially bound
     /// may not fulfill this contract if it no system requires its velocity. </summary>
     [JsonIgnore]
-    public ref float3 velocity => ref transform.velocity;
+    public float3 velocity { get => transform.velocity; set => transform.velocity = value; }
     /// <summary> The quaternion representing the rotation of the entity. </summary>
     [JsonIgnore]
     public virtual Quaternion Facing => transform.rotation;
@@ -120,7 +129,7 @@ public abstract class Entity: IRegistered, IEventControlled{
 
     /// <summary> The event controller responsible for managing all events related to this entity </summary>
     [JsonIgnore]
-    public EventControl eventCtrl = new();
+    public NetworkEventControl eventCtrl = new();
     /// <summary> The interface getter for the event control of the entity </summary>
     public EventControl Events {get => eventCtrl;}
 
@@ -198,11 +207,8 @@ public abstract class Entity: IRegistered, IEventControlled{
     /// </summary>
     [System.Serializable]
     public struct Info{
-        /// <summary> The unique identifier of the entity that remains the same throughout the entity's life cycle, regardless of if it's serialized
-        /// or saved to disk. </summary>
-        public Guid entityId;
-        /// <summary> If this entity belongs to or is a logical part of another entity, the shared Id of the root entity. Certain calculations
-        /// should be preformed on the root entity (e.g. spider rather than leg of a spider). </summary>
+        /// <summary>The shared live identity, retained in saves and on every peer. Collider proxies
+        /// refer to their root entity here and maintain a separate local spatial alias.</summary>
         public Guid rtEntityId;
         /// <summary> The index of the entity's name within the <see cref="Config.GenerationSettings.Entities"/> registry. This is guaranteed to be different
         /// for two different types of entities and can be used to test such. If the entity is serialized, this should be decoupled and recoupled upon deserialization. </summary>
@@ -269,7 +275,7 @@ public abstract class EntitySetting{
         /// that contains the profiles for all entities. This should not be modified and will be assigned in runtime by the configuration of the entity registry.
         /// The size of the information read at this location is determined by <see cref="bounds"/>.
         /// </summary>
-        [NonSerialized][HideInInspector][UISetting(Ignore = true)][JsonIgnore]
+        [NonSerialized][HideInInspector][UIHidden][JsonIgnore]
         public uint profileStart;
     }
 }
@@ -394,5 +400,3 @@ public class MapDataDrawer : PropertyDrawer{
 }
 #endif
 }
-
-

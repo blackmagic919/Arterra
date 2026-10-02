@@ -273,7 +273,7 @@ GameObject:
   - component: {fileID: 5993094730712514726}
   - component: {fileID: 2822981919371650690}
   m_Layer: 5
-  m_Name: ChunkDIsplay
+  m_Name: ChunkDisplay
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -348,7 +348,7 @@ GameObject:
   - component: {fileID: 6230679209828434421}
   - component: {fileID: 1158890962660253057}
   m_Layer: 5
-  m_Name: CreationTime
+  m_Name: SecondaryText
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -485,7 +485,7 @@ GameObject:
   - component: {fileID: 836458554574863420}
   - component: {fileID: 2505563929414770900}
   m_Layer: 5
-  m_Name: AccessTime
+  m_Name: PrimaryText
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

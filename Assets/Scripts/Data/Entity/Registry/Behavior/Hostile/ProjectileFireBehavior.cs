@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Arterra.Configuration;
 using Arterra.Core.Storage;
+using Arterra.Utils;
 using Newtonsoft.Json;
 using Unity.Mathematics;
 using UnityEngine;
@@ -16,7 +17,7 @@ namespace Arterra.Data.Entity.Behavior {
         public Stats Projectile;
         public float BlindDist = 3;
         [JsonIgnore]
-        [UISetting(Ignore = true)]
+        [UIHidden]
         [HideInInspector]
         public HashSet<EntitySMTasks> AttackStates;
 
@@ -57,9 +58,9 @@ namespace Arterra.Data.Entity.Behavior {
         private float ChargeTime => Modifier.Get(mod, MSettings.ChargeTime, settings.Projectile.ChargeTime);
 
         public override void Update(BehaviorEntity.Animal self) {
-            if (self.context != BehaviorEntity.UpdateContext.JobSync)
+            if (self.context == BehaviorEntity.UpdateContext.Simulation)
                 CoreUpdate(self);
-            if (self.context != BehaviorEntity.UpdateContext.Job)
+            if (self.context == BehaviorEntity.UpdateContext.Sync)
                 ControllerUpdate(self);
         }
 
@@ -85,8 +86,8 @@ namespace Arterra.Data.Entity.Behavior {
             if (math.length(fireDirection) < BlindDist) return false;
             
             if (settings.Projectile.CheckSightline) {
-                if (CPUMapManager.RayCastTerrain(self.head, math.normalizesafe(fireDirection), 
-                    math.length(fireDirection), CPUMapManager.RayTestSolid, out float3 hit))
+                if (Terraforming.RayCastTerrain(self.head, math.normalizesafe(fireDirection), 
+                    math.length(fireDirection), Terraforming.RayTestSolid, out float3 hit))
                     return false;
             } 
             ShotInProgress = true;

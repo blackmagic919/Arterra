@@ -34,7 +34,7 @@ namespace Arterra.Data.Entity.Behavior {
             }
         };
 
-        [UISetting(Ignore = true)][HideInInspector][JsonIgnore]
+        [UIHidden][HideInInspector][JsonIgnore]
         public Dictionary<EntitySMTasks, string> _stateAnims;
 
         public object Clone() {
@@ -90,7 +90,10 @@ namespace Arterra.Data.Entity.Behavior {
         public override void Update(BehaviorEntity.Animal self) {
             if (manager == null) return;
             if (AnimatorTask == manager.TaskIndex) return;
-            if (self.context == BehaviorEntity.UpdateContext.Job) return;
+            //We have to persist animation on server because some simulations depend on the animator 
+            if (!self.ShouldUpdateAnimations())
+                return;
+            if (animator == null || !animator.enabled) return;
             if (settings._stateAnims.TryGetValue(AnimatorTask, out string animation)) animator.SetBool(animation, false);
             AnimatorTask = manager.TaskIndex;
             if (settings._stateAnims.TryGetValue(AnimatorTask, out animation)) animator.SetBool(animation, true);

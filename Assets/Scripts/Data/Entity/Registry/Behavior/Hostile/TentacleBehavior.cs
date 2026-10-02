@@ -11,6 +11,7 @@ using TerrainCollider = Arterra.GamePlay.Interaction.TerrainCollider;
 using Arterra.Core.Storage;
 using UnityEngine.Animations.Rigging;
 using Arterra.Data.Item;
+using Arterra.Utils;
 
 namespace Arterra.Data.Entity.Behavior
 {
@@ -46,7 +47,7 @@ namespace Arterra.Data.Entity.Behavior
 		private AnimatedBehavior animated;
 		private StateMachineManagerBehavior manager;
 		[JsonProperty] private Tentacle[] tentacles;
-		private IAttackable selfAtk;
+		private IVitality selfAtk;
 
 		public override void AddBehaviorDependencies(Dictionary<Behaviors, int> heirarchy) {
 			heirarchy.TryAdd(Behaviors.Vitality, heirarchy.Count);
@@ -58,6 +59,7 @@ namespace Arterra.Data.Entity.Behavior
 		}
 
 		public override void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
+            self.controller.KeepAnimatorOnDisposeVisual = true;
 			if (!setting.Is(out settings))
 				throw new Exception("Entity: TentacleBehavior requires TentacleSettings");
 			if (!self.Is(out selfAtk))
@@ -69,6 +71,7 @@ namespace Arterra.Data.Entity.Behavior
 		}
 
 		public override void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
+            self.controller.KeepAnimatorOnDisposeVisual = true;
 			if (!setting.Is(out settings))
 				throw new Exception("Entity: TentacleBehavior requires TentacleSettings");
 			if (!self.Is(out selfAtk))
@@ -111,10 +114,8 @@ namespace Arterra.Data.Entity.Behavior
 		}
 
 		public override void Update(BehaviorEntity.Animal self) {
-            if (self.context != BehaviorEntity.UpdateContext.JobSync)
-                CoreUpdate(self);
-            if (self.context != BehaviorEntity.UpdateContext.Job)
-                ControllerUpdate(self);
+            if (self.context == BehaviorEntity.UpdateContext.Simulation) CoreUpdate(self);
+            if (self.context == BehaviorEntity.UpdateContext.Sync) ControllerUpdate(self);
         }
 
 		public void CoreUpdate(BehaviorEntity.Animal self) {
@@ -134,7 +135,7 @@ namespace Arterra.Data.Entity.Behavior
 
 		public override void Disable(BehaviorEntity.Animal self) {
 			if (tentacles == null) return;
-			foreach(Tentacle t in tentacles) t.Disable();
+			foreach(Tentacle t in tentacles) t?.Disable();
 		}
 
 		public override void OnDrawGizmos(BehaviorEntity.Animal self) {
@@ -148,7 +149,7 @@ namespace Arterra.Data.Entity.Behavior
             }
         }
 
-		private class Tentacle : LeadHeadBehavior.Appendage, IAttackable {
+		private class Tentacle : LeadHeadBehavior.Appendage {
 			private const string TentacleGravityStateName = "TentacleBehavior::Tentacle";
 
 			[JsonIgnore]
@@ -156,7 +157,6 @@ namespace Arterra.Data.Entity.Behavior
             private Transform AnimatedTentacle;
             public TentacleState State;
             private Guid AttackTarget;
-			private IAttackable selfAtk;
 			private TentacleBehavior tb;
             public enum TentacleState {
                 Animated,
@@ -169,20 +169,9 @@ namespace Arterra.Data.Entity.Behavior
 			[JsonConstructor]
 			public Tentacle() {}
 
-			public bool IsDead => selfAtk.IsDead;
-            public void Interact(Entity caller, IItem item = null) => selfAtk.Interact(caller, item);
-            public void Collect(Entity caller, Action<IItem> collect, float collectRate) => selfAtk.Collect(caller, collect, collectRate);
-            public bool TakeDamage(float damage, float3 knockback, Entity attacker = null) {
-                if (selfAtk.TakeDamage(damage, float3.zero, attacker)) {
-                    velocity += knockback;
-					if (State != TentacleState.Animated) 
-						State = TentacleState.BlendAnimate;
-                    return true;
-                } return false;
-            }
-            
 
 			public override void Initialize(BehaviorEntity.Animal self, LeadHeadBehavior.AppendageSettings settings, Transform root) {
+            self.controller.KeepAnimatorOnDisposeVisual = true;
 				this.settings = settings as TentacleSettings.TentacleConfig;
 				this.collider = new(this.settings.collider, self.position + settings.RestOffset);
 				this.collider.SetGravityState(TentacleGravityStateName, TerrainCollider.GravityPriority.Override, false);
@@ -197,11 +186,11 @@ namespace Arterra.Data.Entity.Behavior
                 constraint.weight = 0;
 				active = true;
 
-				if(!self.Is(out selfAtk)) throw new Exception("Entity: Tentacle expected entity to be IAttackable"); 
 				if(!self.Is(out tb)) throw new Exception("Entity: Tentacle expected entity to be TentacleBehavior"); 
 			}
 
 			public override void Deserialize(BehaviorEntity.Animal self, LeadHeadBehavior.AppendageSettings settings, Transform root) {
+            self.controller.KeepAnimatorOnDisposeVisual = true;
                 base.Deserialize(self, settings, root);
                 SetConstraint<ChainIKConstraint>();
 				AnimatedTentacle = (constraint as ChainIKConstraint).data.tip;
@@ -213,7 +202,6 @@ namespace Arterra.Data.Entity.Behavior
                 constraint.weight = 0;
 				active = true;
 
-				if(!self.Is(out selfAtk)) throw new Exception("Entity: Tentacle expected entity to be IAttackable"); 
 				if(!self.Is(out tb)) throw new Exception("Entity: Tentacle expected entity to be TentacleBehavior"); 
 			}
 
@@ -281,7 +269,7 @@ namespace Arterra.Data.Entity.Behavior
 					float3 origin = (float3)collider.transform.position;
                     float3 targetPos = target.position;
                     // Simple raycast for line of sight
-                    return !CPUMapManager.RayCastTerrain(origin, math.normalizesafe(targetPos - origin), math.distance(origin, targetPos), CPUMapManager.RayTestSolid, out _);
+                    return !Terraforming.RayCastTerrain(origin, math.normalizesafe(targetPos - origin), math.distance(origin, targetPos), Terraforming.RayTestSolid, out _);
                 }
 
                 bool IsCloseEnough(Entity target) {

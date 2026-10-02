@@ -43,7 +43,8 @@ namespace Arterra.Data.Entity.Behavior {
             heirarchy.TryAdd(typeof(EntityItemDisplaySettings), new EntityItemDisplaySettings());
         }
 
-        public override void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
+        public override void InitializeVisual(BehaviorEntity.Animal self) {
+            var setting = self.settings;
             if (!setting.Is(out settings))
                 throw new Exception("Entity: EntityItemDisplayBehavior requires AnimalSettings to have EntityItemDisplaySettings");
             if (!self.Is(out itemBehavior))
@@ -58,29 +59,15 @@ namespace Arterra.Data.Entity.Behavior {
             TryRefreshDisplay();
         }
 
-        public override void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
-            if (!setting.Is(out settings))
-                throw new Exception("Entity: EntityItemDisplayBehavior requires AnimalSettings to have EntityItemDisplaySettings");
-            if (!self.Is(out itemBehavior))
-                throw new Exception("Entity: EntityItemDisplayBehavior requires AnimalInstance to have EntityItemBehavior");
 
-            meshFilter = ResolveMeshFilter(self.controller.transform, settings.MeshFilterPath);
-            if (meshFilter == null)
-                throw new Exception("Entity: EntityItemDisplayBehavior failed to find MeshFilter at MeshFilterPath");
-
-            active = true;
-            currentTexIndex = int.MinValue;
-            TryRefreshDisplay();
-        }
 
         public override void Update(BehaviorEntity.Animal self) {
-            if (self.context == BehaviorEntity.UpdateContext.Job) return;
-            if (self.context == BehaviorEntity.UpdateContext.Fixed) return;
+            if (self.context != BehaviorEntity.UpdateContext.Visual) return;
             if (!active) return;
             TryRefreshDisplay();
         }
 
-        public override void Disable(BehaviorEntity.Animal self) {
+        public override void DisposeVisual(BehaviorEntity.Animal self) {
             active = false;
             awaitingMesh = false;
             meshFilter = null;

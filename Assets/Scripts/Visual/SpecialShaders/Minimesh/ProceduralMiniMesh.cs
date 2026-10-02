@@ -15,7 +15,7 @@ namespace Arterra.Engine.Rendering
         [SerializeField] public Catalogue<MiniMeshSetting> settings = default;
 
         [JsonIgnore]
-        [UISetting(Ignore = true)]
+        [UIHidden]
         public Option<Material> material;
 
         [JsonIgnore] private ComputeShader miniMeshCompute;

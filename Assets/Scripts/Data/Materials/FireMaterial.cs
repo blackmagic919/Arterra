@@ -92,7 +92,7 @@ namespace Arterra.Data.Material{
                             out Item.IItem origItem))
                             continue;
                         if (tag.GivesItem)
-                            InventoryController.DropItem(origItem, GCoord);
+                            PlayerInventoriesBehavior.SpawnDrop(origItem, GCoord);
                     }
                 }
             }
@@ -108,7 +108,7 @@ namespace Arterra.Data.Material{
         }
 
         public override void OnEntityTouchSolid(int3 GCoord, Entity.Entity entity) {
-            if (entity == null) return;
+            if (entity == null || !entity.IsAuthority) return;
             if (!entity.Is(out BehaviorEntity.Animal target)) return;
             if (ContactEffects.value == null) return;
 

@@ -43,8 +43,8 @@ namespace Arterra.Data.Entity.Behavior {
         private float RunSpeed => MMove.Speed(mmove, settings.TaskName, mod, MSettings.RunSpeed, movement.runSpeed);
 
         public override void Update(BehaviorEntity.Animal self) {
+            if (self.context != BehaviorEntity.UpdateContext.Simulation) return;
             if (manager.TaskIndex != settings.TaskName) return;
-            if (self.context == BehaviorEntity.UpdateContext.JobSync) return;
             
             if (!EntityManager.TryGetEntity(manager.TaskTarget, out Entity target))
                 manager.TaskTarget = Guid.Empty;
@@ -76,14 +76,14 @@ namespace Arterra.Data.Entity.Behavior {
             }
         }
 
-        private void RespondToAttack(object caller, object attacker) {
-            if (attacker == null) return;
-            if (attacker is not Entity entity) return;
-            if (entity.info.rtEntityId == self.info.rtEntityId) return;
-            if (relations != null && relations.GetAffection(entity.info.rtEntityId)
+        private void RespondToAttack(object clrId, object atkrId) {
+            if (atkrId is not Guid attackerId) return;
+            if (!EntityManager.TryGetEntity(attackerId, out Entity attacker)) return;
+            if (attacker.info.rtEntityId == self.info.rtEntityId) return;
+            if (relations != null && relations.GetAffection(attacker.info.rtEntityId)
                 > relations.settings.SuppressInstinctAffection)
                     return;
-            int entityType = (int)entity.info.entityType;
+            int entityType = (int)attacker.info.entityType;
             if (prey != null && prey.Recognize(entityType))
                 manager.Transition(settings.TaskName);
             else if (predator != null && predator.Recognize(entityType))
@@ -91,7 +91,7 @@ namespace Arterra.Data.Entity.Behavior {
             else if (flee != null && flee.FightAggressor)
                 manager.Transition(settings.TaskName);
             if (manager.TaskIndex == settings.TaskName) 
-                manager.TaskTarget = entity.info.rtEntityId;
+                manager.TaskTarget = attacker.info.rtEntityId;
         }
 
 
@@ -122,7 +122,7 @@ namespace Arterra.Data.Entity.Behavior {
             if (!self.Is(out relations)) relations = null;
             if (!self.Is(out mod)) mod = null;
             
-            self.eventCtrl.AddContextlessEventHandler(Arterra.Core.Events.GameEvent.Entity_Damaged, RespondToAttack);
+            if (self.IsAuthority) self.eventCtrl.AddContextlessEventHandler(GameEvent.Entity_Damaged, RespondToAttack);
             this.self = self;
         }
 
@@ -142,7 +142,7 @@ namespace Arterra.Data.Entity.Behavior {
             if (!self.Is(out relations)) relations = null;
             if (!self.Is(out mod)) mod = null;
             
-            self.eventCtrl.AddContextlessEventHandler(Arterra.Core.Events.GameEvent.Entity_Damaged, RespondToAttack);
+            if (self.IsAuthority) self.eventCtrl.AddContextlessEventHandler(GameEvent.Entity_Damaged, RespondToAttack);
             this.self = self;
         }
 

@@ -9,7 +9,8 @@ using System.Collections.Generic;
 using System.Linq;
 using Arterra.Core.Storage;
 using UnityEngine.Profiling;
-using System.Runtime.CompilerServices;
+using Arterra.Core.Events;
+using Arterra.GamePlay;
 
 namespace Arterra.Data.Entity.Behavior {
     public interface IBehaviorSetting : ICloneable {
@@ -23,10 +24,17 @@ namespace Arterra.Data.Entity.Behavior {
         public void OnValidate(BehaviorEntity.AnimalSetting setting) {}
     }
 
+    /// <summary>Restores references between serialized behaviors without starting gameplay or presentation.</summary>
+    public interface IBindAfterDeserialize {
+        void BindAfterDeserialize(BehaviorEntity.Animal self);
+    }
+
     public abstract class Behavior {
         public virtual void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord){}
         public virtual void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord){}
         public virtual void Update(BehaviorEntity.Animal self){}
+        public virtual void InitializeVisual(BehaviorEntity.Animal self){}
+        public virtual void DisposeVisual(BehaviorEntity.Animal self){}
         public virtual void Disable(BehaviorEntity.Animal self){}
         public virtual void OnDrawGizmos(BehaviorEntity.Animal self) {}
         public Guid Id;
@@ -72,6 +80,8 @@ namespace Arterra.Data.Entity.Behavior {
         PlayerInteraction = BehaviorTypes.Base + 104,
         PlayerInventories = BehaviorTypes.Base + 105,
         PlayerBaseLogicHandler = BehaviorTypes.Base + 106,
+        PlayerCrafting = BehaviorTypes.Base + 107,
+        PlayerArmor = BehaviorTypes.Base + 108,
 
         StateMachine = BehaviorTypes.Creature + 0,
         Attack = BehaviorTypes.Creature + 1,
@@ -160,6 +170,8 @@ namespace Arterra.Data.Entity.Behavior {
             { Behaviors.PlayerEffects, () => new PlayerEffectsBehavior() },
             { Behaviors.PlayerInteraction, () => new PlayerInteractionBehavior() },
             { Behaviors.PlayerInventories, () => new PlayerInventoriesBehavior() },
+            { Behaviors.PlayerCrafting, () => new PlayerCraftingBehavior() },
+            { Behaviors.PlayerArmor, () => new PlayerArmorBehavior() },
             { Behaviors.PlayerBaseLogicHandler, () => new PlayerBaseLogicHandler() },
 
             { Behaviors.StateMachine, () => new StateMachineManagerBehavior()},
@@ -222,7 +234,13 @@ namespace Arterra.Data.Entity.Behavior {
             { Behaviors.Burning, () => new BurningEffect()},
         };
 
-        public enum UpdateContext { Job, Fixed, Main, Late, JobSync }
+        public enum UpdateContext {
+            // Authoritative gameplay and physics only.
+            Simulation,
+            ClientSimulation,
+            Sync,
+            Visual,
+        }
 
         public override void OnValidate() {
             base.OnValidate();
@@ -408,29 +426,22 @@ namespace Arterra.Data.Entity.Behavior {
             }
 
             [JsonIgnore] public override ref TerrainCollider.Transform transform => ref Collider.transform; 
-            [JsonIgnore] public override float3 head => colliderInfo.HeadPosition;
+            [JsonIgnore] public override float3 head => colliderInfo?.HeadPosition ?? default;
             [JsonIgnore] public override Quaternion Facing => Rotation;
             [JsonIgnore] public int3 PathCoord => (int3)math.floor(PathCollider.transform.position);
-            public UpdateContext context = UpdateContext.Job;
-            [JsonIgnore] public float DeltaTime {
-                get {
-                    if (context == UpdateContext.Job || context == UpdateContext.JobSync)
-                        return EntityJob.cxt.deltaTime;
-                    else if(context == UpdateContext.Fixed)
-                        return Time.fixedDeltaTime;
-                    else return Time.deltaTime;
-                }
-            }
-            [JsonIgnore] public float ExactDeltaTime {
-                get {
-                    if (context == UpdateContext.Job || context == UpdateContext.JobSync)
-                        return EntityJob.cxt.totDeltaTime;
-                    else if(context == UpdateContext.Fixed)
-                        return Time.fixedDeltaTime;
-                    else return Time.deltaTime;
-                }
-            }
+            [JsonIgnore] public UpdateContext context = UpdateContext.Simulation;
+            [JsonIgnore] public float DeltaTime => PlayerHandler.IsPlayer(this)
+                ? (context == UpdateContext.Simulation || context == UpdateContext.ClientSimulation
+                ? Time.fixedDeltaTime : Time.deltaTime)
+                : EntityJob.cxt.deltaTime;
+            [JsonIgnore] public float ExactDeltaTime => PlayerHandler.IsPlayer(this)
+                ? (context == UpdateContext.Simulation || context == UpdateContext.ClientSimulation
+                ? Time.fixedDeltaTime : Time.deltaTime)
+                : EntityJob.cxt.totDeltaTime;
 
+
+            // Authority retains animation for simulation; clients update it during presentation.
+            public bool ShouldUpdateAnimations() => context == (IsAuthority ? UpdateContext.Sync : UpdateContext.Visual);
 
             public void Register<TInterface>(TInterface instance) {
                 if (typeof(TInterface) == typeof(IMultiCollider))
@@ -462,6 +473,7 @@ namespace Arterra.Data.Entity.Behavior {
 
             public override void Initialize(EntitySetting setting, GameObject Controller, float3 GCoord) {
                 settings = (AnimalSetting)setting;
+                eventCtrl.Register(this);
                 this.random = new Unity.Mathematics.Random((uint)GetHashCode());
                 this.controller = new AnimalController(Controller, this);
                 
@@ -471,67 +483,85 @@ namespace Arterra.Data.Entity.Behavior {
                 foreach(Behaviors name in settings.BehaviorList.value) {
                     if (!BehaviorTemplates.TryGetValue(name, out var getBehavior))
                         continue;
-                    _addBehavior(getBehavior.Invoke());
+                    AddBehavior(getBehavior.Invoke());
                 }
                 foreach(Behavior behavior in Behaviors) {
                     behavior.Initialize(this, settings, GCoord);
                 }
                 //Clear constructor
                 this.Constructor = null;
+                this.eventCtrl.AddContextlessEventHandler(GameEvent.Entity_AddBehavior, AddBehaviorEvent);
+                this.eventCtrl.AddContextlessEventHandler(GameEvent.Entity_RemoveBehavior, RemoveBehaviorEvent);
                 controller.Initialize(transform);
+                controller.DisposeVisual();
             }
 
-            public override void Deserialize(EntitySetting setting, GameObject Controller, out int3 GCoord) {
-                settings = (AnimalSetting)setting;
+            [System.Runtime.Serialization.OnDeserialized]
+            private void OnDeserialized(System.Runtime.Serialization.StreamingContext _) => BindDeserializedBehaviors();
+
+            private void BindDeserializedBehaviors() {
                 DynamicTypes = new Dictionary<Type, object>();
                 BehaviorIndex = new Dictionary<Guid, Behavior>();
-                this.controller = new AnimalController(Controller, this);
-                GCoord = default;
-
                 Behaviors ??= new List<Behavior>();
+                colliderInfo = null;
 
-                foreach(Behavior behavior in Behaviors) {
+                foreach (Behavior behavior in Behaviors) {
                     Register(behavior.GetType(), behavior);
                     BehaviorIndex[behavior.Id] = behavior;
                 }
 
+                // Preserve the same provider/decorator order used during initialization.
+                foreach (Behavior behavior in Behaviors)
+                    if (behavior is IBindAfterDeserialize binding) binding.BindAfterDeserialize(this);
+            }
+
+            public override void Deserialize(EntitySetting setting, GameObject Controller, out int3 GCoord) {
+                settings = (AnimalSetting)setting;
+                eventCtrl.Register(this);
+                if (DynamicTypes == null) BindDeserializedBehaviors();
+                this.controller = new AnimalController(Controller, this);
+                GCoord = default;
+
                 foreach(Behavior behavior in Behaviors) 
                     behavior.Deserialize(this, settings, ref GCoord);
-
+                
+                this.eventCtrl.AddContextlessEventHandler(GameEvent.Entity_AddBehavior, AddBehaviorEvent);
+                this.eventCtrl.AddContextlessEventHandler(GameEvent.Entity_RemoveBehavior, RemoveBehaviorEvent);
                 controller.Initialize(transform);
+                controller.DisposeVisual();
             }
 
-            public void Update(UpdateContext ctx = UpdateContext.Main) {
-                this.context = ctx;
-                UpdateBehaviors();
-            }
-
-            public override void Update() {
-                if (context == UpdateContext.Job || context == UpdateContext.JobSync)
-                    context = UpdateContext.Job;
-                else return;
-                UpdateBehaviors();
-            }
-
-            public override void UpdateJobSync() {
-                if (context == UpdateContext.Job || context == UpdateContext.JobSync)
-                    context = UpdateContext.JobSync;
-                else return;
-                UpdateBehaviors();
-            }
-
-            public void UpdateBehaviors() {
-                if (!active || !controller.active) return;
-                if (context != UpdateContext.Job) {
-                    if (controller.gameObject == null) return;
-                    controller.Update();
-                }
-
-                foreach(Behavior behavior in Behaviors) {
+            public void Update(UpdateContext ctx) {
+                if (!active) return;
+                if (ctx == UpdateContext.Sync && !IsAuthority) return;
+                if (ctx == UpdateContext.Simulation && !IsAuthority) 
+                    ctx = UpdateContext.ClientSimulation;
+                if (ctx == UpdateContext.Visual && !VisualActive) return;
+                context = ctx;
+                foreach (Behavior behavior in Behaviors) {
                     Profiler.BeginSample(behavior.GetType().Name);
                     behavior.Update(this);
                     Profiler.EndSample();
                 }
+            }
+
+            // PlayerHandler owns player fixed/frame scheduling on the main thread.
+            public override void Update() {
+                if (!PlayerHandler.IsPlayer(this))
+                    Update(UpdateContext.Simulation);
+            }
+
+            public void UpdateSynchronous() {
+                if (!active) return;
+                if (IsAuthority || VisualActive)
+                    controller?.Update();
+                Update(UpdateContext.Sync);
+                Update(UpdateContext.Visual);
+            }
+
+            public override void UpdateJobSync() {
+                if (!PlayerHandler.IsPlayer(this)) 
+                    UpdateSynchronous();
             }
 
             public override void OnDrawGizmos() {
@@ -541,41 +571,68 @@ namespace Arterra.Data.Entity.Behavior {
             }
 
             public override void Disable() {
-                foreach(Behavior behavior in Behaviors) {
-                    behavior.Disable(this);
-                } controller.Dispose();
+                DisposeVisual();
+                if (Behaviors != null)
+                    foreach(Behavior behavior in Behaviors) behavior.Disable(this);
+                eventCtrl.Dispose();
+                controller?.Dispose();
+                colliderInfo?.Collider?.transform.Dispose();
+            }
+
+            [JsonIgnore] public override bool VisualActive => controller?.VisualActive == true;
+
+            public override void InitializeVisual() {
+                if (VisualActive || !active) return;
+                controller?.InitializeVisual();
+                foreach (var behavior in Behaviors) behavior.InitializeVisual(this);
+            }
+
+            public override void DisposeVisual() {
+                if (Behaviors != null)
+                    foreach (var behavior in Behaviors) behavior.DisposeVisual(this);
+                controller?.DisposeVisual();
             }
             
             public bool TryAddBehavior(TempBehavior behavior) {
                 if (behavior == null) return false;
                 behavior.Id = Guid.NewGuid();
-
-                EntityManager.AddHandlerEvent(() => {
-                    if (!behavior.CanApply(this)) return; //race condition when multiple behaviors get added in same update cycle
-                    eventCtrl.RaiseEvent(Core.Events.GameEvent.Entity_AddBehavior, this, behavior);
-                    _addBehavior(behavior, false, false); //doesn't register type as could have multiple temp effects
-                    if (!active) return;
-                    behavior.Initialize(this, settings, position);
-                }); 
-
+                eventCtrl.EnqueueEvent(GameEvent.Entity_AddBehavior, 
+                    info.rtEntityId, behavior);
                 return true;
             }
 
             public void RemoveBehavior(Guid behaviorId) {
-                EntityManager.AddHandlerEvent(() => {
-                    if (!BehaviorIndex.TryGetValue(behaviorId, out Behavior behavior))
-                        return;
-                    int previousCount = Behaviors.Count;
-                    Behaviors = Behaviors.Where(b => b.Id != behaviorId).ToList();
-                    if (Behaviors.Count == previousCount) return;
-                    BehaviorIndex.Remove(behaviorId);
-                    if (!active) return;
-                    eventCtrl.RaiseEvent(Core.Events.GameEvent.Entity_RemoveBehavior, this, behavior);
-                    behavior.Disable(this);
-                });
+                eventCtrl.EnqueueEvent(GameEvent.Entity_RemoveBehavior, 
+                    info.rtEntityId, behaviorId);
             }
 
-            private bool _addBehavior(Behavior behavior, bool register = true, bool createId = true) {
+            public bool TryGetBehavior(Guid behaviorId, out Behavior behavior) => 
+                BehaviorIndex.TryGetValue(behaviorId, out behavior);
+
+            private void AddBehaviorEvent(object caller, object target) {
+                if (target is not TempBehavior behavior) return;
+                if (!behavior.CanApply(this)) return;
+
+                AddBehavior(behavior, false, false);
+                if (!active) return;
+                behavior.Initialize(this, settings, position);
+                if (VisualActive) behavior.InitializeVisual(this);
+            }
+
+            private void RemoveBehaviorEvent(object caller, object target) {
+                if (target is not Guid behaviorId) return;
+                if (!BehaviorIndex.TryGetValue(behaviorId, out Behavior behavior))
+                    return;
+                int previousCount = Behaviors.Count;
+                Behaviors = Behaviors.Where(b => b.Id != behaviorId).ToList();
+                if (Behaviors.Count == previousCount) return;
+                BehaviorIndex.Remove(behaviorId);
+                if (!active) return;
+                behavior.DisposeVisual(this);
+                behavior.Disable(this);
+            }
+
+            private bool AddBehavior(Behavior behavior, bool register = true, bool createId = true) {
                 if (behavior == null) return false;
                 if (TryGetConstructor(behavior.GetType(), out object savedBehav))
                     behavior = savedBehav == null ? behavior :  (Behavior) savedBehav;
@@ -591,13 +648,13 @@ namespace Arterra.Data.Entity.Behavior {
         }
 
         public class AnimalController {
-            public Animal entity;
+            public Entity entity;
             public GameObject gameObject;
             public Transform transform;
             [JsonIgnore]
             public bool active = false;
 
-            public AnimalController(GameObject GameObject, Animal entity) {
+            public AnimalController(GameObject GameObject, Entity entity) {
                 this.entity = entity;
                 this.gameObject = GameObject.Instantiate(GameObject);
                 this.transform = gameObject.transform;
@@ -611,19 +668,46 @@ namespace Arterra.Data.Entity.Behavior {
                 );
             }
 
-            public void Update() => this.transform.SetPositionAndRotation(CPUMapManager.GSToWS(entity.position), entity.transform.rotation);
+            public virtual void Update() => this.transform.SetPositionAndRotation(CPUMapManager.GSToWS(entity.position), entity.transform.rotation);
+
+            public bool VisualActive { get; private set; }
+            public bool KeepAnimatorOnDisposeVisual;
+
+            public void InitializeVisual() {
+                if (!active || VisualActive) return;
+                VisualActive = true;
+                SetPresentation(true);
+            }
+
+            public void DisposeVisual() {
+                VisualActive = false;
+                if (active) SetPresentation(false);
+            }
+
+            private void SetPresentation(bool visible) {
+                if (gameObject == null) return;
+                foreach (var renderer in gameObject.GetComponentsInChildren<Renderer>(true))
+                    renderer.forceRenderingOff = !visible;
+                foreach (var particles in gameObject.GetComponentsInChildren<ParticleSystem>(true)) {
+                    if (!visible) particles.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+                    else if (particles.main.playOnAwake) particles.Play();
+                }
+                foreach (var animator in gameObject.GetComponentsInChildren<Animator>(true)) {
+                    bool retained = entity.IsAuthority && KeepAnimatorOnDisposeVisual;
+                    animator.enabled = visible || retained;
+                    if (retained) animator.cullingMode = AnimatorCullingMode.AlwaysAnimate;
+                }
+            }
 
             public void Dispose() {
                 if (!active) return;
+                DisposeVisual();
                 active = false;
                 entity = null;
 
                 GameObject.Destroy(gameObject);
             }
 
-            ~AnimalController() {
-                Dispose();
-            }
         }
     }
 }

@@ -188,9 +188,9 @@ namespace Arterra.Utils {
             return x * numPointsAxis + y;
         }
 
-        public static int indexFromCoord(int3 coord, int numPointsPerAxis) {
+        public static int indexFromCoord(int3 MCoord, int numPointsPerAxis) {
 
-            return coord.x * numPointsPerAxis * numPointsPerAxis + coord.y * numPointsPerAxis + coord.z;
+            return MCoord.x * numPointsPerAxis * numPointsPerAxis + MCoord.y * numPointsPerAxis + MCoord.z;
         }
 
         public static Vector3 FloorVector(Vector3 vector) {

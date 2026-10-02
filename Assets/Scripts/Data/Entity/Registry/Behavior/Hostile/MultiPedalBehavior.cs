@@ -10,6 +10,7 @@ using System.Linq;
 using TerrainCollider = Arterra.GamePlay.Interaction.TerrainCollider;
 using Arterra.Core.Storage;
 using UnityEngine.Animations.Rigging;
+using Arterra.Utils;
 
 namespace Arterra.Data.Entity.Behavior
 {
@@ -45,7 +46,7 @@ namespace Arterra.Data.Entity.Behavior
         private AnimatedBehavior animated;
         
         [JsonProperty] private Leg[] appendages;
-        private IAttackable selfAtk;
+        private IVitality selfAtk;
         private uint LastOverrideState;
 
         public override void AddBehaviorDependencies(Dictionary<Behaviors, int> heirarchy) {
@@ -95,10 +96,8 @@ namespace Arterra.Data.Entity.Behavior
         }
 
         public override void Update(BehaviorEntity.Animal self) {
-            if (self.context != BehaviorEntity.UpdateContext.JobSync)
-                CoreUpdate(self);
-            if (self.context != BehaviorEntity.UpdateContext.Job)
-                ControllerUpdate(self);
+            if (self.context == BehaviorEntity.UpdateContext.Simulation) CoreUpdate(self);
+            if (self.context == BehaviorEntity.UpdateContext.Visual) ControllerUpdate(self);
         }
 
         private void CoreUpdate(BehaviorEntity.Animal self) {
@@ -182,7 +181,7 @@ namespace Arterra.Data.Entity.Behavior
 
         public override void Disable(BehaviorEntity.Animal self) {
             if (appendages == null) return;
-            foreach(Leg l in appendages) l.Disable();
+            foreach(Leg l in appendages) l?.Disable();
         }
 
 
@@ -253,15 +252,15 @@ namespace Arterra.Data.Entity.Behavior
 
                 this.collider.transform.velocity *= 1 - settings.Friction;
                 if (State == StepState.Stand){
-                    if (CPUMapManager.RayCastTerrain(origin, Vector3.down, 2*settings.collider.size.y, 
-                        CPUMapManager.RayTestSolid, out float3 hit)) {
+                    if (Terraforming.RayCastTerrain(origin, Vector3.down, 2*settings.collider.size.y, 
+                        Terraforming.RayTestSolid, out float3 hit)) {
                         TargetPosition = hit;
                     } else TargetPosition = origin + (float3)(Vector3.down * settings.collider.size.y * 2);
                     if(CanStartStep && math.distance(TargetPosition, restPos) > settings.StepDistThreshold) State = StepState.Raise;
                 } 
                 if ( State == StepState.Lower) {
                     if (TerrainCollider.SampleCollision((float3)collider.transform.position + (float3)(0.05f * Vector3.down),
-                        collider.transform.size, EntityJob.cxt.mapContext, out float3 gDir))
+                        collider.transform.size, out float3 gDir))
                         State = StepState.Stand;
                     if (math.distance(TargetPosition, restPos) < 0.05f)
                         State = StepState.Stand;

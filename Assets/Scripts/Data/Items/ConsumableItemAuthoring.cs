@@ -1,3 +1,4 @@
+using Arterra.Core.Events;
 using Arterra.Utils;
 using UnityEngine;
 using Newtonsoft.Json;
@@ -51,18 +52,22 @@ public class ConsumbaleItem : IItem{
     }
     public void UpdateEItem() { }
     public void OnEnter(ItemContext cxt) {
-        if (cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
+        cxt.RegisterEvent(this, GameEvent.Apply_ConsumeItem, context => ConsumeFood(context));
+
+        if (!cxt.IsOwner || cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
         
             InputPoller.AddBinding(new ActionBind(
                 "Consume",
-                _ => ConsumeFood(cxt),
+                _ => cxt.RaiseEvent(GameEvent.Apply_ConsumeItem),
                 ActionBind.Exclusion.ExcludeLayer),
                 "ITEM::Consumable:EAT", "5.0::GamePlay"
             );
         
     } 
     public void OnLeave(ItemContext cxt) {
-        if (cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
+        cxt.UnregisterEvent(GameEvent.Apply_ConsumeItem);
+
+        if (!cxt.IsOwner || cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
         
             InputPoller.RemoveBinding("ITEM::Consumable:EAT", "5.0::GamePlay");
         
@@ -100,12 +105,13 @@ public class ConsumbaleItem : IItem{
         float delta = AmountRaw - math.max(AmountRaw - ConsumptionRate, 0);
         if (delta == 0) return 0;
 
-        player.eventCtrl.RaiseEvent(Core.Events.GameEvent.Item_ConsumeFood, player, this, delta);
+        player.eventCtrl.RaiseEvent(Core.Events.GameEvent.Item_ConsumeFood, player.info.rtEntityId, this, delta);
         float nutrition = (float)delta / UnitSize * NutritionValue;
         hung.Feed(ref nutrition);
         int deltaInt = CustomUtility.GetStaggeredDelta(nutrition * UnitSize / NutritionValue);
         AmountRaw -= deltaInt;
         if(AmountRaw == 0) cxt.TryRemove();
+        else if (deltaInt != 0) cxt.SetDirty();
         return deltaInt;
     }
     

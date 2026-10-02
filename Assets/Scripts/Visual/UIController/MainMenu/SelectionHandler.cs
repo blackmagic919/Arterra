@@ -1,4 +1,5 @@
 using System;
+using Arterra.Core.Network.Service;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
@@ -6,6 +7,9 @@ using Arterra.Core.Storage;
 using static Arterra.Core.Storage.World;
 using Arterra.Utils;
 using Arterra.GamePlay.UI;
+using System.Threading;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 
 public class SelectionHandler : MonoBehaviour
@@ -13,35 +17,60 @@ public class SelectionHandler : MonoBehaviour
     private static Animator sAnimator;
     private static RectTransform infoContent;
     private static Sprite DefaultChunkIcon;
+    private static TextMeshProUGUI TitleButton;
+    private static CancellationTokenSource cancel;
+    private static CancellationTokenSource previewLoads;
+    private static readonly List<Sprite> previewSprites = new();
     private static bool active = false;
 
+    static readonly Dictionary<GalaxyType, string> GalaxyTitles = new Dictionary<GalaxyType, string>{
+        {GalaxyType.Local, "Private Worlds"},
+        {GalaxyType.DirectWAN, "Personal Realms"},
+        {GalaxyType.DedicatedServer, "Nexus Realms"},
+    };
+
     private void OnEnable() { 
+        HaltPendingTasks();
         sAnimator = this.gameObject.GetComponent<Animator>(); 
         infoContent = this.gameObject.transform.GetChild(0).GetChild(0).GetComponent<ScrollRect>().content.GetComponent<RectTransform>();
+        TitleButton = this.gameObject.transform.Find("Title").GetComponent<TextMeshProUGUI>();
         DefaultChunkIcon = Resources.Load<Sprite>("Prefabs/SelectScreen/DefaultChunk");
-        World.Activate();
         active = false;
     }
 
 
-    private static void InitializeDisplay(){
+    private void OnDisable() {
         ReleaseSelectionInfo();
+        active = false;
+        HaltPendingTasks();
+    }
+
+    private static void CreateSelections(){
+        ReleaseSelectionInfo();
+        previewLoads = new CancellationTokenSource();
         foreach(WorldMeta meta in WORLD_SELECTION) 
             CreateWorldSelection(meta, infoContent);
     }
 
-    public static void Activate(Action callback = null){
+    public static async void Activate(Action callback = null){
         if(active) return;
         active = true;
+        var animator = sAnimator;
+        try { await World.EnsureInitializedAsync(); }
+        catch (Exception exception) { active = false; Debug.LogException(exception); return; }
+        if (!active || !animator || animator != sAnimator) return;
+        TitleButton.text = GalaxyTitles[GALAXY_TYPE];
 
         sAnimator.SetTrigger("Unmask");
-        new AnimatorAwaitTask(sAnimator, "MaskRockBreak", InitializeDisplay).Invoke();
+        new AnimatorAwaitTask(sAnimator, "MaskRockBreak", CreateSelections).Invoke();
         new AnimatorAwaitTask(sAnimator, "UnmaskedAnimation", () => {
             sAnimator.ResetTrigger("Unmask");
             callback?.Invoke();
         }).Invoke(); 
     }
     public static void Deactivate(Action callback = null){
+        CancelPreviewLoads();
+        HaltPendingTasks();
         if(!active) return;
         active = false;
 
@@ -54,12 +83,47 @@ public class SelectionHandler : MonoBehaviour
         }).Invoke();
     }
 
-    public static void Return() { 
+    public static async void Return() { 
         if(!active) return;
+
+        cancel = new CancellationTokenSource();
+        if (WORLD_SELECTION.Count == 0) 
+            await LoadGalaxy(GalaxyType.Local, cancel.Token);
+
+        HaltPendingTasks();
         Deactivate(() => MenuHandler.Activate()); 
     }
 
+    // Unity UI event entry point; await resumes on Unity's main thread.
+    public static async void SwitchGalaxy() {
+        if (!active) return;
+        HaltPendingTasks();
+        var request = new CancellationTokenSource();
+        cancel = request;
+        try {
+            await LoadGalaxy(NextGalaxy(GALAXY_TYPE), request.Token);
+            request.Token.ThrowIfCancellationRequested();
+            if (!active || cancel != request) return;
+            TitleButton.text = GalaxyTitles[GALAXY_TYPE];
+            CreateSelections();
+        } catch (OperationCanceledException) when (request.IsCancellationRequested) {
+            // A newer request or menu closure superseded this load.
+        } catch (Exception exception) {
+            Debug.LogException(exception);
+        } finally {
+            if (cancel == request) cancel = null;
+            request.Dispose();
+        }
+    }
+
     private static void ReleaseSelectionInfo(){
+        CancelPreviewLoads();
+        foreach (var sprite in previewSprites) {
+            Destroy(sprite.texture);
+            Destroy(sprite);
+        }
+        previewSprites.Clear();
+        if (!infoContent) return;
         foreach(Transform child in infoContent){ 
             Destroy(child.gameObject); 
         }
@@ -69,12 +133,12 @@ public class SelectionHandler : MonoBehaviour
     public static void AddWorld(){
         if (!active) return;
         CreateWorld();
-        InitializeDisplay();
+        CreateSelections();
     }
 
     public static void DeleteSelected(){
         DeleteWorld();
-        if(active) InitializeDisplay();
+        if(active) CreateSelections();
     }
 
     private static GameObject CreateWorldSelection(WorldMeta meta, RectTransform content){
@@ -84,27 +148,72 @@ public class SelectionHandler : MonoBehaviour
         Button info = newSelection.GetComponent<Button>();
         transform.Find("Name").GetComponent<TextMeshProUGUI>().text = meta.Name;
 
-        string timeElapsed = TimeTextUtilty.ToTimeAgo(meta.LastAccessTime);
-        transform.Find("AccessTime").GetComponent<TextMeshProUGUI>().text = timeElapsed;
+        transform.Find("PrimaryText").GetComponent<TextMeshProUGUI>().text = meta.Type == GalaxyType.Local
+            ? TimeTextUtilty.ToTimeAgo(meta.Local.LastAccessTime)
+            : $"{meta.Remote.ConnectedPlayers}/{meta.Remote.MaximumPlayers}";
+        transform.Find("SecondaryText").GetComponent<TextMeshProUGUI>().text = meta.Type == GalaxyType.Local
+            ? meta.Local.CreationTime.ToString("dd/MM/yyyy HH:mm")
+            : meta.Remote.HostUserName;
 
-        string creationTime = meta.CreationTime.ToString("dd/MM/yyyy HH:mm");
-        transform.Find("CreationTime").GetComponent<TextMeshProUGUI>().text = creationTime;
+        Sprite chunkIcon = meta.Type == GalaxyType.Local
+            ? SaveTextureToFileUtility.LoadImageToSprite(meta.Local.Path + DisplayChunkPath) : null;
+        if (chunkIcon != null) previewSprites.Add(chunkIcon);
+        var image = transform.Find("ChunkDisplay").GetComponent<Image>();
+        image.sprite = chunkIcon != null ? chunkIcon : DefaultChunkIcon;
+        if (meta.Type != GalaxyType.Local && !string.IsNullOrEmpty(meta.Remote.PreviewInfoUrl))
+            _ = LoadPreviewImageAsync(meta.Remote.PreviewInfoUrl, image, previewLoads.Token);
 
-        string iconPath = meta.Path + DisplayChunkPath;
-        Sprite chunkIcon = SaveTextureToFileUtility.LoadImageToSprite(iconPath);
-        if (chunkIcon == null) chunkIcon = DefaultChunkIcon;
-        transform.Find("ChunkDIsplay").GetComponent<Image>().sprite = chunkIcon;
-
-        newSelection.GetComponent<Button>().onClick.AddListener(() => { 
-            if(!active) return;
-            SelectWorld(meta);
-            Deactivate(() => {
-                OptionsHandler.Activate();
-                MenuHandler.Activate();
-            });
+        newSelection.GetComponent<Button>().onClick.AddListener(async () => {
+            if (!active) return;
+            HaltPendingTasks();
+            var request = new CancellationTokenSource();
+            cancel = request;
+            try {
+                await SelectWorld(meta, request.Token);
+                request.Token.ThrowIfCancellationRequested();
+                if (!active || cancel != request) return;
+                Deactivate(() => {
+                    OptionsHandler.Activate();
+                    MenuHandler.Activate();
+                });
+            } catch (OperationCanceledException) 
+            when (request.IsCancellationRequested) {
+            } catch (Exception exception) {
+                Debug.LogException(exception);
+            } finally {
+                if (cancel == request) cancel = null;
+                request.Dispose();
+            }
         });
         
         return newSelection;
     }
 
+    private static async Task LoadPreviewImageAsync(string url, Image image, CancellationToken token) {
+        try {
+            byte[] bytes = await GameServiceClient.DownloadAsync(url, token);
+            token.ThrowIfCancellationRequested();
+            if (!image) return;
+            var sprite = SaveTextureToFileUtility.LoadImageToSprite(bytes);
+            if (sprite == null) return;
+            previewSprites.Add(sprite);
+            image.sprite = sprite;
+        } catch (OperationCanceledException) when (token.IsCancellationRequested) {
+        } catch (Exception) {
+            // A preview failure must not prevent selecting the world or expose its signed URL.
+            Debug.LogWarning("Could not load a world preview image; using the default icon.");
+        }
+    }
+
+    private static void CancelPreviewLoads() {
+        previewLoads?.Cancel();
+        previewLoads?.Dispose();
+        previewLoads = null;
+    }
+
+    private static void HaltPendingTasks() {
+        var pending = cancel;
+        cancel = null;
+        pending?.Cancel(); // The owning SwitchGalaxy call disposes it in finally.
+    }
 }

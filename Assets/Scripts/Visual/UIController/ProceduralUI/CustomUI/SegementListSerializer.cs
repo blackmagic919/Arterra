@@ -1,3 +1,4 @@
+using Rule = UIConditional.Rule;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -11,7 +12,7 @@ using System.Linq;
 
 public class SegmentListSerializer : IConverter{
     public bool CanConvert(Type iType, Type fType){ return iType.IsGenericType && iType.GetGenericTypeDefinition() == typeof(List<>); }
-    public void Serialize(GameObject parent, FieldInfo field, object value, ParentUpdate OnUpdate){
+    public void Serialize(GameObject parent, FieldInfo field, object value, ParentUpdate OnUpdate, Rule rule, HashSet<string> displayFlags){
         object cValue = value; //Capture the object to streamline changes
         void ChildRequest(ChildUpdate childCallback) {
             void ParentReceive(ref object parentObject) {
@@ -28,25 +29,27 @@ public class SegmentListSerializer : IConverter{
         Button listRemove = UnityEngine.Object.Instantiate(Resources.Load<GameObject>("Prefabs/SegmentedUI/ListRemove"), optionContent).GetComponent<Button>();
         buttonField1.onClick.AddListener(() => { 
             isOpen1 = !isOpen1;
-            if(isOpen1) CreateList((IList)cValue, parent, ChildRequest);
+            if(isOpen1) CreateList((IList)cValue, parent, ChildRequest, rule, displayFlags);
             else ReleaseDisplay(parent); 
             ForceLayoutRefresh(parent.transform);
-        }); 
+        });
+        listAdd.interactable = rule != Rule.Disable;
         listAdd.onClick.AddListener(() => {
             ChildRequest((ref object parentObj) => {
                 cValue = parentObj; ((IList)cValue).Add(CreateInstance(field.FieldType.GetGenericArguments()[0]));
                 if (isOpen1) ReleaseDisplay(parent);
-                CreateList((IList)cValue, parent, ChildRequest);
+                CreateList((IList)cValue, parent, ChildRequest, rule, displayFlags);
                 ForceLayoutRefresh(parent.transform);
             }); isOpen1 = true;
         });
+        listRemove.interactable = rule != Rule.Disable;
         listRemove.onClick.AddListener(() => {
             if(!isOpen1) isOpen1 = true;
             if(((IList)cValue).Count == 0) return;
             ChildRequest((ref object parentObj) => {
                 cValue = (IList)parentObj; ((IList)cValue).RemoveAt(((IList)cValue).Count - 1);
                 if (isOpen1) ReleaseDisplay(parent);
-                CreateList((IList)cValue, parent, ChildRequest);
+                CreateList((IList)cValue, parent, ChildRequest, rule, displayFlags);
                 ForceLayoutRefresh(parent.transform);
             }); isOpen1 = true;
         });
@@ -94,7 +97,7 @@ public class SegmentListSerializer : IConverter{
         };
     }
 
-    private static void CreateList(IList list, GameObject parent, ParentUpdate OnUpdate){
+    private static void CreateList(IList list, GameObject parent, ParentUpdate OnUpdate, Rule rule, HashSet<string> displayFlags){
         SetUpLayout(parent);
         for(int i = 0; i < list.Count; i++) {
             GameObject key = UnityEngine.Object.Instantiate(Resources.Load<GameObject>("Prefabs/SegmentedUI/Option"), parent.transform);
@@ -132,7 +135,7 @@ public class SegmentListSerializer : IConverter{
             
             if(name != null){ elementText.text = name.ToString(); }
             else elementText.text = "Element " + i.ToString() + ": ";
-            CreateInputField(field, key, value, nUpdate);
+            CreateInputField(field, key, value, nUpdate, rule, displayFlags);
         }
     }
 

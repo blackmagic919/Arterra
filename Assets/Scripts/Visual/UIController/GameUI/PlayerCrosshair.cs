@@ -61,6 +61,8 @@ namespace Arterra.GamePlay.UI {
 
         public static void Update(MonoBehaviour mono) {
             BehaviorEntity.Animal player = PlayerHandler.data;
+            if (!player.active) return;
+            
             float3 hitPt = player.head
                     + player.Forward
                     * PlayerInteractionSettings.GetSingleton().ReachDistance;

@@ -34,7 +34,9 @@ namespace Arterra.GamePlay.UI {
             slider = LoadingScreen.transform.GetChild(0).GetComponent<Slider>();
             taskText = LoadingScreen.transform.GetChild(1).GetComponent<TextMeshProUGUI>();
             Background.sprite = Resources.Load<Sprite>($"Textures/BackgroundImages/Background_{UnityEngine.Random.Range(1, 10)}");
-            Activate();
+            // Show immediately; startup begins completion tracking after the player and terrain are ready.
+            slider.value = 0;
+            LoadingScreen.SetActive(true);
         }
 
         public static void Activate() {

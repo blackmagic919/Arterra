@@ -3,6 +3,8 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using Arterra.Configuration;
 using Arterra.GamePlay.Interaction;
+using Arterra.Core.Network;
+using System.Collections.Generic;
 
 namespace Arterra.GamePlay.UI {
     public class PauseHandler {
@@ -12,7 +14,7 @@ namespace Arterra.GamePlay.UI {
             PauseMenu = GameObject.Instantiate(Resources.Load<GameObject>("Prefabs/GameUI/Pause"), GameUIManager.UIHandle.transform);
             PauseMenu.SetActive(false);
 
-            InputPoller.AddBinding(new ActionBind("Pause", Activate), "PauseMenu:OPN", "1.0::Menu");
+            InputPoller.AddBinding(new ActionBind("Pause", Activate, policy: ActionBind.Policy.Down), "PauseMenu:OPN", "1.0::Menu");
         }
 
         public static void Activate(float _null_) {
@@ -20,17 +22,22 @@ namespace Arterra.GamePlay.UI {
 
             InputPoller.AddStackPoll(new ActionBind("Frame:Pause", (float _) => InputPoller.SetCursorLock(false)), "CursorLock");
             InputPoller.AddContextFence("PauseMenu", "1.0::Menu", ActionBind.Exclusion.ExcludeAll);
-            InputPoller.AddBinding(new ActionBind("Pause", Deactivate), "PauseMenu:CLS", "1.0::Menu");
+            InputPoller.AddBinding(new ActionBind("Pause", Deactivate, policy: ActionBind.Policy.Down), "PauseMenu:CLS", "1.0::Menu");
             
 
             DirtyOption<Config.GamePlaySettings> settings = Config.CURRENT._GamePlay;
+            var displayFlags = new HashSet<string>(PaginatedUIEditor.flags);
+            if (!NetworkManager.IsActingServer) displayFlags.Add("RemoteClient");
+            else displayFlags.Remove("RemoteClient");
+
             PaginatedUIEditor.CreateProceduralPagination(settings.Value, PauseContent, (ChildUpdate cb) => {
                 settings.Clone(); object obj = settings.Value;
                 cb.Invoke(ref obj);
                 settings.Value = (Config.GamePlaySettings)obj;
-                Config.CURRENT._GamePlay = settings;
+                //Change locally only during gameplay
+                Config.CURRENT._GamePlay = settings; 
                 Arterra.Core.Storage.World.SaveOptionsSync();
-            }, () => { Exit(); });
+            }, () => { Exit(); }, displayFlags: displayFlags);
 
             GameObject ExitButton = PauseContent.transform.GetChild(0).Find("TopPanel").Find("Return").GetChild(0).gameObject;
             TextMeshProUGUI ExitText = ExitButton.GetComponent<TextMeshProUGUI>();

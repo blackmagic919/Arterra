@@ -56,26 +56,40 @@ namespace Arterra.Data.Item{
         }
         public void UpdateEItem() { }
         public void OnEnter(ItemContext cxt) {
-            if (cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
+            cxt.RegisterEvent(this, GameEvent.Apply_CancelBow, _ => drawTime = 0);
+            cxt.RegisterEvent(this, GameEvent.Apply_DrawBow, StartDrawingBow);
+            cxt.RegisterEvent(this, GameEvent.Apply_ReleaseBow, ReleaseBow);
+
+            if (!cxt.IsOwner || cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
             if (cxt.TryGetHolder(out IEventControlled effect) && settings.Model.Enabled)
-                effect.RaiseEvent(GameEvent.Item_HoldTool, effect, this, ref settings.Model.Value);
+                effect.RaiseEvent(GameEvent.Item_HoldTool, effect is Entity.Entity ? ((Entity.Entity)effect).info.rtEntityId : effect, this, ref settings.Model.Value);
             InputPoller.AddBinding(new ActionBind(
-                "BowDraw", _ => StartDrawingBow(cxt),
+                "BowDraw", _ => cxt.RaiseEvent(GameEvent.Apply_DrawBow),
                 ActionBind.Exclusion.ExcludeLayer), "ITEM:Bow:DRW", "5.0::GamePlay");
             InputPoller.AddBinding(new ActionBind(
-                "BowRelease", _ => ReleaseBow(cxt),
-                ActionBind.Exclusion.ExcludeLayer), "ITEM:Bow:RLS", "5.0::GamePlay");
+                "BowDraw", _ => cxt.RaiseEvent(GameEvent.Apply_ReleaseBow),
+                ActionBind.Exclusion.ExcludeLayer,
+                ActionBind.Policy.Up),
+                "ITEM:Bow:RLS", "5.0::GamePlay"
+            );
             
             drawTime = 0;
         }
         public void OnLeave(ItemContext cxt) {
-            if (cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
+            if (cxt.IsOwner && cxt.scenario == ItemContext.Scenario.ActivePlayerSelected)
+                cxt.RaiseEvent(GameEvent.Apply_CancelBow);
+            drawTime = 0;
+            cxt.UnregisterEvent(GameEvent.Apply_CancelBow);
+            cxt.UnregisterEvent(GameEvent.Apply_DrawBow);
+            cxt.UnregisterEvent(GameEvent.Apply_ReleaseBow);
+
+            if (!cxt.IsOwner || cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
             if (cxt.TryGetHolder(out IEventControlled effect) && settings.Model.Enabled) 
-                effect.RaiseEvent(GameEvent.Item_UnholdTool, effect, this, ref settings.Model.Value);
+                effect.RaiseEvent(GameEvent.Item_UnholdTool, effect is Entity.Entity ? ((Entity.Entity)effect).info.rtEntityId : effect, this, ref settings.Model.Value);
             InputPoller.RemoveBinding("ITEM:Bow:DRW", "5.0::GamePlay");
             InputPoller.RemoveBinding("ITEM:Bow:RLS", "5.0::GamePlay");
             if (cxt.TryGetHolder(out effect))
-                effect.RaiseEvent(GameEvent.Item_ReleaseBow, effect, this);
+                effect.RaiseEvent(GameEvent.Item_ReleaseBow, effect is Entity.Entity ? ((Entity.Entity)effect).info.rtEntityId : effect, this);
             
         }
 
@@ -86,7 +100,7 @@ namespace Arterra.Data.Item{
                 return;
             };
             if (cxt.TryGetHolder(out IEventControlled effect))
-                effect.RaiseEvent(GameEvent.Item_DrawBow, effect, this);
+                effect.RaiseEvent(GameEvent.Item_DrawBow, effect is Entity.Entity ? ((Entity.Entity)effect).info.rtEntityId : effect, this);
             drawTime += Time.deltaTime;
         }
 
@@ -98,11 +112,11 @@ namespace Arterra.Data.Item{
             float launchSpeed = Mathf.Lerp(settings.MinLaunchSpeed, settings.MaxLaunchSpeed, drawPercent);
             if (!ShootArrow(cxt, slot, launchSpeed)) return;
             if (cxt.TryGetHolder(out Entity.Entity effect)) {
-                effect.eventCtrl.RaiseEvent(GameEvent.Item_ReleaseBow, effect, this);
+                effect.eventCtrl.RaiseEvent(GameEvent.Item_ReleaseBow, effect.info.rtEntityId, this);
             }
 
             durability -= 1.0f;
-            if (durability > 0) return;
+            if (durability > 0) { cxt.SetDirty(); return; }
             cxt.TryRemove();
         }
 

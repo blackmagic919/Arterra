@@ -50,7 +50,8 @@ public class SpectatorController : MonoBehaviour
             InputPoller.AddBinding(new ActionBind("Toggle Spectator", (_null_) => {
                 if (Instance.active) Instance.RemoveHandles();
                 else Instance.AddHandles();
-            }), "PMSpectator:TS", "2.0::Subscene");   
+            }, policy: ActionBind.Policy.Down),
+            "PMSpectator:TS", "2.0::Subscene");   
         }
     }
 

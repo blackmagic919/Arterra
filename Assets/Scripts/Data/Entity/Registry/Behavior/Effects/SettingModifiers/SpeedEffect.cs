@@ -1,4 +1,5 @@
 using System;
+using Arterra.Core.Network;
 using Arterra.Editor;
 using Newtonsoft.Json;
 using Unity.Mathematics;
@@ -69,8 +70,7 @@ namespace Arterra.Data.Entity.Behavior {
         }
 
         public override void Update(BehaviorEntity.Animal self) {
-            if (self.context == BehaviorEntity.UpdateContext.JobSync) return;
-            if (self.context == BehaviorEntity.UpdateContext.Main) return;
+            if (self.context != BehaviorEntity.UpdateContext.Simulation) return;
 
             UpdateSpeedModifiers();
             progress += self.DeltaTime;
@@ -94,14 +94,18 @@ namespace Arterra.Data.Entity.Behavior {
         }
 
         private void UpdateSpeedModifiers() {
-            UpdateModifier(walkModifierId);
-            UpdateModifier(runModifierId);
+            UpdateModifier(MSettings.WalkSpeed, walkModifierId);
+            UpdateModifier(MSettings.RunSpeed, runModifierId);
         }
 
-        private void UpdateModifier(Guid modifierId) {
+        private void UpdateModifier(MSettings setting, Guid modifierId) {
+            if (!NetworkManager.IsActingServer) return;
             if (modifierId == Guid.Empty) return;
             if (!mod.TryGetModifier(modifierId, out SettingModifier modifier)) return;
-            modifier.value = SpeedMultiplier;
+            float value = SpeedMultiplier;
+            if (modifier.value == value) return;
+            modifier.value = value;
+            mod.SetDirty(setting, modifierId);
         }
     }
 }

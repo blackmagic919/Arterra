@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Arterra.Core.Events;
+using Arterra.Core.Network;
 using Arterra.Configuration;
 using Arterra.Core.Storage;
 using Arterra.GamePlay;
@@ -49,7 +50,7 @@ namespace Arterra.Data.Entity.Behavior {
     /// Also implements <see cref="IMultiCollider"/> to expose the camera's full facing
     /// direction and eye position to the base entity, overriding the default body collider bindings.
     /// </summary>
-    public class PlayerCameraBehavior : SpeciesBehavior, IMultiCollider {
+    public class PlayerCameraBehavior : SpeciesBehavior, IMultiCollider, IBindAfterDeserialize {
         [JsonIgnore] public PlayerCameraSettings settings;
         [JsonIgnore] private IMultiCollider baseCollider;
         private Modifier mod;
@@ -59,7 +60,9 @@ namespace Arterra.Data.Entity.Behavior {
         [JsonIgnore] public GamePlay.Interaction.TerrainCollider Collider => baseCollider.Collider;
         [JsonIgnore] public GamePlay.Interaction.TerrainCollider PathCollider => baseCollider.PathCollider;
         [JsonIgnore] public Quaternion Rotation {
-            get => perspectives?[activePersp].Facing ?? baseCollider.Rotation;
+            get => perspectives?[activePersp].Facing ?? math.mul(
+                Quaternion.Euler(0, baseCollider.Collider.transform.rotation.eulerAngles.y, 0),
+                Quaternion.Euler(cameraLocalRotation.eulerAngles.x, 0, 0));
             set => baseCollider.Rotation = value;
         }
 
@@ -74,15 +77,20 @@ namespace Arterra.Data.Entity.Behavior {
         private bool hasBindings;
         internal bool moved;
         private BehaviorEntity.Animal self;
-        private VitalityBehavior vit;
 
         internal float2 lookDelta;
-        internal Quaternion cameraLocalRotation = Quaternion.identity;
+        [JsonIgnore] internal Quaternion cameraLocalRotation {
+            get => netCameraLocalRotation.Value;
+            set => netCameraLocalRotation.Value = value;
+        }
         internal float3 cameraLocalPosition;
         internal int cullingMask;
 
         private ICameraPerspective[] perspectives;
         private int activePersp;
+        [JsonProperty] private NetworkVariable<Quaternion> netCameraLocalRotation = new(
+            "CameraLocalRotation", NetworkPermission.Owner, initialValue: Quaternion.identity, waitForDelivery: false);
+        private float previousBodyYaw;
 
         public override void AddBehaviorDependencies(Dictionary<Behaviors, int> hierarchy) {
             // Camera orientation depends on the body collider being initialized first.
@@ -96,51 +104,66 @@ namespace Arterra.Data.Entity.Behavior {
         public override void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
             if (!setting.Is(out settings))
                 throw new Exception("Entity: PlayerCameraBehavior requires PlayerCameraSettings");
-            if (!self.Is(out vit)) vit = null;
             if (!self.Is(out mod)) mod = null;
-            if (!self.Is(out baseCollider))
-                throw new Exception("Entity: PlayerCameraBehavior requires ColliderUpdateBehavior");
 
-            InitPerspectives();
-            self.Register<IMultiCollider>(this);
+            BindAfterDeserialize(self);
             self.Register(this);
             this.self = self;
-
-            BindInput();
-            DeserializeCameraState();
+            netCameraLocalRotation.Register(self);
         }
 
         public override void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
             if (!setting.Is(out settings))
                 throw new Exception("Entity: PlayerCameraBehavior requires PlayerCameraSettings");
-            if (!self.Is(out vit)) vit = null;
             if (!self.Is(out mod)) mod = null;
-            if (!self.Is(out baseCollider))
-                throw new Exception("Entity: PlayerCameraBehavior requires ColliderUpdateBehavior");
-            
-            InitPerspectives();
-            self.Register<IMultiCollider>(this);
+
             self.Register(this);
             this.self = self;
+            netCameraLocalRotation.Register(self);
+        }
 
+        public void BindAfterDeserialize(BehaviorEntity.Animal self) {
+            if (!self.Is(out baseCollider))
+                throw new Exception("Entity: PlayerCameraBehavior requires ColliderUpdateBehavior");
+            self.Register<IMultiCollider>(this);
+        }
+
+        public override void InitializeVisual(BehaviorEntity.Animal self) {
+            previousBodyYaw = baseCollider.Collider.transform.rotation.eulerAngles.y;
+            if (!self.IsOwner) return;
+            InitPerspectives();
             BindInput();
             DeserializeCameraState();
         }
 
-        public override void Disable(BehaviorEntity.Animal self) {
+        public override void DisposeVisual(BehaviorEntity.Animal self) {
             UnbindInput();
+            perspectives = null;
+        }
+
+        public override void Disable(BehaviorEntity.Animal self) {
+            netCameraLocalRotation.Dispose();
             this.self = null;
         }
 
         public override void Update(BehaviorEntity.Animal self) {
-            if (self.context == BehaviorEntity.UpdateContext.Job)
+            if (self.context != BehaviorEntity.UpdateContext.Visual) return;
+            if (!self.IsOwner) {
+                float bodyYaw = baseCollider.Collider.transform.rotation.eulerAngles.y;
+                RaiseLookEvent(Mathf.DeltaAngle(previousBodyYaw, bodyYaw));
+                previousBodyYaw = bodyYaw;
                 return;
-            if (self.context == BehaviorEntity.UpdateContext.Fixed)
-                return;
+            }
 
             perspectives[activePersp].Update();
+            perspectives[activePersp].UpdateLookEvent(this);
             ApplyCameraTransform();
             lookDelta = float2.zero;
+        }
+
+        private void RaiseLookEvent(float turn) {
+            RefTuple<(float, float)> context = (GetAngleX(cameraLocalRotation), turn);
+            self.eventCtrl.RaiseEvent(GameEvent.Action_LookGradual, self.info.rtEntityId, null, context, local: true);
         }
 
         private void InitPerspectives() {
@@ -154,7 +177,7 @@ namespace Arterra.Data.Entity.Behavior {
 
         private void DeserializeCameraState() {
             if (PlayerHandler.Camera == null || PlayerHandler.Camera.childCount == 0) return;
-            Camera camera = PlayerHandler.Camera.GetChild(0).GetComponent<UnityEngine.Camera>();
+            Camera camera = PlayerHandler.Camera.GetChild(0).GetComponent<Camera>();
             cullingMask = camera != null ? camera.cullingMask : -1;
 
             moved = true;
@@ -189,8 +212,8 @@ namespace Arterra.Data.Entity.Behavior {
             return cameraTransform.parent.worldToLocalMatrix.MultiplyVector(desiredWorldOffset);
         }
 
-        internal static uint RayTestSolid(int3 coord) {
-            MapData pointInfo = CPUMapManager.SampleMap(coord);
+        internal static uint RayTestSolid(int3 GCoord) {
+            MapData pointInfo = CPUMapManager.SampleMap(GCoord);
             return (uint)pointInfo.viscosity;
         }
 
@@ -217,9 +240,9 @@ namespace Arterra.Data.Entity.Behavior {
             return -(Mathf.InverseLerp(MinimumX, MaximumX, lookPitch) * 2 - 1);
         }
 
-        private string LookHorizontalName => $"PlayerCamera:LH::{self.info.entityId}"; 
-        private string LookVerticalName => $"PlayerCamera:LV::{self.info.entityId}";
-        private string TPerspectiveName => $"PlayerCamera:TP::{self.info.entityId}"; 
+        private string LookHorizontalName => $"PlayerCamera:LH::{self.info.rtEntityId}";
+        private string LookVerticalName => $"PlayerCamera:LV::{self.info.rtEntityId}";
+        private string TPerspectiveName => $"PlayerCamera:TP::{self.info.rtEntityId}";
         private void BindInput() {
             if (hasBindings) return;
             hasBindings = true;
@@ -227,7 +250,8 @@ namespace Arterra.Data.Entity.Behavior {
             self.eventCtrl.AddContextlessEventHandler(GameEvent.Entity_Death, (_, _) => self.RemoveBehavior(Id));
             InputPoller.AddBinding(new ActionBind("Look Horizontal", LookX), LookHorizontalName, "4.5::Movement");
             InputPoller.AddBinding(new ActionBind("Look Vertical", LookY), LookVerticalName, "4.5::Movement");
-            InputPoller.AddBinding(new ActionBind("Toggle Perspective", TogglePerspective), TPerspectiveName, "2.5::Subscene");
+            InputPoller.AddBinding(new ActionBind("Toggle Perspective", TogglePerspective,
+                policy: ActionBind.Policy.Down), TPerspectiveName, "2.5::Subscene");
         }
 
         private void UnbindInput() {
@@ -254,6 +278,9 @@ namespace Arterra.Data.Entity.Behavior {
         private interface ICameraPerspective {
             void Activate();
             void Update();
+            void UpdateLookEvent(PlayerCameraBehavior camera) {
+                camera.RaiseLookEvent(camera.lookDelta.y);
+            }
             Quaternion Facing { get; }
         }
 
@@ -272,7 +299,7 @@ namespace Arterra.Data.Entity.Behavior {
 
             public void Activate() {
                 camera.cameraLocalPosition = new float3(0, heightReal, 0);
-                camera.cameraLocalRotation.eulerAngles = new(camera.cameraLocalRotation.eulerAngles.x, 0, 0);
+                camera.cameraLocalRotation = Quaternion.Euler(camera.cameraLocalRotation.eulerAngles.x, 0, 0);
                 camera.cullingMask &= ~(1 << LayerMask.NameToLayer("Self"));
                 smoothCharacterRot = camera.baseCollider.Collider.transform.rotation;
                 smoothCameraRot = camera.cameraLocalRotation;
@@ -300,9 +327,6 @@ namespace Arterra.Data.Entity.Behavior {
                     camera.baseCollider.Collider.transform.rotation = smoothCharacterRot;
                     camera.cameraLocalRotation = smoothCameraRot;
                 }
-
-                RefTuple<(float, float)> cxt = (camera.GetAngleX(camera.cameraLocalRotation), camera.lookDelta.y);
-                camera.self.eventCtrl.RaiseEvent(GameEvent.Action_LookGradual, camera.self, null, cxt);
             }
         }
 
@@ -322,7 +346,7 @@ namespace Arterra.Data.Entity.Behavior {
 
             public void Activate() {
                 camera.cameraLocalPosition = new float3(0, 2.5f, 0);
-                camera.cameraLocalRotation.eulerAngles = new(camera.cameraLocalRotation.eulerAngles.x, 0, 0);
+                camera.cameraLocalRotation = Quaternion.Euler(camera.cameraLocalRotation.eulerAngles.x, 0, 0);
                 camera.cullingMask |= 1 << LayerMask.NameToLayer("Self");
                 smoothCharacterRot = camera.baseCollider.Collider.transform.rotation;
                 smoothCameraRot = camera.cameraLocalRotation;
@@ -353,15 +377,13 @@ namespace Arterra.Data.Entity.Behavior {
                 }
 
                 SetCameraOffset();
-                RefTuple<(float, float)> cxt = (camera.GetAngleX(camera.cameraLocalRotation), camera.lookDelta.y);
-                camera.self.eventCtrl.RaiseEvent(GameEvent.Action_LookGradual, camera.self, null, cxt);
             }
 
             private void SetCameraOffset() {
                 float backDist = distance;
                 float distGS = distance / Config.CURRENT.Quality.Terrain.value.lerpScale;
                 // Pull the camera forward if terrain obstructs the ideal follow distance.
-                if (CPUMapManager.RayCastTerrain(camera.self.head, Facing * Vector3.back, distGS, RayTestSolid, out float3 hitPt))
+                if (Terraforming.RayCastTerrain(camera.self.head, Facing * Vector3.back, distGS, RayTestSolid, out float3 hitPt))
                     backDist = math.distance(hitPt, camera.self.head);
 
                 float3 backOffset = math.mul(math.normalize(camera.cameraLocalRotation), new float3(0, 0, -backDist));
@@ -377,6 +399,7 @@ namespace Arterra.Data.Entity.Behavior {
             private Quaternion smoothCameraRot;
             private float yaw;
             private float pitch;
+            private float rotation;
             const float distance = 2.5f;
 
             public Quaternion Facing {
@@ -400,10 +423,10 @@ namespace Arterra.Data.Entity.Behavior {
             }
 
             public void Update() {
+                rotation = 0;
                 if (!camera.moved) return;
                 camera.moved = false;
 
-                float rotation = 0;
                 if (camera.self.Is(out PlayerMovementBehavior movement)) {
                     // Consume lateral movement input as orbit/turn input while in free-rotate mode.
                     rotation = movement.ConsumeHorizontalMovementInput(camera.Sensitivity);
@@ -430,8 +453,10 @@ namespace Arterra.Data.Entity.Behavior {
                 }
 
                 SetCameraOffset();
-                RefTuple<(float, float)> cxt = (camera.GetAngleX(camera.cameraLocalRotation), rotation);
-                camera.self.eventCtrl.RaiseEvent(GameEvent.Action_LookGradual, camera.self, null, cxt);
+            }
+
+            public void UpdateLookEvent(PlayerCameraBehavior camera) {
+                camera.RaiseLookEvent(rotation);
             }
 
             private void SetCameraOffset() {
@@ -441,7 +466,7 @@ namespace Arterra.Data.Entity.Behavior {
                 dir = math.mul(math.normalize(camera.baseCollider.Collider.transform.rotation), dir);
 
                 // Collision check is based on full orbit direction (player yaw + camera pitch/yaw).
-                if (CPUMapManager.RayCastTerrain(camera.self.head, dir, distGS, RayTestSolid, out float3 hitPt))
+                if (Terraforming.RayCastTerrain(camera.self.head, dir, distGS, RayTestSolid, out float3 hitPt))
                     backDist = math.distance(hitPt, camera.self.head);
 
                 float3 backOffset = math.mul(math.normalize(camera.cameraLocalRotation), new float3(0, 0, -backDist));

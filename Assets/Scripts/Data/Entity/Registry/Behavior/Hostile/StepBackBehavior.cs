@@ -32,7 +32,7 @@ namespace Arterra.Data.Entity.Behavior {
         private float WalkSpeed => MMove.Speed(mmove, settings.TaskName, mod, MSettings.WalkSpeed, movement.walkSpeed);
 
         public override void Update(BehaviorEntity.Animal self) {
-            if (self.context == BehaviorEntity.UpdateContext.JobSync) return;
+            if (self.context != BehaviorEntity.UpdateContext.Simulation) return;
             if (manager.TaskIndex != settings.TaskName) return;
 
             if (!EntityManager.TryGetEntity(manager.TaskTarget, out Entity target)) {
@@ -74,9 +74,9 @@ namespace Arterra.Data.Entity.Behavior {
             return false;
         }
 
-        public void TestAttackAtDistance(object src, object trgt, object cxt) {
-            if (trgt == null || src == null) return;
-            Entity target = trgt as Entity;
+        public void TestAttackAtDistance(object srcId, object tgtId, object cxt) {
+            if (tgtId is not Guid TargetId) return;
+            if (!EntityManager.TryGetEntity(TargetId, out Entity target)) return;
             if (ColliderUpdateBehavior.GetColliderDist(self, target) >= BlindDist) return;
             (cxt as RefTuple<(float dmg, float3 kb)>).Value.dmg = 0; //no damage if not at attack dist
             if (manager.TaskIndex == settings.TestProximityState) manager.Transition(settings.TaskName);
@@ -105,7 +105,7 @@ namespace Arterra.Data.Entity.Behavior {
                 throw new System.Exception("Entity: StepBack Behavior Requires AnimalInstance to have PathFinderBehavior");
             if (!self.Is(out mod)) mod = null;
             manager.RegisterTransition(settings.TestProximityState, TransitionToAttack);
-            self.eventCtrl.AddEventHandler(GameEvent.Entity_Attack, TestAttackAtDistance);
+            if (self.IsAuthority) self.eventCtrl.AddEventHandler(GameEvent.Entity_Attack, TestAttackAtDistance);
             this.self = self;
         }
 
@@ -121,7 +121,7 @@ namespace Arterra.Data.Entity.Behavior {
                 throw new System.Exception("Entity: StepBack Behavior Requires AnimalInstance to have PathFinderBehavior");
             if (!self.Is(out mod)) mod = null;
             manager.RegisterTransition(settings.TestProximityState, TransitionToAttack);
-            self.eventCtrl.AddEventHandler(GameEvent.Entity_Attack, TestAttackAtDistance);
+            if (self.IsAuthority) self.eventCtrl.AddEventHandler(GameEvent.Entity_Attack, TestAttackAtDistance);
             this.self = self;
         }
 

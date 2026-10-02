@@ -38,7 +38,7 @@ public class MinimalRecognition {
     public Option<List<Plant>> PreyPlant;
     public int FleeDistance;
     public bool FightAggressor;
-    [UISetting(Ignore = true)]
+    [UIHidden]
     [JsonIgnore]
     [HideInInspector]
     internal Dictionary<int, Recognizable> AwarenessTable;

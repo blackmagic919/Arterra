@@ -28,12 +28,12 @@ namespace Arterra.Data.Entity.Behavior {
         
 
         [JsonIgnore]
-        [UISetting(Ignore = true)]
+        [UIHidden]
         [HideInInspector]
         internal Dictionary<EntitySMTasks, float> _SearchChances;
 
         [JsonIgnore]
-        [UISetting(Ignore = true)]
+        [UIHidden]
         [HideInInspector]
         internal Dictionary<int, int> AwarenessTable;
         public Option<List<EntityWrapper>> Enemy;
@@ -96,7 +96,7 @@ namespace Arterra.Data.Entity.Behavior {
                     return;
                 
                 if (DesiredEnemyState != EnemyState.Any) {
-                    if (!nEntity.Is(out IAttackable atkEntity)) return;
+                    if (!nEntity.Is(out IVitality atkEntity)) return;
                     if (atkEntity.IsDead && DesiredEnemyState == EnemyState.Alive) return;
                     if (!atkEntity.IsDead && DesiredEnemyState == EnemyState.Dead) return;
                 }
@@ -142,8 +142,8 @@ namespace Arterra.Data.Entity.Behavior {
 
         //Task 4
         public override void Update(BehaviorEntity.Animal self) {
+            if (self.context != BehaviorEntity.UpdateContext.Simulation) return;
             if (manager.TaskIndex != settings.TaskName) return;
-            if (self.context == BehaviorEntity.UpdateContext.JobSync) return;
             if (!settings.FindPreferredEnemyEntity(self,  SearchDistance, out Entity Enemy, relations)) {
                 manager.Transition(settings.TaskName);
                 return;

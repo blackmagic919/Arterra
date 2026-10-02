@@ -13,8 +13,15 @@ MonoBehaviour:
   m_Name: Hotbar9
   m_EditorClassIdentifier: 
   Name: Hotbar9
+  Tags:
+    Reg:
+      value: []
   bindings:
     value:
     - Key: 57
-      PollType: 3
+      PollType: 2
       IsAlias: 0
+  AdditionalTriggerCount: 0
+  references:
+    version: 2
+    RefIds: []

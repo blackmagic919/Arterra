@@ -202,6 +202,8 @@ public class Creator
         public int rawMapStart;
         /// <summary> The location storing the biome map data for the chunk when the biome map is <see cref="PopulateBiomes(float3, uint, int, int)">explicitly queried</see>. </summary>
         public int biomeMapStart;
+        /// <summary>Exclusive end of the padded biome map, in 4-byte words.</summary>
+        public int biomeMapEnd;
         /// <summary> The location of the vertex dictionary used during mesh generation. The vertex dictionary is a perfect hash map that references
         /// where in the <see cref="vertStart">vertex buffer</see> the vertex data shared by multiple triangles is stored. </summary>
         public int dictStart;
@@ -251,6 +253,7 @@ public class Creator
             int mapEnd_W = mapStart + numOfPointsOOB;
             rawMapStart = Mathf.CeilToInt((float)mapEnd_W / RAW_MAP_WORD);
             biomeMapStart = (rawMapStart + numOfPointsOOB) * RAW_MAP_WORD;
+            biomeMapEnd = biomeMapStart + numOfPointsOOB;
 
             dictStart = mapEnd_W;
             int dictEnd_W = dictStart + numOfPointsDict * TRI_STRIDE_WORD;
@@ -264,7 +267,7 @@ public class Creator
             waterTriStart = Mathf.CeilToInt((float)baseTriEnd_W / TRI_STRIDE_WORD);
             int waterTriEnd_W = waterTriStart * TRI_STRIDE_WORD + numOfTris * TRI_STRIDE_WORD;
 
-            this.offsetEnd = waterTriEnd_W;
+            this.offsetEnd = math.max(waterTriEnd_W, biomeMapEnd);
         }
     }
 }}

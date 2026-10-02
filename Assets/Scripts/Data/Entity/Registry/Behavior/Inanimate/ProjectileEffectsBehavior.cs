@@ -31,7 +31,8 @@ namespace Arterra.Data.Entity.Behavior {
             heirarchy.TryAdd(typeof(ProjectileEffectsSettings), new ProjectileEffectsSettings());
         }
 
-        public override void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, Unity.Mathematics.float3 GCoord) {
+        public override void InitializeVisual(BehaviorEntity.Animal self) {
+            var setting = self.settings;
             if (!setting.Is(out settings))
                 throw new Exception("Entity: ProjectileEffectsBehavior requires AnimalSettings to have ProjectileEffectsSettings");
 
@@ -41,18 +42,10 @@ namespace Arterra.Data.Entity.Behavior {
             flybyInstance = AudioManager.CreateEventAttached(settings.FlybySound, self.controller.gameObject);
         }
 
-        public override void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref Unity.Mathematics.int3 GCoord) {
-            if (!setting.Is(out settings))
-                throw new Exception("Entity: ProjectileEffectsBehavior requires AnimalSettings to have ProjectileEffectsSettings");
 
-            hasCollided = false;
-            active = true;
-            self.eventCtrl.AddEventHandler(Core.Events.GameEvent.Entity_ProjectileHit, OnProjectileHit);
-            flybyInstance = AudioManager.CreateEventAttached(settings.FlybySound, self.controller.gameObject);
-        }
 
         public override void Update(BehaviorEntity.Animal self) {
-            if (self.context == BehaviorEntity.UpdateContext.Job) return;
+            if (self.context != BehaviorEntity.UpdateContext.Visual) return;
             if (!active || hasCollided) return;
 
             float speed = math.length(self.velocity);
@@ -60,7 +53,7 @@ namespace Arterra.Data.Entity.Behavior {
             flybyInstance.setParameterByName("Speed", speed);
         }
 
-        public override void Disable(BehaviorEntity.Animal self) {
+        public override void DisposeVisual(BehaviorEntity.Animal self) {
             if (!active) return;
             active = false;
 
@@ -71,8 +64,11 @@ namespace Arterra.Data.Entity.Behavior {
         private void OnProjectileHit(object source, object target, object cxt) {
             if (hasCollided) return;
             hasCollided = true;
-            if (source is not Entity sourceEntity) return;
-            EntityManager.AddHandlerEvent(() => AudioManager.CreateEvent(settings.HitSound, sourceEntity.position));
+            if (source is not Guid sourceId) return;
+            if (!EntityManager.TryGetEntity(sourceId, out Entity sourceEntity)) return;
+            EntityManager.AddHandlerEvent(() => {
+                if (sourceEntity.VisualActive && sourceEntity.active) AudioManager.CreateEvent(settings.HitSound, sourceEntity.position);
+            });
         }
     }
 }

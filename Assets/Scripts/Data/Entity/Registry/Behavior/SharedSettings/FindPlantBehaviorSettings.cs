@@ -97,7 +97,7 @@ namespace Arterra.Data.Entity.Behavior {
                     return null;
                 IItem nMat =
                     authoring.Authoring.OnRemoved(preyCoord, mapData);
-                self.eventCtrl.RaiseEvent(Arterra.Core.Events.GameEvent.Entity_RemoveMaterial, self, authoring, mapData);
+                self.eventCtrl.RaiseEvent(Arterra.Core.Events.GameEvent.Entity_RemoveMaterial, self.info.rtEntityId, authoring, mapData);
                 mapData.viscosity = 0;
                 mapData.density = 0;
                 CPUMapManager.SetMap(mapData, preyCoord);

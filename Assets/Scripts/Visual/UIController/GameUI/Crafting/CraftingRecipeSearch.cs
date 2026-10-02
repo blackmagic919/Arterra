@@ -3,7 +3,7 @@ using TMPro;
 using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.UI;
-using static Arterra.GamePlay.UI.CraftingMenuController;
+using static Arterra.Data.Entity.Behavior.PlayerCraftingBehavior;
 using UnityEngine.EventSystems;
 using System.Collections.Generic;
 using Arterra.Configuration;
@@ -16,6 +16,7 @@ using Arterra.Core;
 
 namespace Arterra.GamePlay.UI {
     public class CraftingRecipeSearch {
+        private readonly Arterra.Data.Entity.Behavior.PlayerCraftingBehavior owner;
         private Transform Menu;
         private Animator animator;
         private HoverMoveButton ToggleSearch;
@@ -28,10 +29,12 @@ namespace Arterra.GamePlay.UI {
         private ArterraRuntime.IndirectUpdate HighlightTask;
         private IngredientTable IngredientList;
         private CraftingRecipe ActiveRecipe;
+        private int ActiveRecipeIndex;
         private AnimatorAwaitTask ClosingTask;
         private int PrevHighlightedItemSlot;
 
-        public CraftingRecipeSearch(Transform craftingMenu, ref int GridIndex) {
+        public CraftingRecipeSearch(Arterra.Data.Entity.Behavior.PlayerCraftingBehavior owner, Transform craftingMenu, ref int GridIndex) {
+            this.owner = owner;
             var settings = Config.CURRENT.System.Crafting.value;
             Menu = craftingMenu.transform.Find("SearchArea");
             SearchInput = Menu.Find("SearchBar").GetComponentInChildren<TMP_InputField>();
@@ -57,7 +60,7 @@ namespace Arterra.GamePlay.UI {
             Button prevButton = Menu.Find("PreviousPage").GetComponent<Button>();
             Button nextButton = Menu.Find("NextPage").GetComponent<Button>();
             RecipeSearch.AddPaginateButtons(prevButton, nextButton);
-            RecipeGrid = new(RecipeDisplay.Find("RecipeGrid").gameObject, instance.GridWidth, GridIndex);
+            RecipeGrid = new(RecipeDisplay.Find("RecipeGrid").gameObject, owner.GridWidth, GridIndex);
             Image img = RecipeGrid.display.Display;
             img.color = new Color(img.color.r, 1, 0);
 
@@ -67,13 +70,21 @@ namespace Arterra.GamePlay.UI {
             ReturnButton.onClick.AddListener(() => DeactivateRecipeDisplay());
             Button MatchButton = RecipeGrid.display.Object.GetComponent<Button>();
             MatchButton.onClick.AddListener(() => {
-                instance.MatchRecipe(ActiveRecipe);
+                owner.MatchRecipe(ActiveRecipeIndex);
                 //Unity by default makes enter press the last pressed button causing
                 //unexpected double clicking match effects.
                 EventSystem.current.SetSelectedGameObject(null);
             });
 
             SearchInput.onValueChanged.AddListener(DeactivateRecipeDisplay);
+        }
+
+        public void Release() {
+            ClosingTask?.Disable();
+            if (HighlightTask != null) HighlightTask.Active = false;
+            InputPoller.RemoveBinding("PlayerCraftSearch:SEL", "3.5::Window");
+            RecipeGrid.ReleaseDisplay();
+            IngredientList?.ReleaseIngredientList();
         }
 
         public void CopyToBuffer(CraftingRecipe.Ingredient[] SharedData) {
@@ -92,8 +103,8 @@ namespace Arterra.GamePlay.UI {
             animator.SetBool("IsOpen", true);
             ToggleSearch.Lock();
             
-                InputPoller.AddBinding(new ActionBind("Select",
-                    CraftingMenuSelect, ActionBind.Exclusion.None),
+                InputPoller.AddBinding(new ActionBind("Select", CraftingMenuSelect,
+                    ActionBind.Exclusion.None, ActionBind.Policy.Down),
                     "PlayerCraftSearch:SEL", "3.5::Window");
             
         }
@@ -116,13 +127,14 @@ namespace Arterra.GamePlay.UI {
                 HighlightTask.Active = false;
             if (template == null) return;
 
+            ActiveRecipeIndex = Config.CURRENT.System.Crafting.value.Recipes.RetrieveIndex(template.Name);
             ActiveRecipe = template.SerializeCopy();
             List<(int, float)> ing = ActiveRecipe.items.value.Concat(ActiveRecipe.materials.value).Select(i => (i.Index, i.Amount)).ToList();
             this.IngredientList = new IngredientTable(RecipeDisplay.Find("IngredientTable"), ing);
 
             HighlightTask = new ArterraRuntime.IndirectUpdate(HighlightGrid);
             ArterraRuntime.MainLoopUpdateTasks.Enqueue(HighlightTask);
-            RecipeGrid.RefreshGridWithRecipe(ActiveRecipe, instance.GridWidth);
+            RecipeGrid.RefreshGridWithRecipe(ActiveRecipe, owner.GridWidth);
             SearchContainer.gameObject.SetActive(false);
             RecipeDisplay.gameObject.SetActive(true);
             Transform title = RecipeDisplay.Find("RecipeMaterial");
@@ -130,7 +142,7 @@ namespace Arterra.GamePlay.UI {
 
             HighlightGrid(null);
             PrevHighlightedItemSlot = -1;
-            instance.Rendering.IsDirty = true;
+            owner.Rendering.IsDirty = true;
         }
 
         public void DeactivateRecipeDisplay(string _ = null) {
@@ -164,7 +176,7 @@ namespace Arterra.GamePlay.UI {
 
 
         private bool HighlightMouseItem() {
-            InventoryController.Inventory inv = RecipeGrid.NonMatInventory;
+            Inventory inv = RecipeGrid.NonMatInventory;
             if (!inv.Display.GetMouseSelected(out int index))
                 return false;
             if (inv.Info[index] == null) return false;
@@ -180,7 +192,7 @@ namespace Arterra.GamePlay.UI {
 
         private void UnHighlightPrevItem() {
             if (PrevHighlightedItemSlot == -1) return;
-            InventoryController.Inventory inv = RecipeGrid.NonMatInventory;
+            Inventory inv = RecipeGrid.NonMatInventory;
             GameObject slot = inv.Display.Slots[PrevHighlightedItemSlot];
             CraftingGrid.ResizeSlotRect(slot, Vector2.one * 0.75f);
             PrevHighlightedItemSlot = -1;
@@ -192,16 +204,16 @@ namespace Arterra.GamePlay.UI {
                 RecipeGrid.display.Transform.GetWorldCorners(corners);
                 int2 origin = new((int)corners[0].x, (int)corners[0].y);
                 float2 worldSize = (Vector2)(corners[2] - corners[0]);
-                float2 GridSize = worldSize / instance.GridWidth;
+                float2 GridSize = worldSize / owner.GridWidth;
 
                 slotIndex = -1;
                 float2 relativePos = (((float3)Input.mousePosition).xy - origin) / GridSize;
-                if (math.any(relativePos < 0) || math.any(relativePos >= instance.GridWidth)) {
+                if (math.any(relativePos < 0) || math.any(relativePos >= owner.GridWidth)) {
                     return false;
                 }
                 int2 gridPos = (int2)math.round(relativePos);
                 if (math.distancesq(gridPos, relativePos) > 0.5f * 0.5f) return false;
-                int index = gridPos.x + gridPos.y * instance.AxisWidth;
+                int index = gridPos.x + gridPos.y * owner.AxisWidth;
                 if (RecipeGrid.GridData[index].Amount <= 0) return false;
                 slotIndex = index;
                 return true;
@@ -211,7 +223,7 @@ namespace Arterra.GamePlay.UI {
             if (GetMouseOverMaterial(out int slotIndex))
                 material = RecipeGrid.GridData[slotIndex].Index;
             bool changed = false;
-            for (int i = 0; i < instance.GridCount; i++) {
+            for (int i = 0; i < owner.GridCount; i++) {
                 bool IsTarget = RecipeGrid.GridData[i].Index == material;
                 //Update the visuals if the mouse-over material changes
                 changed |= ((RecipeGrid.GridData[i].flags & 0x1) != 0) ^ IsTarget;
@@ -219,7 +231,7 @@ namespace Arterra.GamePlay.UI {
             }
             if (!changed) return material != -1;
             if (material != -1) IngredientList.SelectIngredient(ActiveRecipe.materials.value[slotIndex].Index);
-            instance.Rendering.IsDirty = true;
+            owner.Rendering.IsDirty = true;
             return material != -1;
         }
     }

@@ -35,14 +35,15 @@ namespace Arterra.Data.Item
         private WeaponToolItemAuthoring settings => ItemInfo.Retrieve(Index) as WeaponToolItemAuthoring;
         public override object Clone() => new WeaponToolItem { data = data, durability = durability };
         public override void OnEnter(ItemContext cxt) {
-            if (cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
+            cxt.RegisterEvent(this, GameEvent.Apply_WeaponAttack, PlayerAttack);
+            if (!cxt.IsOwner || cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
             if (cxt.TryGetHolder(out IEventControlled effect) && settings.Model.Enabled) 
-                effect.RaiseEvent(GameEvent.Item_HoldTool, effect, this, ref settings.Model.Value);
+                effect.RaiseEvent(GameEvent.Item_HoldTool, effect is Entity.Entity ? ((Entity.Entity)effect).info.rtEntityId : effect, this, ref settings.Model.Value);
             Core.ArterraRuntime.MainLoopUpdateTasks.Enqueue(this);
             this.active = true; this.cxt = cxt;
             
                 InputPoller.AddBinding(new ActionBind(
-                    "Remove", PlayerAttack,
+                    "Remove", _ => RequestAttack(cxt),
                     ActionBind.Exclusion.ExcludeLayer),
                     "ITEM::WeaponTool:RM", "5.0::GamePlay"
                 );
@@ -50,9 +51,10 @@ namespace Arterra.Data.Item
         }
 
         public override void OnLeave(ItemContext cxt) {
-            if (cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
+            cxt.UnregisterEvent(GameEvent.Apply_WeaponAttack);
+            if (!cxt.IsOwner || cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
             if (cxt.TryGetHolder(out IEventControlled effect) && settings.Model.Enabled) 
-                effect.RaiseEvent(GameEvent.Item_UnholdTool, effect, this, ref settings.Model.Value);
+                effect.RaiseEvent(GameEvent.Item_UnholdTool, effect is Entity.Entity ? ((Entity.Entity)effect).info.rtEntityId : effect, this, ref settings.Model.Value);
             this.active = false;
             this.cxt = null;
             
@@ -85,7 +87,14 @@ namespace Arterra.Data.Item
             display.GetComponent<UnityEngine.UI.Image>().fillAmount = 1 - progress;
         }
 
-        private void PlayerAttack(float _) {
+        private void RequestAttack(ItemContext context) {
+            if (!context.TryGetHolder(out BehaviorEntity.Animal player)) return;
+            if (!player.Is(out PlayerInteractionBehavior interact)) return;
+            interact.AttackCooldown = settings.AttackCooldown;
+            context.RaiseEvent(GameEvent.Apply_WeaponAttack);
+        }
+
+        private void PlayerAttack(ItemContext cxt) {
             if (!cxt.TryGetHolder(out BehaviorEntity.Animal player)) return;
             if (!player.Is(out PlayerInteractionBehavior interact)) return;
             interact.AttackCooldown = settings.AttackCooldown;
@@ -94,14 +103,14 @@ namespace Arterra.Data.Item
                 * interact.settings.ReachDistance;
 
             if (settings.OnUseAnim.Enabled && player is IEventControlled effectable)
-                effectable.RaiseEvent(GameEvent.Item_UseTool, player, this, ref settings.OnUseAnim.Value);
+                effectable.RaiseEvent(GameEvent.Item_UseTool, player.info.rtEntityId, this, ref settings.OnUseAnim.Value);
                     
             if (interact.RayTestSolid(out float3 terrHit)) hitPt = terrHit;
             if (!EntityManager.ESTree.FindClosestAlongRay(player.head, hitPt, player.info.rtEntityId, out Entity.Entity entity, out _))
                 return;
             void PlayerDamageEntity(Entity.Entity target) {
                 if (!target.active) return;
-                if (!target.Is(out IAttackable atkEntity)) return;
+                if (!target.Is(out IVitality atkEntity)) return;
                 float3 knockback = math.normalize(target.position - player.head)
                     * settings.KnockBackStrength;
 
@@ -109,10 +118,11 @@ namespace Arterra.Data.Item
                 if (UnityEngine.Random.Range(0, 1) <= settings.CritChance)
                     atkDmg *= settings.CritMultiplier;
 
-                atkEntity.TakeDamage(atkDmg, knockback, player);
+                target.eventCtrl.EnqueueEvent(GameEvent.Apply_Damage,
+                    target.info.rtEntityId, player.info.rtEntityId, (atkDmg, knockback));
                 durability--;
             
-                if (durability > 0) return;
+                if (durability > 0) { cxt.SetDirty(); return; }
                 cxt.TryRemove();
             }
             EntityManager.AddHandlerEvent(() => PlayerDamageEntity(entity));

@@ -13,8 +13,15 @@ MonoBehaviour:
   m_Name: OpenInventory
   m_EditorClassIdentifier: 
   Name: Open Inventory
+  Tags:
+    Reg:
+      value: []
   bindings:
     value:
     - Key: 9
-      PollType: 3
+      PollType: 2
       IsAlias: 0
+  AdditionalTriggerCount: 0
+  references:
+    version: 2
+    RefIds: []
