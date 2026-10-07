@@ -60,13 +60,17 @@ public class ArterraRuntime : MonoBehaviour {
 
 
 
-    private void OnEnable() {
+    private async void OnEnable() {
         if (instance != null && instance != this) {
             Debug.LogWarning($"Duplicate {nameof(ArterraRuntime)} instance detected. Disabling duplicate component on {gameObject.name}.");
             enabled = false;
             return;
         }
 
+        try { await SystemProtocol.ShutdownTask; }
+        catch (Exception exception) { Debug.LogException(exception); enabled = false; return; }
+        if (!isActiveAndEnabled) return;
+        if (instance != null && instance != this) { enabled = false; return; }
         instance = this;
         MainLoopUpdateTasks = new Queue<IUpdateSubscriber>();
         MainLateUpdateTasks = new Queue<IUpdateSubscriber>();
@@ -88,14 +92,22 @@ public class ArterraRuntime : MonoBehaviour {
 #endif
 
     private void Update() {
+        if (instance != this || !SystemProtocol.ShutdownTask.IsCompleted) return;
         ProcessUpdateTasks(MainLoopUpdateTasks);
         ProcessCoroutines(MainCoroutines);
+        MapGenerationPipeline.RunAll();
         ProcessEventTasks();
     }
     private void LateUpdate() {
+        if (instance != this || !SystemProtocol.ShutdownTask.IsCompleted) return;
         ProcessUpdateTasks(MainLateUpdateTasks);
+        SubmitGraphics();
+    }
+
+    internal static void SubmitGraphics() {
         GraphicsResourceContext generation = GraphicsGeneration;
         GraphicsResourceContext rendering = GraphicsRendering;
+        if (generation == null || rendering == null) return;
         generation.AnswerPolls();
         rendering.AnswerPolls();
 
@@ -110,7 +122,32 @@ public class ArterraRuntime : MonoBehaviour {
             UnityEngine.Graphics.ExecuteCommandBuffer(rendering.Commands);
         rendering.ClearCommands();
     }
-    private void FixedUpdate() { ProcessUpdateTasks(MainFixedUpdateTasks); }
+    // Drain already-recorded GPU work; never run generation tasks during shutdown.
+    internal static void FinishGraphics() {
+        var generation = GraphicsGeneration;
+        var rendering = GraphicsRendering;
+        if (generation == null || rendering == null) return;
+        do {
+            var fence = generation.Commands.CreateGraphicsFence(
+                UnityEngine.Rendering.GraphicsFenceType.AsyncQueueSynchronisation,
+                UnityEngine.Rendering.SynchronisationStageFlags.AllGPUOperations);
+            SubmitGraphics();
+            var drain = UnityEngine.Rendering.CommandBufferPool.Get("Shutdown GPU drain");
+            try {
+                drain.WaitOnAsyncGraphicsFence(fence);
+                // A readback after the fence makes WaitAllRequests wait for the producer queue too.
+                drain.RequestAsyncReadback(generation.Work.Scratch, sizeof(uint), 0, _ => { });
+                UnityEngine.Graphics.ExecuteCommandBuffer(drain);
+                UnityEngine.Rendering.AsyncGPUReadback.WaitAllRequests();
+            } finally { UnityEngine.Rendering.CommandBufferPool.Release(drain); }
+            SubmitGraphics();
+            UnityEngine.Rendering.AsyncGPUReadback.WaitAllRequests();
+        } while (generation.HasPendingPolls || rendering.HasPendingPolls);
+    }
+
+    private void FixedUpdate() {
+        if (instance == this && SystemProtocol.ShutdownTask.IsCompleted) ProcessUpdateTasks(MainFixedUpdateTasks);
+    }
     private void ProcessUpdateTasks(Queue<IUpdateSubscriber> taskQueue) {
         int UpdateTaskCount = taskQueue.Count;
         for (int i = 0; i < UpdateTaskCount; i++) {
@@ -144,8 +181,8 @@ public class ArterraRuntime : MonoBehaviour {
         });
     }
 
-    private void ProcessEventTasks() {
-        if (EventTaskQueue.Count == 0)
+    private static void ProcessEventTasks() {
+        if (EventTaskQueue == null || EventTaskQueue.Count == 0)
             return;
 
         int maxFrameLoad = Config.CURRENT.Quality.Terrain.value.maxFrameLoad;
@@ -190,7 +227,7 @@ public class ArterraRuntime : MonoBehaviour {
                 break;
         }
 
-        if (EventTaskQueue.Count == 0)
+        if (EventTaskQueue == null || EventTaskQueue.Count == 0)
             _nextNode = null;
     }
 

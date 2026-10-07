@@ -42,7 +42,7 @@ void CSMain (uint3 id : SV_DispatchThreadID)
     if(count == 0 || totalSize >= _Heap[1].y){
         _AddressDict[addressIndex] = uint2(0, 0); //INDICATE NOT ALLOCATED
 #ifdef TRACKING
-        Allocations[operationIndex] = uint2(0, 0);
+        Allocations[operationIndex] = uint2(count, 0); // Distinguish an empty request from allocation failure.
 #endif
         return; 
     }

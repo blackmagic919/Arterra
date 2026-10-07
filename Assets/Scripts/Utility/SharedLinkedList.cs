@@ -7,6 +7,9 @@ namespace Arterra.Utils {
         private int _length;
         public readonly int Length => _length;
 
+        public readonly ref T this[uint index] => ref array[index].value;
+        public readonly ref T this[int index] => ref array[index].value;
+
         public SharedLinkedList(int length) {
             int totalNodes = Math.Max(length + 1, 2);
             array = new LListNode[totalNodes];

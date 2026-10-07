@@ -10,6 +10,7 @@ using System.Linq;
 using TerrainCollider = Arterra.GamePlay.Interaction.TerrainCollider;
 using Arterra.Core.Storage;
 using UnityEngine.Animations.Rigging;
+using Arterra.Utils;
 
 namespace Arterra.Data.Entity.Behavior
 {
@@ -253,15 +254,15 @@ namespace Arterra.Data.Entity.Behavior
 
                 this.collider.transform.velocity *= 1 - settings.Friction;
                 if (State == StepState.Stand){
-                    if (CPUMapManager.RayCastTerrain(origin, Vector3.down, 2*settings.collider.size.y, 
-                        CPUMapManager.RayTestSolid, out float3 hit)) {
+                    if (Terraforming.RayCastTerrain(origin, Vector3.down, 2*settings.collider.size.y, 
+                        Terraforming.RayTestSolid, out float3 hit)) {
                         TargetPosition = hit;
                     } else TargetPosition = origin + (float3)(Vector3.down * settings.collider.size.y * 2);
                     if(CanStartStep && math.distance(TargetPosition, restPos) > settings.StepDistThreshold) State = StepState.Raise;
                 } 
                 if ( State == StepState.Lower) {
                     if (TerrainCollider.SampleCollision((float3)collider.transform.position + (float3)(0.05f * Vector3.down),
-                        collider.transform.size, EntityJob.cxt.mapContext, out float3 gDir))
+                        collider.transform.size, out float3 gDir))
                         State = StepState.Stand;
                     if (math.distance(TargetPosition, restPos) < 0.05f)
                         State = StepState.Stand;

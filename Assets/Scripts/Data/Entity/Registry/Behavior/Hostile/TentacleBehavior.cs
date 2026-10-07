@@ -11,6 +11,7 @@ using TerrainCollider = Arterra.GamePlay.Interaction.TerrainCollider;
 using Arterra.Core.Storage;
 using UnityEngine.Animations.Rigging;
 using Arterra.Data.Item;
+using Arterra.Utils;
 
 namespace Arterra.Data.Entity.Behavior
 {
@@ -281,7 +282,7 @@ namespace Arterra.Data.Entity.Behavior
 					float3 origin = (float3)collider.transform.position;
                     float3 targetPos = target.position;
                     // Simple raycast for line of sight
-                    return !CPUMapManager.RayCastTerrain(origin, math.normalizesafe(targetPos - origin), math.distance(origin, targetPos), CPUMapManager.RayTestSolid, out _);
+                    return !Terraforming.RayCastTerrain(origin, math.normalizesafe(targetPos - origin), math.distance(origin, targetPos), Terraforming.RayTestSolid, out _);
                 }
 
                 bool IsCloseEnough(Entity target) {

@@ -141,7 +141,7 @@ namespace Arterra.Data.Entity.Behavior {
                 return (uint)pointInfo.viscosity;
             }
 
-            return CPUMapManager.RayCastTerrain(entity.head, entity.Forward, reach, RaySolid, out hitPt);
+            return Terraforming.RayCastTerrain(entity.head, entity.Forward, reach, RaySolid, out hitPt);
         }
 
         public bool RayTestLiquid<T>(T entity, float reach, out float3 hitPt) where T : Entity {
@@ -149,7 +149,7 @@ namespace Arterra.Data.Entity.Behavior {
                 MapData pointInfo = CPUMapManager.SampleMap(coord);
                 return (uint)Mathf.Max(pointInfo.viscosity, pointInfo.density - pointInfo.viscosity);
             }
-            return CPUMapManager.RayCastTerrain(entity.head, entity.Forward, reach, RayLiquid, out hitPt);
+            return Terraforming.RayCastTerrain(entity.head, entity.Forward, reach, RayLiquid, out hitPt);
         }
 
         public bool CylinderTestSolid<T>(T entity, float reach, float radius, out float3 hitPt) where T : Entity {
@@ -160,7 +160,7 @@ namespace Arterra.Data.Entity.Behavior {
 
             if (RayTestSolid(entity, reach, out hitPt) && math.lengthsq(hitPt - entity.head) < radius * radius * 4)
                 return true;
-            return CPUMapManager.CylinderCastTerrain(entity.head + 2 * radius * entity.Forward,
+            return Terraforming.CylinderCastTerrain(entity.head + 2 * radius * entity.Forward,
                 entity.Forward, radius, reach, CylinderSolid, out hitPt);
         }
 
@@ -251,7 +251,7 @@ namespace Arterra.Data.Entity.Behavior {
             if (!setting.IsSolid || !matInfo.Contains(setting.MaterialName)) return;
 
             self.eventCtrl.RaiseEvent(GameEvent.Action_PlaceTerrain, self, null, hitPt);
-            CPUMapManager.Terraform(hitPt, TerraformRadius,
+            Terraforming.Terraform(hitPt, TerraformRadius,
                 (GCoord, speed) => HandleAddSolidInternal(
                     InventoryController.Selected,
                     GCoord,
@@ -271,7 +271,7 @@ namespace Arterra.Data.Entity.Behavior {
             }
 
             self.eventCtrl.RaiseEvent(GameEvent.Action_RemoveTerrain, self, null, hitPt);
-            CPUMapManager.Terraform(hitPt, TerraformRadius, RemoveSolidBareHand, CallOnMapRemoving);
+            Terraforming.Terraform(hitPt, TerraformRadius, RemoveSolidBareHand, CallOnMapRemoving);
         }
 
         private bool CanPlaceSolid(IItem selected, MapData pointInfo, out int matIndex) {

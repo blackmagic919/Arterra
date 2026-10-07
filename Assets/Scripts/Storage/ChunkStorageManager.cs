@@ -9,6 +9,7 @@ using Newtonsoft.Json;
 using System;
 using UnityEngine;
 using Unity.Collections.LowLevel.Unsafe;
+using Unity.Collections;
 using System.Buffers;
 using System.Threading.Tasks;
 using Arterra.Configuration;
@@ -57,53 +58,26 @@ namespace Arterra.Core.Storage {
         /// <param name="entities">A list containing all <see cref="Entity">Entities</see> associated with the chunk(typically within its bounds). </param>
         /// <param name="CCoord">The coordinate in chunk space of the Chunk associated with the entities. 
         /// This information used to identify the location to store the resulting file(s). </param>
-        public static async void SaveEntitiesToJsonAsync(List<Entity> entities, int3 CCoord) {
-            try {
-                string entityPath = chunkFinder.GetEntityRegionPath(CCoord);
-                if (!Directory.Exists(entityPath))
-                    Directory.CreateDirectory(entityPath);
+        public static Task SaveEntitiesToJsonAsync(List<Entity> entities, int3 CCoord) => Task.Run(async () => {
+            Directory.CreateDirectory(chunkFinder.GetEntityRegionPath(CCoord));
+            string fileAdd;
+            while (!chunkFinder.TryGetEntityChunk(CCoord, out fileAdd, AcquireLock: true))
+                await Task.Delay(1).ConfigureAwait(false);
+            try { SaveEntityToJson(fileAdd, entities); }
+            finally { chunkFinder.TryAddEntity(CCoord); }
+        });
 
-                string fileAdd;
-                while (!chunkFinder.TryGetEntityChunk(CCoord, out fileAdd, AcquireLock: true))
-                    await Task.Yield();
-                SaveEntityToJson(fileAdd, entities);
-                chunkFinder.TryAddEntity(CCoord);
-            } catch (Exception e) {
-                Debug.Log($"Failed on Saving Entity Data for Chunk: {CCoord} with exception {e}");
-                chunkFinder.TryRemoveEntity(CCoord);
-            }
-        }
+        /// <summary>Saves offloaded CPU data. The caller retains ownership until this task completes.</summary>
+        public static Task SaveChunkToBinAsync(CPUMapManager.ChunkMapInfo chunk, int3 CCoord) => Task.Run(async () => {
+            Directory.CreateDirectory(chunkFinder.GetMapRegionPath(CCoord));
+            string fileAdd;
+            while (!chunkFinder.TryGetMapChunk(CCoord, out fileAdd, AcquireLock: true))
+                await Task.Delay(1).ConfigureAwait(false);
+            try { SaveChunkToBin(fileAdd, chunk); }
+            finally { chunkFinder.TryAddMap(CCoord); }
+        });
 
-        /// <summary>Saves a chunk's map information to the file system at the appropriate location. 
-        /// The chunk's map information is saved in a multi-resolution compressed binary format
-        /// to the correct location for the chunk within the world's file system(<see cref="ChunkFinder.chunkPath"/>).  
-        /// See <see cref="ChunkHeader"/> for information on this format. The function saves the chunk data
-        /// with background task to avoid blocking the main thread. </summary>
-        /// <param name="chunk">A <see cref="CPUMapManager.ChunkPtr"/> referencing a COPY of the chunk's map in memory</param>
-        /// <param name="CCoord">The coordinate in chunk space of the Chunk associated with the map 
-        /// information. Used to identify the location to store the resulting file(s). </param>
-        public static async void SaveChunkToBinAsync(CPUMapManager.ChunkPtr chunk, int3 CCoord) {
-            try {
-                string mapPath = chunkFinder.GetMapRegionPath(CCoord);
-
-                if (!Directory.Exists(mapPath))
-                    Directory.CreateDirectory(mapPath);
-
-                string fileAdd;
-                while (!chunkFinder.TryGetMapChunk(CCoord, out fileAdd, AcquireLock: true))
-                    await Task.Yield();
-
-                SaveChunkToBin(fileAdd, chunk);
-                chunkFinder.TryAddMap(CCoord);
-                chunk.Dispose();
-            } catch (Exception e) {
-                Debug.Log($"Failed on Saving Chunk Data for Chunk: {CCoord} with exception {e}");
-                chunkFinder.TryRemoveMap(CCoord);
-                chunk.Dispose();
-            }
-        }
-
-        private static void SaveChunkToBin(string fileAdd, CPUMapManager.ChunkPtr chunk) {
+        private static void SaveChunkToBin(string fileAdd, CPUMapManager.ChunkMapInfo chunk) {
             using FileStream fs = File.Create(fileAdd);
             MemoryStream mapStream = WriteChunkMaps(chunk, out ChunkHeader header);
             MemoryStream headerStream = WriteChunkHeader(header);
@@ -182,37 +156,29 @@ namespace Arterra.Core.Storage {
         /// chunk's information in the file system.</param>
         /// <returns>The aggregate information associated with the chunk as a <see cref="ReadbackInfo"/>. </returns>
         public static ReadbackInfo ReadChunkInfo(int3 CCoord) {
-            ReadbackInfo info = new ReadbackInfo(false);
-            if (chunkFinder.TryGetMapChunk(CCoord, out string chunkAdd)) {
-                info.map = ReadChunkBin(chunkAdd, 0, out ChunkHeader header);
-                info.mapMeta = header.MapEntryMetaData;
-                chunkFinder.TryAddMap(CCoord);
-            }
-            if (chunkFinder.TryGetEntityChunk(CCoord, out string entityAdd)) {
-                info.entities = ReadEntityJson(entityAdd);
-                chunkFinder.TryAddEntity(CCoord);
-            }
-            return info;
+            var data = new ReadbackInfo {
+                map = ReadChunkMap(CCoord),
+                entity = ReadChunkEntities(CCoord)
+            };
+            return data;
         }
 
-        /// <summary>
-        /// Reads just the map information associated with a chunk file at the specified chunk coordinate at a certain
-        /// resolution. Automatically loads and deserializes the map information by recoupling it to the
-        /// current game instance. The size of the read map information is dependant on the 
-        /// sampled resolution controlled by <paramref name="depth"/>. 
-        /// </summary>
-        /// <param name="CCoord">The coordinate in chunk space of the real chunk to be read. </param>
-        /// <param name="depth">The resolution within of the map to be sampled from the file. Chunk files contain multiple
-        /// resolutions of their maps compressed seperately, see <see cref="ChunkHeader"/> for more information. </param>
-        /// <returns>The linearly encoded map data associated with the requested resolution of the chunk</returns>
-        public static ReadbackInfo ReadChunkMap(int3 CCoord, int depth) {
-            ReadbackInfo info = new ReadbackInfo(false);
-            if (chunkFinder.TryGetMapChunk(CCoord, out string chunkAdd)) {
-                info.map = ReadChunkBin(chunkAdd, depth, out ChunkHeader header);
-                info.mapMeta = header.MapEntryMetaData;
-                chunkFinder.TryAddMap(CCoord);
-            }
-            return info;
+        public static ReadbackInfo.MapInfo ReadChunkMap(int3 CCoord) {
+            if (!chunkFinder.TryGetMapChunk(CCoord, out string address, waitForAccess: true)) return default;
+            try {
+                var map = ReadChunkBin(address, 0, out ChunkHeader header);
+                if (map == null) throw new IOException($"Could not read saved chunk {CCoord}.");
+                return new ReadbackInfo.MapInfo { map = map, mapMeta = header.MapEntryMetaData };
+            } finally { chunkFinder.TryAddMap(CCoord); }
+        }
+
+        public static ReadbackInfo.EntityInfo ReadChunkEntities(int3 CCoord) {
+            if (!chunkFinder.TryGetEntityChunk(CCoord, out string address, waitForAccess: true)) return default;
+            try {
+                var entities = ReadEntityJson(address);
+                if (entities == null) throw new IOException($"Could not read saved entities for {CCoord}.");
+                return new ReadbackInfo.EntityInfo { entities = entities };
+            } finally { chunkFinder.TryAddEntity(CCoord); }
         }
 
         /// <summary>Reads the map data of a chunk at the given address with a certain depth. </summary>
@@ -316,18 +282,18 @@ namespace Arterra.Core.Storage {
             return entities;
         }
 
-        static ChunkHeader SerializeHeader(CPUMapManager.ChunkPtr chunk) {
+        static ChunkHeader SerializeHeader(CPUMapManager.ChunkMapInfo chunk) {
             Dictionary<int, int> RegisterDict = new();
             int numPoints = maxChunkSize * maxChunkSize * maxChunkSize; int nextId = 0;
             for (int i = 0; i < numPoints; i++) {
-                MapData mapPt = chunk.data[chunk.offset + i];
+                MapData mapPt = chunk.ChunkData[chunk.Offset + i];
                 if (!RegisterDict.TryGetValue(mapPt.material, out int registeredId)) {
                     registeredId = nextId++;
                     RegisterDict[mapPt.material] = registeredId;
                 }
 
                 mapPt._material = registeredId;
-                chunk.data[chunk.offset + i] = mapPt;
+                chunk.ChunkData[chunk.Offset + i] = mapPt;
             }
 
             string[] dict = new string[RegisterDict.Count];
@@ -338,7 +304,7 @@ namespace Arterra.Core.Storage {
 
             return new ChunkHeader {
                 RegisterNames = dict.ToList(),
-                MapEntryMetaData = chunk.mapMeta
+                MapEntryMetaData = chunk.MapMetaData.ToArray(),
             };
         }
 
@@ -382,7 +348,7 @@ namespace Arterra.Core.Storage {
 
 
         //IT IS CALLERS RESPONSIBILITY TO DISPOSE MEMORY STREAM
-        private static MemoryStream WriteChunkMaps(CPUMapManager.ChunkPtr chunk, out ChunkHeader header) {
+        private static MemoryStream WriteChunkMaps(CPUMapManager.ChunkMapInfo chunk, out ChunkHeader header) {
             MemoryStream ms = new MemoryStream();
             header = SerializeHeader(chunk);
             header.ResolutionOffsets = new List<int>();
@@ -395,19 +361,19 @@ namespace Arterra.Core.Storage {
                 unsafe {
                     fixed (byte* destPtr = mBuffer) {
                         if (skipInc == 1) {
-                            UnsafeUtility.MemCpy(destPtr, (MapData*)chunk.data.GetUnsafePtr() +
-                            chunk.offset, numPoints * 4);
+                            UnsafeUtility.MemCpy(destPtr, (MapData*)chunk.ChunkData.GetUnsafePtr() +
+                            chunk.Offset, numPoints * 4);
                         } else {
 
                             int yStride = maxChunkSize;
                             int zStride = maxChunkSize * maxChunkSize;
 
                             for (int z = 0; z < maxChunkSize; z += skipInc) {
-                                int zOffset = z * zStride + chunk.offset;
+                                int zOffset = z * zStride + chunk.Offset;
                                 for (int y = 0; y < maxChunkSize; y += skipInc) {
                                     int yzOffset = zOffset + y * yStride;
                                     for (int x = 0; x < maxChunkSize; x += skipInc) {
-                                        UnsafeUtility.As<byte, uint>(ref mBuffer[mBPos]) = chunk.data[yzOffset + x].data;
+                                        UnsafeUtility.As<byte, uint>(ref mBuffer[mBPos]) = chunk.ChunkData[yzOffset + x].data;
                                         mBPos += 4;
                                     }
                                 }
@@ -474,27 +440,17 @@ namespace Arterra.Core.Storage {
         /// may be partially filled depending on what information exists/can be found.
         /// </summary>
         public struct ReadbackInfo {
-            /// <summary>
-            /// A list of all deserialized <see cref="Entity">Entities</see> associated 
-            /// with the chunk. See <see cref="Entity"/> for more information.
-            /// </summary>
-            public List<Entity> entities;
-            /// <summary>
-            /// A list of all deserialized <see cref="MapData">MapData</see> associated
-            /// with the chunk. See <see cref="MapData"/> for more information.
-            /// </summary>
-            public MapData[] map;
-            /// <summary> An array of all the deserialized <see cref="ChunkHeader.MapEntryMetaData"/> entries associated
-            /// with the chunk. See <see cref="ChunkHeader.MapEntryMetaData"/> for more information. </summary>
-            public KeyValuePair<uint, object>[] mapMeta;
+            /// <summary> All the entity information associated with the chunk</summary>
+            public EntityInfo entity;
+            /// <summary> All the map information associated with a chunk  </summary>
+            public MapInfo map;
 
             /// <summary>A constructor to initialize a default instance of
             /// <see cref="ReadbackInfo"/> which zeroes all fields. </summary>
             /// <param name="_">A dummy paramater</param>
             public ReadbackInfo(bool _) {
-                entities = null;
-                map = null;
-                mapMeta = null;
+                entity = default;
+                map = default;
             }
 
             /// <summary> Creates an instance of <see cref="ReadbackInfo"/> to 
@@ -503,9 +459,28 @@ namespace Arterra.Core.Storage {
             /// <param name="mapMeta">The list of deserialized MapMetaData to wrap. </param>
             /// <param name="entities">The list of deserialized <see cref="entities">entities</see> to wrap.</param>
             public ReadbackInfo(MapData[] map, KeyValuePair<uint, object>[] mapMeta, List<Entity> entities) {
-                this.entities = entities;
-                this.mapMeta = mapMeta;
-                this.map = map;
+                this.entity.entities = entities;
+                this.map.mapMeta = mapMeta;
+                this.map.map = map;
+            }
+
+            public struct MapInfo {
+                /// <summary>
+                /// A list of all deserialized <see cref="MapData">MapData</see> associated
+                /// with the chunk. See <see cref="MapData"/> for more information.
+                /// </summary>
+                public MapData[] map;
+                /// <summary> An array of all the deserialized <see cref="ChunkHeader.MapEntryMetaData"/> entries associated
+                /// with the chunk. See <see cref="ChunkHeader.MapEntryMetaData"/> for more information. </summary>
+                public KeyValuePair<uint, object>[] mapMeta;
+            }
+
+            public struct EntityInfo {
+                /// <summary>
+                /// A list of all deserialized <see cref="Entity">Entities</see> associated 
+                /// with the chunk. See <see cref="Entity"/> for more information.
+                /// </summary>
+                public List<Entity> entities;
             }
         }
 
@@ -555,7 +530,7 @@ namespace Arterra.Core.Storage {
                 return RCoord;
             }
 
-            public bool TryGetMapChunk(int3 CCoord, out string address, bool AcquireLock = false) {
+            public bool TryGetMapChunk(int3 CCoord, out string address, bool AcquireLock = false, bool waitForAccess = false) {
                 address = null;
                 int3 RCoord = CSToRS(CCoord);
                 int hash = HashCoord(RCoord);
@@ -566,36 +541,48 @@ namespace Arterra.Core.Storage {
                 }
 
                 lock (this) {
-                    if (!regions[hash].active || math.any(regions[hash].RCoord != RCoord))
-                        ReconstructRegion(RCoord);
-                    if (!regions[hash].MapChunks.TryGetValue(CCoord, out bool isModifying)) {
-                        if (AcquireLock) regions[hash].MapChunks.Add(CCoord, true);
-                        else return false;
-                    } else if (isModifying) return false;
-                    else regions[hash].MapChunks[CCoord] = true;
+                    while (true) {
+                        if (!regions[hash].active || math.any(regions[hash].RCoord != RCoord))
+                            ReconstructRegion(RCoord);
+                        if (!regions[hash].MapChunks.TryGetValue(CCoord, out bool isModifying)) {
+                            if (!AcquireLock) return false;
+                        } else if (isModifying) {
+                            if (!waitForAccess) return false;
+                            System.Threading.Monitor.Wait(this);
+                            continue;
+                        }
+                        regions[hash].MapChunks[CCoord] = true;
+                        break;
+                    }
                 }
                 address = GetMapPath(CCoord);
                 return true;
             }
 
-            public bool TryGetEntityChunk(int3 CCoord, out string address, bool AcquireLock = false) {
+            public bool TryGetEntityChunk(int3 CCoord, out string address, bool AcquireLock = false, bool waitForAccess = false) {
                 address = null;
                 int3 RCoord = CSToRS(CCoord);
                 int hash = HashCoord(RCoord);
 
                 if (!IsTrackRegions) {
-                    address = GetMapPath(CCoord);
+                    address = GetEntityPath(CCoord);
                     return File.Exists(address);
                 }
 
                 lock (this) {
-                    if (!regions[hash].active || math.any(regions[hash].RCoord != RCoord))
-                        ReconstructRegion(RCoord);
-                    if (!regions[hash].EntityChunks.TryGetValue(CCoord, out bool isModifying)) {
-                        if (AcquireLock) regions[hash].EntityChunks.Add(CCoord, true);
-                        else return false;
-                    } else if (isModifying) return false;
-                    else regions[hash].EntityChunks[CCoord] = true;
+                    while (true) {
+                        if (!regions[hash].active || math.any(regions[hash].RCoord != RCoord))
+                            ReconstructRegion(RCoord);
+                        if (!regions[hash].EntityChunks.TryGetValue(CCoord, out bool isModifying)) {
+                            if (!AcquireLock) return false;
+                        } else if (isModifying) {
+                            if (!waitForAccess) return false;
+                            System.Threading.Monitor.Wait(this);
+                            continue;
+                        }
+                        regions[hash].EntityChunks[CCoord] = true;
+                        break;
+                    }
                 }
                 address = GetEntityPath(CCoord);
                 return true;
@@ -610,6 +597,7 @@ namespace Arterra.Core.Storage {
                     if (!regions[hash].active || math.any(regions[hash].RCoord != RCoord))
                         ReconstructRegion(RCoord);
                     regions[hash].MapChunks[CCoord] = false;
+                    System.Threading.Monitor.PulseAll(this);
                 }
             }
 
@@ -622,6 +610,7 @@ namespace Arterra.Core.Storage {
                     if (!regions[hash].active || math.any(regions[hash].RCoord != RCoord))
                         ReconstructRegion(RCoord);
                     regions[hash].EntityChunks[CCoord] = false;
+                    System.Threading.Monitor.PulseAll(this);
                 }
             }
 

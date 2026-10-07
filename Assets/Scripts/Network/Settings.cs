@@ -7,5 +7,8 @@ namespace Arterra.Core.Network {
         public int MaxPlayers = 4;
         public bool IsPrivate = false;
         public string Password = null;
+        //Whether or not the server will send map and entity data
+        //To the client even if it isn't dirty (modified).
+        public bool Authoritative = false; 
     }
 }

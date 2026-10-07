@@ -144,11 +144,11 @@ namespace Arterra.GamePlay.UI {
             public static void RefreshDisplayMap() {
                 if (!NetworkManager.IsActingServer) return;
                 var coord = Config.CURRENT.System.WorldApperance.value.DisplayedChunk;
-                var map = Chunk.ReadChunkMap(coord, 0).map;
+                var map = Chunk.ReadChunkMap(coord).map;
                 if (map == null && Chunk.TryFindSavedMapChunk(out coord)) {
                     Config.CURRENT.System.WorldApperance.value.DisplayedChunk = coord;
                     Config.CURRENT.System.WorldApperance.IsDirty = true;
-                    map = Chunk.ReadChunkMap(coord, 0).map;
+                    map = Chunk.ReadChunkMap(coord).map;
                 }
                 DisplayMap.Value = map == null ? null : Array.ConvertAll(map, point => point.data);
             }
@@ -177,6 +177,8 @@ namespace Arterra.GamePlay.UI {
                 Release();
 
                 try {
+                    await SystemProtocol.ShutdownTask;
+                    if (version != loadVersion) return;
                     if (NetworkManager.IsActingServer) {
                         SystemProtocol.MinimalStartup();
                         RefreshDisplayMap();
@@ -205,13 +207,16 @@ namespace Arterra.GamePlay.UI {
                 updatedIcon = false;
 
                 SystemProtocol.Shutdown();
-                CameraController.transform.localRotation = Quaternion.identity;
-                Transform grid = ChunkDisplay.transform.Find("Grid");
-                grid.localPosition = Vector3.zero;
-                grid.localScale = Vector3.one;
+                if (CameraController != null)
+                    CameraController.transform.localRotation = Quaternion.identity;
+                if (ChunkDisplay != null) {
+                    Transform grid = ChunkDisplay.transform.Find("Grid");
+                    grid.localPosition = Vector3.zero;
+                    grid.localScale = Vector3.one;
 
-                Transform model = ChunkDisplay.transform.Find("Model");
-                model.localPosition = Vector3.one;
+                    Transform model = ChunkDisplay.transform.Find("Model");
+                    model.localPosition = Vector3.one;
+                }
 
                 ChunkModel?.Release();
                 ChunkGrid?.Release();

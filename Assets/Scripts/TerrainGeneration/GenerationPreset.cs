@@ -1,4 +1,6 @@
 using System.Collections.Generic;
+using System.Threading.Tasks;
+using Arterra.Core;
 using System.Linq;
 using UnityEngine;
 using Unity.Collections;
@@ -29,6 +31,7 @@ namespace Arterra.Engine.Terrain{
 /// be added to this protocol with awareness of its dependencies. </summary>
 public static class SystemProtocol{
     private static SystemState state = SystemState.Inactive;
+    public static Task ShutdownTask { get; private set; } = Task.CompletedTask;
 
     static SystemProtocol() {　Reset();　}
 
@@ -41,6 +44,8 @@ public static class SystemProtocol{
     public static void Startup(){
         if (state == SystemState.Active) return;
         if (state != SystemState.Inactive) Shutdown();
+        if (!ShutdownTask.IsCompletedSuccessfully)
+            throw new System.InvalidOperationException("Await SystemProtocol.ShutdownTask before starting another world.");
         state = SystemState.Active;
 
         IRegister.Setup(Config.CURRENT);
@@ -74,6 +79,7 @@ public static class SystemProtocol{
         Structure.Creator.PresetData();
         Surface.Creator.PresetData();
         Map.Creator.PresetData();
+        EntityGenerator.Initialize();
         MeshGenerator.PresetData();
         SubChunkShaderGraph.PresetData();
         RegionReconstructor.PresetData();
@@ -81,6 +87,7 @@ public static class SystemProtocol{
 
         Readback.AsyncGenInfoReadback.PresetData();
         Readback.AsyncMeshReadback.PresetData();
+        ChunkGenerationDriver.Initialize(new LocalChunkSource());
         OctreeTerrain.Initialize();
     }
 
@@ -89,6 +96,8 @@ public static class SystemProtocol{
     public static void MinimalStartup() {
         if (state == SystemState.Limited) return;
         if (state != SystemState.Inactive) Shutdown();
+        if (!ShutdownTask.IsCompletedSuccessfully)
+            throw new System.InvalidOperationException("Await SystemProtocol.ShutdownTask before starting another world.");
         state = SystemState.Limited;
 
         IRegister.Setup(Config.CURRENT);
@@ -101,22 +110,23 @@ public static class SystemProtocol{
     /// returning the system to a clean uninitialized state. This is a static factory protocol and
     /// only changes when modifying the system's functionality through its source code. </summary>
     public static void Shutdown() {
-        switch(state) {
-            case SystemState.Active:
-                ShutdownAll();
-                break;
-            case SystemState.Limited:
-                ShutdownMinimal();
-                break;
-            default:
-                Debug.Log("System not active");
-                break;
+        if (state == SystemState.Active || (state == SystemState.Stopping && ShutdownTask.IsFaulted)) {
+            state = SystemState.Stopping;
+            ShutdownTask = ShutdownAll();
+            _ = ReportShutdown(ShutdownTask);
+        } else if (state == SystemState.Limited) {
+            ShutdownMinimal();
+            state = SystemState.Inactive;
+            ShutdownTask = Task.CompletedTask;
         }
-
-        state = SystemState.Inactive;
     }
 
-    private static void ShutdownAll(){
+    private static async Task ReportShutdown(Task shutdown) {
+        try { await shutdown; }
+        catch (System.Exception exception) { Debug.LogException(exception); }
+    }
+
+    private static async Task ShutdownAll() {
         // Startup marks state as Active before all systems are guaranteed initialized.
         // Shutdown must therefore tolerate partially initialized systems.
         static void TryShutdown(System.Action action, string systemName) {
@@ -127,7 +137,21 @@ public static class SystemProtocol{
             }
         }
 
+        static async Task TryShutdownAsync(System.Func<Task> action, string systemName) {
+            try { await action(); }
+            catch (System.Exception ex) {
+                Debug.LogWarning($"ShutdownAll: Failed while releasing {systemName}: {ex.Message}");
+            }
+        }
+
+        TryShutdown(() => TerrainUpdate.CompleteJobs(), nameof(TerrainUpdate));
+        TryShutdown(() => EntityManager.FlushPendingHandlers(), nameof(EntityManager));
+        TryShutdown(() => CPUMapManager.StopGeneration(), "Stop chunk generation");
+        TryShutdown(() => MapGenerationPipeline.ReleaseAll(), nameof(MapGenerationPipeline));
+        TryShutdown(() => ArterraRuntime.FinishGraphics(), "Drain submitted GPU work");
         TryShutdown(() => OctreeTerrain.Disable(), nameof(OctreeTerrain));
+        TryShutdown(() => ChunkGenerationDriver.Local?.Release(), nameof(ChunkGenerationDriver));
+        await TryShutdownAsync(() => CPUMapManager.ReleaseAsync(), nameof(CPUMapManager));
         TryShutdown(() => AudioManager.Instance?.Release(), nameof(AudioManager));
         TryShutdown(() => EntityManager.Release(), nameof(EntityManager));
         TryShutdown(() => PlayerHandler.Release(), nameof(PlayerHandler));
@@ -138,11 +162,11 @@ public static class SystemProtocol{
         TryShutdown(() => BlindnessPass.Release(), nameof(BlindnessPass));
         TryShutdown(() => SubChunkShaderGraph.Unset(), nameof(SubChunkShaderGraph));
         TryShutdown(() => Readback.AsyncMeshReadback.Release(), nameof(Readback.AsyncMeshReadback));
-        TryShutdown(() => CPUMapManager.Release(), nameof(CPUMapManager));
         TryShutdown(() => GPUMapManager.Release(), nameof(GPUMapManager));
         TryShutdown(() => GenerationPreset.Release(), nameof(GenerationPreset));
         TryShutdown(() => WorldDataHandler.Release(), nameof(WorldDataHandler));
         TryShutdown(() => SharedResourceManager.Release(), nameof(SharedResourceManager));
+        state = SystemState.Inactive;
     }
 
     private static void ShutdownMinimal() {
@@ -154,6 +178,7 @@ public static class SystemProtocol{
         Inactive,
         Active,
         Limited,
+        Stopping,
     }
 }
 

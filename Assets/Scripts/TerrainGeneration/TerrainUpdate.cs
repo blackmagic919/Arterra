@@ -1,3 +1,5 @@
+using Unity.Collections;
+using System.Linq;
 using Unity.Mathematics;
 using UnityEngine;
 using Arterra.Data.Material;
@@ -62,6 +64,8 @@ namespace Arterra.Engine.Terrain{
     /// is updated.
     /// </summary>
     public static class TerrainUpdate {
+        public static void CompleteJobs() => Executor?.CompleteBlocking();
+
         private static Catalogue<MaterialData> MaterialDictionary;
         private static ConcurrentQueue<int3> UpdateCoordinates; //GCoord
         private static TerrainUpdation settings;
@@ -144,11 +148,17 @@ namespace Arterra.Engine.Terrain{
                 if (!dispatched) return true;
                 if (!propHandle.IsCompleted || !randHandle.IsCompleted)
                     return false;
-                propHandle.Complete();
-                randHandle.Complete();
-                dispatched = false;
+                CompleteBlocking();
                 return true;
             }
+            public void CompleteBlocking() {
+                if (!dispatched) return;
+                propHandle.Complete();
+                randHandle.Complete();
+                if (randomUpdates.coordinates.IsCreated) randomUpdates.coordinates.Dispose();
+                dispatched = false;
+            }
+
             /// <summary>
             /// Updates the map entries in the update queue. 
             /// The map entries are updated in the order they were added.
@@ -162,8 +172,10 @@ namespace Arterra.Engine.Terrain{
                 randomUpdates.seed.NextUInt();
 
                 int count = math.min(UpdateCoordinates.Count, settings.MaximumTickUpdates);
+                randomUpdates.coordinates = new NativeArray<int3>(CPUMapManager.ChunkData.Values
+                    .Where(info => info.HasMap).Select(info => info.CCoord).ToArray(), Allocator.TempJob);
                 propHandle = propogatedUpdates.Schedule(count, 64);
-                randHandle = randomUpdates.Schedule(CPUMapManager.numChunks, 64);
+                randHandle = randomUpdates.Schedule(randomUpdates.coordinates.Length, 64);
                 dispatched = true;
             }
 
@@ -194,6 +206,7 @@ namespace Arterra.Engine.Terrain{
             /// Random updates are performed on a per-chunk basis, and each chunk
             /// is processed in its own job thread. </summary>
             public struct RandomUpdates : IJobParallelFor {
+                [ReadOnly] public NativeArray<int3> coordinates;
                 /// <summary> Random values referencable by materials; Materials are processed in parallel,
                 /// thus this isn't thread safe, but that adds to the randomness. /// </summary>
                 public Unity.Mathematics.Random seed;
@@ -208,11 +221,9 @@ namespace Arterra.Engine.Terrain{
                 /// <see cref="CPUMapManager.AddressDict"/> dictionary. </summary>
                 /// <param name="index"></param>
                 public void Execute(int index) {
-                    CPUMapManager.ChunkMapInfo info = CPUMapManager.AddressDict[index];
-                    if (!info.valid) return;
+                    if (!CPUMapManager.TryGetChunkInfo(coordinates[index], out var info) || !info.HasMap) return;
                     Unity.Mathematics.Random prng = new((seed.state ^ (uint)index) | 1u);
                     int3 CCoord = info.CCoord;
-                    int CIndex = CPUMapManager.HashCoord(CCoord);
                     for (uint i = 0; i < numUpdatesPerChunk; i++) {
                         //Generate a random point in the chunk
                         int3 MCoord = new(
@@ -221,7 +232,7 @@ namespace Arterra.Engine.Terrain{
                             (int)(prng.NextUInt() % mapChunkSize)
                         );
                         int MIndex = MCoord.x * mapChunkSize * mapChunkSize + MCoord.y * mapChunkSize + MCoord.z;
-                        MapData mapData = CPUMapManager.SectionedMemory[CIndex * numPointsChunk + MIndex];
+                        MapData mapData = info.ChunkData[info.Offset + MIndex];
                         if (!MaterialDictionary.Contains(mapData.material)) {
                             Debug.LogError($"Encountered unknown material {mapData.material} at chunk {CCoord}");
                             return;

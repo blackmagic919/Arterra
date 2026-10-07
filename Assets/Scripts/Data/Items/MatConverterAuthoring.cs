@@ -141,7 +141,7 @@ namespace Arterra.Data.Item
                 return true;
             }
             
-            CPUMapManager.Terraform(hitPt, settings.TerraformRadius, ModifySolid, interact.CallOnMapRemoving);
+            Terraforming.Terraform(hitPt, settings.TerraformRadius, ModifySolid, interact.CallOnMapRemoving);
             if (targetted) InputPoller.SuspendKeybindPropogation("ConvertMaterial", ActionBind.Exclusion.ExcludeLayer);
             UpdateDisplay();
             

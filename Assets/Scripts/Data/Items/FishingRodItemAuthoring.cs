@@ -347,7 +347,7 @@ namespace Arterra.Data.Item
 
                     // Ground collision
                     p.pos += TerrainCollider.TrilinearDisplacement(
-                        p.pos, EntityJob.cxt.mapContext
+                        p.pos
                     );
 
                     points[i] = p;

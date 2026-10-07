@@ -52,7 +52,7 @@ namespace Arterra.Data.Entity.Behavior {
         private bool CheckTerrainCollision(BehaviorEntity.Animal self) {
             TerrainCollider collider = self.Collider;
             if (collider == null) return false;
-            if (!TerrainCollider.SampleCollision((float3)self.transform.position, self.transform.size * 1.05f, EntityJob.cxt.mapContext, out float3 gDir))
+            if (!TerrainCollider.SampleCollision((float3)self.transform.position, self.transform.size * 1.05f, out float3 gDir))
                 return false;
 
             float3 forward = math.normalizesafe(-gDir, math.forward(self.transform.rotation));

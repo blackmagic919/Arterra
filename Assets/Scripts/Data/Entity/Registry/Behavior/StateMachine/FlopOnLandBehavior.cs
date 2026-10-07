@@ -35,7 +35,7 @@ namespace Arterra.Data.Entity.Behavior{
             if (self.context == BehaviorEntity.UpdateContext.JobSync) return;
             
             if (TerrainCollider.SampleCollision(self.origin, new float3(self.settings.collider.size.x,
-                -settings.JumpStickDist, self.settings.collider.size.z), EntityJob.cxt.mapContext, out _)) {
+                -settings.JumpStickDist, self.settings.collider.size.z), out _)) {
                 self.velocity.y += FlopStrength;
             }
         }

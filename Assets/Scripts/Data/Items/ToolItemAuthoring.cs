@@ -10,6 +10,7 @@ using Arterra.Core.Events;
 using Arterra.Configuration;
 using Arterra.GamePlay.Interaction;
 using Arterra.Data.Entity.Behavior;
+using Arterra.Utils;
 
 namespace Arterra.Data.Item
 {
@@ -129,7 +130,7 @@ namespace Arterra.Data.Item
                 return true;
             }
 
-            CPUMapManager.Terraform(hitPt, settings.TerraformRadius, RemoveSolid, interact.CallOnMapRemoving);
+            Terraforming.Terraform(hitPt, settings.TerraformRadius, RemoveSolid, interact.CallOnMapRemoving);
             UpdateDisplay();
 
             if (settings.OnUseAnim.Enabled && player is IEventControlled effectable)

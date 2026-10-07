@@ -13,6 +13,7 @@ namespace Arterra.Configuration.Quality {
     /// places surviving allocations in CPU-managed long-term buffers.
     /// </summary>
     public class MemoryOccupancyBalancer : MemoryBufferHandler {
+        private const int EmptyBlockIndex = -3;
         private readonly BalancedMemory settings;
         private readonly Allocation[] addressBuffers;
         private readonly DirectManagedAllocation[] directlManagedAllocations;
@@ -109,10 +110,25 @@ namespace Arterra.Configuration.Quality {
                 //Debug.Log(String.Join("Mb ", blockStorage.Select(
                 //    block => block?.MaxFree / 250000 ?? 0)) + "Mb");
                 uint2 size = sizes[i];
-                if (size.x == 0 || size.y == 0) continue;
+                if (size.x == 0) {
+                    // No GPU allocation was made. Resolve its waiters as an empty allocation.
+                    allocation.bufferIndex = EmptyBlockIndex;
+                    addressBuffers[addressIndex] = allocation;
+                    var emptyCallback = oppToAddressIndex[i].onRebind;
+                    if (emptyCallback != null) callbacks.Add((addressIndex, EmptyBlockIndex, emptyCallback));
+                    continue;
+                }
+                if (size.y == 0) {
+                    Debug.LogError($"GPU heap could not allocate {size.x} entries for allocation {addressIndex}.");
+                    var failedCallback = oppToAddressIndex[i].onRebind;
+                    if (failedCallback != null) callbacks.Add((addressIndex, allocation.bufferIndex, failedCallback));
+                    continue;
+                }
                 long wordCount = (long)size.x * size.y;
                 if (wordCount > int.MaxValue || size.y > int.MaxValue) {
                     Debug.LogError($"Allocation {addressIndex} is too large to migrate.");
+                    var failedCallback = oppToAddressIndex[i].onRebind;
+                    if (failedCallback != null) callbacks.Add((addressIndex, allocation.bufferIndex, failedCallback));
                     continue;
                 }
 
@@ -120,6 +136,8 @@ namespace Arterra.Configuration.Quality {
                     out int blockIndex, out int rawStart, out int alignedStart,
                     out int reservedWords)) {
                     Debug.LogError($"No long-term buffer can hold allocation {addressIndex}.");
+                    var failedCallback = oppToAddressIndex[i].onRebind;
+                    if (failedCallback != null) callbacks.Add((addressIndex, allocation.bufferIndex, failedCallback));
                     continue;
                 }
 
@@ -170,7 +188,7 @@ namespace Arterra.Configuration.Quality {
                 Allocation allocation = addressBuffers[callback.address];
                 if (allocation.bufferIndex != callback.blockIndex) continue;
                 try {
-                    callback.action(blockStorage[callback.blockIndex].storage);
+                    callback.action(GetBlockBuffer(callback.address));
                 } catch (Exception exception) {
                     Debug.LogException(exception);
                 }
@@ -287,6 +305,7 @@ namespace Arterra.Configuration.Quality {
             buffer = null;
             rawStart = rawWordCount = alignedStart = count = 0;
             Allocation allocation = addressBuffers[addressIndex];
+            if (allocation.bufferIndex == EmptyBlockIndex) return true; // Resolved empty allocation: count is zero.
             if (allocation.bufferIndex < 0) return false;
 
             DirectManagedAllocation direct = directlManagedAllocations[addressIndex];
@@ -373,7 +392,7 @@ namespace Arterra.Configuration.Quality {
         }
 
         private struct Allocation {
-            public int bufferIndex; // -2 released, -1 scratch, >= 0 long-term.
+            public int bufferIndex; // -3 empty, -2 released, -1 scratch, >= 0 long-term.
             public int operationIndex;
         }
 

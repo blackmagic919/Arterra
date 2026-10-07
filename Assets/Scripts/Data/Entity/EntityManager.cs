@@ -24,9 +24,6 @@ using static Arterra.Core.Storage.SharedResourceManager;
 
 public static class EntityManager
 {
-    private static EntityGenOffsets bufferOffsets;
-    private static ComputeShader entityGenShader;
-    private static ComputeShader entityTranscriber;
     public static HashSet<Entity> EntityReg;
     public static Dictionary<Guid, Entity> EntityIndex; //tracks location in handler of entityGUID
     public static STree ESTree; //BVH of entities updated synchronously
@@ -51,7 +48,7 @@ public static class EntityManager
             action.Invoke();
         } HandlerEvents.Clear();
 
-        if (EntityIndex.Count == 0) return;
+        if (EntityIndex.Count == 0) { CurUpdateEntities = Array.Empty<Entity>(); return; }
         CurUpdateEntities = EntityReg.ToArray();
         foreach (Entity entity in CurUpdateEntities) {
             ESTree.AssertEntityLocation(entity);
@@ -100,27 +97,43 @@ public static class EntityManager
         });
     }
 
-    public static void ReleaseChunkEntities(int3 CCoord, bool await = false) {
-        int mapChunkSize = Config.CURRENT.Quality.Terrain.value.mapChunkSize;
-        CPUMapManager.ChunkMapInfo mapInfo = CPUMapManager.AddressDict[CPUMapManager.HashCoord(CCoord)];
-        if (!mapInfo.valid) return;
-        //mapinfo.CCoord is coord of previous chunk
-        Bounds bounds = new(((float3)mapInfo.CCoord + 0.5f) * mapChunkSize, (float3)mapChunkSize);
+    public static void CompleteJobs() => Executor?.Complete();
 
-        HashSet<Entity> Entities = new HashSet<Entity>();
-        ESTree.QueryExclusive(bounds, (entity) => {
-            if (entity == null) return;
-            if (!TryGetEntity(entity.info.rtEntityId, out entity)) return; //get root entity
-            //If it's inactive it most likely has been recently released by another chunk and
-            // moved in the way of this chunk before it can be properly released from memory
-            if (!entity.active) return;
-            //This is the only entity that is not serialized and saved
-            if (entity.info.rtEntityId == PlayerHandler.data.info.rtEntityId) return;
-            //This will immediately mark the entity as inactive
-            if(Entities.Add(entity)) ReleaseEntity(entity.info.rtEntityId);
+    public static Task InitializeChunkEntitiesAsync(List<Entity> entities) {
+        var completion = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+        AddHandlerEvent(() => {
+            try {
+                if (entities != null) foreach (var entity in entities) DeserializeE(entity);
+                completion.TrySetResult(true);
+            } catch (Exception exception) { completion.TrySetException(exception); }
         });
-        Task awaitableTask = Task.Run(() => Chunk.SaveEntitiesToJsonAsync(Entities.ToList(), mapInfo.CCoord));
-        if (await) awaitableTask.Wait();
+        return completion.Task;
+    }
+
+    public static void FlushPendingHandlers() {
+        CompleteJobs();
+        if (HandlerEvents == null) return;
+        while (HandlerEvents.TryDequeue(out Action action)) action();
+    }
+
+    public static async Task ReleaseChunkEntitiesAsync(int3 coordinate, bool save = true) {
+        if (ESTree.tree == null) return;
+        int size = Config.CURRENT.Quality.Terrain.value.mapChunkSize;
+        Bounds bounds = new(((float3)coordinate + 0.5f) * size, (float3)size);
+        var entities = new HashSet<Entity>();
+        ESTree.QueryExclusive(bounds, entity => {
+            if (entity == null || !TryGetEntity(entity.info.rtEntityId, out entity) || !entity.active) return;
+            if (PlayerHandler.data != null && entity.info.rtEntityId == PlayerHandler.data.info.rtEntityId) return;
+            entities.Add(entity);
+        });
+        if (entities.Count != 0) {
+            var released = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            foreach (var entity in entities) ReleaseEntity(entity.info.rtEntityId);
+            // The FIFO handler queue runs after the current entity job completes.
+            AddHandlerEvent(() => released.TrySetResult(true));
+            await released.Task;
+        }
+        if (save) await Chunk.SaveEntitiesToJsonAsync(entities.ToList(), coordinate);
     }
     public static void ReleaseE(Guid entityId){
         if(!EntityIndex.TryGetValue(entityId, out Entity entity))
@@ -167,7 +180,6 @@ public static class EntityManager
 
 
     public static void Initialize() {
-        GraphicsResourceContext gpuContext = GraphicsGeneration;
         ESTree = new STree(MAX_ENTITY_COUNT * 2 + 1);
         EntityReg = new HashSet<Entity>();
         EntityIndex = new Dictionary<Guid, Entity>();
@@ -175,31 +187,6 @@ public static class EntityManager
         Executor = new EntityJob();
         ArterraRuntime.MainFixedUpdateTasks.Enqueue(Executor);
         Indicators.Initialize();
-
-        int numPointsPerAxis = Config.CURRENT.Quality.Terrain.value.mapChunkSize;
-        int numPoints = numPointsPerAxis * numPointsPerAxis * numPointsPerAxis;
-
-        bufferOffsets = new EntityGenOffsets(0, numPoints, GenPoint.size);
-        entityGenShader = Resources.Load<ComputeShader>("Compute/TerrainGeneration/Entities/EntityIdentifier");
-        entityTranscriber = Resources.Load<ComputeShader>("Compute/TerrainGeneration/Entities/EntityTranscriber");
-
-        int kernel = entityGenShader.FindKernel("Identify");
-        gpuContext.SetBuffer(entityGenShader, kernel, "chunkEntities", gpuContext.Work.Scratch);
-        gpuContext.SetBuffer(entityGenShader, kernel, "counter", gpuContext.Work.Scratch);
-        gpuContext.SetBuffer(entityGenShader, kernel, "BiomeMap", gpuContext.Work.Scratch);
-        gpuContext.SetInt(entityGenShader, "GPConfig", (int)GenPoint.GenType.Entity);
-        kernel = entityGenShader.FindKernel("Prune");
-        gpuContext.SetBuffer(entityGenShader, kernel, "chunkEntities", gpuContext.Work.Scratch);
-        gpuContext.SetBuffer(entityGenShader, kernel, "counter", gpuContext.Work.Scratch);
-        gpuContext.SetInt(entityGenShader, "bCOUNTER_entities", bufferOffsets.entityCounter);
-        gpuContext.SetInt(entityGenShader, "bCOUNTER_prune", bufferOffsets.prunedCounter);
-        gpuContext.SetInt(entityGenShader, "bSTART_entities", bufferOffsets.entityStart);
-        gpuContext.SetInt(entityGenShader, "bSTART_prune", bufferOffsets.prunedStart);
-
-        gpuContext.SetBuffer(entityTranscriber, 0, "chunkEntities", gpuContext.Work.Scratch);
-        gpuContext.SetBuffer(entityTranscriber, 0, "counter", gpuContext.Work.Scratch);
-        gpuContext.SetInt(entityTranscriber, "bCOUNTER_entities", bufferOffsets.prunedCounter);
-        gpuContext.SetInt(entityTranscriber, "bSTART_entities", bufferOffsets.prunedStart);
 
         EnsurePlayerEntity();
 
@@ -274,59 +261,6 @@ public static class EntityManager
         List<Authoring> EntityDictionary = Config.CURRENT.Generation.Entities.Reg;
         foreach (Authoring entity in EntityDictionary) entity.Setting.Unset();
     }
-
-    public static void PlanEntities(AsyncGenInfoReadback readback, int biomeStart, int3 CCoord, int chunkSize){
-        GraphicsResourceContext gpuContext = GraphicsGeneration;
-        int numPointsAxes = chunkSize;
-        gpuContext.Work.ClearRange(gpuContext.Work.Scratch, 3, bufferOffsets.bufferStart);
-
-        int kernel = entityGenShader.FindKernel("Identify");
-        gpuContext.SetInt(entityGenShader, ShaderIDProps.StartBiome, biomeStart);
-        gpuContext.SetInt(entityGenShader, ShaderIDProps.NumPointsPerAxis, numPointsAxes);
-        gpuContext.SetInts(entityGenShader, ShaderIDProps.CCoord, new int[] { CCoord.x, CCoord.y, CCoord.z });
-
-        entityGenShader.GetKernelThreadGroupSizes(kernel, out uint threadGroupSize, out _, out _);
-        int numThreadsPerAxis = Mathf.CeilToInt(numPointsAxes / (float)threadGroupSize);
-        gpuContext.Dispatch(entityGenShader, kernel, numThreadsPerAxis, numThreadsPerAxis, numThreadsPerAxis);
-
-        kernel = entityGenShader.FindKernel("Prune");
-        gpuContext.SetBuffer(entityGenShader, kernel, ShaderIDProps.MemoryBuffer, GPUMapManager.Storage);
-        gpuContext.SetBuffer(entityGenShader, kernel, ShaderIDProps.AddressDict, GPUMapManager.Address);
-
-        ComputeBuffer args = gpuContext.Args.CountToArgs(entityGenShader, gpuContext.Work.Scratch, bufferOffsets.entityCounter, kernel: kernel);
-        gpuContext.DispatchIndirect(entityGenShader, kernel, args);
-
-        kernel = entityTranscriber.FindKernel("CSMain");
-        int address = readback.AddGenPoints(gpuContext.Work.Scratch, bufferOffsets.prunedCounter, bufferOffsets.tempCounter);
-        gpuContext.SetBuffer(entityTranscriber, kernel, ShaderIDProps.MemoryBuffer, gpuContext.Memory.GetBlockBuffer(address));
-        gpuContext.SetBuffer(entityTranscriber, kernel, ShaderIDProps.AddressDict, gpuContext.Memory.Address);
-        gpuContext.SetInt(entityTranscriber, ShaderIDProps.AddressIndex, (int)address);
-
-        args = gpuContext.Args.CountToArgs(entityTranscriber, gpuContext.Work.Scratch, bufferOffsets.prunedCounter, kernel: kernel);
-        gpuContext.DispatchIndirect(entityTranscriber, kernel, args);
-    }
-
-    public struct EntityGenOffsets: BufferOffsets{
-        public int entityCounter;
-        public int prunedCounter;
-        public int tempCounter;
-        public int entityStart;
-        public int prunedStart;
-        private int offsetStart; private int offsetEnd;
-        public int bufferStart{get{return offsetStart;}} public int bufferEnd{get{return offsetEnd;}}
-
-        public EntityGenOffsets(int bufferStart, int numPoints, int entityStride){
-            offsetStart = bufferStart;
-            entityCounter = bufferStart;
-            prunedCounter = bufferStart + 1;
-            tempCounter = bufferStart + 2;
-            entityStart = Mathf.CeilToInt((float)(bufferStart+3) / entityStride);
-            prunedStart = entityStart + numPoints;
-            int prunedEnd_W = (prunedStart + numPoints) * entityStride;
-            offsetEnd = prunedEnd_W;
-        }
-    }
-
 
     //More like a BVH, or a dynamic R-Tree
     public struct STree{
@@ -669,13 +603,6 @@ public class EntityJob : Arterra.Core.ArterraRuntime.IUpdateSubscriber{
         accumulatedTime = 0;
         cxt = new Context{
             Profile = (ProfileE*)GenerationPreset.entityHandle.entityProfileArray.GetUnsafePtr(),
-            mapContext = new CPUMapManager.MapContext{
-                MapData = (MapData*)CPUMapManager.SectionedMemory.GetUnsafePtr(),
-                AddressDict = (CPUMapManager.ChunkMapInfo*)CPUMapManager.AddressDict.GetUnsafePtr(),
-                mapChunkSize = Config.CURRENT.Quality.Terrain.value.mapChunkSize,
-                numChunksAxis = CPUMapManager.numChunksAxis,
-                IsoValue = (int)Math.Round(Config.CURRENT.Quality.Terrain.value.IsoLevel * 255.0),
-            },
 
             gravity = Physics.gravity / Config.CURRENT.Quality.Terrain.value.lerpScale,
             deltaTime = 0,
@@ -705,6 +632,7 @@ public class EntityJob : Arterra.Core.ArterraRuntime.IUpdateSubscriber{
         accumulatedTime = 0;
 
         EntityManager.FlushUpdateCycle();
+        if (EntityManager.CurUpdateEntities == null || EntityManager.CurUpdateEntities.Length == 0) return;
         handle = cxt.Schedule(EntityManager.CurUpdateEntities.Length, 16);
         dispatched = true;
     }
@@ -712,7 +640,6 @@ public class EntityJob : Arterra.Core.ArterraRuntime.IUpdateSubscriber{
     public struct Context: IJobParallelFor{
         [NativeDisableUnsafePtrRestriction]
         [ReadOnly] public unsafe ProfileE* Profile;
-        [ReadOnly] public CPUMapManager.MapContext mapContext;
         [ReadOnly] public float3 gravity;
         [ReadOnly] public float deltaTime;
         [ReadOnly] public float totDeltaTime;

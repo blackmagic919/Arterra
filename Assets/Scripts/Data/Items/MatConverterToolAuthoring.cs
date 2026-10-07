@@ -11,6 +11,7 @@ using Arterra.GamePlay.Interaction;
 using Arterra.Configuration;
 using Arterra.GamePlay.UI;
 using Arterra.Data.Entity.Behavior;
+using Arterra.Utils;
 
 
 namespace Arterra.Data.Item
@@ -78,7 +79,7 @@ namespace Arterra.Data.Item
             if (settings.OnUseAnim.Enabled && player is IEventControlled effectable)
                 effectable.RaiseEvent(GameEvent.Item_UseTool, player, this, ref settings.OnUseAnim.Value);
 
-            CPUMapManager.Terraform(hitPt, settings.TerraformRadius, ModifySolid, interact.CallOnMapRemoving);
+            Terraforming.Terraform(hitPt, settings.TerraformRadius, ModifySolid, interact.CallOnMapRemoving);
             if (targetted) InputPoller.SuspendKeybindPropogation("ConvertMaterial", ActionBind.Exclusion.ExcludeLayer);
             UpdateDisplay();
 

@@ -1,7 +1,6 @@
 using UnityEngine;
 using Unity.Mathematics;
 using System;
-using Unity.Burst;
 using static EntityJob;
 using Newtonsoft.Json;
 using static Arterra.Core.Storage.CPUMapManager;
@@ -59,35 +58,32 @@ namespace Arterra.GamePlay.Interaction {
             gravityStack.Set(DefaultGravityState, GravityPriority.Default, true);
         }
 
-        [BurstCompile]
-        private unsafe static void SampleTerrainCube(in int3 lower, in MapContext cxt, int* samples) {
+        private unsafe static void SampleTerrainCube(in int3 lower, int* samples) {
             int3 upper = lower + 1;
-            samples[0] = SampleTerrain(lower, cxt);
-            samples[1] = SampleTerrain(new int3(lower.x, lower.y, upper.z), cxt);
-            samples[2] = SampleTerrain(new int3(lower.x, upper.y, lower.z), cxt);
-            samples[3] = SampleTerrain(new int3(lower.x, upper.y, upper.z), cxt);
-            samples[4] = SampleTerrain(new int3(upper.x, lower.y, lower.z), cxt);
-            samples[5] = SampleTerrain(new int3(upper.x, lower.y, upper.z), cxt);
-            samples[6] = SampleTerrain(new int3(upper.x, upper.y, lower.z), cxt);
-            samples[7] = SampleTerrain(upper, cxt);
+            samples[0] = SampleTerrain(lower);
+            samples[1] = SampleTerrain(new int3(lower.x, lower.y, upper.z));
+            samples[2] = SampleTerrain(new int3(lower.x, upper.y, lower.z));
+            samples[3] = SampleTerrain(new int3(lower.x, upper.y, upper.z));
+            samples[4] = SampleTerrain(new int3(upper.x, lower.y, lower.z));
+            samples[5] = SampleTerrain(new int3(upper.x, lower.y, upper.z));
+            samples[6] = SampleTerrain(new int3(upper.x, upper.y, lower.z));
+            samples[7] = SampleTerrain(upper);
         }
 
-        [BurstCompile]
-        private unsafe static void SampleTerrainQuad(in int2 lower, in int3x3 transform, int axis, in MapContext cxt, int* samples) {
+        private unsafe static void SampleTerrainQuad(in int2 lower, in int3x3 transform, int axis, int* samples) {
             int2 upper = lower + 1;
-            samples[0] = SampleTerrain(math.mul(transform, new int3(lower.x, lower.y, axis)), cxt);
-            samples[1] = SampleTerrain(math.mul(transform, new int3(upper.x, lower.y, axis)), cxt);
-            samples[2] = SampleTerrain(math.mul(transform, new int3(lower.x, upper.y, axis)), cxt);
-            samples[3] = SampleTerrain(math.mul(transform, new int3(upper.x, upper.y, axis)), cxt);
+            samples[0] = SampleTerrain(math.mul(transform, new int3(lower.x, lower.y, axis)));
+            samples[1] = SampleTerrain(math.mul(transform, new int3(upper.x, lower.y, axis)));
+            samples[2] = SampleTerrain(math.mul(transform, new int3(lower.x, upper.y, axis)));
+            samples[3] = SampleTerrain(math.mul(transform, new int3(upper.x, upper.y, axis)));
         }
 
-        [BurstCompile]
-        public unsafe static float3 TrilinearDisplacement(in float3 posGS, in MapContext cxt) {
+        public unsafe static float3 TrilinearDisplacement(in float3 posGS) {
             //Calculate Density
             int3 lower = (int3)math.floor(posGS);
             float3 delta = posGS - lower;
             int* samples = stackalloc int[TerrainCubeSampleCount];
-            SampleTerrainCube(lower, cxt, samples);
+            SampleTerrainCube(lower, samples);
 
             float c00 = samples[0] * (1 - delta.x) + samples[4] * delta.x;
             float c01 = samples[1] * (1 - delta.x) + samples[5] * delta.x;
@@ -97,7 +93,7 @@ namespace Arterra.GamePlay.Interaction {
             float c0 = c00 * (1 - delta.y) + c10 * delta.y;
             float c1 = c01 * (1 - delta.y) + c11 * delta.y;
             float density = c0 * (1 - delta.z) + c1 * delta.z;
-            if (density < cxt.IsoValue) return float3.zero;
+            if (density < IsoValue) return float3.zero;
 
             //Calculate the normal
             float xL = (samples[4] - samples[0]) * (1 - delta.y) + (samples[6] - samples[2]) * delta.y;
@@ -115,20 +111,19 @@ namespace Arterra.GamePlay.Interaction {
             float3 normal = -new float3(xC, yC, zC);
             if (math.all(normal == 0)) return normal;
             normal = math.normalize(normal);
-            return normal * TrilinearGradientLength(density, posGS, normal, cxt);
+            return normal * TrilinearGradientLength(density, posGS, normal);
         }
 
-        [BurstCompile]
-        public unsafe static float2 BilinearDisplacement(in float2 posGS, in int3x3 transform, int axis, in MapContext cxt) {
+        public unsafe static float2 BilinearDisplacement(in float2 posGS, in int3x3 transform, int axis) {
             int2 lower = (int2)math.floor(posGS);
             float2 delta = posGS - lower;
             int* samples = stackalloc int[TerrainQuadSampleCount];
-            SampleTerrainQuad(lower, transform, axis, cxt, samples);
+            SampleTerrainQuad(lower, transform, axis, samples);
 
             float c0 = samples[0] * (1 - delta.x) + samples[1] * delta.x;
             float c1 = samples[2] * (1 - delta.x) + samples[3] * delta.x;
             float density = c0 * (1 - delta.y) + c1 * delta.y;
-            if (density < cxt.IsoValue) return float2.zero;
+            if (density < IsoValue) return float2.zero;
 
             //Bilinear Normal
             float xC = (samples[1] - samples[0]) * (1 - delta.y) + (samples[3] - samples[2]) * delta.y;
@@ -137,32 +132,31 @@ namespace Arterra.GamePlay.Interaction {
             float2 normal = -new float2(xC, yC);
             if (math.all(normal == 0)) return normal;
             normal = math.normalize(normal);
-            return normal * BilinearGradientLength(density, posGS, normal, transform, axis, cxt);
+            return normal * BilinearGradientLength(density, posGS, normal, transform, axis);
         }
 
-        [BurstCompile]
-        public static float LinearDisplacement(float t, in int3x3 transform, in int2 plane, in MapContext cxt) {
+        public static float LinearDisplacement(float t, in int3x3 transform, in int2 plane) {
             int t0 = (int)Math.Floor(t);
             int t1 = t0 + 1;
 
-            int c0 = SampleTerrain(math.mul(transform, new int3(plane.x, plane.y, t0)), cxt);
-            int c1 = SampleTerrain(math.mul(transform, new int3(plane.x, plane.y, t1)), cxt);
+            int c0 = SampleTerrain(math.mul(transform, new int3(plane.x, plane.y, t0)));
+            int c1 = SampleTerrain(math.mul(transform, new int3(plane.x, plane.y, t1)));
             float td = t - t0;
 
             float density = c0 * (1 - td) + c1 * td;
-            if (density < cxt.IsoValue) return 0;
+            if (density < IsoValue) return 0;
             float normal = math.sign(-(c1 - c0));
-            return normal * LinearGradientLength(density, t, normal, transform, plane, cxt); //Normal
+            return normal * LinearGradientLength(density, t, normal, transform, plane); //Normal
         }
-        [BurstCompile]
-        public static float LinearGradientLength(float density, float pos, float normal, in int3x3 transform, in int2 plane, in MapContext cxt) {
+
+        public static float LinearGradientLength(float density, float pos, float normal, in int3x3 transform, in int2 plane) {
             int corner = (int)(math.floor(pos) + math.max(normal, 0));
-            float cDen = SampleTerrain(math.mul(transform, new int3(plane.x, plane.y, corner)), cxt);
+            float cDen = SampleTerrain(math.mul(transform, new int3(plane.x, plane.y, corner)));
             if (cDen >= density) return 0;
-            return math.clamp((cxt.IsoValue - density) / (cDen - density), 0, 1) * math.abs(corner - pos);
+            return math.clamp((IsoValue - density) / (cDen - density), 0, 1) * math.abs(corner - pos);
         }
-        [BurstCompile]
-        public static float BilinearGradientLength(float density, float2 pos, float2 normal, in int3x3 transform, int axis, in MapContext cxt) {
+
+        public static float BilinearGradientLength(float density, float2 pos, float2 normal, in int3x3 transform, int axis) {
             float2 tMax = 1.0f / math.abs(normal); float eDen;
             tMax.x *= normal.x >= 0 ? 1 - math.frac(pos.x) : math.frac(pos.x);
             tMax.y *= normal.y >= 0 ? 1 - math.frac(pos.y) : math.frac(pos.y);
@@ -171,15 +165,14 @@ namespace Arterra.GamePlay.Interaction {
             pos += normal * t;
 
             //xz-plane flips yz, flip xy component
-            if (tMax.y >= tMax.x) eDen = LinearDensity(pos.y, math.mul(transform, YXZTrans), new int2((int)pos.x, axis), cxt);
-            else eDen = LinearDensity(pos.x, transform, new int2((int)pos.y, axis), cxt);
+            if (tMax.y >= tMax.x) eDen = LinearDensity(pos.y, math.mul(transform, YXZTrans), new int2((int)pos.x, axis));
+            else eDen = LinearDensity(pos.x, transform, new int2((int)pos.y, axis));
             if (eDen >= density) return 0;
 
-            return math.clamp((cxt.IsoValue - density) / (eDen - density), 0, 1) * t;
+            return math.clamp((IsoValue - density) / (eDen - density), 0, 1) * t;
         }
 
-        [BurstCompile]
-        public static float TrilinearGradientLength(float density, float3 pos, float3 normal, in MapContext cxt) {
+        public static float TrilinearGradientLength(float density, float3 pos, float3 normal) {
             float3 tMax = 1.0f / math.abs(normal); float fDen;
             tMax.x *= normal.x >= 0 ? 1 - math.frac(pos.x) : math.frac(pos.x);
             tMax.y *= normal.y >= 0 ? 1 - math.frac(pos.y) : math.frac(pos.y);
@@ -188,29 +181,29 @@ namespace Arterra.GamePlay.Interaction {
             float t = math.cmin(tMax);
             pos += normal * t;
 
-            if (t == tMax.x) { fDen = BilinearDensity(pos.y, pos.z, YZPlane, (int)pos.x, cxt); } else if (t == tMax.y) { fDen = BilinearDensity(pos.x, pos.z, XZPlane, (int)pos.y, cxt); } else { fDen = BilinearDensity(pos.x, pos.y, XYPlane, (int)pos.z, cxt); }
+            if (t == tMax.x) { fDen = BilinearDensity(pos.y, pos.z, YZPlane, (int)pos.x); } else if (t == tMax.y) { fDen = BilinearDensity(pos.x, pos.z, XZPlane, (int)pos.y); } else { fDen = BilinearDensity(pos.x, pos.y, XYPlane, (int)pos.z); }
             if (fDen >= density) return 0;
 
-            return math.clamp((cxt.IsoValue - density) / (fDen - density), 0, 1) * t;
+            return math.clamp((IsoValue - density) / (fDen - density), 0, 1) * t;
         }
-        [BurstCompile]
-        private static float LinearDensity(float t, in int3x3 transform, in int2 plane, in MapContext cxt) {
+
+        private static float LinearDensity(float t, in int3x3 transform, in int2 plane) {
             int t0 = (int)Math.Floor(t);
             int t1 = t0 + 1;
 
-            int c0 = SampleTerrain(math.mul(transform, new int3(t0, plane.x, plane.y)), cxt);
-            int c1 = SampleTerrain(math.mul(transform, new int3(t1, plane.x, plane.y)), cxt);
+            int c0 = SampleTerrain(math.mul(transform, new int3(t0, plane.x, plane.y)));
+            int c1 = SampleTerrain(math.mul(transform, new int3(t1, plane.x, plane.y)));
             float td = t - t0;
 
             return c0 * (1 - td) + c1 * td;
         }
-        [BurstCompile]
-        private unsafe static float BilinearDensity(float x, float y, in int3x3 transform, in int axis, in MapContext cxt) {
+
+        private unsafe static float BilinearDensity(float x, float y, in int3x3 transform, in int axis) {
             float2 pos = new(x, y);
             int2 lower = (int2)math.floor(pos);
             float2 delta = pos - lower;
             int* samples = stackalloc int[TerrainQuadSampleCount];
-            SampleTerrainQuad(lower, transform, axis, cxt, samples);
+            SampleTerrainQuad(lower, transform, axis, samples);
 
             float c0 = samples[0] * (1 - delta.x) + samples[1] * delta.x;
             float c1 = samples[2] * (1 - delta.x) + samples[3] * delta.x;
@@ -243,8 +236,8 @@ namespace Arterra.GamePlay.Interaction {
         private static int3x3 XZPlane => new(1, 0, 0, 0, 0, 1, 0, 1, 0);//xzy
         private static int3x3 XYPlane => new(1, 0, 0, 0, 1, 0, 0, 0, 1);//xyz
         private static int3x3 YZPlane => new(0, 0, 1, 1, 0, 0, 0, 1, 0); //zxy
-        [BurstCompile]
-        private static bool SampleFaceCollision(float3 originGS, float3 boundsGS, in MapContext context, out float3 displacement) {
+
+        private static bool SampleFaceCollision(float3 originGS, float3 boundsGS, out float3 displacement) {
             float3 min = math.min(originGS, originGS + boundsGS);
             float3 max = math.max(originGS, originGS + boundsGS);
             int3 minC = (int3)math.ceil(min); float3 minDis = float3.zero;
@@ -254,27 +247,27 @@ namespace Arterra.GamePlay.Interaction {
             //3*2 = 6 faces
             for (int x = minC.x; x <= maxC.x; x++) {
                 for (int y = minC.y; y <= maxC.y; y++) {
-                    dis = LinearDisplacement(min.z, XYPlane, new int2(x, y), context);
+                    dis = LinearDisplacement(min.z, XYPlane, new int2(x, y));
                     maxDis.z = math.max(maxDis.z, dis); minDis.z = math.min(minDis.z, dis);
-                    dis = LinearDisplacement(max.z, XYPlane, new int2(x, y), context);
+                    dis = LinearDisplacement(max.z, XYPlane, new int2(x, y));
                     maxDis.z = math.max(maxDis.z, dis); minDis.z = math.min(minDis.z, dis);
                 }
             }
 
             for (int x = minC.x; x <= maxC.x; x++) {
                 for (int z = minC.z; z <= maxC.z; z++) {
-                    dis = LinearDisplacement(min.y, XZPlane, new int2(x, z), context);
+                    dis = LinearDisplacement(min.y, XZPlane, new int2(x, z));
                     maxDis.y = math.max(maxDis.y, dis); minDis.y = math.min(minDis.y, dis);
-                    dis = LinearDisplacement(max.y, XZPlane, new int2(x, z), context);
+                    dis = LinearDisplacement(max.y, XZPlane, new int2(x, z));
                     maxDis.y = math.max(maxDis.y, dis); minDis.y = math.min(minDis.y, dis);
                 }
             }
 
             for (int y = minC.y; y <= maxC.y; y++) {
                 for (int z = minC.z; z <= maxC.z; z++) {
-                    dis = LinearDisplacement(min.x, YZPlane, new int2(y, z), context);
+                    dis = LinearDisplacement(min.x, YZPlane, new int2(y, z));
                     maxDis.x = math.max(maxDis.x, dis); minDis.x = math.min(minDis.x, dis);
-                    dis = LinearDisplacement(max.x, YZPlane, new int2(y, z), context);
+                    dis = LinearDisplacement(max.x, YZPlane, new int2(y, z));
                     maxDis.x = math.max(maxDis.x, dis); minDis.x = math.min(minDis.x, dis);
                 }
             }
@@ -282,8 +275,8 @@ namespace Arterra.GamePlay.Interaction {
             displacement = maxDis + minDis;
             return math.any(displacement != float3.zero);
         }
-        [BurstCompile]
-        private static bool SampleEdgeCollision(float3 originGS, float3 boundsGS, in MapContext context, out float3 displacement) {
+
+        private static bool SampleEdgeCollision(float3 originGS, float3 boundsGS, out float3 displacement) {
             float3 min = math.min(originGS, originGS + boundsGS);
             float3 max = math.max(originGS, originGS + boundsGS);
             int3 minC = (int3)math.ceil(min); float3 minDis = float3.zero;
@@ -295,7 +288,7 @@ namespace Arterra.GamePlay.Interaction {
                 for (int i = 0; i < 4; i++) {
                     int2 index = new(i % 2, i / 2 % 2);
                     float2 corner = min.yz * index + max.yz * (1 - index);
-                    dis = BilinearDisplacement(corner, YZPlane, x, context);
+                    dis = BilinearDisplacement(corner, YZPlane, x);
                     maxDis.yz = math.max(maxDis.yz, dis); minDis.yz = math.min(minDis.yz, dis);
                 }
             }
@@ -304,7 +297,7 @@ namespace Arterra.GamePlay.Interaction {
                 for (int i = 0; i < 4; i++) {
                     int2 index = new(i % 2, i / 2 % 2);
                     float2 corner = min.xz * index + max.xz * (1 - index);
-                    dis = BilinearDisplacement(corner, XZPlane, y, context);
+                    dis = BilinearDisplacement(corner, XZPlane, y);
                     maxDis.xz = math.max(maxDis.xz, dis); minDis.xz = math.min(minDis.xz, dis);
                 }
             }
@@ -313,7 +306,7 @@ namespace Arterra.GamePlay.Interaction {
                 for (int i = 0; i < 4; i++) {
                     int2 index = new(i % 2, i / 2 % 2);
                     float2 corner = min.xy * index + max.xy * (1 - index);
-                    dis = BilinearDisplacement(corner, XYPlane, z, context);
+                    dis = BilinearDisplacement(corner, XYPlane, z);
                     maxDis.xy = math.max(maxDis.xy, dis); minDis.xy = math.min(minDis.xy, dis);
                 }
             }
@@ -321,8 +314,8 @@ namespace Arterra.GamePlay.Interaction {
             displacement = maxDis + minDis;
             return math.any(displacement != float3.zero);
         }
-        [BurstCompile]
-        private static bool SampleCornerCollision(float3 originGS, float3 boundsGS, in MapContext context, out float3 displacement) {
+
+        private static bool SampleCornerCollision(float3 originGS, float3 boundsGS, out float3 displacement) {
             float3 min = math.min(originGS, originGS + boundsGS);
             float3 max = math.max(originGS, originGS + boundsGS);
             float3 maxDis = float3.zero; float3 minDis = float3.zero;
@@ -332,7 +325,7 @@ namespace Arterra.GamePlay.Interaction {
             for (int i = 0; i < 8; i++) {
                 int3 index = new(i % 2, i / 2 % 2, i / 4);
                 float3 corner = min * index + max * (1 - index);
-                dis = TrilinearDisplacement(corner, context);
+                dis = TrilinearDisplacement(corner);
                 maxDis = math.max(maxDis, dis); minDis = math.min(minDis, dis);
             }
 
@@ -340,8 +333,7 @@ namespace Arterra.GamePlay.Interaction {
             return math.any(displacement != float3.zero);
         }
 
-        [BurstCompile]
-        static bool SampleBlockCollision(float3 originGS, float3 boundsGS, in MapContext cxt, out float3 displacement) {
+        static bool SampleBlockCollision(float3 originGS, float3 boundsGS, out float3 displacement) {
             float3 aMin = math.min(originGS, originGS + boundsGS);
             float3 aMax = math.max(originGS, originGS + boundsGS);
 
@@ -356,8 +348,8 @@ namespace Arterra.GamePlay.Interaction {
             for (int y = vMin.y; y <= vMax.y; y++)
             for (int x = vMin.x; x <= vMax.x; x++)
             {
-                int den = SampleTerrain(new int3(x,y,z), cxt);
-                if (den < cxt.IsoValue) continue; // not solid
+                int den = SampleTerrain(new int3(x,y,z));
+                if (den < IsoValue) continue; // not solid
 
                 float3 bMin = new float3(x, y, z) - 0.5f;
                 float3 bMax = bMin + 0.5f;
@@ -398,18 +390,14 @@ namespace Arterra.GamePlay.Interaction {
 
 
         public static bool SampleCollision(float3 originGS, float3 boundsGS) => TerrainInteractor.TouchSolid(TerrainInteractor.SampleContact(originGS, boundsGS, out float friction, null));
-        public static bool SampleCollision(in float3 originGS, in float3 boundsGS, in MapContext context, out float3 displacement) {
-            return SampleCollisionBurst(originGS, boundsGS, context, out displacement);
-        }
 
-        [BurstCompile]
-        private static bool SampleCollisionBurst(in float3 originGS, in float3 boundsGS, in MapContext context, out float3 displacement) {
+        public static bool SampleCollision(in float3 originGS, in float3 boundsGS, out float3 displacement) {
             float3 origin = originGS;
-            SampleCornerCollision(origin, boundsGS, context, out displacement);
+            SampleCornerCollision(origin, boundsGS, out displacement);
             origin += displacement;
-            SampleEdgeCollision(origin, boundsGS, context, out displacement);
+            SampleEdgeCollision(origin, boundsGS, out displacement);
             origin += displacement;
-            SampleFaceCollision(origin, boundsGS, context, out displacement);
+            SampleFaceCollision(origin, boundsGS, out displacement);
             displacement += origin - originGS;
 
             return math.any(displacement != float3.zero);
@@ -433,8 +421,8 @@ namespace Arterra.GamePlay.Interaction {
             if (!resolveSolid || !TerrainInteractor.TouchSolid(contact))
                 return false;
 
-            if (!SampleCollisionBurst((float3)transform.position, transform.size, cxt.mapContext, out float3 displacement))
-                if (!SampleBlockCollision((float3)transform.position, transform.size, cxt.mapContext, out displacement))
+            if (!SampleCollision((float3)transform.position, transform.size, out float3 displacement))
+                if (!SampleBlockCollision((float3)transform.position, transform.size, out displacement))
                     return false;
 
             transform.position += displacement;

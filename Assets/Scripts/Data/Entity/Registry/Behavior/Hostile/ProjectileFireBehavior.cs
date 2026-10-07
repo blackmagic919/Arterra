@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Arterra.Configuration;
 using Arterra.Core.Storage;
+using Arterra.Utils;
 using Newtonsoft.Json;
 using Unity.Mathematics;
 using UnityEngine;
@@ -85,8 +86,8 @@ namespace Arterra.Data.Entity.Behavior {
             if (math.length(fireDirection) < BlindDist) return false;
             
             if (settings.Projectile.CheckSightline) {
-                if (CPUMapManager.RayCastTerrain(self.head, math.normalizesafe(fireDirection), 
-                    math.length(fireDirection), CPUMapManager.RayTestSolid, out float3 hit))
+                if (Terraforming.RayCastTerrain(self.head, math.normalizesafe(fireDirection), 
+                    math.length(fireDirection), Terraforming.RayTestSolid, out float3 hit))
                     return false;
             } 
             ShotInProgress = true;

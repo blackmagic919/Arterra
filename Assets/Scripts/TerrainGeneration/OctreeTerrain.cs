@@ -134,7 +134,7 @@ namespace Arterra.Engine.Terrain{
         public static TerrainChunk.Status GetRegionMinimalStatus(int3 MinGCoord, int3 MaxGCoord) {
             TerrainChunk.Status status  = new () {
                 ReadSaveState = TerrainChunk.Status.State.Finished,
-                CreateMap = TerrainChunk.Status.State.Finished,
+                PublishMap = TerrainChunk.Status.State.Finished,
                 SetMap = TerrainChunk.Status.State.Finished,
                 ShrinkMap = TerrainChunk.Status.State.Finished,
                 UpdateMesh = TerrainChunk.Status.State.Finished,
@@ -145,7 +145,7 @@ namespace Arterra.Engine.Terrain{
             Bounds region = new Bounds((float3)center, (float3)size);
             octree.IterateChunksInRegion(region, c => {
                 status.ReadSaveState = (TerrainChunk.Status.State)math.min((int)c.status.ReadSaveState, (int)status.ReadSaveState);
-                status.CreateMap = (TerrainChunk.Status.State)math.min((int)c.status.CreateMap, (int)status.CreateMap);
+                status.PublishMap = (TerrainChunk.Status.State)math.min((int)c.status.PublishMap, (int)status.PublishMap);
                 status.SetMap = (TerrainChunk.Status.State)math.min((int)c.status.SetMap, (int)status.SetMap);
                 status.ShrinkMap = (TerrainChunk.Status.State)math.min((int)c.status.ShrinkMap, (int)status.ShrinkMap);
                 status.UpdateMesh = (TerrainChunk.Status.State)math.min((int)c.status.UpdateMesh, (int)status.UpdateMesh);

@@ -179,7 +179,7 @@ namespace Arterra.Data.Entity.Behavior{
             if (dist < BurrowMinDist || dist > BurrowMaxDist) {
                 return false;}
             if (!GamePlay.Interaction.TerrainCollider.SampleCollision(self.origin, new float3(self.settings.collider.size.x,
-                -settings.GroundStickDist, self.settings.collider.size.z), EntityJob.cxt.mapContext, out _)){
+                -settings.GroundStickDist, self.settings.collider.size.z), out _)){
                 return false;}
             
             float3 digDir = Vector3.down;

@@ -14,10 +14,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   maxFrameLoad: 128
   viewDistUpdate: 32
-  MaxDepth: 6
+  MaxDepth: 8
   MinChunkRadius: 1
   Balance: 2
-  MapExtendDist: 26
+  MapExtendDist: 32
   MaxStructureDepth: 3
   lerpScale: 1
   IsoLevel: 0.5

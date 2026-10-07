@@ -97,7 +97,7 @@ public class BucketItem : IItem{
         Authoring authoring = ItemInfo.Retrieve(content.Index);
         if (authoring is not PlaceableItem mat) return;
         if (mat.MaterialName == null || !matInfo.Contains(mat.MaterialName)) return;
-        CPUMapManager.Terraform(hitPt, settings.TerraformRadius, AddFromBucket, interact.CallOnMapPlacing);
+        Terraforming.Terraform(hitPt, settings.TerraformRadius, AddFromBucket, interact.CallOnMapPlacing);
         if(content.AmountRaw != 0) return;
         content.ClearDisplay(display.transform);
         content = null;
@@ -136,7 +136,7 @@ public class BucketItem : IItem{
         if (!cxt.TryGetHolder(out BehaviorEntity.Animal player)) return;
         if (!player.Is(out PlayerInteractionBehavior interact)) interact = null;
         if (!interact.RayTestLiquid(out float3 hitPt)) return;
-        CPUMapManager.Terraform(hitPt, settings.TerraformRadius, RemoveToBucket, interact.CallOnMapRemoving);
+        Terraforming.Terraform(hitPt, settings.TerraformRadius, RemoveToBucket, interact.CallOnMapRemoving);
     }
 
     private bool RemoveToBucket(int3 GCoord, float brushStrength){

@@ -361,7 +361,7 @@ namespace Arterra.Data.Entity.Behavior {
                 float backDist = distance;
                 float distGS = distance / Config.CURRENT.Quality.Terrain.value.lerpScale;
                 // Pull the camera forward if terrain obstructs the ideal follow distance.
-                if (CPUMapManager.RayCastTerrain(camera.self.head, Facing * Vector3.back, distGS, RayTestSolid, out float3 hitPt))
+                if (Terraforming.RayCastTerrain(camera.self.head, Facing * Vector3.back, distGS, RayTestSolid, out float3 hitPt))
                     backDist = math.distance(hitPt, camera.self.head);
 
                 float3 backOffset = math.mul(math.normalize(camera.cameraLocalRotation), new float3(0, 0, -backDist));
@@ -441,7 +441,7 @@ namespace Arterra.Data.Entity.Behavior {
                 dir = math.mul(math.normalize(camera.baseCollider.Collider.transform.rotation), dir);
 
                 // Collision check is based on full orbit direction (player yaw + camera pitch/yaw).
-                if (CPUMapManager.RayCastTerrain(camera.self.head, dir, distGS, RayTestSolid, out float3 hitPt))
+                if (Terraforming.RayCastTerrain(camera.self.head, dir, distGS, RayTestSolid, out float3 hitPt))
                     backDist = math.distance(hitPt, camera.self.head);
 
                 float3 backOffset = math.mul(math.normalize(camera.cameraLocalRotation), new float3(0, 0, -backDist));
