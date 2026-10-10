@@ -314,19 +314,22 @@ namespace Arterra.Data.Entity.Behavior {
                 RemoveAttackerHooks(HookedTarget);
         }
 
-        public void OnFed(object self, object target, object cxt) {
-            Entity feeder; float nutrRaw; float nutrition;
-            (feeder, nutrRaw, nutrition) = ((RefTuple<(Entity, float, float)>)cxt).Value;
-            if (feeder == null) return;
+        public void OnFed(object srcId, object tgtItem, object cxt) {
+            Guid feederId; float nutrRaw; float nutrition;
+            if (cxt is not RefTuple<(Guid, float, float)> context) return;
+            (feederId, nutrRaw, nutrition) = context.Value;
+            if (!EntityManager.TryGetEntity(feederId, out Entity feeder))
+                return;
             float dAffection = nutrition * OnFedAffection;
             if (dAffection == 0) return;
 
             AddAffection(feeder.info.rtEntityId, dAffection);
         }
 
-        public void OnPursuerAttacked(object attacker, object savior, object cxt) {
-            if (savior == null) return;
-            if (savior is not Entity hero) return;
+        public void OnPursuerAttacked(object atkrId, object svrId, object cxt) {
+            if (svrId is not Guid saviorId) return;
+            if (!EntityManager.TryGetEntity(saviorId, out Entity hero))
+                return;
 
             float damage; float3 kb;
             (damage, kb) = (cxt as RefTuple<(float, float3)>).Value;
@@ -342,9 +345,10 @@ namespace Arterra.Data.Entity.Behavior {
             EntityManager.AddHandlerEvent(() => AddAffection(hero.info.rtEntityId, dAffection));
         }
 
-        public void OnAttacked(object self, object attacker, object cxt) {
-            if (attacker == null) return;
-            if (attacker is not Entity assailant) return;
+        public void OnAttacked(object srcId, object atkrId, object cxt) {
+            if (atkrId is not Guid attackerId) return;
+            if (!EntityManager.TryGetEntity(attackerId, out Entity assailant))
+                return;
 
             float damage; float3 kb;
             (damage, kb) = (cxt as RefTuple<(float, float3)>).Value;
@@ -356,9 +360,12 @@ namespace Arterra.Data.Entity.Behavior {
             
         }
 
-        public void OnMating(object src, object mate, object cxt) {
-            if (mate == null) return;
-            if (mate is not Entity partner) return;
+        public void OnMating(object srcId, object mtId, object cxt) {
+            if (mtId is not Guid mateId) return;
+            if (!EntityManager.TryGetEntity(mateId, out Entity partner)) return;
+            if (srcId is not Guid sourceId) return;
+            if (!EntityManager.TryGetEntity(sourceId, out Entity source)) return;
+
             float dAffection = OnMateAffection;
             AddAffection(partner.info.rtEntityId, dAffection);
             
@@ -369,11 +376,10 @@ namespace Arterra.Data.Entity.Behavior {
                 if (!EntityManager.TryGetEntity(LastMate, out Entity lastPartner)) return;
                 if (lastPartner.info.rtEntityId == partner.info.rtEntityId) return; //Being faithful :)
                 if (!lastPartner.Is(out RelationsBehavior lp)) return;
-                if (src is not Entity self) return;
-                if (lp.LastMate != self.info.rtEntityId) return; //your partner cheated on you first :(
+                if (lp.LastMate != source.info.rtEntityId) return; //your partner cheated on you first :(
                 EntityManager.AddHandlerEvent(() => {
                     //How you feel twoards your partner when they cheat on you
-                    lp.AddAffection(self.info.rtEntityId, OnBetrayalAffection);
+                    lp.AddAffection(source.info.rtEntityId, OnBetrayalAffection);
                     //how you feel towards the one who netorared your partner
                     lp.AddAffection(partner.info.rtEntityId, OnRivalMateAffection);
                 });

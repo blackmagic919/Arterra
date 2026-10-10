@@ -52,7 +52,9 @@ namespace Arterra.Core.Network {
             if (driver.BeginSend(reliable, peer, out var writer, headerBytes + count) != 0) return false;
             writer.WriteUInt(message.Id);
             if (first) {
-                writer.WriteUInt(message.ReferenceId);
+                Span<byte> referenceBytes = stackalloc byte[ReferenceIdBytes];
+                message.ReferenceId.TryWriteBytes(referenceBytes);
+                for (int i = 0; i < ReferenceIdBytes; i++) writer.WriteByte(referenceBytes[i]);
                 writer.WriteUShort(message.EventId);
                 writer.WriteUInt(message.ReplyTo);
                 writer.WriteInt(message.Bytes.Length);

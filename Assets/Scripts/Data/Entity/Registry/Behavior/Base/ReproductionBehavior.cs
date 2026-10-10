@@ -11,8 +11,7 @@ using Arterra.Data.Item;
 namespace Arterra.Data.Entity.Behavior {
 
     public interface IMateable {
-        public void MateWith(Entity entity);
-        public bool CanMateWith(Entity entity);
+        public bool CanMateWith(Guid entityId);
         public Genetics Genetics{ get; set; }
     }
 
@@ -81,7 +80,7 @@ namespace Arterra.Data.Entity.Behavior {
 
                 int preference = Awareness[(int)nEntity.info.entityType];
                 if (!nEntity.Is(out IMateable mateable)) return;
-                if (!mateable.CanMateWith(self)) return;
+                if (!mateable.CanMateWith(self.info.entityId)) return;
                 //If we have relations, prefer higher relations but always under categorical preference differences (in awareness table)
                 if (relations != null) pPref -= 1 - math.exp(relations.GetAffection(nEntity.info.rtEntityId));
 
@@ -129,9 +128,11 @@ namespace Arterra.Data.Entity.Behavior {
             return true;
         }
 
-        public bool CanMateWith(Entity entity) {
+        public bool CanMateWith(Guid entityId) {
             if (Mates.value == null) return false;
             if (AwarenessTable == null) return false;
+            if (!EntityManager.TryGetEntity(entityId, out Entity entity))
+                return false;
             int index = (int)entity.info.entityType;
             return AwarenessTable.ContainsKey(index);
         }
@@ -150,19 +151,23 @@ namespace Arterra.Data.Entity.Behavior {
         }
         private float MateCost => Modifier.Get(mod, MSettings.MateCost, settings.MateCost);
         
-        public bool CanMateWith(Entity entity) {
+        public bool CanMateWith(Guid entityId) {
             if (vitality.IsDead) return false;
 
             RefTuple<bool> CanMate = new (true);
-            self.eventCtrl.RaiseEvent(GameEvent.Entity_CanMate, self, entity, CanMate);
+            self.eventCtrl.RaiseEvent(GameEvent.Entity_CanMate,
+                self.info.entityId, entityId, CanMate);
             if (!CanMate.Value) return false;
-            return settings.CanMateWith(entity);
+            return settings.CanMateWith(entityId);
         }
-        public void MateWith(Entity entity) {
-            if (!CanMateWith(entity)) return;
+        public void MateWith(object srcId, object tgtId) {
+            if (tgtId is not Guid entityId) return;
+            if (!EntityManager.TryGetEntity(entityId, out Entity entity))
+                return;
+            if (!CanMateWith(entityId)) return;
             if (settings.MateWithEntity(mod, entity, ref self.random))
-                vitality.TakeDamage(MateCost, float3.zero);
-            self.eventCtrl.RaiseEvent(GameEvent.Entity_Mate, self, entity);
+                self.eventCtrl.RaiseEvent(GameEvent.Apply_Damage, self.info.entityId, null, (MateCost, float3.zero));
+            self.eventCtrl.RaiseEvent(GameEvent.Entity_Mate, self.info.entityId, entity.info.entityId);
         }
 
         public override void AddBehaviorDependencies(Dictionary<Behaviors, int> heirarchy) {
@@ -181,6 +186,7 @@ namespace Arterra.Data.Entity.Behavior {
             if (!self.Is(out mod)) mod = null;
 
             this.self = self;
+            self.eventCtrl.AddContextlessEventHandler(GameEvent.Apply_EntityMate, MateWith);
             self.Register<IMateable>(this);
         }
 
@@ -192,6 +198,7 @@ namespace Arterra.Data.Entity.Behavior {
             if (!self.Is(out mod)) mod = null;
 
             this.self = self;
+            self.eventCtrl.AddContextlessEventHandler(GameEvent.Apply_EntityMate, MateWith);
             self.Register<IMateable>(this);
         }
 

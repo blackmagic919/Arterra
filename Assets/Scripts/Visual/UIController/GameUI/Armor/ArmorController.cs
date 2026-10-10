@@ -76,14 +76,18 @@ namespace Arterra.GamePlay.UI {
             cxt.cur.eventCtrl.AddEventHandler(
                 GameEvent.Entity_Damaged,
                 delegate (object actor, object target, object args) {
-                    playerArmor.OnDamaged(target as Entity, (RefTuple<(float, float3)>)args);
+                    Entity attacker = null;
+                    if (target is Guid attackerId) EntityManager.TryGetEntity(attackerId, out attacker);
+                    playerArmor.OnDamaged(attacker, (RefTuple<(float, float3)>)args);
                 }
             );
 
             cxt.cur.eventCtrl.AddEventHandler(
                 GameEvent.Entity_Respawn,
                 delegate (object actor, object target, object ctx) {
-                    var args = (ctx as RefTuple<(Entity, Entity)>).Value;
+                    if (actor is not Entity actorEntity) return;
+                    if (target is not Entity targetEntity) return;
+                    var args = (actorEntity, targetEntity);
                     RebindPlayer(ref args);
                 }
             );
@@ -97,7 +101,7 @@ namespace Arterra.GamePlay.UI {
         PlayerCamera.SetActive(true);
         ArmorPanel.SetActive(true);
         eventTask = new Core.ArterraRuntime.IndirectUpdate(Update);
-        PlayerHandler.data.eventCtrl.RaiseEvent(GameEvent.Action_OpenArmor, PlayerHandler.data, null);
+        PlayerHandler.data.eventCtrl.RaiseEvent(GameEvent.Action_OpenArmor, PlayerHandler.data.info.entityId, null);
         Core.ArterraRuntime.MainLoopUpdateTasks.Enqueue(eventTask);
 
             
@@ -144,7 +148,7 @@ namespace Arterra.GamePlay.UI {
             lookDir = math.clamp(lookDir, -1f, 1f);
 
             RefTuple<(float, float)> cxt = (lookDir.y, -lookDir.x);
-            PlayerHandler.data.eventCtrl.RaiseEvent(GameEvent.Action_LookDirect, PlayerHandler.data, null, cxt);
+            PlayerHandler.data.eventCtrl.RaiseEvent(GameEvent.Action_LookDirect, PlayerHandler.data.info.entityId, null, cxt);
 
             ArmorInventory.ArmorSlot[] ArmorSlots = playerArmor.Display;
             int selected = -1;

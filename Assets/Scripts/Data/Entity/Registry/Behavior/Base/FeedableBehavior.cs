@@ -32,7 +32,7 @@ namespace Arterra.Data.Entity.Behavior {
         private Modifier mod;
         private HuntBehaviorSettings hunt; //optional
 
-        public void OnInteracted(object self, object target, object cxt) {
+        public void OnInteracted(object selfId, object tgtId, object cxt) {
             if (cxt == null) return;
             IItem item = cxt as IItem;
             switch(settings.CanEat) {
@@ -53,14 +53,18 @@ namespace Arterra.Data.Entity.Behavior {
             delta.AmountRaw = math.min(delta.AmountRaw, item.AmountRaw);
             
             if (!consume.CanConsume(mod, delta, out float nutrition)) return;
+            if (tgtId is not Guid targetId) targetId = default;
 
-            RefTuple<(Entity, float, float)> context = new ((
-                target as Entity,
+            RefTuple<(Guid, float, float)> context = new ((
+                targetId,
                 nutrition,
                 nutrition / Modifier.Get(mod, MSettings.MaxHealth, vitality.stats.MaxHealth)
             ));
 
-            this.self.eventCtrl.RaiseEvent(GameEvent.Entity_Fed, self, delta, context);
+            //Consume the interact event
+            self.eventCtrl.ConsumeEvent();
+
+            this.self.eventCtrl.RaiseEvent(GameEvent.Entity_Fed, selfId, delta, context);
             item.AmountRaw -= delta.AmountRaw;
             nutrition = context.Value.Item2; 
             vitality.Heal(nutrition);
@@ -87,7 +91,8 @@ namespace Arterra.Data.Entity.Behavior {
 
             
             this.self = self;
-            self.eventCtrl.AddEventHandler(GameEvent.Entity_Interact, OnInteracted);
+            self.eventCtrl.AddEventHandler(GameEvent.Entity_Interact,
+                OnInteracted, EventHandlePriority.Override2);
         }
         
         public override void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
@@ -102,7 +107,8 @@ namespace Arterra.Data.Entity.Behavior {
 
             
             this.self = self;
-            self.eventCtrl.AddEventHandler(GameEvent.Entity_Interact, OnInteracted);
+            self.eventCtrl.AddEventHandler(GameEvent.Entity_Interact, 
+                OnInteracted, EventHandlePriority.Override2);
         }
         
         public override void Disable(BehaviorEntity.Animal self) {

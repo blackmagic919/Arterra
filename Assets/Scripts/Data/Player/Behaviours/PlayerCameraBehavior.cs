@@ -302,7 +302,7 @@ namespace Arterra.Data.Entity.Behavior {
                 }
 
                 RefTuple<(float, float)> cxt = (camera.GetAngleX(camera.cameraLocalRotation), camera.lookDelta.y);
-                camera.self.eventCtrl.RaiseEvent(GameEvent.Action_LookGradual, camera.self, null, cxt);
+                camera.self.eventCtrl.RaiseEvent(GameEvent.Action_LookGradual, camera.self.info.entityId, null, cxt);
             }
         }
 
@@ -354,7 +354,7 @@ namespace Arterra.Data.Entity.Behavior {
 
                 SetCameraOffset();
                 RefTuple<(float, float)> cxt = (camera.GetAngleX(camera.cameraLocalRotation), camera.lookDelta.y);
-                camera.self.eventCtrl.RaiseEvent(GameEvent.Action_LookGradual, camera.self, null, cxt);
+                camera.self.eventCtrl.RaiseEvent(GameEvent.Action_LookGradual, camera.self.info.entityId, null, cxt);
             }
 
             private void SetCameraOffset() {
@@ -431,7 +431,7 @@ namespace Arterra.Data.Entity.Behavior {
 
                 SetCameraOffset();
                 RefTuple<(float, float)> cxt = (camera.GetAngleX(camera.cameraLocalRotation), rotation);
-                camera.self.eventCtrl.RaiseEvent(GameEvent.Action_LookGradual, camera.self, null, cxt);
+                camera.self.eventCtrl.RaiseEvent(GameEvent.Action_LookGradual, camera.self.info.entityId, null, cxt);
             }
 
             private void SetCameraOffset() {

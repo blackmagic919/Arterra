@@ -1,5 +1,6 @@
 
 using System;
+using Arterra.Core.Events;
 using System.Collections.Generic;
 using Arterra.Configuration;
 using Arterra.Data.Entity;
@@ -49,7 +50,7 @@ namespace Arterra.Data.Entity.Behavior {
             if (preyDist > manager.settings.ContactDistance) {
                 manager.Transition(settings.OnSeperateTarget);
                 return;
-            } if (!target.Is(out IAttackable atkTarget)) {
+            } if (!target.Is(out IVitality atkTarget)) {
                 manager.TaskTarget = Guid.Empty;
                 manager.Transition(settings.OnLostTarget);
                 return;
@@ -60,19 +61,24 @@ namespace Arterra.Data.Entity.Behavior {
             Quaternion.LookRotation(atkDir), movement.rotSpeed * self.DeltaTime);
 
             if (!atkTarget.IsDead) manager.Transition(settings.OnSeperateTarget);
-            else ConsumeTarget(atkTarget, self);
+            else ConsumeTarget(target, self);
         } 
 
-        public void ConsumeTarget(IAttackable target, BehaviorEntity.Animal self) {
-            EntityManager.AddHandlerEvent(() => {
-                target.Collect(self, item => {
-                    if (item != null && consume.CanConsume(mod, item, out float nutrition))
-                        vitality.Heal(nutrition);
+        public void ConsumeTarget(Entity target, BehaviorEntity.Animal self) {
+            target.eventCtrl.EnqueueEvent(GameEvent.Apply_Collect,
+                self.info.entityId, target.info.entityId, consume.ConsumptionRate);
+        }
 
-                    if (vitality.healthPercent >= 1)
-                        manager.Transition(settings.OnFinishedEating);
-                }, consume.ConsumptionRate);
-            });
+        private void ReceiveItem(object source, object target, object context) {
+            if (manager.TaskIndex != settings.TaskName || source is not Guid sourceId
+                || sourceId != manager.TaskTarget) return;
+            if (context is IItem item && consume.CanConsume(mod, item, out float nutrition))
+                vitality.Heal(nutrition);
+            if (vitality.healthPercent >= 1) manager.Transition(settings.OnFinishedEating);
+        }
+
+        public override void Disable(BehaviorEntity.Animal self) {
+            self.eventCtrl.RemoveEventHandler(GameEvent.Entity_RecieveItem, ReceiveItem);
         }
 
         public override void AddBehaviorDependencies(Dictionary<Behaviors, int> heirarchy) {
@@ -99,6 +105,7 @@ namespace Arterra.Data.Entity.Behavior {
             if (!self.Is(out vitality))
                 throw new System.Exception("Entity: ConsumeTarget Behavior Requires AnimalInstance to have VitalityBehavior");
             if (!self.Is(out mod)) mod = null;
+            self.eventCtrl.AddEventHandler(GameEvent.Entity_RecieveItem, ReceiveItem);
         }
 
         public override void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
@@ -113,6 +120,7 @@ namespace Arterra.Data.Entity.Behavior {
             if (!self.Is(out vitality))
                 throw new System.Exception("Entity: ConsumeTarget Behavior Requires AnimalInstance to have VitalityBehavior");
             if (!self.Is(out mod)) mod = null;
+            self.eventCtrl.AddEventHandler(GameEvent.Entity_RecieveItem, ReceiveItem);
         }
     }
 }

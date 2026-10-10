@@ -120,7 +120,7 @@ public abstract class Entity: IRegistered, IEventControlled{
 
     /// <summary> The event controller responsible for managing all events related to this entity </summary>
     [JsonIgnore]
-    public EventControl eventCtrl = new();
+    public EntityEventControl eventCtrl = new();
     /// <summary> The interface getter for the event control of the entity </summary>
     public EventControl Events {get => eventCtrl;}
 

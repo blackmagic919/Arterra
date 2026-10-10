@@ -10,6 +10,7 @@ using Unity.Collections;
 using Unity.Mathematics;
 using UnityEngine;
 using ChunkMapInfo = Arterra.Core.Storage.CPUMapManager.ChunkMapInfo;
+using System.Linq;
 
 namespace Arterra.Core.Storage {
     /// <summary>
@@ -54,7 +55,7 @@ namespace Arterra.Core.Storage {
                 ReferenceEquals(previous.Owner, owner)) return previous;
 
             ChunkMapInfo chunk = CPUMapManager.GetOrCreateChunkInfo(coordinate);
-            var subscription = new Subscription(owner, chunk);
+            var subscription = new Subscription(this, owner, chunk);
             // Subscribe first so replacing the owner at this coordinate never unloads the data.
             chunk.Generation.Subscribers.Add(subscription);
             region[index] = subscription;
@@ -81,12 +82,14 @@ namespace Arterra.Core.Storage {
         }
 
         public sealed class Subscription {
+            public readonly ChunkGenerationDriver Driver;
             public readonly IChunkConsumer Owner;
             public readonly ChunkMapInfo Chunk;
             public bool Active => Chunk.Generation.Subscribers.Contains(this);
             public Task Ready => Chunk.Generation.Ready;
 
-            internal Subscription(IChunkConsumer owner, ChunkMapInfo chunk) {
+            internal Subscription(ChunkGenerationDriver driver, IChunkConsumer owner, ChunkMapInfo chunk) {
+                Driver = driver;
                 Owner = owner;
                 Chunk = chunk;
             }
@@ -217,6 +220,10 @@ namespace Arterra.Core.Storage {
                 foreach (Subscription subscriber in snapshot)
                     if (subscriber.Active) subscriber.Owner.ReflectChunk(updatedValues);
             }
+            public HashSet<ChunkGenerationDriver> GetDriverSet() {
+                if (Subscribers == null) return null;
+                return Subscribers.Select(s => s.Driver).ToHashSet();
+            }
         }
     }
 
@@ -231,6 +238,8 @@ namespace Arterra.Core.Storage {
         public abstract Task<MapData[]> ReadVisualAsync(int3 coordinate, int depth);
         // Receives already-offloaded data. The caller owns disposal after every user finishes.
         public abstract Task ReleaseAsync(ChunkMapInfo chunk);
+        public abstract void EnterEntity(Entity entity);
+        public abstract void LeaveEntity(Guid entityId);
     }
 
     public sealed class LocalChunkSource : ChunkSource {
@@ -259,5 +268,8 @@ namespace Arterra.Core.Storage {
             else map = Task.CompletedTask;
             await Task.WhenAll(map, entities);
         }
+        //Default values for local chunk
+        public override void EnterEntity(Entity entity) => EntityManager.DeserializeEntity(entity);
+        public override void LeaveEntity(Guid entityId) => EntityManager.ReleaseEntity(entityId);
     }
 }

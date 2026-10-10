@@ -71,7 +71,8 @@ namespace Arterra.Data.Entity.Behavior {
         private void OnProjectileHit(object source, object target, object cxt) {
             if (hasCollided) return;
             hasCollided = true;
-            if (source is not Entity sourceEntity) return;
+            if (source is not Guid sourceId) return;
+            if (!EntityManager.TryGetEntity(sourceId, out Entity sourceEntity)) return;
             EntityManager.AddHandlerEvent(() => AudioManager.CreateEvent(settings.HitSound, sourceEntity.position));
         }
     }

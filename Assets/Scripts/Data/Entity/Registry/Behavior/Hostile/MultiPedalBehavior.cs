@@ -46,7 +46,7 @@ namespace Arterra.Data.Entity.Behavior
         private AnimatedBehavior animated;
         
         [JsonProperty] private Leg[] appendages;
-        private IAttackable selfAtk;
+        private IVitality selfAtk;
         private uint LastOverrideState;
 
         public override void AddBehaviorDependencies(Dictionary<Behaviors, int> heirarchy) {

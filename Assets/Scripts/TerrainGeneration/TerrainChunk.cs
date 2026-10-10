@@ -401,10 +401,7 @@ namespace Arterra.Engine.Terrain{
                     var pipeline = chunk.Generation.Pipeline;
                     var graphics = GraphicsGeneration;
                     if (chunk.HasGraphicsMap) pipeline.CopyTo(graphics.Work.Transfer);
-                    else {
-                        Debug.Log("Copying from CPU");
-                        graphics.SetBufferData(graphics.Work.Transfer, chunk.ChunkData, chunk.Offset, 0, chunk.Length);
-                    }
+                    else graphics.SetBufferData(graphics.Work.Transfer, chunk.ChunkData, chunk.Offset, 0, chunk.Length);
                     if (GPUMapManager.RegisterChunkReal(chunk.CCoord, 0, graphics.Work.Transfer) < 0)
                         throw new InvalidOperationException("Chunk is outside the client's GPU cache region.");
                     status.UpdateMap = Status.State.Finished;

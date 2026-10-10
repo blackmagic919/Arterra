@@ -8,16 +8,9 @@ using Unity.Mathematics;
 using UnityEngine;
 
 namespace Arterra.Data.Entity.Behavior {
-
-public interface IRider {
-    public void OnMounted(IRidable entity);
-    public void OnDismounted(IRidable entity);
-}
-
 public interface IRidable {
     public Transform GetRiderRoot();
     public void WalkInDirection(float3 direction);
-    public void Dismount();
     [JsonIgnore] public Entity AsEntity => this as Entity;
 }
 
@@ -43,47 +36,51 @@ public class RidableBehavior : SpeciesBehavior, IRidable {
     [JsonIgnore] public Entity AsEntity => self;
 
     public void Dismount() {
-        if (RiderTarget == Guid.Empty) return;
-        if (!EntityManager.TryGetEntity(RiderTarget, out Entity target) ||
-            !target.Is(out IRider rider))
+        if (!EntityManager.TryGetEntity(RiderTarget, out Entity rider)) {
+            Dismounted(self.info.entityId, RiderTarget);
             return;
-        
-        self.eventCtrl.RaiseEvent(GameEvent.Action_Dismounted, self, rider);
-        EntityManager.AddHandlerEvent(() => rider.OnDismounted(this));
-        collider?.IgnoredEntities.Remove(RiderTarget);
+        }
+
+        rider.eventCtrl.EnqueueEvent(GameEvent.Action_Dismount,
+            rider.info.entityId, self.info.entityId);
+    }
+
+    public void Dismounted(object srcId, object tgtId) {
+        if (RiderTarget == Guid.Empty) return;
+        if (tgtId is not Guid riderId || riderId != RiderTarget) return;
+        collider?.IgnoredEntities?.Remove(RiderTarget);
         RiderTarget = Guid.Empty;
     }
 
 
     public void WalkInDirection(float3 aim) {
         RefTuple<float3> cxt = new (aim);
-        self.eventCtrl.RaiseEvent(GameEvent.Entity_Guided, self, null, cxt);
+        self.eventCtrl.RaiseEvent(GameEvent.Entity_Guided, self.info.entityId, null, cxt);
     }
 
     private void Interact(object src, object interactor) {
-        if (interactor == null) return;
-        if (interactor is not Entity caller) return;
-        if (!caller.Is(out IRider rider)) return;
+        if (interactor is not Guid callerId) return;
+        if (!EntityManager.TryGetEntity(callerId, out Entity caller)) return;
         if (RiderTarget != Guid.Empty) return;
 
-        RefTuple<bool> cxt = new (true);
-        self.eventCtrl.RaiseEvent(GameEvent.Action_Mounted, self, caller, cxt);
-        if (!cxt.Value) return; //Event test whether the given entity should be ridden
+        RefTuple<bool> allowed = new(true);
+        self.eventCtrl.RaiseEvent(GameEvent.Entity_CanMount, self.info.entityId, callerId, allowed);
+        if (!allowed.Value) return;
 
-        RiderTarget = caller.info.rtEntityId;
+        RiderTarget = caller.info.entityId;
         if (collider != null) {
             if(collider.IgnoredEntities == null) collider.IgnoredEntities = new HashSet<Guid>() { RiderTarget };
             else collider.IgnoredEntities.Add(RiderTarget);
         }
 
-        EntityManager.AddHandlerEvent(() => rider.OnMounted(self.As<IRidable>()));
+        caller.eventCtrl.EnqueueEvent(GameEvent.Action_Mount, callerId, self.info.entityId);
     }
 
 
      public override void AddBehaviorDependencies(Dictionary<Behaviors, int> heirarchy) {
         heirarchy.TryAdd(Behaviors.Collider, heirarchy.Count);
         heirarchy.TryAdd(Behaviors.StateMachine, heirarchy.Count);
-        //Deactivated unless IAttackable is implemented
+        //Deactivated unless IVitality is implemented
     }
 
     public override void AddSettingsDependencies(Dictionary<Type, IBehaviorSetting> heirarchy) {
@@ -92,25 +89,27 @@ public class RidableBehavior : SpeciesBehavior, IRidable {
 
     public override void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
         if (!setting.Is(out settings))
-            throw new System.Exception("Entity: Rideable Behavior Requires AnimalSettings to have RandomWalkState");
+            throw new Exception("Entity: Rideable Behavior Requires AnimalSettings to have RandomWalkState");
         if ((RideRoot = self.controller.gameObject.transform.Find(settings.RideRoot)) == null)
-            throw new System.Exception($"Entity: Rideable Behavior Requires AnimalInstance to have Object at {settings.RideRoot}");
+            throw new Exception($"Entity: Rideable Behavior Requires AnimalInstance to have Object at {settings.RideRoot}");
         if (!self.Is(out collider)) collider = null;
+        self.eventCtrl.AddContextlessEventHandler(GameEvent.Action_Dismounted, Dismounted);
+        self.eventCtrl.AddContextlessEventHandler(GameEvent.Entity_Interact, Interact);
 
         self.Register<IRidable>(this);
-        self.eventCtrl.AddContextlessEventHandler(GameEvent.Entity_Interact, Interact);
         this.self = self;
     }
 
     public override void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord){
         if (!setting.Is(out settings))
-            throw new System.Exception("Entity: Rideable Behavior Requires AnimalSettings to have RandomWalkState");
+            throw new Exception("Entity: Rideable Behavior Requires AnimalSettings to have RandomWalkState");
         if ((RideRoot = self.controller.gameObject.transform.Find(settings.RideRoot)) == null)
-            throw new System.Exception($"Entity: Rideable Behavior Requires AnimalInstance to have Object at {settings.RideRoot}");
+            throw new Exception($"Entity: Rideable Behavior Requires AnimalInstance to have Object at {settings.RideRoot}");
         if (!self.Is(out collider)) collider = null;
+        self.eventCtrl.AddContextlessEventHandler(GameEvent.Action_Dismounted, Dismounted);
+        self.eventCtrl.AddContextlessEventHandler(GameEvent.Entity_Interact, Interact);
         
         self.Register<IRidable>(this);
-        self.eventCtrl.AddContextlessEventHandler(GameEvent.Entity_Interact, Interact);
         this.self = self;
     }
 

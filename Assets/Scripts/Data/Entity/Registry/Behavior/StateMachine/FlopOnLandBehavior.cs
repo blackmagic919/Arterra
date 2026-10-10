@@ -40,14 +40,16 @@ namespace Arterra.Data.Entity.Behavior{
             }
         }
 
-        public void OnEntityInWater(object self, object _, object density) {
+        public void OnEntityInWater(object srcId, object _, object density) {
             dryOutProgress = DryOutTime;
             if (settings.TaskName != manager.TaskIndex) return;
             manager.Transition(settings.OnEnterWater);
         }
 
-        public void OnEntityInAir(object self, object _, object density) {
-            if (self is not BehaviorEntity.Animal animal) return;
+        public void OnEntityInAir(object srcId, object _, object density) {
+            if (srcId is not Guid sourceId) return;
+            if (!EntityManager.TryGetEntity(sourceId, out Entity source)) return;
+            if (source is not BehaviorEntity.Animal animal) return;
             dryOutProgress -= animal.DeltaTime;
             if (dryOutProgress <= 0) mInteract.ProcessSuffocation(animal, (float)density);
             manager.Transition(settings.TaskName);

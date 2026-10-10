@@ -9,24 +9,21 @@ namespace Arterra.Data.Entity.Behavior {
         private BehaviorEntity.Animal self;
         private InidcatorsBehavior indicator;
         private ColliderUpdateBehavior collider;
-        private VitalityBehavior vit;
         public override void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
             if (!self.Is(out collider)) collider = null;
             if (!self.Is(out indicator)) indicator = null;
-            if (!self.Is(out vit)) vit = null;
             this.self = self;
             OnStartup();
         }
         public override void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
             if (!self.Is(out collider)) collider = null;
             if (!self.Is(out indicator)) indicator = null;
-            if (!self.Is(out vit)) vit = null;
             this.self = self;
             OnStartup();
         }
 
         public override void Disable(BehaviorEntity.Animal self) {
-            self.eventCtrl.RemoveEventHandler(Core.Events.GameEvent.Entity_Damaged, BlockDamage);
+            self.eventCtrl.RemoveEventHandler(GameEvent.Entity_Damaged, BlockDamage);
             Config.CURRENT.System.RemoveHook("Gamemode:Intangibility", ToggleIntangibility);
             Config.CURRENT.System.RemoveHook("Gamemode:Invulnerability", ToggleInvulnerability);
             UnMapStatDisplay();
@@ -95,13 +92,13 @@ namespace Arterra.Data.Entity.Behavior {
             }
         }
 
-        private void BlockDamage(object self, object _, object cxt) {
+        private void BlockDamage(object srcId, object _, object cxt) {
             RefTuple<(float dmg, float3 kb)> info = (RefTuple<(float, float3)>)cxt;
             info.Value.dmg = 0;
             info.Value.kb = 0;
         }
 
-        private void BlockNegativeDelta(object self, object _, object cxt) {
+        private void BlockNegativeDelta(object srcId, object _, object cxt) {
             RefTuple<float> info = (RefTuple<float>)cxt;
             info.Value = math.max(info.Value, 0);
         }

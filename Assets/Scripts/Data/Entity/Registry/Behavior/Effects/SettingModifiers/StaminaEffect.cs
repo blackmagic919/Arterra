@@ -109,7 +109,7 @@ namespace Arterra.Data.Entity.Behavior {
             self?.eventCtrl.RemoveEventHandler(GameEvent.Entity_ExertHunger, HandleExertHunger);
         }
 
-        private void HandleExertHunger(object actor, object target, object cxt) {
+        private void HandleExertHunger(object srcId, object _, object cxt) {
             if (cxt is not RefTuple<float> deltaCtx) return;
             deltaCtx.Value *= deltaCtx.Value <= 0 ? StaminaMultiplier : (2 - StaminaMultiplier);
         }

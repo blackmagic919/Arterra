@@ -26,9 +26,9 @@ namespace Arterra.Configuration {
     /// </summary>
     [CreateAssetMenu(menuName = "Generation/WorldOptions")]
     public class Config : ScriptableObject {
-        private const uint ConfigReferenceId = 1;
-        private static readonly NetworkVariable<Config> _current = new(ConfigReferenceId, retainValueOnDisconnect: true);
-        internal static NetworkVariable<Config> CurrentVariable => _current;
+        private static readonly Guid ConfigReferenceId = new("00000000-0000-0000-0000-000000000001");
+        private static readonly NetworkVariableBase<Config> _current = new(ConfigReferenceId, retainValueOnDisconnect: true);
+        internal static NetworkVariableBase<Config> CurrentVariable => _current;
         public static void Broadcast() => _current.Broadcast();
         private static Config _template;
         /// <summary>

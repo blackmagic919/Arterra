@@ -208,15 +208,22 @@ namespace Arterra.Data.Entity.Behavior {
                 return;
             }
 
-            if (!entity.Is(out IAttackable attackable)) return;
             float3 knockback = math.normalize(entity.position - self.head) * KnockBackStrength;
             float damage = AttackDamage;
 
             RefTuple<(float, float3)> cxt = (damage, knockback);
-            self.eventCtrl.RaiseEvent(Arterra.Core.Events.GameEvent.Entity_Attack, self, entity, cxt);
+            self.eventCtrl.RaiseEvent(GameEvent.Entity_Attack,
+                self.info.entityId,
+                entity.info.entityId,
+                cxt
+            );
             (damage, knockback) = cxt.Value;
-
-            EntityManager.AddHandlerEvent(() => attackable.TakeDamage(damage, knockback, self));
+            entity.eventCtrl.EnqueueEvent(
+                GameEvent.Apply_Damage,
+                entity.info.entityId,
+                self.info.entityId,
+                (damage, knockback)
+            );
         }
 
         private bool RemoveSolidBareHand(int3 GCoord, float speed) {
@@ -250,7 +257,7 @@ namespace Arterra.Data.Entity.Behavior {
             if (selMat is not PlaceableItem setting) return;
             if (!setting.IsSolid || !matInfo.Contains(setting.MaterialName)) return;
 
-            self.eventCtrl.RaiseEvent(GameEvent.Action_PlaceTerrain, self, null, hitPt);
+            self.eventCtrl.RaiseEvent(GameEvent.Action_PlaceTerrain, self.info.entityId, null, hitPt);
             Terraforming.Terraform(hitPt, TerraformRadius,
                 (GCoord, speed) => HandleAddSolidInternal(
                     InventoryController.Selected,
@@ -270,7 +277,7 @@ namespace Arterra.Data.Entity.Behavior {
                 return;
             }
 
-            self.eventCtrl.RaiseEvent(GameEvent.Action_RemoveTerrain, self, null, hitPt);
+            self.eventCtrl.RaiseEvent(GameEvent.Action_RemoveTerrain, self.info.entityId, null, hitPt);
             Terraforming.Terraform(hitPt, TerraformRadius, RemoveSolidBareHand, CallOnMapRemoving);
         }
 
@@ -450,14 +457,20 @@ namespace Arterra.Data.Entity.Behavior {
 
         private void EntityInteract(Entity target, IItem held) {
             if (!target.active) return;
-            if (!target.Is(out IAttackable targEnt)) return;
+            if (!target.Is(out IVitality targEnt)) return;
 
             if (!targEnt.IsDead) {
-                targEnt.Interact(self, held);
+                target.eventCtrl.EnqueueEvent(
+                    GameEvent.Entity_Interact,
+                    target.info.entityId,
+                    self.info.entityId,
+                    held
+                );
             } else {
-                targEnt.Collect(
-                    self,
-                    InventoryController.AddEntry, 
+                target.eventCtrl.EnqueueEvent(
+                    GameEvent.Apply_Collect,
+                    self.info.entityId,
+                    target.info.entityId,
                     PickupRate
                 );
             }

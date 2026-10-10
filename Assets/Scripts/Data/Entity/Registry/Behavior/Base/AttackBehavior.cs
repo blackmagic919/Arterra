@@ -39,11 +39,10 @@ namespace Arterra.Data.Entity.Behavior {
         public bool Attack(Entity target) {
             if (AttackInProgress) return false;
             if (attackCooldown > 0) return false;
-            if (!target.Is<IAttackable>()) return false;
             RefTuple<float> cxt = settings.AttackDuration;
             self.eventCtrl.RaiseEvent(
                 GameEvent.Entity_ReadyAttack,
-                self, target, cxt
+                self.info.entityId, target.info.entityId, cxt
             ); 
             attackProgress = cxt.Value;
             AttackTarget = target.info.entityId;
@@ -76,18 +75,26 @@ namespace Arterra.Data.Entity.Behavior {
         }
 
         public static void RealAttack(Entity self, Entity target, float damage, float3 knockback) {
-            if (!target.Is(out IAttackable atkTarget)) return;
             RefTuple<(float, float3)> cxt = (damage, knockback);
             self.eventCtrl.RaiseEvent(
                 GameEvent.Entity_Attack,
-                self, target, cxt
+                self.info.entityId, target.info.entityId, cxt
             ); (damage, knockback) = cxt.Value;
-            EntityManager.AddHandlerEvent(() => atkTarget.TakeDamage(damage, knockback, self));
+            target.eventCtrl.EnqueueEvent(
+                GameEvent.Apply_Damage,
+                target.info.entityId,
+                self.info.entityId,
+                (damage, knockback)
+            );
         }
 
         public static void RealAttackIndirect(Entity self, Entity target, float damage, float3 knockback) {
-            if (!target.Is(out IAttackable atkTarget)) return;
-            EntityManager.AddHandlerEvent(() => atkTarget.TakeDamage(damage, knockback, self));
+            target.eventCtrl.EnqueueEvent(
+                GameEvent.Apply_Damage,
+                target.info.entityId,
+                self.info.entityId,
+                (damage, knockback)
+            );
         }
 
         public override void AddSettingsDependencies(Dictionary<Type, IBehaviorSetting> heirarchy) {

@@ -76,7 +76,7 @@ namespace Arterra.Data.Entity.Behavior {
                     return;
                 
                 if (DesiredPreyState != PreyState.Any) {
-                    if (!nEntity.Is(out IAttackable atkEntity)) return;
+                    if (!nEntity.Is(out IVitality atkEntity)) return;
                     if (atkEntity.IsDead && DesiredPreyState == PreyState.Alive) return;
                     if (!atkEntity.IsDead && DesiredPreyState == PreyState.Dead) return;
                 }

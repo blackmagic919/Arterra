@@ -103,6 +103,7 @@ namespace Arterra.Data.Entity.Behavior {
             if (!self.Is(out indicators)) indicators = null;
 
             this.self = self;
+            if (resetHunger) HungerPercent = math.clamp(settings.startingPercent, 0f, 2f);
 
             settings.Exercises.value ??= new List<HungerSettings.Exercise>();
             foreach (HungerSettings.Exercise e in settings.Exercises.value) {
@@ -156,7 +157,6 @@ namespace Arterra.Data.Entity.Behavior {
 
         public override void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
             Setup(self, setting, true);
-            HungerPercent = math.clamp(settings.startingPercent, 0f, 2f);
         }
 
         public override void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
@@ -190,7 +190,7 @@ namespace Arterra.Data.Entity.Behavior {
 
         private float FlushDeltaHunger(float delta) {
             RefTuple<float> cxt = new RefTuple<float>(delta);
-            self.eventCtrl.RaiseEvent(GameEvent.Entity_FlushHungerDelta, self, null, cxt);
+            self.eventCtrl.RaiseEvent(GameEvent.Entity_FlushHungerDelta, self.info.entityId, null, cxt);
             delta = cxt;
 
             delta = math.clamp(HungerPercent + delta, 0f, 2f) - HungerPercent;
@@ -248,7 +248,8 @@ namespace Arterra.Data.Entity.Behavior {
                 delta = -exercise.cost * self.DeltaTime;
             else delta = -exercise.cost;
             RefTuple<float> cxt = delta;
-            self.eventCtrl.RaiseEvent(GameEvent.Entity_ExertHunger, self, null, cxt);
+            self.eventCtrl.RaiseEvent(GameEvent.Entity_ExertHunger,
+                self.info.entityId, null, cxt);
             delta = cxt;
 
             FlushDeltaHunger(delta);

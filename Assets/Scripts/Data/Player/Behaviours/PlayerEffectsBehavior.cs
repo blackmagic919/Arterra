@@ -160,15 +160,17 @@ namespace Arterra.Data.Entity.Behavior {
         }
 
         private void PlayDeserialize(object source, object target, object cxt) {
-            if (source is not Entity entity) return;
-            if (!entity.Is(out IAttackable attackable)) return;
+            if (source is not Guid sourceId) return;
+            if (!EntityManager.TryGetEntity(sourceId, out Entity entity)) return;
+            if (!entity.Is(out IVitality attackable)) return;
             if (!attackable.IsDead) return;
             SetBool("IsDead", true);
         }
 
-        private void PlayStartSwim(object source, object target, object density) {
-            if (source is not Entity entity) return;
-            if (entity.Is(out IAttackable attackable) && attackable.IsDead)
+        private void PlayStartSwim(object srcId, object _, object density) {
+            if (srcId is not Guid sourceId) return;
+            if (!EntityManager.TryGetEntity(sourceId, out Entity source)) return;
+            if (source.Is(out IVitality attackable) && attackable.IsDead)
                 return;
             SetBool("IsSwimming", true);
             SetBool("IsJumping", false);
@@ -181,9 +183,10 @@ namespace Arterra.Data.Entity.Behavior {
             SubmergedSound = AudioManager.CreateEvent(AudioEvents.Action_WaterSubmerged);
         }
 
-        private void PlayStopSwim(object source, object target, object density) {
-            if (source is not Entity entity) return;
-            if (entity.Is(out IAttackable attackable) && attackable.IsDead)
+        private void PlayStopSwim(object srcId, object target, object density) {
+            if (srcId is not Guid sourceId) return;
+            if (!EntityManager.TryGetEntity(sourceId, out Entity source)) return;
+            if (source.Is(out IVitality attackable) && attackable.IsDead)
                 return;
             SetBool("IsSwimming", false);
 
@@ -192,10 +195,12 @@ namespace Arterra.Data.Entity.Behavior {
             isSwimming = false;
         }
 
-        private void PlayTouchdown(object source, object target, object cxt) {
-            if (source is not Entity entity) return;
-            if (!entity.Is(out IAttackable attackable)) return;
-            if (attackable.IsDead) return;
+        private void PlayTouchdown(object srcId, object tgtId, object cxt) {
+            if (srcId is not Guid sourceId) return;
+            if (!EntityManager.TryGetEntity(sourceId, out Entity source))
+                return;
+            if (!source.Is(out IVitality vit) || vit.IsDead)
+                return;
 
             if (animator == null) return;
             AnimatorStateInfo state = animator.GetCurrentAnimatorStateInfo(0);
@@ -210,10 +215,12 @@ namespace Arterra.Data.Entity.Behavior {
             SetFloat("LookX", look.Value.Item2);
         }
 
-        private void PlayDamaged(object source, object target, object cxt) {
-            if (source is not Entity entity) return;
-            if (!entity.Is(out IAttackable attackable)) return;
-            if (attackable.IsDead) return;
+        private void PlayDamaged(object srcId, object tgtId, object cxt) {
+            if (srcId is not Guid sourceId) return;
+            if (!EntityManager.TryGetEntity(sourceId, out Entity source)) return;
+            if (!source.Is(out IVitality living)) return;
+            if (living.IsDead) return;
+
             if (cxt is not RefTuple<(float, float3)> damaged) return;
             float thresh = physicality != null ? physicality.MaxHealth * 0.01f : 0.1f;
             if (damaged.Value.Item1 < thresh) return;

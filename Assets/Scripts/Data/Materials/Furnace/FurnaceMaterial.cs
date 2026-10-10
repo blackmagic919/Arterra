@@ -411,7 +411,7 @@ namespace Arterra.Data.Material
             public GameObject GetDispContent() => root;
             public void Activate(){
                 root.SetActive(true);
-                PlayerHandler.data.eventCtrl.RaiseEvent(settings.OpenEvent, PlayerHandler.data, null);
+                PlayerHandler.data.eventCtrl.RaiseEvent(settings.OpenEvent, PlayerHandler.data.info.entityId, null);
             }
             public void Deactivate() => root.SetActive(false);
         }

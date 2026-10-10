@@ -51,8 +51,7 @@ namespace Arterra.Data.Entity.Behavior {
 
         private void OnCollectedFrom(object self, object collector, object cxt) {
             if (manager.TaskIndex != settings.TaskName) return;
-            Action<IItem> collect; float amount;
-            (collect, amount) = ((Action<IItem>, float))cxt;
+            if (cxt is not float amount) return;
             manager.TaskDuration -= amount;
         }
 

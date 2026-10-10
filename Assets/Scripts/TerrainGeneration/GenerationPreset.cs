@@ -153,8 +153,8 @@ public static class SystemProtocol{
         TryShutdown(() => ChunkGenerationDriver.Local?.Release(), nameof(ChunkGenerationDriver));
         await TryShutdownAsync(() => CPUMapManager.ReleaseAsync(), nameof(CPUMapManager));
         TryShutdown(() => AudioManager.Instance?.Release(), nameof(AudioManager));
-        TryShutdown(() => EntityManager.Release(), nameof(EntityManager));
         TryShutdown(() => PlayerHandler.Release(), nameof(PlayerHandler));
+        TryShutdown(() => EntityManager.Release(), nameof(EntityManager));
         TryShutdown(() => Rendering.LightBaker.Release(), nameof(Rendering.LightBaker));
         TryShutdown(() => AtmospherePass.Release(), nameof(AtmospherePass));
         TryShutdown(() => NauseaPass.Release(), nameof(NauseaPass));

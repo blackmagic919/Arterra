@@ -83,6 +83,8 @@ namespace Arterra.Data.Entity.Behavior {
 			self.Register(this);
 			EnsureInventories();
 			self.eventCtrl.AddEventHandler(GameEvent.Entity_Collect, HandleCollect);
+			self.eventCtrl.AddEventHandler(GameEvent.Entity_RecieveItem, ReceiveItem);
+
 		}
 
 		public override void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
@@ -93,10 +95,12 @@ namespace Arterra.Data.Entity.Behavior {
 			self.Register(this);
 			EnsureInventories();
 			self.eventCtrl.AddEventHandler(GameEvent.Entity_Collect, HandleCollect);
+			self.eventCtrl.AddEventHandler(GameEvent.Entity_RecieveItem, ReceiveItem);
 		}
 
 		public override void Disable(BehaviorEntity.Animal self) {
 			self.eventCtrl.RemoveEventHandler(GameEvent.Entity_Collect, HandleCollect);
+			self.eventCtrl.RemoveEventHandler(GameEvent.Entity_RecieveItem, ReceiveItem);
 			this.self = null;
 		}
 
@@ -107,6 +111,17 @@ namespace Arterra.Data.Entity.Behavior {
 			SelectedIndex = math.clamp(SelectedIndex, 0, math.max(settings.PrimarySlotCount - 1, 0));
 		}
 
+        private void ReceiveItem(object source, object target, object context) {
+            if (self == null || context is not IItem item) return;
+            if (PrimaryI.EntryDict.ContainsKey(item.Index)) PrimaryI.AddStackable(item);
+            if (item.AmountRaw == 0) return;
+            SecondaryI.AddStackable(item);
+            if (item.AmountRaw == 0) return;
+            PrimaryI.AddStackable(item);
+            if (item.AmountRaw == 0) return;
+            InventoryController.DropItem(item, self.position);
+        }
+
 		private void HandleCollect(object actor, object target, object ctx) {
 			if (self == null) return;
 			if (!self.Is(out VitalityBehavior vitality)) return;
@@ -114,12 +129,14 @@ namespace Arterra.Data.Entity.Behavior {
 			int itemCount = PrimaryI.EntryDict.Count + SecondaryI.EntryDict.Count;
 			if (itemCount == 0) return;
 
-			Action<IItem> collect; float amount;
-			(collect, amount) = ((Action<IItem>, float))ctx;
+			if (ctx is not float amount || target is not Guid receiverId) return;
+			if (!EntityManager.TryGetEntity(receiverId, out Entity receiver)) return;
 			amount *= RecoverSpeedMultiplier;
 
-			if (PrimaryI.EntryDict.Count > 0) collect(PrimaryI.LootInventory(amount));
-			if (SecondaryI.EntryDict.Count > 0) collect(SecondaryI.LootInventory(amount));
+			if (PrimaryI.EntryDict.Count > 0) receiver.eventCtrl.EnqueueEvent(
+                GameEvent.Entity_RecieveItem, self.info.entityId, receiverId, PrimaryI.LootInventory(amount));
+			if (SecondaryI.EntryDict.Count > 0) receiver.eventCtrl.EnqueueEvent(
+                GameEvent.Entity_RecieveItem, self.info.entityId, receiverId, SecondaryI.LootInventory(amount));
 		}
 	}
 }

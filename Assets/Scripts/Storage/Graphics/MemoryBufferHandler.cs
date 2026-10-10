@@ -266,7 +266,8 @@ namespace Arterra.Configuration.Quality {
 
             public void Release() {
                 initialized = false;
-                GameObject.Destroy(GatherAllocSizes);
+                CoreUtils.Destroy(GatherAllocSizes);
+                GatherAllocSizes = null;
             }
 
             public void TryReleaseIfEmpty(ReleaseHandle handle) {

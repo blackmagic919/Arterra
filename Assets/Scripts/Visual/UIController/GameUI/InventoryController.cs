@@ -97,7 +97,9 @@ namespace Arterra.GamePlay.UI {
             cxt.cur.eventCtrl.AddEventHandler(
                 GameEvent.Entity_Respawn,
                 delegate (object actor, object target, object ctx) {
-                    var args = (ctx as RefTuple<(Entity, Entity)>).Value;
+                    if (actor is not Entity actorEntity) return;
+                    if (target is not Entity targetEntity) return;
+                    var args = (actorEntity, targetEntity);
                     RebindInventories(ref args);
                 }
             );
@@ -114,7 +116,7 @@ namespace Arterra.GamePlay.UI {
         Deactivate();
     }
     public static void Activate() {
-        PlayerHandler.data.eventCtrl.RaiseEvent(GameEvent.Action_OpenInventory, PlayerHandler.data, null);
+        PlayerHandler.data.eventCtrl.RaiseEvent(GameEvent.Action_OpenInventory, PlayerHandler.data.info.entityId, null);
         InputPoller.AddStackPoll(new ActionBind("Frame:Inventory", _ => InputPoller.SetCursorLock(false)), "CursorLock");
         
             InputPoller.AddContextFence("PlayerInventory:AllFrame", "3.0::AllWindow", ActionBind.Exclusion.None);

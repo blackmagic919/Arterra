@@ -117,10 +117,12 @@ namespace Arterra.Data.Entity.Behavior {
             if (!settings.TriggerEffects.TryGetValue(trigger, out LinkedList<EffectorSettings.Effect> effects))
                 return;
             
-            if (source is not BehaviorEntity.Animal src)
-                src = null;
-            if (target is not BehaviorEntity.Animal tgt)
-                tgt = null;
+            BehaviorEntity.Animal src = null;
+            BehaviorEntity.Animal tgt = null;
+            if (source is Guid sourceId && EntityManager.TryGetEntity(sourceId, out Entity sourceEntity))
+                src = sourceEntity as BehaviorEntity.Animal;
+            if (target is Guid targetId && EntityManager.TryGetEntity(targetId, out Entity targetEntity))
+                tgt = targetEntity as BehaviorEntity.Animal;
 
             var node = effects.First;
             while (node != null) {

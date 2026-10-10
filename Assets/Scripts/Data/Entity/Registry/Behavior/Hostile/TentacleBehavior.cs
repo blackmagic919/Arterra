@@ -47,7 +47,7 @@ namespace Arterra.Data.Entity.Behavior
 		private AnimatedBehavior animated;
 		private StateMachineManagerBehavior manager;
 		[JsonProperty] private Tentacle[] tentacles;
-		private IAttackable selfAtk;
+		private IVitality selfAtk;
 
 		public override void AddBehaviorDependencies(Dictionary<Behaviors, int> heirarchy) {
 			heirarchy.TryAdd(Behaviors.Vitality, heirarchy.Count);
@@ -149,7 +149,7 @@ namespace Arterra.Data.Entity.Behavior
             }
         }
 
-		private class Tentacle : LeadHeadBehavior.Appendage, IAttackable {
+		private class Tentacle : LeadHeadBehavior.Appendage {
 			private const string TentacleGravityStateName = "TentacleBehavior::Tentacle";
 
 			[JsonIgnore]
@@ -157,7 +157,6 @@ namespace Arterra.Data.Entity.Behavior
             private Transform AnimatedTentacle;
             public TentacleState State;
             private Guid AttackTarget;
-			private IAttackable selfAtk;
 			private TentacleBehavior tb;
             public enum TentacleState {
                 Animated,
@@ -170,18 +169,6 @@ namespace Arterra.Data.Entity.Behavior
 			[JsonConstructor]
 			public Tentacle() {}
 
-			public bool IsDead => selfAtk.IsDead;
-            public void Interact(Entity caller, IItem item = null) => selfAtk.Interact(caller, item);
-            public void Collect(Entity caller, Action<IItem> collect, float collectRate) => selfAtk.Collect(caller, collect, collectRate);
-            public bool TakeDamage(float damage, float3 knockback, Entity attacker = null) {
-                if (selfAtk.TakeDamage(damage, float3.zero, attacker)) {
-                    velocity += knockback;
-					if (State != TentacleState.Animated) 
-						State = TentacleState.BlendAnimate;
-                    return true;
-                } return false;
-            }
-            
 
 			public override void Initialize(BehaviorEntity.Animal self, LeadHeadBehavior.AppendageSettings settings, Transform root) {
 				this.settings = settings as TentacleSettings.TentacleConfig;
@@ -198,7 +185,6 @@ namespace Arterra.Data.Entity.Behavior
                 constraint.weight = 0;
 				active = true;
 
-				if(!self.Is(out selfAtk)) throw new Exception("Entity: Tentacle expected entity to be IAttackable"); 
 				if(!self.Is(out tb)) throw new Exception("Entity: Tentacle expected entity to be TentacleBehavior"); 
 			}
 
@@ -214,7 +200,6 @@ namespace Arterra.Data.Entity.Behavior
                 constraint.weight = 0;
 				active = true;
 
-				if(!self.Is(out selfAtk)) throw new Exception("Entity: Tentacle expected entity to be IAttackable"); 
 				if(!self.Is(out tb)) throw new Exception("Entity: Tentacle expected entity to be TentacleBehavior"); 
 			}
 

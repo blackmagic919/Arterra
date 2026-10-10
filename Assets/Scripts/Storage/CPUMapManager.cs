@@ -14,6 +14,7 @@ using System.Collections.Concurrent;
 using Arterra.Configuration;
 using Arterra.Engine.Terrain;
 using Arterra.Utils;
+using Arterra.Data.Entity;
 
 namespace Arterra.Core.Storage {
     /// <summary>A static centralized location for managing and storing all CPU-side map information,

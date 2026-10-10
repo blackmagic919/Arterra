@@ -30,10 +30,13 @@ public class DefendFriendBehavior : SpeciesBehavior {
     private Modifier mod;
     private RelationsBehavior relations;
     private VitalityBehavior vit;
-    public void OnAttacked(object src, object attacker, object cxt) {
-        if (attacker == null) return;
-        if (attacker is not Entity assailant) return;
-        if (src is not Entity self) return;
+    public void OnAttacked(object srcId, object atkrId, object cxt) {
+        if (atkrId is not Guid attackerId) return;
+        if (srcId is not Guid sourceId) return;
+        if (!EntityManager.TryGetEntity(attackerId, out Entity assailant))
+            return;
+        if (!EntityManager.TryGetEntity(attackerId, out Entity self))
+            return;
         if (vit != null && vit.IsDead) return;
         
         if (relations.GetAffection(assailant.info.rtEntityId) > relations.settings.SuppressInstinctAffection) 

@@ -40,7 +40,7 @@ public class BoatEntity : Arterra.Data.Entity.Authoring {
 
     //NOTE: Do not Release Resources Here, Mark as Released and let Controller handle it
     //**If you release here the controller might still be accessing it
-    public class Boat : Entity, IRidable, IAttackable {
+    public class Boat : Entity, IRidable, IVitality {
         private const string BaseGravityStateName = "BoatEntity::Base";
         private const string LiquidGravityStateName = "BoatEntity::Liquid";
 
@@ -60,35 +60,30 @@ public class BoatEntity : Arterra.Data.Entity.Authoring {
         [JsonIgnore]
         public bool IsDead => vitality.IsDead;
 
-        public void Dismount() {
-            if (RiderTarget == Guid.Empty) return;
-            if (!EntityManager.TryGetEntity(RiderTarget, out Entity target) ||
-                !target.Is(out IRider rider))
-                return;
-
-            EntityManager.AddHandlerEvent(() => rider.OnDismounted(this));
+        private void Dismounted(object source, object target, object context) {
+            if (target is not Guid riderId || riderId != RiderTarget) return;
             IgnoredEntities = null;
             RiderTarget = Guid.Empty;
         }
 
-        public void Interact(Entity caller, Arterra.Data.Item.IItem item) {
-            if (caller == null) return;
-            if (!caller.Is(out IRider rider)) return;
+        private void Interact(object source, object target, object context) {
+            if (target is not Guid callerId) return;
+            if (!EntityManager.TryGetEntity(callerId, out Entity caller)) return;
             if (RiderTarget != Guid.Empty) return; //Already has a rider
-            RiderTarget = caller.info.rtEntityId;
+            RiderTarget = caller.info.entityId;
             IgnoredEntities = new HashSet<Guid>{ RiderTarget };
-            EntityManager.AddHandlerEvent(() => rider.OnMounted(this));
-
+            caller.eventCtrl.EnqueueEvent(GameEvent.Action_Mount, caller.info.entityId, info.entityId);
         }
-        public void Collect(Entity caller, Action<IItem> collect, float amount) {
-            eventCtrl.RaiseEvent(GameEvent.Entity_Collect, this, caller, (collect, amount));
+        private void Collect(object receiver, object source, object context) {
+            if (context is not float amount) return;
+            eventCtrl.RaiseEvent(GameEvent.Entity_Collect, info.entityId, receiver, amount);
         }
 
-        public bool TakeDamage(float damage, float3 knockback, Entity attacker = null) {
-            if (!vitality.Damage(damage)) return false;
+        private void TakeDamage(object source, object attacker, object context) {
+            if (context is not (float damage, float3 knockback)) return;
+            if (!vitality.Damage(damage)) return;
             Indicators.DisplayDamageParticle(position, knockback);
             velocity += knockback;
-            return true;
         }
 
         // IRidable implementation
@@ -114,17 +109,27 @@ public class BoatEntity : Arterra.Data.Entity.Authoring {
             }
         }
 
+        private void RegisterEvents() {
+            eventCtrl.Register(this);
+            eventCtrl.AddEventHandler(GameEvent.Entity_Interact, Interact);
+            eventCtrl.AddEventHandler(GameEvent.Apply_Collect, Collect);
+            eventCtrl.AddEventHandler(GameEvent.Apply_Damage, TakeDamage);
+            eventCtrl.AddEventHandler(GameEvent.Action_Dismounted, Dismounted);
+        }
+
         public Boat() { }
         public override void Initialize(EntitySetting setting, GameObject Controller, float3 GCoord) {
             settings = (BoatSetting)setting;
             vitality = new MinimalVitality(settings.durability);
             tCollider = new TerrainCollider(this.settings.collider, GCoord);
             controller = new BoatController(Controller, this);
+            RegisterEvents();
         }
 
         public override void Deserialize(EntitySetting setting, GameObject Controller, out int3 GCoord) {
             settings = (BoatSetting)setting;
             controller = new BoatController(Controller, this);
+            RegisterEvents();
             if (vitality == null) vitality = new MinimalVitality(settings.durability);
             else vitality.Deserialize(settings.durability);
 
@@ -133,9 +138,8 @@ public class BoatEntity : Arterra.Data.Entity.Authoring {
 
             if (RiderTarget == Guid.Empty) return;
             IgnoredEntities = new HashSet<Guid>{RiderTarget};
-            if (EntityManager.TryGetEntity(RiderTarget, out Entity entity)
-                && entity.Is(out IRider rider))
-                EntityManager.AddHandlerEvent(() => rider.OnMounted(this));
+            if (EntityManager.TryGetEntity(RiderTarget, out Entity entity))
+                entity.eventCtrl.EnqueueEvent(GameEvent.Action_Mount, entity.info.entityId, info.entityId);
         }
 
         public override void UpdateJobSync() => controller.Update();
@@ -147,12 +151,12 @@ public class BoatEntity : Arterra.Data.Entity.Authoring {
             vitality.Update(this);
             bool inLiquid = false;
             TerrainInteractor.DetectMapInteraction(position,
-                OnInSolid: (dens) => eventCtrl.RaiseEvent(Arterra.Core.Events.GameEvent.Entity_InSolid, this, null, dens),
+                OnInSolid: (dens) => eventCtrl.RaiseEvent(GameEvent.Entity_InSolid, info.entityId, null, dens),
                 OnInLiquid: (dens) => {
                     inLiquid = true;
-                    eventCtrl.RaiseEvent(Arterra.Core.Events.GameEvent.Entity_InLiquid, this, null, dens);
+                    eventCtrl.RaiseEvent(GameEvent.Entity_InLiquid, info.entityId, null, dens);
                     velocity += EntityJob.cxt.deltaTime * -EntityJob.cxt.gravity;
-                }, OnInGas: (dens) => eventCtrl.RaiseEvent(Arterra.Core.Events.GameEvent.Entity_InGas, this, null, dens));
+                }, OnInGas: (dens) => eventCtrl.RaiseEvent(GameEvent.Entity_InGas, info.entityId, null, dens));
 
             if (inLiquid) tCollider.SetGravityState(LiquidGravityStateName, TerrainCollider.GravityPriority.Environment, false);
             else tCollider.RemoveGravityState(LiquidGravityStateName);
@@ -182,6 +186,7 @@ public class BoatEntity : Arterra.Data.Entity.Authoring {
         }
 
         public override void Disable() {
+            eventCtrl.Dispose();
             controller.Dispose();
         }
 

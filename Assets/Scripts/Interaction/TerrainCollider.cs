@@ -427,8 +427,7 @@ namespace Arterra.GamePlay.Interaction {
 
             transform.position += displacement;
             float3 nVelocity = CancelVel(transform.velocity, displacement);
-            bool useGravityNow = UseGravity;
-            self?.eventCtrl.RaiseEvent(Core.Events.GameEvent.Entity_HitGround, self, null, (useGravityNow, nVelocity.y - transform.velocity.y));
+            self?.eventCtrl.RaiseEvent(GameEvent.Entity_HitGround, self.info.entityId, null, (UseGravity, nVelocity.y - transform.velocity.y));
             transform.velocity = nVelocity;
             return true;
         }
@@ -576,7 +575,7 @@ namespace Arterra.GamePlay.Interaction {
             if (math.all(deltVelocity == 0)) return;
 
             RefTuple<float3> cxt = new RefTuple<float3>(deltVelocity);
-            self.eventCtrl.RaiseEvent(moveType, self, null, cxt);
+            self.eventCtrl.RaiseEvent(moveType, self.info.entityId, null, cxt);
             deltVelocity = cxt; this.transform.velocity += deltVelocity;
         }
 

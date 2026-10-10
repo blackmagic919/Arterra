@@ -21,10 +21,12 @@ using Arterra.Utils;
 using Arterra.Data.Structure;
 using Arterra.Core;
 using static Arterra.Core.Storage.SharedResourceManager;
+using Arterra.Core.Network;
 
 public static class EntityManager
 {
     public static HashSet<Entity> EntityReg;
+    public static Dictionary<Guid, int3> EntitySubCCoord; //Trakcs the last chunk coordinate the chunk pushed to listeners
     public static Dictionary<Guid, Entity> EntityIndex; //tracks location in handler of entityGUID
     public static STree ESTree; //BVH of entities updated synchronously
     public static ConcurrentQueue<Action> HandlerEvents; //Buffered updates to modify entities(since it can't happen while job is executing)
@@ -41,19 +43,6 @@ public static class EntityManager
             return true;
         }
         return false;
-    }
-
-    public static void FlushUpdateCycle() {
-        while(HandlerEvents.TryDequeue(out Action action)){
-            action.Invoke();
-        } HandlerEvents.Clear();
-
-        if (EntityIndex.Count == 0) { CurUpdateEntities = Array.Empty<Entity>(); return; }
-        CurUpdateEntities = EntityReg.ToArray();
-        foreach (Entity entity in CurUpdateEntities) {
-            ESTree.AssertEntityLocation(entity);
-            entity.UpdateJobSync();
-        }
     }
 
     public static void InitializeChunkEntity(GenPoint genInfo, int3 CCoord, byte cxt){
@@ -183,6 +172,7 @@ public static class EntityManager
         ESTree = new STree(MAX_ENTITY_COUNT * 2 + 1);
         EntityReg = new HashSet<Entity>();
         EntityIndex = new Dictionary<Guid, Entity>();
+        EntitySubCCoord = new Dictionary<Guid, int3>();
         HandlerEvents = new ConcurrentQueue<Action>();
         Executor = new EntityJob();
         ArterraRuntime.MainFixedUpdateTasks.Enqueue(Executor);
@@ -262,6 +252,51 @@ public static class EntityManager
         foreach (Authoring entity in EntityDictionary) entity.Setting.Unset();
     }
 
+    public static void FlushUpdateCycle() {
+        while(HandlerEvents.TryDequeue(out Action action)){
+            action.Invoke();
+        } HandlerEvents.Clear();
+
+        if (EntityIndex.Count == 0) { CurUpdateEntities = Array.Empty<Entity>(); return; }
+        CurUpdateEntities = EntityReg.ToArray();
+        foreach (Entity entity in CurUpdateEntities) {
+            ESTree.AssertEntityLocation(entity);
+            UpdateSubscribedListeners(entity);
+            entity.UpdateJobSync();
+        }
+    }
+
+    private static void UpdateSubscribedListeners(Entity entity) {
+        //No listeners if not acting server
+        if (!NetworkManager.IsActingServer) return; 
+        bool hasPrev; Guid entityId = entity.info.rtEntityId;
+        if (!EntitySubCCoord.TryGetValue(entityId, out int3 pCCoord))
+            hasPrev = false;
+        else hasPrev = true;
+
+        int3 CCoord = CPUMapManager.GSToCS((int3)entity.position);
+        if (hasPrev && math.all(pCCoord == CCoord)) return;
+        EntitySubCCoord[entityId] = CCoord;
+
+        HashSet<ChunkGenerationDriver> oldDrivers;
+        HashSet<ChunkGenerationDriver> newDrivers;
+        if (hasPrev && CPUMapManager.TryGetChunkInfo(pCCoord, out CPUMapManager.ChunkMapInfo info))
+            oldDrivers = info.Generation.Subscribers.Select(s => s.Driver).ToHashSet();
+        else oldDrivers = new HashSet<ChunkGenerationDriver>();
+        if (CPUMapManager.TryGetChunkInfo(CCoord, out info)) 
+            newDrivers = info.Generation?.GetDriverSet();
+        else newDrivers = new HashSet<ChunkGenerationDriver>();
+
+        IEnumerable<ChunkGenerationDriver> enteringDrivers = newDrivers.Except(oldDrivers);
+        IEnumerable<ChunkGenerationDriver> leavingDrivers = oldDrivers.Except(newDrivers);
+        foreach(ChunkGenerationDriver driver in enteringDrivers) {
+            driver.Source.EnterEntity(entity);
+        } foreach(ChunkGenerationDriver driver in leavingDrivers) {
+            driver.Source.LeaveEntity(entityId);
+        }
+
+    }
+
     //More like a BVH, or a dynamic R-Tree
     public struct STree{
         private Dictionary<Guid, uint> SpatialIndex;
@@ -276,8 +311,8 @@ public static class EntityManager
 
         public readonly ref TreeNode this[Guid entityId]{
             get{
-                if(SpatialIndex.ContainsKey(entityId))
-                    return ref tree[SpatialIndex[entityId]];
+                if(SpatialIndex.TryGetValue(entityId, out uint index))
+                    return ref tree[index];
                 throw new KeyNotFoundException($"Entity with ID {entityId} not found.");
             }
         }
@@ -309,9 +344,10 @@ public static class EntityManager
         //Every unique bound must have a unique ID, but they can be associated to the same
         //Entity under EntityIndex
         public void AssertEntityLocation(Guid entityId, Bounds bounds){
-            if(!this.Contains(entityId)) return;
-            if(Contains(this[this[entityId].Parent].bounds, bounds)){
-                this[entityId].bounds = bounds;
+            if(!SpatialIndex.TryGetValue(entityId, out uint index)) return;
+            ref TreeNode node = ref tree[index];
+            if(Contains(tree[node.Parent].bounds, bounds)){
+                node.bounds = bounds;
                 return;
             }
             this.Delete(entityId);
@@ -368,8 +404,8 @@ public static class EntityManager
         public void Delete(Guid entityId){
             if(tree == null) return;
             if(length <= 1) return;
-            if(!SpatialIndex.ContainsKey(entityId)) return;
-            int index = (int)SpatialIndex[entityId];
+            if(!SpatialIndex.TryGetValue(entityId, out uint spatialIndex)) return;
+            int index = (int)spatialIndex;
             SpatialIndex.Remove(entityId);
 
             if(index > length - 1 || index == 0) return;

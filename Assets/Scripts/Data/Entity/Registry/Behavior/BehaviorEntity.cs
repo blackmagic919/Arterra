@@ -9,7 +9,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Arterra.Core.Storage;
 using UnityEngine.Profiling;
-using System.Runtime.CompilerServices;
+using Arterra.Core.Events;
 
 namespace Arterra.Data.Entity.Behavior {
     public interface IBehaviorSetting : ICloneable {
@@ -462,6 +462,7 @@ namespace Arterra.Data.Entity.Behavior {
 
             public override void Initialize(EntitySetting setting, GameObject Controller, float3 GCoord) {
                 settings = (AnimalSetting)setting;
+                eventCtrl.Register(this);
                 this.random = new Unity.Mathematics.Random((uint)GetHashCode());
                 this.controller = new AnimalController(Controller, this);
                 
@@ -471,18 +472,21 @@ namespace Arterra.Data.Entity.Behavior {
                 foreach(Behaviors name in settings.BehaviorList.value) {
                     if (!BehaviorTemplates.TryGetValue(name, out var getBehavior))
                         continue;
-                    _addBehavior(getBehavior.Invoke());
+                    AddBehavior(getBehavior.Invoke());
                 }
                 foreach(Behavior behavior in Behaviors) {
                     behavior.Initialize(this, settings, GCoord);
                 }
                 //Clear constructor
                 this.Constructor = null;
+                this.eventCtrl.AddContextlessEventHandler(GameEvent.Entity_AddBehavior, AddBehaviorEvent);
+                this.eventCtrl.AddContextlessEventHandler(GameEvent.Entity_RemoveBehavior, RemoveBehaviorEvent);
                 controller.Initialize(transform);
             }
 
             public override void Deserialize(EntitySetting setting, GameObject Controller, out int3 GCoord) {
                 settings = (AnimalSetting)setting;
+                eventCtrl.Register(this);
                 DynamicTypes = new Dictionary<Type, object>();
                 BehaviorIndex = new Dictionary<Guid, Behavior>();
                 this.controller = new AnimalController(Controller, this);
@@ -497,7 +501,9 @@ namespace Arterra.Data.Entity.Behavior {
 
                 foreach(Behavior behavior in Behaviors) 
                     behavior.Deserialize(this, settings, ref GCoord);
-
+                
+                this.eventCtrl.AddContextlessEventHandler(GameEvent.Entity_AddBehavior, AddBehaviorEvent);
+                this.eventCtrl.AddContextlessEventHandler(GameEvent.Entity_RemoveBehavior, RemoveBehaviorEvent);
                 controller.Initialize(transform);
             }
 
@@ -543,39 +549,49 @@ namespace Arterra.Data.Entity.Behavior {
             public override void Disable() {
                 foreach(Behavior behavior in Behaviors) {
                     behavior.Disable(this);
-                } controller.Dispose();
+                } 
+                eventCtrl.Dispose();
+                controller.Dispose();
             }
             
             public bool TryAddBehavior(TempBehavior behavior) {
                 if (behavior == null) return false;
                 behavior.Id = Guid.NewGuid();
-
-                EntityManager.AddHandlerEvent(() => {
-                    if (!behavior.CanApply(this)) return; //race condition when multiple behaviors get added in same update cycle
-                    eventCtrl.RaiseEvent(Core.Events.GameEvent.Entity_AddBehavior, this, behavior);
-                    _addBehavior(behavior, false, false); //doesn't register type as could have multiple temp effects
-                    if (!active) return;
-                    behavior.Initialize(this, settings, position);
-                }); 
-
+                eventCtrl.EnqueueEvent(GameEvent.Entity_AddBehavior, 
+                    info.entityId, behavior);
                 return true;
             }
 
             public void RemoveBehavior(Guid behaviorId) {
-                EntityManager.AddHandlerEvent(() => {
-                    if (!BehaviorIndex.TryGetValue(behaviorId, out Behavior behavior))
-                        return;
-                    int previousCount = Behaviors.Count;
-                    Behaviors = Behaviors.Where(b => b.Id != behaviorId).ToList();
-                    if (Behaviors.Count == previousCount) return;
-                    BehaviorIndex.Remove(behaviorId);
-                    if (!active) return;
-                    eventCtrl.RaiseEvent(Core.Events.GameEvent.Entity_RemoveBehavior, this, behavior);
-                    behavior.Disable(this);
-                });
+                eventCtrl.EnqueueEvent(GameEvent.Entity_RemoveBehavior, 
+                    info.entityId, behaviorId);
             }
 
-            private bool _addBehavior(Behavior behavior, bool register = true, bool createId = true) {
+            public bool TryGetBehavior(Guid behaviorId, out Behavior behavior) => 
+                BehaviorIndex.TryGetValue(behaviorId, out behavior);
+
+            private void AddBehaviorEvent(object caller, object target) {
+                if (target is not TempBehavior behavior) return;
+                if (!behavior.CanApply(this)) return; //race condition when multiple behaviors get added in same update cycle
+
+                AddBehavior(behavior, false, false); //doesn't register type as could have multiple temp effects
+                if (!active) return;
+                behavior.Initialize(this, settings, position);
+            }
+
+            private void RemoveBehaviorEvent(object caller, object target) {
+                if (target is not Guid behaviorId) return;
+                if (!BehaviorIndex.TryGetValue(behaviorId, out Behavior behavior))
+                    return;
+                int previousCount = Behaviors.Count;
+                Behaviors = Behaviors.Where(b => b.Id != behaviorId).ToList();
+                if (Behaviors.Count == previousCount) return;
+                BehaviorIndex.Remove(behaviorId);
+                if (!active) return;
+                behavior.Disable(this);
+            }
+
+            private bool AddBehavior(Behavior behavior, bool register = true, bool createId = true) {
                 if (behavior == null) return false;
                 if (TryGetConstructor(behavior.GetType(), out object savedBehav))
                     behavior = savedBehav == null ? behavior :  (Behavior) savedBehav;

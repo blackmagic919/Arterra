@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Arterra.Configuration;
 using Arterra.Configuration.Gameplay;
@@ -62,7 +63,7 @@ public static class Indicators {
 #endif
         }
 
-        SelectionIndicator = Object.Instantiate(Resources.Load<GameObject>("Prefabs/GameUI/Effects/Selection"));
+        SelectionIndicator = UnityEngine.Object.Instantiate(Resources.Load<GameObject>("Prefabs/GameUI/Effects/Selection"));
         DamageIndicator = Resources.Load<GameObject>("Prefabs/GameUI/Effects/DamageEffect");
         BarIndicator = Resources.Load<GameObject>("Prefabs/GameUI/Stats/EntityStats");
         SelectionIndicator.SetActive(false);
@@ -164,7 +165,7 @@ public class InidcatorsBehavior : SpeciesBehavior {
     private GameObject controller;
     private BehaviorEntity.Animal self;
     private bool InWater;
-    private void OnEnterWater(object source, object target, object density) {
+    private void OnEnterWater(object srcId, object _, object density) {
         if (InWater) return;
         InWater = true;
         float weight = vit != null ? vit.weight : 1;
@@ -172,23 +173,24 @@ public class InidcatorsBehavior : SpeciesBehavior {
     }
 
 
-    private void OnEnterGas(object source, object target, object density) {
+    private void OnEnterGas(object srcId, object _, object density) {
         if (!InWater) return;
         InWater = false;
         float weight = vit != null ? vit.weight : 1;
         AddHandlerEvent(() => Indicators.PlayWaterSplash(self, weight));
     }
 
-    private void OnDamaged(object self, object attacker, object cxt) {
+    private void OnDamaged(object srcId, object atkrId, object cxt) {
         if (cxt is not RefTuple<(float damage, float3 kb)> d1) return;
         float thresh = vit != null ? vit.stats.MaxHealth * 0.01f : 0.1f;
         if (d1.Value.damage < thresh) return;
-        if (self is not Entity selfE) return;
+        if (srcId is not Guid sourceId) return;
+        if (!TryGetEntity(sourceId, out Entity selfE)) return;
         
-        selfE.eventCtrl.RaiseEvent(GameEvent.Entity_DamageIndication, self, attacker, cxt);
+        selfE.eventCtrl.RaiseEvent(GameEvent.Entity_DamageIndication, srcId, atkrId, cxt);
         if (cxt is not RefTuple<(float damage, float3 kb)> data) return;
 
-        EntityManager.AddHandlerEvent(() => {
+        AddHandlerEvent(() => {
             Indicators.DisplayDamageParticle(selfE.position, data.Value.kb); 
             Indicators.PlayDamageTick(selfE, data.Value.damage/vit.stats.MaxHealth); 
         });
@@ -238,7 +240,9 @@ public class InidcatorsBehavior : SpeciesBehavior {
         }
     }
 
-    private void OnRemoveBehavior(object source, object behavior) {
+    private void OnRemoveBehavior(object source, object bId) {
+        if (bId is not Guid behaviorId) return;
+        if (!self.TryGetBehavior(behaviorId, out Behavior behavior)) return;
         if (behavior is not IEffect behaviorEffect) return;
         if (Effects == null) return;
 

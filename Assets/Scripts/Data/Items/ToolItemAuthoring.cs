@@ -68,7 +68,7 @@ namespace Arterra.Data.Item
         public virtual void OnEnter(ItemContext cxt) {
             if (cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
             if (cxt.TryGetHolder(out IEventControlled effect) && settings.Model.Enabled) 
-                effect.RaiseEvent(GameEvent.Item_HoldTool, effect, this, ref settings.Model.Value);
+                effect.RaiseEvent(GameEvent.Item_HoldTool, effect is Entity.Entity ? ((Entity.Entity)effect).info.entityId : effect, this, ref settings.Model.Value);
             
                 InputPoller.AddBinding(new ActionBind("Remove",
                     _ => PlayerRemoveTerrain(cxt)),
@@ -78,7 +78,7 @@ namespace Arterra.Data.Item
         public virtual void OnLeave(ItemContext cxt) {
             if (cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
             if (cxt.TryGetHolder(out IEventControlled effect) && settings.Model.Enabled) 
-                effect.RaiseEvent(GameEvent.Item_UnholdTool, effect, this, ref settings.Model.Value);
+                effect.RaiseEvent(GameEvent.Item_UnholdTool, effect is Entity.Entity ? ((Entity.Entity)effect).info.entityId : effect, this, ref settings.Model.Value);
             InputPoller.RemoveBinding("ITEM::Tool:RM", "5.0::GamePlay");
         }
 
@@ -134,7 +134,7 @@ namespace Arterra.Data.Item
             UpdateDisplay();
 
             if (settings.OnUseAnim.Enabled && player is IEventControlled effectable)
-                effectable.RaiseEvent(GameEvent.Item_UseTool, player, this, ref settings.OnUseAnim.Value);
+                effectable.RaiseEvent(GameEvent.Item_UseTool, player.info.entityId, this, ref settings.OnUseAnim.Value);
 
             if (durability > 0) return;
             //Removes itself

@@ -63,14 +63,14 @@ namespace Arterra.Data.Entity.Behavior {
             ), RunSpeed, movement.rotSpeed, self.DeltaTime, GameEvent.Action_Run);
         }
 
-        private void RespondToAttack(object caller, object attacker) {
-            if (attacker == null) return;
-            if (attacker is not Entity entity) return;
-            if (entity.info.rtEntityId == self.info.rtEntityId) return;
-            if (relations != null && relations.GetAffection(entity.info.rtEntityId)
+        private void RespondToAttack(object clrId, object atkrId) {
+            if (atkrId is not Guid attackerId) return;
+            if (!EntityManager.TryGetEntity(attackerId, out Entity attacker)) return;
+            if (attacker.info.rtEntityId == self.info.rtEntityId) return;
+            if (relations != null && relations.GetAffection(attacker.info.rtEntityId)
                 > relations.settings.SuppressInstinctAffection)
                 return;
-            int entityType = (int)entity.info.entityType;
+            int entityType = (int)attacker.info.entityType;
             if (predator != null && predator.Recognize(entityType))
                 manager.Transition(settings.TaskName);
             else if (prey != null && prey.Recognize(entityType))
@@ -78,7 +78,7 @@ namespace Arterra.Data.Entity.Behavior {
             else if (!flee.FightAggressor)
                 manager.Transition(settings.TaskName);
             if (manager.TaskIndex == settings.TaskName)
-                manager.TaskTarget = entity.info.rtEntityId;
+                manager.TaskTarget = attacker.info.rtEntityId;
         }
 
         public override void AddBehaviorDependencies(Dictionary<Behaviors, int> heirarchy) {

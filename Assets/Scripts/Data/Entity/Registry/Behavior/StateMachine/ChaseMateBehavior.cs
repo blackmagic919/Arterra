@@ -98,8 +98,8 @@ namespace Arterra.Data.Entity.Behavior {
             ), WalkSpeed(settings.Task1Name), movement.rotSpeed, self.DeltaTime, GameEvent.Action_Walk);
             float mateDist = ColliderUpdateBehavior.GetColliderDist(self, mate);
             if (mateDist < manager.settings.ContactDistance) {
-                EntityManager.AddHandlerEvent(() => mate.As<IMateable>().MateWith(self));
-                reproduction.MateWith(mate);
+                mate.eventCtrl.RaiseEvent(GameEvent.Apply_EntityMate, mate.info.entityId, self.info.entityId);
+                self.eventCtrl.RaiseEvent(GameEvent.Apply_EntityMate, self.info.entityId, mate.info.entityId);
                 return;
             }
             if (path.pathFinder.hasPath) return;
@@ -123,11 +123,11 @@ namespace Arterra.Data.Entity.Behavior {
             return FindMate();
         }
 
-        private void TransitionToMate(object source, object target, object _) {
+        private void TransitionToMate(object srcId, object tgtId, object _) {
             manager.TaskDuration = settings.PregnacyLength;
             manager.Transition(settings.Task2Name);
         }
-        private void TestMate(object source, object target, object allow) {
+        private void TestMate(object srcId, object tgtId, object allow) {
             ((RefTuple<bool>)allow).Value &= BeginMate() & (manager.TaskIndex < settings.Task2Name);
         }
 

@@ -46,7 +46,7 @@ namespace Arterra.Data.Entity.Behavior {
         public override void Update(BehaviorEntity.Animal self) {
             if (self.context != BehaviorEntity.UpdateContext.Job) return;
             if (!CheckTerrainCollision(self)) return;
-            self.eventCtrl.RaiseEvent(Core.Events.GameEvent.Entity_ProjectileHit, self, null);
+            self.eventCtrl.RaiseEvent(Core.Events.GameEvent.Entity_ProjectileHit, self.info.entityId, null);
         }
 
         private bool CheckTerrainCollision(BehaviorEntity.Animal self) {

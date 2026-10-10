@@ -100,7 +100,7 @@ public class ConsumbaleItem : IItem{
         float delta = AmountRaw - math.max(AmountRaw - ConsumptionRate, 0);
         if (delta == 0) return 0;
 
-        player.eventCtrl.RaiseEvent(Core.Events.GameEvent.Item_ConsumeFood, player, this, delta);
+        player.eventCtrl.RaiseEvent(Core.Events.GameEvent.Item_ConsumeFood, player.info.entityId, this, delta);
         float nutrition = (float)delta / UnitSize * NutritionValue;
         hung.Feed(ref nutrition);
         int deltaInt = CustomUtility.GetStaggeredDelta(nutrition * UnitSize / NutritionValue);

@@ -1,5 +1,6 @@
 using UnityEngine;
-using System.IO;
+using Arterra.Core.Network;
+using Arterra.Core.Network.Authentication;
 using System;
 using Arterra.Core.Events;
 using Arterra.Engine.Terrain;
@@ -12,6 +13,9 @@ using Arterra.Data.Entity.Behavior;
 using Arterra.Utils;
 using Arterra.Data.Entity;
 using Arterra.Core;
+using System.Collections.Generic;
+using System.Collections.Concurrent;
+using Unity.Networking.Transport;
 
 
 
@@ -55,6 +59,15 @@ namespace Arterra.GamePlay{
     /// <remarks> If the player runtime entity were analogous to the 
     /// player's current body, this class would be the player's soul </remarks>///  
     public static class PlayerHandler {
+        public static readonly ConcurrentDictionary<NetworkConnection, BehaviorEntity.Animal> Players = new();
+        public static event Action<Guid> PlayerDisconnected;
+
+        // A default connection denotes this machine's local player.
+        public static Guid GetPlayerId(NetworkConnection peer = default) {
+            var player = peer.IsCreated ? (Players.TryGetValue(peer, out var remote) ? remote : null) : data;
+            return player == null ? Guid.Empty : player.info.entityId;
+        }
+        private static AccountId localAccount;
         /// <summary>The current active runtime player entity.</summary>
         public static BehaviorEntity.Animal data;
         /// <summary> The transform of the Unity gameobject representing the viewer </summary>
@@ -73,10 +86,12 @@ namespace Arterra.GamePlay{
             Camera = Viewer.Find("CameraHandler");
 
             active = false;
-            if (LoadPlayerData(out data) && (!data.Is(out VitalityBehavior vitality) || !vitality.IsDead)) {
-                EntityManager.DeserializeE(data);
-                RebindPlayer(data);
-            } else RespawnPlayer(immediate: true);
+            Players.Clear();
+            localAccount = ClientAuthentication.LocalAccount;
+            if (NetworkManager.IsActingServer) PlayerStorage.Initialize();
+            else PlayerStorage.Release();
+            if (!TryLoadExistingPlayer())
+                CreatePlayer(immediate: true);
 
             SpectatorController.Initialize();
             ArterraRuntime.MainLoopUpdateTasks.Enqueue(new ArterraRuntime.IndirectUpdate(Update));
@@ -100,31 +115,79 @@ namespace Arterra.GamePlay{
         /// <summary>Releases the player handler and all resources tied to handling the player. </summary>
         public static void Release(){
             InputPoller.SetCursorLock(false); //Release Cursor Lock
-            SavePlayerData(new Registerable<BehaviorEntity.Animal>(data));
+            SaveAll();
+            Players.Clear();
+            PlayerStorage.Release();
             InventoryController.Release();
             PanelNavbarManager.Release();
         }
         
 
-        static void SavePlayerData(Registerable<BehaviorEntity.Animal> playerInfo){
-            string path = World.WORLD_SELECTION.First.Value.Path + "/PlayerData.json";
-            using (FileStream fs = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.None)){
-                using StreamWriter writer = new StreamWriter(fs);
-                string data = Newtonsoft.Json.JsonConvert.SerializeObject(playerInfo);
-                writer.Write(data);
-                writer.Flush();
-            };
+        /// <summary>Save registered players and the local player. Invoke on the main thread.</summary>
+        public static void SaveAll() {
+            if (!PlayerStorage.IsInitialized) return;
+            EntityManager.CompleteJobs();
+            PlayerStorage.Capture(localAccount, data);
+            foreach (var pair in Players) {
+                if (PlayerConnection.TryGetAccount(pair.Key, out var account)) 
+                    PlayerStorage.Capture(account, pair.Value);
+            }
+            PlayerStorage.Save();
         }
 
+        /// <summary>Load and register saved data for an authenticated peer; does not initialize or spawn the entity.
+        /// Returns null for a new account. The caller creates its player and calls RegisterPlayer.</summary>
+        public static BehaviorEntity.Animal LoadPlayer(NetworkConnection peer) {
+            var account = RequireAccount(peer);
+            if (Players.TryGetValue(peer, out var current)) return current;
+            var player = PlayerStorage.Load(account);
+            if (player != null) Players.TryAdd(peer, player);
+            return player;
+        }
 
-        static bool LoadPlayerData(out BehaviorEntity.Animal data){
-            data = null;
-            string path = World.WORLD_SELECTION.First.Value.Path + "/PlayerData.json";
-            if(!File.Exists(path)) return false;
+        /// <summary>Associate an existing player with an authenticated connection, including after respawn.</summary>
+        public static void RegisterPlayer(NetworkConnection peer, BehaviorEntity.Animal player) {
+            RequireAccount(peer);
+            if (player == null) throw new System.ArgumentNullException(nameof(player));
+            Players[peer] = player;
+        }
 
-            string rawData = File.ReadAllText(path);
-            Registerable<BehaviorEntity.Animal> payload = Newtonsoft.Json.JsonConvert.DeserializeObject<Registerable<BehaviorEntity.Animal>>(rawData);
-            data = payload.Value;
+        public static void SavePlayer(NetworkConnection peer) {
+            var account = RequireAccount(peer);
+            if (!Players.TryGetValue(peer, out var player)) return;
+            EntityManager.CompleteJobs();
+            PlayerStorage.Capture(account, player);
+            PlayerStorage.Save();
+        }
+
+        private static AccountId RequireAccount(NetworkConnection peer) {
+            if (!PlayerStorage.IsInitialized) throw new InvalidOperationException("Open a local world before accessing its player saves.");
+            if (!PlayerConnection.TryGetAccount(peer, out var account))
+                throw new UnauthorizedAccessException("Authenticate the connection before accessing player data.");
+            return account;
+        }
+
+        // Disconnect only saves and removes the mapping; entity lifetime remains the caller's responsibility.
+        internal static void RemovePeer(NetworkConnection peer, AccountId account) {
+            if (!Players.TryGetValue(peer, out var player)) return;
+            EntityManager.CompleteJobs();
+            try {
+                if (PlayerStorage.IsInitialized) {
+                    PlayerStorage.Capture(account, player);
+                    PlayerStorage.Save();
+                }
+            } finally {
+                Players.TryRemove(peer, out _);
+                PlayerDisconnected?.Invoke(player.info.entityId);
+            }
+        }
+
+        public static bool TryLoadExistingPlayer() {
+            data = PlayerStorage.IsInitialized ? PlayerStorage.Load(localAccount) : null;
+            if (data == null) return false;
+            if (data.Is(out VitalityBehavior vitality) && vitality.IsDead) return false;
+            EntityManager.DeserializeE(data);
+            RebindPlayer(data);
             return true;
         }
 
@@ -133,7 +196,7 @@ namespace Arterra.GamePlay{
         /// at a set respawn location, abandoning the current active instance. </summary>
         /// <param name="cb">The option action to perform once respawned</param>
         /// <param name="immediate"> Whether or not creation happens synchronously with call </param>
-        public static void RespawnPlayer(Action cb = null, bool immediate = false){
+        public static void CreatePlayer(Action cb = null, bool immediate = false){
             float3 SpawnPoint = StartupPlacer.FindClearingAround(float3.zero);
             uint entityIndex = (uint)Config.CURRENT.Generation.Entities.RetrieveIndex("Player");
             BehaviorEntity.Animal nPlayer = Config.CURRENT.Generation.Entities.Reg[(int)entityIndex].Entity as BehaviorEntity.Animal;
@@ -144,9 +207,7 @@ namespace Arterra.GamePlay{
                 if  (data != null && data is BehaviorEntity.Animal oEntity)
                     oEntity.context = BehaviorEntity.UpdateContext.Job;
                 //Answer hooks
-                (Entity, Entity) prms = (data, nPlayer);
-                data?.eventCtrl.RaiseEvent(GameEvent.Entity_Respawn, data, null, 
-                    new RefTuple<(Entity, Entity)>(prms));
+                data?.eventCtrl.RaiseEvent(GameEvent.Entity_Respawn, data, nPlayer, null);
                 data = nPlayer;
                 RebindPlayer(data);
                 cb?.Invoke();

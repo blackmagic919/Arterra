@@ -74,9 +74,9 @@ namespace Arterra.Data.Entity.Behavior {
             return false;
         }
 
-        public void TestAttackAtDistance(object src, object trgt, object cxt) {
-            if (trgt == null || src == null) return;
-            Entity target = trgt as Entity;
+        public void TestAttackAtDistance(object srcId, object tgtId, object cxt) {
+            if (tgtId is not Guid TargetId) return;
+            if (!EntityManager.TryGetEntity(TargetId, out Entity target)) return;
             if (ColliderUpdateBehavior.GetColliderDist(self, target) >= BlindDist) return;
             (cxt as RefTuple<(float dmg, float3 kb)>).Value.dmg = 0; //no damage if not at attack dist
             if (manager.TaskIndex == settings.TestProximityState) manager.Transition(settings.TaskName);

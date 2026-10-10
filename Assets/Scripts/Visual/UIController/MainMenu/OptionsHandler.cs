@@ -137,8 +137,8 @@ namespace Arterra.GamePlay.UI {
         public static void RefreshDisplayMap() => SingleChunkDisplay.RefreshDisplayMap();
 
         private class SingleChunkDisplay {
-            private const uint DisplayMapReferenceId = 2;
-            private static readonly NetworkVariable<uint[]> DisplayMap = new(DisplayMapReferenceId, retainValueOnDisconnect: true);
+            private static readonly Guid DisplayMapReferenceId = new("00000000-0000-0000-0000-000000000002");
+            private static readonly NetworkVariableBase<uint[]> DisplayMap = new(DisplayMapReferenceId, retainValueOnDisconnect: true);
 
             // Chunk storage and the material registry must be initialized for the selected local world.
             public static void RefreshDisplayMap() {

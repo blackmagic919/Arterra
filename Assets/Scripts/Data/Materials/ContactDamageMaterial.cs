@@ -19,15 +19,17 @@ namespace Arterra.Data.Material {
         public override void OnEntityTouchSolid(int3 GCoord, Entity.Entity entity) {
             if (entity == null) return;
             if (state != State.Solid) return;
-            if (!entity.Is(out IAttackable target)) return;
-            EntityManager.AddHandlerEvent(() => target.TakeDamage(ContactDamage, float3.zero, null));
+            if (!entity.Is(out IVitality target)) return;
+            entity.eventCtrl.EnqueueEvent(Arterra.Core.Events.GameEvent.Apply_Damage,
+                entity.info.entityId, null, (ContactDamage, float3.zero));
         }
 
         public override void OnEntityTouchLiquid(int3 GCoord, Entity.Entity entity) {
             if (entity == null) return;
             if (state != State.Liquid) return;
-            if (!entity.Is(out IAttackable target)) return;
-            EntityManager.AddHandlerEvent(() => target.TakeDamage(ContactDamage, float3.zero, null));
+            if (!entity.Is(out IVitality target)) return;
+            entity.eventCtrl.EnqueueEvent(Arterra.Core.Events.GameEvent.Apply_Damage,
+                entity.info.entityId, null, (ContactDamage, float3.zero));
         }
     }
 }

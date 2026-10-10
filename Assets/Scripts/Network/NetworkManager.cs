@@ -7,8 +7,7 @@ using Arterra.Configuration;
 using Arterra.Core.Storage;
 using Arterra.Utils;
 using Newtonsoft.Json;
-using Unity.Services.Authentication;
-using Unity.Services.Core;
+using Arterra.Core.Network.Authentication;
 using Unity.Services.Multiplayer;
 using UnityEngine;
 
@@ -26,7 +25,6 @@ namespace Arterra.Core.Network {
 
         private static readonly SemaphoreSlim lifecycle = new(1, 1);
         private static readonly SemaphoreSlim queries = new(1, 1);
-        private static Task servicesInitialization;
         private static bool joiningClient;
         private static CancellationTokenSource hosting;
         private static string hostedWorldId;
@@ -67,21 +65,9 @@ namespace Arterra.Core.Network {
             catch (Exception exception) { Debug.LogException(exception); }
         }
 
-        private static Task EnsureServicesAsync() {
-            if (servicesInitialization == null || servicesInitialization.IsFaulted
-                || servicesInitialization.IsCanceled || (servicesInitialization.IsCompleted &&
-                    (UnityServices.State != ServicesInitializationState.Initialized || !AuthenticationService.Instance.IsSignedIn)))
-                servicesInitialization = InitializeServicesAsync();
-
-            return servicesInitialization;
-
-            static async Task InitializeServicesAsync() {
-                if (UnityServices.State != ServicesInitializationState.Initialized)
-                    await UnityServices.InitializeAsync();
-
-                if (!AuthenticationService.Instance.IsSignedIn)
-                    await AuthenticationService.Instance.SignInAnonymouslyAsync();
-            }
+        private static async Task EnsureServicesAsync() {
+            await ClientAuthentication.EnsureSignedInAsync();
+            PlayerConnection.Initialize();
         }
 
         /// <summary>Advertise the selected world's metadata once; repeated calls are safe.</summary>
@@ -236,7 +222,7 @@ namespace Arterra.Core.Network {
                     await LeaveSessionAsync();
 
                 try {
-                    if (Session == null) await JoinSessionAsync(sessionId, password);
+                    if (Session == null) await JoinSessionAsync(sessionId, password, token);
                     token.ThrowIfCancellationRequested();
                 } catch {
                     try { await LeaveSessionAsync(); }
@@ -247,7 +233,7 @@ namespace Arterra.Core.Network {
         }
 
         // Called while holding the lifecycle semaphore, after services are initialized.
-        private static async Task JoinSessionAsync(string sessionId, string password) {
+        private static async Task JoinSessionAsync(string sessionId, string password, CancellationToken token) {
             var options = new JoinSessionOptions { Password = password }
                 .WithNetworkHandler(TransportManager.Instance);
 
@@ -255,6 +241,7 @@ namespace Arterra.Core.Network {
             joiningClient = true;
             try {
                 Session = await MultiplayerService.Instance.JoinSessionByIdAsync(sessionId, options);
+                await PlayerConnection.JoinAsync(Session, token);
             } finally { joiningClient = false; }
         }
 

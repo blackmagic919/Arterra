@@ -54,8 +54,8 @@ namespace Arterra.Data.Entity.Behavior {
                 if (!CheckMerge(self, nEntity)) return;
 
                 RefTuple<bool> success = true;
-                self.eventCtrl.RaiseEvent(GameEvent.Entity_MergeAbsorb, self, nEntity, success);
-                self.eventCtrl.RaiseEvent(GameEvent.Entity_MergeAbsorbed, nEntity, self, success);
+                self.eventCtrl.RaiseEvent(GameEvent.Entity_MergeAbsorb, self.info.entityId, nEntity.info.entityId, success);
+                self.eventCtrl.RaiseEvent(GameEvent.Entity_MergeAbsorbed, nEntity.info.entityId, self.info.entityId, success);
                 if (success) EntityManager.ReleaseEntity(nEntity.info.entityId);
             });
         }
@@ -68,7 +68,7 @@ namespace Arterra.Data.Entity.Behavior {
             };
 
             RefTuple<bool> cxt = allow;
-            self.eventCtrl.RaiseEvent(GameEvent.Entity_AttemptMerge, self, target, cxt);
+            self.eventCtrl.RaiseEvent(GameEvent.Entity_AttemptMerge, self.info.entityId, target.info.entityId, cxt);
             if (!cxt) return false;
 
            if (!consent || settings.ForceNoConsent) return true;

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.IO;
 using System.Threading;
@@ -11,10 +12,11 @@ namespace Arterra.Core.Network {
     /// <summary>A complete, reconstructed application event. IDs are independent of packet boundaries.</summary>
     public readonly struct TransportEvent {
         public readonly NetworkConnection Peer;
-        public readonly uint ReferenceId, MessageId, ReplyTo;
+        public readonly Guid ReferenceId;
+        public readonly uint MessageId, ReplyTo;
         public readonly ushort EventId;
         public readonly byte[] Payload;
-        internal TransportEvent(NetworkConnection peer, uint referenceId, ushort eventId,
+        internal TransportEvent(NetworkConnection peer, Guid referenceId, ushort eventId,
             uint messageId, uint replyTo, byte[] payload) {
             Peer = peer; ReferenceId = referenceId; EventId = eventId;
             MessageId = messageId; ReplyTo = replyTo; Payload = payload;
@@ -27,26 +29,28 @@ namespace Arterra.Core.Network {
 
     public sealed partial class TransportManager {
         private const int MessageIdBytes = sizeof(uint);
-        private const int FirstHeaderBytes = MessageIdBytes + sizeof(uint) * 2 + sizeof(ushort) + sizeof(int);
+        private const int ReferenceIdBytes = 16;
+        private const int FirstHeaderBytes = MessageIdBytes + ReferenceIdBytes + sizeof(uint) + sizeof(ushort) + sizeof(int);
         private const int ChunkBytes = 900;
         private const int MaxChunksPerPeerPerUpdate = 8;
         private const int DefaultEventTimeoutSeconds = 60;
         public static readonly TimeSpan DefaultEventTimeout = TimeSpan.FromSeconds(DefaultEventTimeoutSeconds);
-        private readonly Dictionary<uint, ITransportEventListener> listeners = new();
+        private readonly Dictionary<Guid, ITransportEventListener> listeners = new();
         private readonly Dictionary<NetworkConnection, Queue<OutgoingEvent>> outgoing = new();
         private readonly Dictionary<NetworkConnection, Dictionary<uint, IncomingEvent>> incoming = new();
         private readonly Dictionary<(NetworkConnection, uint), EventRequest> requests = new();
         private readonly List<NetworkConnection> peerSnapshot = new();
-        private uint nextMessageId;
+        private ConcurrentQueue<(NetworkConnection peer, OutgoingEvent message, bool broadcast)> pendingEvents = new();
+        private int nextMessageId;
 
         /// <summary>One listener per reference, regardless of the listener's value type.</summary>
-        public void Register(uint referenceId, ITransportEventListener listener) {
+        public void Register(Guid referenceId, ITransportEventListener listener) {
             if (listener == null) throw new ArgumentNullException(nameof(listener));
             if (listeners.ContainsKey(referenceId)) throw new InvalidOperationException($"Reference {referenceId} is already registered.");
             listeners.Add(referenceId, listener);
         }
 
-        public void Unregister(uint referenceId, ITransportEventListener listener) {
+        public void Unregister(Guid referenceId, ITransportEventListener listener) {
             if (!listeners.TryGetValue(referenceId, out var current) || !ReferenceEquals(current, listener)) return;
             listeners.Remove(referenceId);
             foreach (var pair in new List<KeyValuePair<(NetworkConnection, uint), EventRequest>>(requests)) {
@@ -57,26 +61,22 @@ namespace Arterra.Core.Network {
         }
 
         /// <summary>Queue a complete event. Transport owns its copied bytes and all packet-level work.</summary>
-        public uint SendEvent(NetworkConnection peer, uint referenceId, ushort eventId,
+        public uint SendEvent(NetworkConnection peer, Guid referenceId, ushort eventId,
             byte[] payload, uint replyTo = 0) {
             if (payload == null) throw new ArgumentNullException(nameof(payload));
             return QueueEvent(peer, referenceId, eventId, (byte[])payload.Clone(), replyTo).Id;
         }
 
-        public void Broadcast(uint referenceId, ushort eventId, byte[] payload,
+        public void Broadcast(Guid referenceId, ushort eventId, byte[] payload,
             NetworkConnection replyPeer = default, uint replyTo = 0) {
             if (!IsServer) throw new InvalidOperationException("Only the server can broadcast to its peers.");
             if (payload == null) throw new ArgumentNullException(nameof(payload));
             if (eventId == 0) throw new ArgumentOutOfRangeException(nameof(eventId));
-            if (peers.Count == 0) return;
-            // Queue entries have independent send positions but share one immutable payload copy.
-            byte[] owned = (byte[])payload.Clone();
-            foreach (var peer in peers)
-                QueueEvent(peer, referenceId, eventId, owned, peer == replyPeer ? replyTo : 0);
+            QueueEvent(replyPeer, referenceId, eventId, (byte[])payload.Clone(), replyTo, broadcast: true);
         }
 
         /// <summary>Await a correlated reply. Cancellation stops waiting; it does not undo remote execution.</summary>
-        public async Task<TransportEvent> RequestEventAsync(NetworkConnection peer, uint referenceId,
+        public async Task<TransportEvent> RequestEventAsync(NetworkConnection peer, Guid referenceId,
             ushort eventId, byte[] payload, CancellationToken token = default, TimeSpan? timeout = null) {
             token.ThrowIfCancellationRequested();
             var duration = timeout ?? DefaultEventTimeout;
@@ -109,24 +109,48 @@ namespace Arterra.Core.Network {
         }
 
         // Payload ownership has already been transferred at the public API boundary.
-        private OutgoingEvent QueueEvent(NetworkConnection peer, uint referenceId, ushort eventId,
-            byte[] payload, uint replyTo) {
-            if (!IsRunning || !peers.Contains(peer)) throw new InvalidOperationException("Peer is not connected.");
+        private OutgoingEvent QueueEvent(NetworkConnection peer, Guid referenceId, ushort eventId,
+            byte[] payload, uint replyTo, bool broadcast = false) {
+            var pending = Volatile.Read(ref pendingEvents);
+            if (!IsRunning) throw new InvalidOperationException("Peer is not connected.");
             if (eventId == 0) throw new ArgumentOutOfRangeException(nameof(eventId), "Event ID zero is reserved.");
             if (payload == null) throw new ArgumentNullException(nameof(payload));
-            uint id = ++nextMessageId;
-            if (id == 0) id = ++nextMessageId;
-            if (!outgoing.TryGetValue(peer, out var queue)) outgoing.Add(peer, queue = new());
+            uint id;
+            do { id = unchecked((uint)Interlocked.Increment(ref nextMessageId)); } while (id == 0);
             var message = new OutgoingEvent {
                 ReferenceId = referenceId, EventId = eventId, Id = id, ReplyTo = replyTo,
                 Bytes = payload,
                 Deadline = Stopwatch.GetTimestamp() + (long)(DefaultEventTimeout.TotalSeconds * Stopwatch.Frequency)
             };
-            queue.Enqueue(message);
+            pending.Enqueue((peer, message, broadcast));
             return message;
         }
 
+        // Only Tick touches peer lists and the per-peer outgoing queues.
+        private void DrainEvents() {
+            while (pendingEvents.TryDequeue(out var pending)) {
+                var message = pending.message;
+                if (message.Canceled) continue;
+                if (pending.broadcast) {
+                    if (!IsServer) continue;
+                    foreach (var peer in peers) {
+                        if (!outgoing.TryGetValue(peer, out var queue)) outgoing.Add(peer, queue = new());
+                        // Each recipient owns its send position; payload bytes are shared.
+                        queue.Enqueue(new OutgoingEvent {
+                            ReferenceId = message.ReferenceId, EventId = message.EventId, Id = message.Id,
+                            ReplyTo = peer == pending.peer ? message.ReplyTo : 0,
+                            Bytes = message.Bytes, Deadline = message.Deadline
+                        });
+                    }
+                } else if (peers.Contains(pending.peer)) {
+                    if (!outgoing.TryGetValue(pending.peer, out var queue)) outgoing.Add(pending.peer, queue = new());
+                    queue.Enqueue(message);
+                }
+            }
+        }
+
         private void UpdateEvents() {
+            DrainEvents();
             long now = Stopwatch.GetTimestamp();
             peerSnapshot.Clear();
             peerSnapshot.AddRange(peers);
@@ -162,7 +186,9 @@ namespace Arterra.Core.Network {
             if (messages == null || !messages.TryGetValue(messageId, out message)) {
                 // An unknown ID starts a message; only this packet carries its metadata.
                 if (reader.Length < FirstHeaderBytes) throw new InvalidDataException("Incomplete message header.");
-                uint referenceId = reader.ReadUInt();
+                Span<byte> referenceBytes = stackalloc byte[ReferenceIdBytes];
+                for (int i = 0; i < ReferenceIdBytes; i++) referenceBytes[i] = reader.ReadByte();
+                Guid referenceId = new Guid(referenceBytes);
                 ushort eventId = reader.ReadUShort();
                 uint replyTo = reader.ReadUInt();
                 int total = reader.ReadInt();
@@ -211,6 +237,8 @@ namespace Arterra.Core.Network {
         }
 
         private void ResetEvents(Exception reason) {
+            // Late producers keep the old queue, so their sends cannot enter a new session.
+            Interlocked.Exchange(ref pendingEvents, new());
             foreach (var request in requests.Values) {
                 if (reason == null) request.Response.TrySetCanceled();
                 else request.Response.TrySetException(reason);
@@ -219,12 +247,13 @@ namespace Arterra.Core.Network {
         }
 
         private sealed class EventRequest {
-            public readonly uint ReferenceId;
+            public readonly Guid ReferenceId;
             public readonly TaskCompletionSource<TransportEvent> Response = new(TaskCreationOptions.RunContinuationsAsynchronously);
-            public EventRequest(uint referenceId) => ReferenceId = referenceId;
+            public EventRequest(Guid referenceId) => ReferenceId = referenceId;
         }
         private sealed class OutgoingEvent {
-            public uint ReferenceId, Id, ReplyTo;
+            public Guid ReferenceId;
+            public uint Id, ReplyTo;
             public ushort EventId;
             public byte[] Bytes;
             public int Sent;
@@ -232,7 +261,8 @@ namespace Arterra.Core.Network {
             public long Deadline;
         }
         private sealed class IncomingEvent {
-            public uint ReferenceId, Id, ReplyTo;
+            public Guid ReferenceId;
+            public uint Id, ReplyTo;
             public ushort EventId;
             public byte[] Bytes;
             public int Received;

@@ -51,7 +51,7 @@ namespace Arterra.Data.Entity.Behavior {
             if (preyDist > AttackDistance) {
                 manager.Transition(settings.OnSeperateTarget);
                 return;
-            } if (!target.Is(out IAttackable atkTarget)) {
+            } if (!target.Is(out IVitality atkTarget)) {
                 manager.TaskTarget = Guid.Empty;
                 manager.Transition(settings.OnLostTarget);
                 return;

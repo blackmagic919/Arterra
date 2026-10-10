@@ -114,7 +114,7 @@ namespace Arterra.Data.Entity.Behavior {
             self.eventCtrl.AddEventHandler(GameEvent.Entity_Death, TriggerDetach);
 
             if (self.Is(out VitalityBehavior vitality) && vitality.IsDead) {
-                self.eventCtrl.RaiseEvent(GameEvent.System_Deserialize, self, null);
+                self.eventCtrl.RaiseEvent(GameEvent.System_Deserialize, self.info.entityId, null);
                 if (self.controller != null) SetLayerRecursively(self.controller.transform, LayerMask.NameToLayer("Default"));
             }
         }
@@ -123,11 +123,13 @@ namespace Arterra.Data.Entity.Behavior {
         public override void Disable(BehaviorEntity.Animal self) {
         }
 
-        private void TriggerDetach(object source, object _trgt, object _ctx) {
+        private void TriggerDetach(object srcId, object _trgt, object _ctx) {
             if (status == StreamingStatus.Disconnected) return;
             status = StreamingStatus.Disconnected;
-
-            if (source is not BehaviorEntity.Animal player) return;
+            if (srcId is not Guid sourceId) return;
+            if (!EntityManager.TryGetEntity(sourceId, out Entity plEnt))
+                return;
+            if (plEnt is not BehaviorEntity.Animal player) return;
             // Keep detached corpse/view objects on default rendering layer.
             SetLayerRecursively(player.controller.transform, LayerMask.NameToLayer("Default"));
             GameOverHandler.Activate();

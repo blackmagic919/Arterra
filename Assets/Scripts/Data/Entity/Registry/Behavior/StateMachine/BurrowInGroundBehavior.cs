@@ -201,7 +201,7 @@ namespace Arterra.Data.Entity.Behavior{
             return true;
         }
 
-        private void OnHitBurrowing(object src, object atkr, object info) {
+        private void OnHitBurrowing(object srcId, object atkrId, object info) {
             byte contact = TerrainInteractor.SampleContact(self.position, self.transform.size, out _, null);
             RefTuple<(float dmg, float3 kb)> data = (RefTuple<(float, float3)>)info;
             //Stop kb if fully underground
@@ -213,7 +213,7 @@ namespace Arterra.Data.Entity.Behavior{
             manager.Transition(settings.OnHitOutState);
         }
 
-        private void OnInSolid(object src, object _, object cxt) {
+        private void OnInSolid(object srcId, object _, object cxt) {
             mInteract.breath = math.max(mInteract.breath - self.DeltaTime, 0);
             if (mInteract.breath > 0) return;
             mInteract.ProcessSuffocation(self, (float)cxt);

@@ -47,9 +47,13 @@ namespace Arterra.Data.Entity.Behavior {
         public int SelectedAttack;
         private bool PlayingAttack;
 
-        public void OnPrepareAttack(object self, object target, object cxt) {
+        public void OnPrepareAttack(object selfId, object targetId, object cxt) {
+            if (selfId is not Guid selfGuid) return;
+            if (!EntityManager.TryGetEntity(selfGuid, out Entity self)) return;
+            if (self is not BehaviorEntity.Animal selfAnimal) return;
+            float attackProb = selfAnimal.random.NextFloat();
+
             RefTuple<float> data = cxt as RefTuple<float>;
-            float attackProb = (self as BehaviorEntity.Animal).random.NextFloat();
             
             // Binary search to find which attack variant the probability falls into
             int left = 0, right = settings.Variants.value.Count - 1;
@@ -65,7 +69,7 @@ namespace Arterra.Data.Entity.Behavior {
             data.Value = settings.Variants.value[SelectedAttack].AttackDuration;
         }
 
-        public void OnAttack(object self, object target, object cxt) {
+        public void OnAttack(object srcId, object tgtId, object cxt) {
             if (SelectedAttack < 0) return;
             RefTuple<(float dmg, float3 kb)> atk = cxt as RefTuple<(float dmg, float3 kb)>;
             atk.Value.dmg = settings.Variants.value[SelectedAttack].AttackDamage;

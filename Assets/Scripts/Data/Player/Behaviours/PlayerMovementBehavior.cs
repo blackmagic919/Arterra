@@ -50,7 +50,7 @@ namespace Arterra.Data.Entity.Behavior {
     /// Handles all player locomotion patterns (ground, swim, flight, ride)
     /// and switches the active movement mode through input stack polls.
     /// </summary>
-    public class PlayerMovementBehavior : SpeciesBehavior, IRider {
+    public class PlayerMovementBehavior : SpeciesBehavior {
         /// <summary>Resolved movement settings for this behavior instance.</summary>
         [JsonIgnore] public PlayerMovementSettings settings;
         private Modifier mod;
@@ -94,7 +94,6 @@ namespace Arterra.Data.Entity.Behavior {
 
             this.self = self;
             self.Register(this);
-            self.Register<IRider>(this);
 
             BindCommonInput();
             InitializePatterns();
@@ -109,7 +108,6 @@ namespace Arterra.Data.Entity.Behavior {
 
             this.self = self;
             self.Register(this);
-            self.Register<IRider>(this);
 
             BindCommonInput();
             InitializePatterns();
@@ -133,6 +131,8 @@ namespace Arterra.Data.Entity.Behavior {
             if (hasBindings) return;
             hasBindings = true;
 
+            self.eventCtrl.AddEventHandler(GameEvent.Action_Mount, Mount);
+            self.eventCtrl.AddEventHandler(GameEvent.Action_Dismount, Dismount);
             self.eventCtrl.AddContextlessEventHandler(GameEvent.Entity_Death, (_, _) => self.RemoveBehavior(Id));
             InputPoller.AddBinding(new ActionBind("Move Vertical", v => inputDir.y = v), MoveVerticalName, "4.0::Movement");
             InputPoller.AddBinding(new ActionBind("Move Horizontal", v => inputDir.x = v), MoveHorizontalName, "4.0::Movement");
@@ -177,15 +177,19 @@ namespace Arterra.Data.Entity.Behavior {
         }
 
         /// <summary>IRider entrypoint invoked when the player mounts a ridable entity.</summary>
-        public void OnMounted(IRidable mount) {
-            ridePattern?.AddHandles(mount);
-            self.eventCtrl.RaiseEvent(GameEvent.Action_Mount, self, mount, null);
+        public void Mount(object srcId, object tgtId, object _) {
+            if (tgtId is not Guid targetId) return;
+            if (!EntityManager.TryGetEntity(targetId, out Entity mount)) return;
+            if(!(ridePattern?.TryAddHandles(mount) ?? false)) return;
+            mount.eventCtrl.EnqueueEvent(GameEvent.Action_Mounted, targetId, srcId);
         }
 
         /// <summary>IRider entrypoint invoked when the player dismounts a ridable entity.</summary>
-        public void OnDismounted(IRidable mount) {
+        public void Dismount(object srcId, object tgtId, object _) {
+            if (tgtId is not Guid targetId) return;
+            if (!EntityManager.TryGetEntity(targetId, out Entity mount)) return;
             ridePattern?.RemoveHandles();
-            self.eventCtrl.RaiseEvent(GameEvent.Action_Dismount, self, mount, null);
+            mount.eventCtrl.EnqueueEvent(GameEvent.Action_Dismounted, targetId, srcId, null);
         }
 
         private void AddIgnoredEntity(Guid entityId) {
@@ -237,7 +241,7 @@ namespace Arterra.Data.Entity.Behavior {
             if (math.length(self.velocity.xz) > maxSpeed) return;
             float3 delta = 0; delta.xz = (maxSpeed / AccelTime) * self.DeltaTime * aim;;
             RefTuple<float3> cxt = new RefTuple<float3>(delta);
-            self.eventCtrl.RaiseEvent(moveEvent, self, null, cxt);
+            self.eventCtrl.RaiseEvent(moveEvent, self.info.entityId, null, cxt);
             delta = cxt;
             
             self.velocity += delta;
@@ -247,7 +251,7 @@ namespace Arterra.Data.Entity.Behavior {
             if (math.length(self.velocity) > maxSpeed) return;
             float3 delta = (maxSpeed / AccelTime) * self.DeltaTime * aim;
             RefTuple<float3> cxt = new RefTuple<float3>(delta);
-            self.eventCtrl.RaiseEvent(moveEvent, self, null, cxt);
+            self.eventCtrl.RaiseEvent(moveEvent, self.info.entityId, null, cxt);
             delta = cxt;
 
             self.velocity += delta;
@@ -294,7 +298,7 @@ namespace Arterra.Data.Entity.Behavior {
                 if (!onGround) return;
 
                 float3 jumpVelocity = owner.JumpForce * (float3)Vector3.up;
-                owner.self.eventCtrl.RaiseEvent(GameEvent.Action_Jump, owner.self, null, jumpVelocity);
+                owner.self.eventCtrl.RaiseEvent(GameEvent.Action_Jump, owner.self.info.entityId, null, jumpVelocity);
                 owner.self.velocity = math.max(jumpVelocity, owner.self.velocity);
             }
         }
@@ -326,7 +330,7 @@ namespace Arterra.Data.Entity.Behavior {
                 RemoveHandles();
             }
 
-            private void StartSwim(object source, object target, object density) {
+            private void StartSwim(object srcId, object _, object density) {
                 if (isSwimming) return;
                 string currentState = InputPoller.PeekTop("Movement::Update").Split("::").First();
                 if (!OverridableStates.Contains(currentState)) return;
@@ -335,7 +339,7 @@ namespace Arterra.Data.Entity.Behavior {
                 AddHandles();
             }
 
-            private void StopSwim(object source, object target, object density) {
+            private void StopSwim(object srcId, object _, object density) {
                 if (!isSwimming) return;
                 isSwimming = false;
                 RemoveHandles();
@@ -488,31 +492,46 @@ namespace Arterra.Data.Entity.Behavior {
 
             public void Disable() => RemoveHandles();
 
-            public void AddHandles(IRidable mount) {
-                if (mount == null) return;
+            public bool TryAddHandles(Entity mount) {
+                if (mount == null) return false;
                 string currentState = InputPoller.PeekTop("Movement::Update").Split("::").First();
                 if (!OverridableStates.Contains(currentState)) {
-                    mount.Dismount();
-                    return;
+                    mount.eventCtrl.EnqueueEvent(GameEvent.Action_Dismounted,
+                        mount.info.entityId, owner.self.info.entityId);
+                    return false;
                 }
 
-                this.mount = mount;
-                if (mount.AsEntity != null) {
-                    owner.AddIgnoredEntity(mount.AsEntity.info.rtEntityId);
+                IRidable newMount;
+                if (!mount.Is(out newMount)) {
+                    mount.eventCtrl.EnqueueEvent(GameEvent.Action_Dismounted,
+                        mount.info.entityId, owner.self.info.entityId);
+                    return false;
                 }
+                else this.mount = newMount;
+
+                owner.AddIgnoredEntity(mount.info.rtEntityId);
 
                 owner.self.velocity = float3.zero;
+                owner.self.eventCtrl.RaiseEvent(GameEvent.Action_MountRideable,
+                    owner.self.info.entityId,
+                    this.mount?.AsEntity?.info.entityId
+                );    
+
                 InputPoller.AddStackPoll(new ActionBind(RideMove2Name, _ => owner.self.Collider.SetGravityState(
                     RideMove2Name, GamePlay.Interaction.TerrainCollider.GravityPriority.Movement,
                     false
                 )), "Movement::Gravity");
-                InputPoller.AddStackPoll(new ActionBind(RideMove1Name, _ => Update()), "Movement::Update");
-                owner.self.eventCtrl.RaiseEvent(GameEvent.Action_MountRideable, owner.self, mount);               
+                InputPoller.AddStackPoll(new ActionBind(RideMove1Name, _ => Update()), "Movement::Update");           
                 InputPoller.AddContextFence(RideFenceName, "4.0::Movement", ActionBind.Exclusion.ExcludeLayer);
                 InputPoller.AddBinding(new ActionBind("Move Vertical", MoveForward), RideMoveVerticalName, "4.0::Movement");
                 InputPoller.AddBinding(new ActionBind("Move Horizontal", Rotate), RideMoveHorizontalName, "4.0::Movement");
-                InputPoller.AddBinding(new ActionBind("Dismount", _ => this.mount?.Dismount()), RideDismountName, "5.0::Gameplay");
-                
+                InputPoller.AddBinding(new ActionBind("Dismount", _ => 
+                    owner.self.eventCtrl.RaiseEvent(GameEvent.Action_Dismount,
+                        owner.self.info.entityId,
+                        this.mount.AsEntity.info.entityId)),
+                        RideDismountName, "5.0::Gameplay"
+                );
+                return true;
             }
 
             public void RemoveHandles() {
@@ -520,14 +539,18 @@ namespace Arterra.Data.Entity.Behavior {
                 InputPoller.RemoveStackPoll(RideMove1Name, "Movement::Update");
                 InputPoller.RemoveStackPoll(RideMove2Name, "Movement::Gravity");
                 owner.self.Collider.RemoveGravityState(RideMove2Name);
-                owner.self.eventCtrl.RaiseEvent(GameEvent.Action_DismountRideable, owner.self, oldMount);
+                owner.self.eventCtrl.RaiseEvent(
+                    GameEvent.Action_DismountRideable,
+                    owner.self.info.entityId,
+                    oldMount?.AsEntity?.info.entityId
+                );
 
                 Transform subTransform = owner.GetRiderSubTransform();
                 if (subTransform != null) {
                     subTransform.localRotation = Quaternion.identity;
                 }
 
-                if (oldMount is Entity entity) {
+                if (oldMount?.AsEntity is Entity entity) {
                     owner.RemoveIgnoredEntity(entity.info.rtEntityId);
                 }
                 InputPoller.RemoveContextFence(RideFenceName, "4.0::Movement");
