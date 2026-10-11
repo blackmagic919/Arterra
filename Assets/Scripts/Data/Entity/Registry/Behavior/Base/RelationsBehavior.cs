@@ -124,8 +124,7 @@ namespace Arterra.Data.Entity.Behavior {
         }
 
         public override void Update(BehaviorEntity.Animal self) {
-            if (self.context == BehaviorEntity.UpdateContext.JobSync)
-                return;
+            if (self.context != BehaviorEntity.UpdateContext.Simulation) return;
                 
             AttachHooksToAttacker();
             GossipWithFriends(self);
@@ -408,9 +407,9 @@ namespace Arterra.Data.Entity.Behavior {
             this.HookedTarget = Guid.Empty;
             Relationships = new IndirectDictionary<Guid, float>();
             Gossip = new Dictionary<Guid, GossipTopic>();
-            self.eventCtrl.AddEventHandler(GameEvent.Entity_Fed, OnFed);
-            self.eventCtrl.AddEventHandler(GameEvent.Entity_Damaged, OnAttacked);
-            self.eventCtrl.AddEventHandler(GameEvent.Entity_Mate, OnMating);
+            if (self.IsAuthority) self.eventCtrl.AddEventHandler(GameEvent.Entity_Fed, OnFed);
+            if (self.IsAuthority) self.eventCtrl.AddEventHandler(GameEvent.Entity_Damaged, OnAttacked);
+            if (self.IsAuthority) self.eventCtrl.AddEventHandler(GameEvent.Entity_Mate, OnMating);
         }
         
         public override void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
@@ -424,9 +423,9 @@ namespace Arterra.Data.Entity.Behavior {
 
             
             this.HookedTarget = Guid.Empty;
-            self.eventCtrl.AddEventHandler(GameEvent.Entity_Fed, OnFed);
-            self.eventCtrl.AddEventHandler(GameEvent.Entity_Damaged, OnAttacked);
-            self.eventCtrl.AddEventHandler(GameEvent.Entity_Mate, OnMating);
+            if (self.IsAuthority) self.eventCtrl.AddEventHandler(GameEvent.Entity_Fed, OnFed);
+            if (self.IsAuthority) self.eventCtrl.AddEventHandler(GameEvent.Entity_Damaged, OnAttacked);
+            if (self.IsAuthority) self.eventCtrl.AddEventHandler(GameEvent.Entity_Mate, OnMating);
         }
 
         public void Disable() {

@@ -40,6 +40,15 @@ public abstract class Entity: IRegistered, IEventControlled{
     /// conditions and undefined behavior. </summary>
     public bool active;
 
+    [JsonIgnore] public bool IsAuthority => Arterra.Core.Network.NetworkManager.IsActingServer;
+    [JsonIgnore] public bool IsOwner => info.rtEntityId != Guid.Empty
+        && Arterra.GamePlay.PlayerHandler.data != null
+        && Arterra.GamePlay.PlayerHandler.data.info.rtEntityId == info.rtEntityId;
+    [JsonIgnore] public virtual bool VisualActive => false;
+
+    public virtual void InitializeVisual() { }
+    public virtual void DisposeVisual() { }
+
     /// <summary> The entity's virtual update function. This will be called every game tick within a Unity Job to 
     /// perform computational-heavy tasks related to the entity. Only the Entity in question is provided mutual
     /// exclusivity. Accessing any external resources(e.g. creating an entity) needs to resynchronize using <see cref="EntityManager.AddHandlerEvent(Action)"/>
@@ -102,7 +111,7 @@ public abstract class Entity: IRegistered, IEventControlled{
     /// require knowledge of other entity's velocities; however entities that aren't spatially bound
     /// may not fulfill this contract if it no system requires its velocity. </summary>
     [JsonIgnore]
-    public ref float3 velocity => ref transform.velocity;
+    public float3 velocity { get => transform.velocity; set => transform.velocity = value; }
     /// <summary> The quaternion representing the rotation of the entity. </summary>
     [JsonIgnore]
     public virtual Quaternion Facing => transform.rotation;
@@ -198,11 +207,8 @@ public abstract class Entity: IRegistered, IEventControlled{
     /// </summary>
     [System.Serializable]
     public struct Info{
-        /// <summary> The unique identifier of the entity that remains the same throughout the entity's life cycle, regardless of if it's serialized
-        /// or saved to disk. </summary>
-        public Guid entityId;
-        /// <summary> If this entity belongs to or is a logical part of another entity, the shared Id of the root entity. Certain calculations
-        /// should be preformed on the root entity (e.g. spider rather than leg of a spider). </summary>
+        /// <summary>The shared live identity, retained in saves and on every peer. Collider proxies
+        /// refer to their root entity here and maintain a separate local spatial alias.</summary>
         public Guid rtEntityId;
         /// <summary> The index of the entity's name within the <see cref="Config.GenerationSettings.Entities"/> registry. This is guaranteed to be different
         /// for two different types of entities and can be used to test such. If the entity is serialized, this should be decoupled and recoupled upon deserialization. </summary>
@@ -394,5 +400,3 @@ public class MapDataDrawer : PropertyDrawer{
 }
 #endif
 }
-
-

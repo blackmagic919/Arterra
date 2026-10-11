@@ -139,7 +139,7 @@ namespace Arterra.Data.Entity.Behavior {
 
         private void HookEffectors() {
             foreach(var Trigger in settings.TriggerEffects.Keys) {
-                self.eventCtrl.AddContextlessEventHandler(Trigger,
+                if (self.IsAuthority) self.eventCtrl.AddContextlessEventHandler(Trigger,
                     (src, target) => ApplyEffector(src, target, Trigger));
             }
         }

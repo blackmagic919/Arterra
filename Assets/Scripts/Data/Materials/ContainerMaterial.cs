@@ -189,7 +189,7 @@ namespace Arterra.Data.Material
             public void Release() => inv.ReleaseDisplay();
             public void Activate(){
                 inv.Display.root.SetActive(true);
-                PlayerHandler.data.eventCtrl.RaiseEvent(settings.OpenEvent, PlayerHandler.data.info.entityId, null);
+                PlayerHandler.data.eventCtrl.RaiseEvent(settings.OpenEvent, PlayerHandler.data.info.rtEntityId, null);
             }
             public void Deactivate() => inv.Display.root.SetActive(false);
         }

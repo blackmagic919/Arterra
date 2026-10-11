@@ -34,7 +34,7 @@ namespace Arterra.Data.Item
         public override void OnEnter(ItemContext cxt) {
             if (cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
             if (cxt.TryGetHolder(out IEventControlled effect) && settings.Model.Enabled) 
-                effect.RaiseEvent(GameEvent.Item_HoldTool, effect is Entity.Entity ? ((Entity.Entity)effect).info.entityId : effect, this, ref settings.Model.Value);
+                effect.RaiseEvent(GameEvent.Item_HoldTool, effect is Entity.Entity ? ((Entity.Entity)effect).info.rtEntityId : effect, this, ref settings.Model.Value);
             
                 InputPoller.AddBinding(new ActionBind("ConvertMaterial", _ => PlayerModifyTerrain(cxt)),
                     "ITEM::MCTool:CNV", "5.0::GamePlay");
@@ -46,7 +46,7 @@ namespace Arterra.Data.Item
         public override void OnLeave(ItemContext cxt) {
             if (cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
             if (cxt.TryGetHolder(out IEventControlled effect) && settings.Model.Enabled) 
-                effect.RaiseEvent(GameEvent.Item_UnholdTool, effect is Entity.Entity ? ((Entity.Entity)effect).info.entityId : effect, this, ref settings.Model.Value);
+                effect.RaiseEvent(GameEvent.Item_UnholdTool, effect is Entity.Entity ? ((Entity.Entity)effect).info.rtEntityId : effect, this, ref settings.Model.Value);
             
             InputPoller.RemoveBinding("ITEM::MCTool:CNV", "5.0::GamePlay");
             InputPoller.RemoveBinding("ITEM::MCTool:RM", "5.0::GamePlay");
@@ -77,7 +77,7 @@ namespace Arterra.Data.Item
             }
 
             if (settings.OnUseAnim.Enabled && player is IEventControlled effectable)
-                effectable.RaiseEvent(GameEvent.Item_UseTool, player.info.entityId, this, ref settings.OnUseAnim.Value);
+                effectable.RaiseEvent(GameEvent.Item_UseTool, player.info.rtEntityId, this, ref settings.OnUseAnim.Value);
 
             Terraforming.Terraform(hitPt, settings.TerraformRadius, ModifySolid, interact.CallOnMapRemoving);
             if (targetted) InputPoller.SuspendKeybindPropogation("ConvertMaterial", ActionBind.Exclusion.ExcludeLayer);

@@ -127,7 +127,7 @@ namespace Arterra.Configuration {
 
         protected void LaunchProjectile(Entity entity, Entity parent, float3 position, float3 velocity, Action<Entity> cb) {
             var entityInfo = Config.CURRENT.Generation.Entities;
-            if(parent != null) entity.RegisterConstructor(ProjectileFlightBehavior.Build(parent.info.entityId));
+            if(parent != null) entity.RegisterConstructor(ProjectileFlightBehavior.Build(parent.info.rtEntityId));
             EntityManager.AddHandlerEvent(() => AudioManager.CreateEvent(FireSound, position));
             EntityManager.CreateEntity(position, (uint)entity.Index, entity, () => {
                 entity.transform.position = position;

@@ -116,7 +116,7 @@ namespace Arterra.GamePlay.UI {
         Deactivate();
     }
     public static void Activate() {
-        PlayerHandler.data.eventCtrl.RaiseEvent(GameEvent.Action_OpenInventory, PlayerHandler.data.info.entityId, null);
+        PlayerHandler.data.eventCtrl.RaiseEvent(GameEvent.Action_OpenInventory, PlayerHandler.data.info.rtEntityId, null);
         InputPoller.AddStackPoll(new ActionBind("Frame:Inventory", _ => InputPoller.SetCursorLock(false)), "CursorLock");
         
             InputPoller.AddContextFence("PlayerInventory:AllFrame", "3.0::AllWindow", ActionBind.Exclusion.None);

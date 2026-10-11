@@ -101,13 +101,10 @@ namespace Arterra.Data.Entity.Behavior {
             if (!self.Is(out baseCollider))
                 throw new Exception("Entity: PlayerCameraBehavior requires ColliderUpdateBehavior");
 
-            InitPerspectives();
             self.Register<IMultiCollider>(this);
             self.Register(this);
             this.self = self;
 
-            BindInput();
-            DeserializeCameraState();
         }
 
         public override void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
@@ -118,26 +115,30 @@ namespace Arterra.Data.Entity.Behavior {
             if (!self.Is(out baseCollider))
                 throw new Exception("Entity: PlayerCameraBehavior requires ColliderUpdateBehavior");
             
-            InitPerspectives();
             self.Register<IMultiCollider>(this);
             self.Register(this);
             this.self = self;
 
+        }
+
+        public override void InitializeVisual(BehaviorEntity.Animal self) {
+            if (!self.IsOwner) return;
+            InitPerspectives();
             BindInput();
             DeserializeCameraState();
         }
 
-        public override void Disable(BehaviorEntity.Animal self) {
+        public override void DisposeVisual(BehaviorEntity.Animal self) {
             UnbindInput();
+            perspectives = null;
+        }
+
+        public override void Disable(BehaviorEntity.Animal self) {
             this.self = null;
         }
 
         public override void Update(BehaviorEntity.Animal self) {
-            if (self.context == BehaviorEntity.UpdateContext.Job)
-                return;
-            if (self.context == BehaviorEntity.UpdateContext.Fixed)
-                return;
-
+            if (!self.IsOwner || self.context != BehaviorEntity.UpdateContext.Visual) return;
             perspectives[activePersp].Update();
             ApplyCameraTransform();
             lookDelta = float2.zero;
@@ -217,9 +218,9 @@ namespace Arterra.Data.Entity.Behavior {
             return -(Mathf.InverseLerp(MinimumX, MaximumX, lookPitch) * 2 - 1);
         }
 
-        private string LookHorizontalName => $"PlayerCamera:LH::{self.info.entityId}"; 
-        private string LookVerticalName => $"PlayerCamera:LV::{self.info.entityId}";
-        private string TPerspectiveName => $"PlayerCamera:TP::{self.info.entityId}"; 
+        private string LookHorizontalName => $"PlayerCamera:LH::{self.info.rtEntityId}";
+        private string LookVerticalName => $"PlayerCamera:LV::{self.info.rtEntityId}";
+        private string TPerspectiveName => $"PlayerCamera:TP::{self.info.rtEntityId}";
         private void BindInput() {
             if (hasBindings) return;
             hasBindings = true;
@@ -302,7 +303,7 @@ namespace Arterra.Data.Entity.Behavior {
                 }
 
                 RefTuple<(float, float)> cxt = (camera.GetAngleX(camera.cameraLocalRotation), camera.lookDelta.y);
-                camera.self.eventCtrl.RaiseEvent(GameEvent.Action_LookGradual, camera.self.info.entityId, null, cxt);
+                camera.self.eventCtrl.RaiseEvent(GameEvent.Action_LookGradual, camera.self.info.rtEntityId, null, cxt);
             }
         }
 
@@ -354,7 +355,7 @@ namespace Arterra.Data.Entity.Behavior {
 
                 SetCameraOffset();
                 RefTuple<(float, float)> cxt = (camera.GetAngleX(camera.cameraLocalRotation), camera.lookDelta.y);
-                camera.self.eventCtrl.RaiseEvent(GameEvent.Action_LookGradual, camera.self.info.entityId, null, cxt);
+                camera.self.eventCtrl.RaiseEvent(GameEvent.Action_LookGradual, camera.self.info.rtEntityId, null, cxt);
             }
 
             private void SetCameraOffset() {
@@ -431,7 +432,7 @@ namespace Arterra.Data.Entity.Behavior {
 
                 SetCameraOffset();
                 RefTuple<(float, float)> cxt = (camera.GetAngleX(camera.cameraLocalRotation), rotation);
-                camera.self.eventCtrl.RaiseEvent(GameEvent.Action_LookGradual, camera.self.info.entityId, null, cxt);
+                camera.self.eventCtrl.RaiseEvent(GameEvent.Action_LookGradual, camera.self.info.rtEntityId, null, cxt);
             }
 
             private void SetCameraOffset() {

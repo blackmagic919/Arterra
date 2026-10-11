@@ -80,7 +80,7 @@ namespace Arterra.Data.Entity.Behavior {
 
                 int preference = Awareness[(int)nEntity.info.entityType];
                 if (!nEntity.Is(out IMateable mateable)) return;
-                if (!mateable.CanMateWith(self.info.entityId)) return;
+                if (!mateable.CanMateWith(self.info.rtEntityId)) return;
                 //If we have relations, prefer higher relations but always under categorical preference differences (in awareness table)
                 if (relations != null) pPref -= 1 - math.exp(relations.GetAffection(nEntity.info.rtEntityId));
 
@@ -156,7 +156,7 @@ namespace Arterra.Data.Entity.Behavior {
 
             RefTuple<bool> CanMate = new (true);
             self.eventCtrl.RaiseEvent(GameEvent.Entity_CanMate,
-                self.info.entityId, entityId, CanMate);
+                self.info.rtEntityId, entityId, CanMate);
             if (!CanMate.Value) return false;
             return settings.CanMateWith(entityId);
         }
@@ -166,8 +166,8 @@ namespace Arterra.Data.Entity.Behavior {
                 return;
             if (!CanMateWith(entityId)) return;
             if (settings.MateWithEntity(mod, entity, ref self.random))
-                self.eventCtrl.RaiseEvent(GameEvent.Apply_Damage, self.info.entityId, null, (MateCost, float3.zero));
-            self.eventCtrl.RaiseEvent(GameEvent.Entity_Mate, self.info.entityId, entity.info.entityId);
+                self.eventCtrl.RaiseEvent(GameEvent.Apply_Damage, self.info.rtEntityId, null, (MateCost, float3.zero));
+            self.eventCtrl.RaiseEvent(GameEvent.Entity_Mate, self.info.rtEntityId, entity.info.rtEntityId);
         }
 
         public override void AddBehaviorDependencies(Dictionary<Behaviors, int> heirarchy) {
@@ -186,7 +186,7 @@ namespace Arterra.Data.Entity.Behavior {
             if (!self.Is(out mod)) mod = null;
 
             this.self = self;
-            self.eventCtrl.AddContextlessEventHandler(GameEvent.Apply_EntityMate, MateWith);
+            if (self.IsAuthority) self.eventCtrl.AddContextlessEventHandler(GameEvent.Apply_EntityMate, MateWith);
             self.Register<IMateable>(this);
         }
 
@@ -198,7 +198,7 @@ namespace Arterra.Data.Entity.Behavior {
             if (!self.Is(out mod)) mod = null;
 
             this.self = self;
-            self.eventCtrl.AddContextlessEventHandler(GameEvent.Apply_EntityMate, MateWith);
+            if (self.IsAuthority) self.eventCtrl.AddContextlessEventHandler(GameEvent.Apply_EntityMate, MateWith);
             self.Register<IMateable>(this);
         }
 

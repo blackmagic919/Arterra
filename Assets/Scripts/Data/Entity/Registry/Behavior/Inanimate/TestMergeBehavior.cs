@@ -44,7 +44,7 @@ namespace Arterra.Data.Entity.Behavior {
         }
 
         public override void Update(BehaviorEntity.Animal self) {
-            if (self.context == BehaviorEntity.UpdateContext.JobSync) return;
+            if (self.context != BehaviorEntity.UpdateContext.Simulation) return;
             if (settings.MergeRadius <= 0) return;
 
             Bounds bounds = new Bounds(self.position, new float3(settings.MergeRadius * 2));
@@ -54,9 +54,9 @@ namespace Arterra.Data.Entity.Behavior {
                 if (!CheckMerge(self, nEntity)) return;
 
                 RefTuple<bool> success = true;
-                self.eventCtrl.RaiseEvent(GameEvent.Entity_MergeAbsorb, self.info.entityId, nEntity.info.entityId, success);
-                self.eventCtrl.RaiseEvent(GameEvent.Entity_MergeAbsorbed, nEntity.info.entityId, self.info.entityId, success);
-                if (success) EntityManager.ReleaseEntity(nEntity.info.entityId);
+                self.eventCtrl.RaiseEvent(GameEvent.Entity_MergeAbsorb, self.info.rtEntityId, nEntity.info.rtEntityId, success);
+                self.eventCtrl.RaiseEvent(GameEvent.Entity_MergeAbsorbed, nEntity.info.rtEntityId, self.info.rtEntityId, success);
+                if (success) EntityManager.ReleaseEntity(nEntity.info.rtEntityId);
             });
         }
 
@@ -68,7 +68,7 @@ namespace Arterra.Data.Entity.Behavior {
             };
 
             RefTuple<bool> cxt = allow;
-            self.eventCtrl.RaiseEvent(GameEvent.Entity_AttemptMerge, self.info.entityId, target.info.entityId, cxt);
+            self.eventCtrl.RaiseEvent(GameEvent.Entity_AttemptMerge, self.info.rtEntityId, target.info.rtEntityId, cxt);
             if (!cxt) return false;
 
            if (!consent || settings.ForceNoConsent) return true;

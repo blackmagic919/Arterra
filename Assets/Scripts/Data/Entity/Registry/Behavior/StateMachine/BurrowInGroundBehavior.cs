@@ -96,7 +96,7 @@ namespace Arterra.Data.Entity.Behavior{
         private float UnburrowThresh => Modifier.Get(mod, MSettings.UnburrowThresh, settings.UnburrowThresh);
         private float DigDist => Modifier.Get(mod, MSettings.DigDist, settings.DigDist);
         public override void Update(BehaviorEntity.Animal self) {
-            if (self.context == BehaviorEntity.UpdateContext.JobSync) return;
+            if (self.context != BehaviorEntity.UpdateContext.Simulation) return;
             bool IsBurrowing = true;
             if (manager.TaskIndex == settings.Task1Name) 
                 BurrowUnderground(self);
@@ -224,8 +224,8 @@ namespace Arterra.Data.Entity.Behavior{
             IsAttached = isBurrowing;
 
             if (IsAttached) {
-                self.eventCtrl.AddEventHandler(GameEvent.Entity_InSolid, OnInSolid);
-                self.eventCtrl.AddEventHandler(GameEvent.Entity_Damaged, OnHitBurrowing);
+                if (self.IsAuthority) self.eventCtrl.AddEventHandler(GameEvent.Entity_InSolid, OnInSolid);
+                if (self.IsAuthority) self.eventCtrl.AddEventHandler(GameEvent.Entity_Damaged, OnHitBurrowing);
                 mInteract?.SetInteractionType(MapInteractorSettings.InteractType.SubTerraneal);
                 collider?.SetInteractionType(ColliderUpdateSettings.InteractType.NoGround);
             } else {

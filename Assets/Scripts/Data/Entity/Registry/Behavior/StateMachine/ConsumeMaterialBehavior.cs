@@ -42,8 +42,8 @@ namespace Arterra.Data.Entity.Behavior {
         private Modifier mod;
         
         public override void Update(BehaviorEntity.Animal self) {
+            if (self.context != BehaviorEntity.UpdateContext.Simulation) return;
             if (manager.TaskIndex != settings.TaskName) return;
-            if (self.context == BehaviorEntity.UpdateContext.JobSync) return;
             
             if (!findPlant.CanConsume(manager.TaskPosition)) {
                 manager.Transition(settings.OnLostTarget);

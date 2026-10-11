@@ -43,8 +43,8 @@ namespace Arterra.Data.Entity.Behavior {
         private float RunSpeed => MMove.Speed(mmove, settings.TaskName, mod, MSettings.RunSpeed, movement.runSpeed);
 
         public override void Update(BehaviorEntity.Animal self) {
+            if (self.context != BehaviorEntity.UpdateContext.Simulation) return;
             if (manager.TaskIndex != settings.TaskName) return;
-            if (self.context == BehaviorEntity.UpdateContext.JobSync) return;
             
             if (!EntityManager.TryGetEntity(manager.TaskTarget, out Entity target))
                 manager.TaskTarget = Guid.Empty;
@@ -122,7 +122,7 @@ namespace Arterra.Data.Entity.Behavior {
             if (!self.Is(out relations)) relations = null;
             if (!self.Is(out mod)) mod = null;
             
-            self.eventCtrl.AddContextlessEventHandler(GameEvent.Entity_Damaged, RespondToAttack);
+            if (self.IsAuthority) self.eventCtrl.AddContextlessEventHandler(GameEvent.Entity_Damaged, RespondToAttack);
             this.self = self;
         }
 
@@ -142,7 +142,7 @@ namespace Arterra.Data.Entity.Behavior {
             if (!self.Is(out relations)) relations = null;
             if (!self.Is(out mod)) mod = null;
             
-            self.eventCtrl.AddContextlessEventHandler(GameEvent.Entity_Damaged, RespondToAttack);
+            if (self.IsAuthority) self.eventCtrl.AddContextlessEventHandler(GameEvent.Entity_Damaged, RespondToAttack);
             this.self = self;
         }
 

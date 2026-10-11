@@ -59,6 +59,7 @@ namespace Arterra.Data.Entity.Behavior
 		}
 
 		public override void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
+            self.controller.KeepAnimatorOnDisposeVisual = true;
 			if (!setting.Is(out settings))
 				throw new Exception("Entity: TentacleBehavior requires TentacleSettings");
 			if (!self.Is(out selfAtk))
@@ -70,6 +71,7 @@ namespace Arterra.Data.Entity.Behavior
 		}
 
 		public override void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
+            self.controller.KeepAnimatorOnDisposeVisual = true;
 			if (!setting.Is(out settings))
 				throw new Exception("Entity: TentacleBehavior requires TentacleSettings");
 			if (!self.Is(out selfAtk))
@@ -112,10 +114,8 @@ namespace Arterra.Data.Entity.Behavior
 		}
 
 		public override void Update(BehaviorEntity.Animal self) {
-            if (self.context != BehaviorEntity.UpdateContext.JobSync)
-                CoreUpdate(self);
-            if (self.context != BehaviorEntity.UpdateContext.Job)
-                ControllerUpdate(self);
+            if (self.context == BehaviorEntity.UpdateContext.Simulation) CoreUpdate(self);
+            if (self.context == BehaviorEntity.UpdateContext.Sync) ControllerUpdate(self);
         }
 
 		public void CoreUpdate(BehaviorEntity.Animal self) {
@@ -135,7 +135,7 @@ namespace Arterra.Data.Entity.Behavior
 
 		public override void Disable(BehaviorEntity.Animal self) {
 			if (tentacles == null) return;
-			foreach(Tentacle t in tentacles) t.Disable();
+			foreach(Tentacle t in tentacles) t?.Disable();
 		}
 
 		public override void OnDrawGizmos(BehaviorEntity.Animal self) {
@@ -171,6 +171,7 @@ namespace Arterra.Data.Entity.Behavior
 
 
 			public override void Initialize(BehaviorEntity.Animal self, LeadHeadBehavior.AppendageSettings settings, Transform root) {
+            self.controller.KeepAnimatorOnDisposeVisual = true;
 				this.settings = settings as TentacleSettings.TentacleConfig;
 				this.collider = new(this.settings.collider, self.position + settings.RestOffset);
 				this.collider.SetGravityState(TentacleGravityStateName, TerrainCollider.GravityPriority.Override, false);
@@ -189,6 +190,7 @@ namespace Arterra.Data.Entity.Behavior
 			}
 
 			public override void Deserialize(BehaviorEntity.Animal self, LeadHeadBehavior.AppendageSettings settings, Transform root) {
+            self.controller.KeepAnimatorOnDisposeVisual = true;
                 base.Deserialize(self, settings, root);
                 SetConstraint<ChainIKConstraint>();
 				AnimatedTentacle = (constraint as ChainIKConstraint).data.tip;

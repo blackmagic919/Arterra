@@ -42,7 +42,7 @@ namespace Arterra.Data.Entity.Behavior {
             if (!self.Is(out vit))
                 throw new System.Exception("Entity: Effector Poison Requires Animal to have Vitality Behavior");
             if (!self.Is(out mod)) mod = null;
-            self.eventCtrl.AddEventHandler(GameEvent.Entity_Damaged, OnDamaged);
+            if (self.IsAuthority) self.eventCtrl.AddEventHandler(GameEvent.Entity_Damaged, OnDamaged);
             self.Register(this);
             accDeltaTime = 0;
             progress = 0;
@@ -52,7 +52,7 @@ namespace Arterra.Data.Entity.Behavior {
             if (!self.Is(out vit))
                 throw new System.Exception("Entity: Effector Poison Requires Animal to have Vitality Behavior");
             if (!self.Is(out mod)) mod = null;
-            self.eventCtrl.AddEventHandler(GameEvent.Entity_Damaged, OnDamaged);
+            if (self.IsAuthority) self.eventCtrl.AddEventHandler(GameEvent.Entity_Damaged, OnDamaged);
             self.Register(this);
         }
 
@@ -63,14 +63,13 @@ namespace Arterra.Data.Entity.Behavior {
         private void OnDamaged(object source, object attacker, object context) => accDeltaTime = 0;
 
         public override void Update(BehaviorEntity.Animal self) {
-            if (self.context == BehaviorEntity.UpdateContext.JobSync) return;
-            if (self.context == BehaviorEntity.UpdateContext.Main) return;
+            if (self.context != BehaviorEntity.UpdateContext.Simulation) return;
             accDeltaTime += self.DeltaTime;
             progress += self.DeltaTime;
 
             float damage = accDeltaTime * _strength;
             self.eventCtrl.RaiseEvent(GameEvent.Apply_Damage,
-                self.info.entityId, null, (damage, float3.zero));
+                self.info.rtEntityId, null, (damage, float3.zero));
             if (progress > _duration) self.RemoveBehavior(Id);
         }
     }

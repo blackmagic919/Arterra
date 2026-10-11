@@ -31,8 +31,7 @@ namespace Arterra.Data.Entity.Behavior {
         }
 
         public override void Update(BehaviorEntity.Animal self) {
-            if (self.context == BehaviorEntity.UpdateContext.JobSync) return;
-            if (self.context == BehaviorEntity.UpdateContext.Main) return;
+            if (self.context != BehaviorEntity.UpdateContext.Simulation) return;
             updateCycles++;
         }
 

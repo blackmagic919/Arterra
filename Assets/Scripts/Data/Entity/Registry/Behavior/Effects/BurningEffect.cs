@@ -50,43 +50,47 @@ namespace Arterra.Data.Entity.Behavior {
             if (!self.Is(out vit))
                 throw new Exception("Entity: Burning Effect Requires Animal to have Vitality Behavior");
             if (!self.Is(out mod)) mod = null;
-            self.eventCtrl.AddEventHandler(GameEvent.Entity_Damaged, OnDamaged);
+            if (self.IsAuthority) self.eventCtrl.AddEventHandler(GameEvent.Entity_Damaged, OnDamaged);
             self.Register(this);
             accDeltaTime = 0f;
             progress = 0f;
-            AttachParticle(self);
+
         }
 
         public override void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
             if (!self.Is(out vit))
                 throw new Exception("Entity: Burning Effect Requires Animal to have Vitality Behavior");
             if (!self.Is(out mod)) mod = null;
-            self.eventCtrl.AddEventHandler(GameEvent.Entity_Damaged, OnDamaged);
+            if (self.IsAuthority) self.eventCtrl.AddEventHandler(GameEvent.Entity_Damaged, OnDamaged);
             self.Register(this);
-            AttachParticle(self);
+
         }
 
-        public override void Disable(BehaviorEntity.Animal self) {
-            self.eventCtrl.RemoveEventHandler(GameEvent.Entity_Damaged, OnDamaged);
+        public override void InitializeVisual(BehaviorEntity.Animal self) => AttachParticle(self);
+        public override void DisposeVisual(BehaviorEntity.Animal self) {
             if (particleInstance != null) {
                 UnityEngine.Object.Destroy(particleInstance);
                 particleInstance = null;
             }
+        }
+
+        public override void Disable(BehaviorEntity.Animal self) {
+            self.eventCtrl.RemoveEventHandler(GameEvent.Entity_Damaged, OnDamaged);
+
             self.Unregister(typeof(BurningEffect));
         }
 
         private void OnDamaged(object source, object attacker, object context) => accDeltaTime = 0;
 
         public override void Update(BehaviorEntity.Animal self) {
-            if (self.context == BehaviorEntity.UpdateContext.JobSync) return;
-            if (self.context == BehaviorEntity.UpdateContext.Main) return;
+            if (self.context != BehaviorEntity.UpdateContext.Simulation) return;
 
             accDeltaTime += self.DeltaTime;
             progress += self.DeltaTime;
 
             float damage = accDeltaTime * _strength;
             self.eventCtrl.RaiseEvent(GameEvent.Apply_Damage,
-                self.info.entityId, null, (damage, float3.zero));
+                self.info.rtEntityId, null, (damage, float3.zero));
             if (progress > _duration) self.RemoveBehavior(Id);
         }
 

@@ -87,7 +87,7 @@ namespace Arterra.Core.Events {
             RaisedEvent newEvent = new (type, actor, target, ctx);
             if (remoteSubscription.TryGetValue(type, out var subscribers)) {
                 var recipients = NetworkManager.IsActingServer
-                    ? PlayerHandler.Players.Where(pair => subscribers.Contains(pair.Value.info.entityId)).Select(pair => pair.Key)
+                    ? PlayerHandler.Players.Where(pair => subscribers.Contains(pair.Value.info.rtEntityId)).Select(pair => pair.Key)
                     : null;
                 networkEventStream.Fire(newEvent, RecieveEvent, recipients);
             } else RecieveEvent(newEvent);
@@ -97,7 +97,7 @@ namespace Arterra.Core.Events {
             RaisedEvent newEvent = new (type, actor, target, ctx);
             if (remoteSubscription.TryGetValue(type, out var subscribers)) {
                 var recipients = NetworkManager.IsActingServer
-                    ? PlayerHandler.Players.Where(pair => subscribers.Contains(pair.Value.info.entityId)).Select(pair => pair.Key)
+                    ? PlayerHandler.Players.Where(pair => subscribers.Contains(pair.Value.info.rtEntityId)).Select(pair => pair.Key)
                     : null;
                 networkEventStream.Fire(newEvent, recipients: recipients);
             } else RecieveEventAsync(newEvent);

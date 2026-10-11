@@ -96,10 +96,8 @@ namespace Arterra.Data.Entity.Behavior
         }
 
         public override void Update(BehaviorEntity.Animal self) {
-            if (self.context != BehaviorEntity.UpdateContext.JobSync)
-                CoreUpdate(self);
-            if (self.context != BehaviorEntity.UpdateContext.Job)
-                ControllerUpdate(self);
+            if (self.context == BehaviorEntity.UpdateContext.Simulation) CoreUpdate(self);
+            if (self.context == BehaviorEntity.UpdateContext.Visual) ControllerUpdate(self);
         }
 
         private void CoreUpdate(BehaviorEntity.Animal self) {
@@ -183,7 +181,7 @@ namespace Arterra.Data.Entity.Behavior
 
         public override void Disable(BehaviorEntity.Animal self) {
             if (appendages == null) return;
-            foreach(Leg l in appendages) l.Disable();
+            foreach(Leg l in appendages) l?.Disable();
         }
 
 

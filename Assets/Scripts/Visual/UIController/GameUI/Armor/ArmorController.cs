@@ -101,7 +101,7 @@ namespace Arterra.GamePlay.UI {
         PlayerCamera.SetActive(true);
         ArmorPanel.SetActive(true);
         eventTask = new Core.ArterraRuntime.IndirectUpdate(Update);
-        PlayerHandler.data.eventCtrl.RaiseEvent(GameEvent.Action_OpenArmor, PlayerHandler.data.info.entityId, null);
+        PlayerHandler.data.eventCtrl.RaiseEvent(GameEvent.Action_OpenArmor, PlayerHandler.data.info.rtEntityId, null);
         Core.ArterraRuntime.MainLoopUpdateTasks.Enqueue(eventTask);
 
             
@@ -148,7 +148,7 @@ namespace Arterra.GamePlay.UI {
             lookDir = math.clamp(lookDir, -1f, 1f);
 
             RefTuple<(float, float)> cxt = (lookDir.y, -lookDir.x);
-            PlayerHandler.data.eventCtrl.RaiseEvent(GameEvent.Action_LookDirect, PlayerHandler.data.info.entityId, null, cxt);
+            PlayerHandler.data.eventCtrl.RaiseEvent(GameEvent.Action_LookDirect, PlayerHandler.data.info.rtEntityId, null, cxt);
 
             ArmorInventory.ArmorSlot[] ArmorSlots = playerArmor.Display;
             int selected = -1;

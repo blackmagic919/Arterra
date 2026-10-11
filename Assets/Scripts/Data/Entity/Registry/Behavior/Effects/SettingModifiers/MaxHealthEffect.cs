@@ -1,4 +1,5 @@
 using System;
+using Arterra.Core.Network;
 using Arterra.Editor;
 using Newtonsoft.Json;
 using Unity.Mathematics;
@@ -72,8 +73,7 @@ namespace Arterra.Data.Entity.Behavior {
         }
 
         public override void Update(BehaviorEntity.Animal self) {
-            if (self.context == BehaviorEntity.UpdateContext.JobSync) return;
-            if (self.context == BehaviorEntity.UpdateContext.Main) return;
+            if (self.context != BehaviorEntity.UpdateContext.Simulation) return;
 
             UpdateMaxHealthModifier();
             progress += self.DeltaTime;
@@ -92,9 +92,13 @@ namespace Arterra.Data.Entity.Behavior {
         }
 
         private void UpdateMaxHealthModifier() {
+            if (!NetworkManager.IsActingServer) return;
             if (maxHealthModifierId == Guid.Empty) return;
             if (!mod.TryGetModifier(maxHealthModifierId, out SettingModifier modifier)) return;
-            modifier.value = HealthMultiplier;
+            float value = HealthMultiplier;
+            if (modifier.value == value) return;
+            modifier.value = value;
+            mod.SetDirty(MSettings.MaxHealth, modifier.Id);
         }
     }
 }

@@ -25,20 +25,21 @@ namespace Arterra.Data.Entity.Behavior{
         const AudioEvents FlapWingsSFX = AudioEvents.Action_FlapWings;
 
         public override void Update(BehaviorEntity.Animal self) {
-            if (self.context == BehaviorEntity.UpdateContext.Job) return;
-            if (animator.GetCurrentAnimation() != settings.FlyingAnimatorParam) return;
+            bool flying = animator.GetCurrentAnimation() == settings.FlyingAnimatorParam;
+            bool ascending = flying && self.velocity.y >= -1E-4f;
+            if (self.ShouldUpdateAnimations())
+                animator.SetBool(settings.FlapWingsAnimatorParam, ascending);
+            if (self.context != BehaviorEntity.UpdateContext.Visual || !ascending || !CanReplayFlapSound()) return;
+            float weight = math.clamp(1.0f - math.exp(-0.1f * self.weight), 0.001f, 0.999f);
+            flapSound = self.controller?.gameObject != null
+                ? AudioManager.CreateEventAttached(FlapWingsSFX, self.controller.gameObject)
+                : AudioManager.CreateEvent(FlapWingsSFX, self.position);
+            if (flapSound.isValid()) flapSound.setParameterByName("weight", weight);
+        }
 
-            if (self.velocity.y >= -1E-4f) {
-                animator.SetBool(settings.FlapWingsAnimatorParam, true);
-                if (CanReplayFlapSound()) {
-                    float weight = math.clamp(1.0f - math.exp(-0.1f * self.weight), 0.001f, 0.999f);
-                    flapSound = self?.controller?.gameObject != null
-                        ? AudioManager.CreateEventAttached(FlapWingsSFX, self.controller.gameObject)
-                        : AudioManager.CreateEvent(FlapWingsSFX, self.position);
-                    if (flapSound.isValid())
-                        flapSound.setParameterByName("weight", weight);
-                }
-            } else animator.SetBool(settings.FlapWingsAnimatorParam, false);
+        public override void DisposeVisual(BehaviorEntity.Animal self) {
+            if (flapSound.isValid()) AudioManager.StopEvent(flapSound, false);
+            flapSound = default;
         }
 
         private bool CanReplayFlapSound() {

@@ -61,7 +61,7 @@ namespace Arterra.GamePlay.UI {
         public void Activate() {
             eventTask = new Core.ArterraRuntime.IndirectUpdate(Update);
             Core.ArterraRuntime.MainLoopUpdateTasks.Enqueue(eventTask);
-            PlayerHandler.data.eventCtrl.RaiseEvent(Core.Events.GameEvent.Action_OpenCrafting, PlayerHandler.data.info.entityId, null);
+            PlayerHandler.data.eventCtrl.RaiseEvent(Core.Events.GameEvent.Action_OpenCrafting, PlayerHandler.data.info.rtEntityId, null);
 
                 InputPoller.AddContextFence("PlayerCraft", "3.5::Window", ActionBind.Exclusion.None);
                 InputPoller.AddBinding(new ActionBind("Craft", CraftEntry), "PlayerCraft:CFT", "3.5::Window");
@@ -301,7 +301,7 @@ namespace Arterra.GamePlay.UI {
         for (int i = 0; i < itemCount; i++) {
             IItem item = (IItem)result.Clone();
             item.Create((int)recipe.result.Index, amount);
-            ec?.RaiseEvent(GameEvent.Action_CraftItem, ec is Arterra.Data.Entity.Entity entity ? entity.info.entityId : ec, item);
+            ec?.RaiseEvent(GameEvent.Action_CraftItem, ec is Arterra.Data.Entity.Entity entity ? entity.info.rtEntityId : ec, item);
             InventoryController.AddEntry(item);
 
             totalAmount -= amount;

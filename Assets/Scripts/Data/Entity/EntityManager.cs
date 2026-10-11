@@ -28,8 +28,8 @@ public static class EntityManager
     public static HashSet<Entity> EntityReg;
     public static Dictionary<Guid, int3> EntitySubCCoord; //Trakcs the last chunk coordinate the chunk pushed to listeners
     public static Dictionary<Guid, Entity> EntityIndex; //tracks location in handler of entityGUID
-    public static STree ESTree; //BVH of entities updated synchronously
     public static ConcurrentQueue<Action> HandlerEvents; //Buffered updates to modify entities(since it can't happen while job is executing)
+    public static STree ESTree; //BVH of entities updated synchronously
     public static Entity[] CurUpdateEntities;
     private static volatile EntityJob Executor; //Job that updates all entities
     const int MAX_ENTITY_COUNT = 10000; //10k ~ 5mb
@@ -39,10 +39,8 @@ public static class EntityManager
     }
 
     public static bool TryGetEntity(Guid identifier, out Entity entity){
-        if (EntityIndex.TryGetValue(identifier, out entity)) {
-            return true;
-        }
-        return false;
+        entity = null;
+        return EntityIndex != null && EntityIndex.TryGetValue(identifier, out entity);
     }
 
     public static void InitializeChunkEntity(GenPoint genInfo, int3 CCoord, byte cxt){
@@ -106,15 +104,10 @@ public static class EntityManager
     }
 
     public static async Task ReleaseChunkEntitiesAsync(int3 coordinate, bool save = true) {
+        CompleteJobs();
         if (ESTree.tree == null) return;
-        int size = Config.CURRENT.Quality.Terrain.value.mapChunkSize;
-        Bounds bounds = new(((float3)coordinate + 0.5f) * size, (float3)size);
-        var entities = new HashSet<Entity>();
-        ESTree.QueryExclusive(bounds, entity => {
-            if (entity == null || !TryGetEntity(entity.info.rtEntityId, out entity) || !entity.active) return;
-            if (PlayerHandler.data != null && entity.info.rtEntityId == PlayerHandler.data.info.rtEntityId) return;
-            entities.Add(entity);
-        });
+        var entities = GetChunkEntities(coordinate);
+        entities.RemoveAll(entity => entity.IsOwner || (!PlayerHandler.Players.IsEmpty && PlayerHandler.Players.Values.Contains(entity)));
         if (entities.Count != 0) {
             var released = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
             foreach (var entity in entities) ReleaseEntity(entity.info.rtEntityId);
@@ -122,43 +115,61 @@ public static class EntityManager
             AddHandlerEvent(() => released.TrySetResult(true));
             await released.Task;
         }
-        if (save) await Chunk.SaveEntitiesToJsonAsync(entities.ToList(), coordinate);
+        if (save) await Chunk.SaveEntitiesToJsonAsync(entities, coordinate);
     }
     public static void ReleaseE(Guid entityId){
         if(!EntityIndex.TryGetValue(entityId, out Entity entity))
             return;
 
         entity.active = false;
+        if (entity.IsAuthority && EntitySubCCoord.TryGetValue(entityId, out var coordinate)
+            && CPUMapManager.TryGetChunkInfo(coordinate, out var chunk)) {
+            foreach (var driver in chunk.Generation.GetDriverSet()) driver.Source.LeaveEntity(entityId);
+        }
         EntityReg.Remove(entity);
         EntityIndex.Remove(entityId);
         ESTree.Delete(entityId);
+        EntitySubCCoord.Remove(entityId);
         entity.Disable();
     }
 
     public static void InitializeE(Entity nEntity, float3 GCoord, uint entityIndex) {
         Authoring authoring = Config.CURRENT.Generation.Entities.Reg[(int)entityIndex];
         nEntity.info.rtEntityId = Guid.NewGuid();
-        nEntity.info.entityId = nEntity.info.rtEntityId;
         nEntity.info.entityType = entityIndex;
         nEntity.active = true;
 
+        EntityIndex.Add(nEntity.info.rtEntityId, nEntity);
         EntityReg.Add(nEntity);
-        if (EntityIndex.ContainsKey(nEntity.info.entityId)) Debug.Log($"Found entity with duplicate Ids {nEntity.info.entityId}");
-        EntityIndex[nEntity.info.entityId] = nEntity;
         nEntity.Initialize(authoring.Setting, authoring.Controller, GCoord);
+        nEntity.transform.Register(nEntity);
         ESTree.Insert(nEntity);
+        InitializeLocalVisual(nEntity);
     }
 
     public static void DeserializeE(Entity sEntity){
+        if (sEntity == null) throw new System.ArgumentNullException(nameof(sEntity));
+        if (sEntity.info.rtEntityId == Guid.Empty)
+            throw new ArgumentException("A loaded entity must have its shared runtime ID.", nameof(sEntity));
+        // Initial snapshots may overlap incremental enters. Never initialize a live ID twice.
+        if (EntityIndex.ContainsKey(sEntity.info.rtEntityId)) return;
         var reg = Config.CURRENT.Generation.Entities;
         Authoring authoring = reg.Retrieve((int)sEntity.info.entityType);
         sEntity.active = true;
 
+        EntityIndex.Add(sEntity.info.rtEntityId, sEntity);
         EntityReg.Add(sEntity);
-        if (EntityIndex.ContainsKey(sEntity.info.entityId)) Debug.Log($"Found entity with duplicate Ids {sEntity.info.entityId}");
-        EntityIndex[sEntity.info.entityId] = sEntity;
         sEntity.Deserialize(authoring.Setting, authoring.Controller, out _);
+        sEntity.transform.Register(sEntity);
         ESTree.Insert(sEntity);
+        InitializeLocalVisual(sEntity);
+    }
+
+    private static void InitializeLocalVisual(Entity entity) {
+        if (!entity.IsAuthority || (ChunkGenerationDriver.Local != null
+            && CPUMapManager.TryGetChunkInfo(GetChunkCoordinate(entity.position), out var chunk)
+            && chunk.Generation.GetDriverSet().Contains(ChunkGenerationDriver.Local)))
+            entity.InitializeVisual();
     }
     public static void DeserializeEntities(List<Entity> entities){
         if(entities == null) return;
@@ -246,8 +257,14 @@ public static class EntityManager
     public static void Release() {
         Executor?.Complete();
         foreach (Entity entity in EntityReg) {
+            entity.active = false;
             entity.Disable();
         }
+        EntitySubCCoord.Clear();
+        EntityIndex.Clear();
+        EntityReg.Clear();
+        HandlerEvents.Clear();
+        CurUpdateEntities = Array.Empty<Entity>();
         List<Authoring> EntityDictionary = Config.CURRENT.Generation.Entities.Reg;
         foreach (Authoring entity in EntityDictionary) entity.Setting.Unset();
     }
@@ -255,7 +272,7 @@ public static class EntityManager
     public static void FlushUpdateCycle() {
         while(HandlerEvents.TryDequeue(out Action action)){
             action.Invoke();
-        } HandlerEvents.Clear();
+        }
 
         if (EntityIndex.Count == 0) { CurUpdateEntities = Array.Empty<Entity>(); return; }
         CurUpdateEntities = EntityReg.ToArray();
@@ -274,17 +291,16 @@ public static class EntityManager
             hasPrev = false;
         else hasPrev = true;
 
-        int3 CCoord = CPUMapManager.GSToCS((int3)entity.position);
+        int3 CCoord = GetChunkCoordinate(entity.position);
         if (hasPrev && math.all(pCCoord == CCoord)) return;
-        EntitySubCCoord[entityId] = CCoord;
 
         HashSet<ChunkGenerationDriver> oldDrivers;
         HashSet<ChunkGenerationDriver> newDrivers;
         if (hasPrev && CPUMapManager.TryGetChunkInfo(pCCoord, out CPUMapManager.ChunkMapInfo info))
-            oldDrivers = info.Generation.Subscribers.Select(s => s.Driver).ToHashSet();
+            oldDrivers = info.Generation?.GetDriverSet() ?? new HashSet<ChunkGenerationDriver>();
         else oldDrivers = new HashSet<ChunkGenerationDriver>();
         if (CPUMapManager.TryGetChunkInfo(CCoord, out info)) 
-            newDrivers = info.Generation?.GetDriverSet();
+            newDrivers = info.Generation?.GetDriverSet() ?? new HashSet<ChunkGenerationDriver>();
         else newDrivers = new HashSet<ChunkGenerationDriver>();
 
         IEnumerable<ChunkGenerationDriver> enteringDrivers = newDrivers.Except(oldDrivers);
@@ -294,7 +310,22 @@ public static class EntityManager
         } foreach(ChunkGenerationDriver driver in leavingDrivers) {
             driver.Source.LeaveEntity(entityId);
         }
+        EntitySubCCoord[entityId] = CCoord;
+    }
 
+    public static int3 GetChunkCoordinate(float3 position) => CPUMapManager.GSToCS((int3)math.floor(position));
+
+    /// <summary>Fresh origin-based membership. Call only after completing entity jobs.</summary>
+    public static List<Entity> GetChunkEntities(int3 coordinate) {
+        int size = Config.CURRENT.Quality.Terrain.value.mapChunkSize;
+        var result = new HashSet<Entity>();
+        if (ESTree.tree == null) return new List<Entity>();
+        ESTree.QueryExclusive(new Bounds(((float3)coordinate + 0.5f) * size, (float3)size), candidate => {
+            // Spatial aliases resolve to their root before membership is checked.
+            if (candidate == null || !TryGetEntity(candidate.info.rtEntityId, out var entity) || !entity.active) return;
+            if (math.all(GetChunkCoordinate(entity.position) == coordinate)) result.Add(entity);
+        });
+        return result.ToList();
     }
 
     //More like a BVH, or a dynamic R-Tree
@@ -336,7 +367,7 @@ public static class EntityManager
 
         public void AssertEntityLocation(Entity entity){
             Bounds nBounds = new Bounds(entity.position, entity.transform.size);
-            AssertEntityLocation(entity.info.entityId, nBounds);
+            AssertEntityLocation(entity.info.rtEntityId, nBounds);
         }
 
         //We allow this option to support objects with multiple bounds
@@ -357,7 +388,7 @@ public static class EntityManager
         public void Insert(Entity entity){
             float3 colliderSize = entity.transform.size;
             Bounds eEBounds = new (entity.position, colliderSize);
-            Insert(eEBounds, entity.info.entityId);
+            Insert(eEBounds, entity.info.rtEntityId);
         }
 
         public void Insert(Bounds bounds, Guid eId){
@@ -469,7 +500,7 @@ public static class EntityManager
             if (node.IsLeaf) {
                 Entity entity = node.GetLeaf;
                 //We use entity.position because some entities could have multiple bounds
-                if (ContainsExclusive(bounds, entity.position))
+                if (entity != null && ContainsExclusive(bounds, entity.position))
                     action.Invoke(entity);
                 return;
             }
@@ -668,6 +699,7 @@ public class EntityJob : Arterra.Core.ArterraRuntime.IUpdateSubscriber{
         accumulatedTime = 0;
 
         EntityManager.FlushUpdateCycle();
+        if (!NetworkManager.IsActingServer) return;
         if (EntityManager.CurUpdateEntities == null || EntityManager.CurUpdateEntities.Length == 0) return;
         handle = cxt.Schedule(EntityManager.CurUpdateEntities.Length, 16);
         dispatched = true;
@@ -680,7 +712,7 @@ public class EntityJob : Arterra.Core.ArterraRuntime.IUpdateSubscriber{
         [ReadOnly] public float deltaTime;
         [ReadOnly] public float totDeltaTime;
         [ReadOnly] public int UpdateCount;
-        public unsafe void Execute(int index){
+        public void Execute(int index){
             Profiler.BeginSample(EntityManager.CurUpdateEntities[index].GetType().ToString());
             EntityManager.CurUpdateEntities[index].Update();
             Profiler.EndSample();

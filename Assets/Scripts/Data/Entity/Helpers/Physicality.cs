@@ -85,7 +85,7 @@ public class MinimalVitality {
     }
 
     public void ProcessInSolid(Entity self, float density) {
-        self.eventCtrl.RaiseEvent(GameEvent.Entity_InSolid, self.info.entityId, null, density);
+        self.eventCtrl.RaiseEvent(GameEvent.Entity_InSolid, self.info.rtEntityId, null, density);
         ProcessSuffocation(self, density);
     }
 
@@ -94,16 +94,16 @@ public class MinimalVitality {
         if (!self.Is(out IVitality target)) return;
         if (target.IsDead) return;
         self.eventCtrl.EnqueueEvent(GameEvent.Apply_Damage,
-            self.info.entityId, null, (density / 255.0f, float3.zero));
+            self.info.rtEntityId, null, (density / 255.0f, float3.zero));
     }
 
     public void ProcessInGas(Entity self, float density) {
-        self.eventCtrl.RaiseEvent(GameEvent.Entity_InGas, self.info.entityId, null, density);
+        self.eventCtrl.RaiseEvent(GameEvent.Entity_InGas, self.info.rtEntityId, null, density);
         breath = HoldBreathTime;
     }
 
     public void ProcessInLiquid(Entity self, ref TerrainCollider tCollider, float density) {
-        self.eventCtrl.RaiseEvent(GameEvent.Entity_InLiquid, self.info.entityId, null, density);
+        self.eventCtrl.RaiseEvent(GameEvent.Entity_InLiquid, self.info.rtEntityId, null, density);
         breath = math.max(breath - EntityJob.cxt.deltaTime, 0);
         tCollider.transform.velocity += EntityJob.cxt.deltaTime * -EntityJob.cxt.gravity;
         tCollider.SetGravityState(AquaticGravityStateName, TerrainCollider.GravityPriority.Environment, false);
@@ -207,10 +207,10 @@ public class MediumVitality : MinimalVitality {
         RefTuple<(float, float3)> cxt = (damage, knockback);
         self.eventCtrl.RaiseEvent(
             GameEvent.Entity_Attack,
-            self.info.entityId,
-            target.info.entityId, cxt
+            self.info.rtEntityId,
+            target.info.rtEntityId, cxt
         ); (damage, knockback) = cxt.Value;
         target.eventCtrl.EnqueueEvent(GameEvent.Apply_Damage,
-            target.info.entityId, self.info.entityId, (damage, knockback));
+            target.info.rtEntityId, self.info.rtEntityId, (damage, knockback));
     }
 }

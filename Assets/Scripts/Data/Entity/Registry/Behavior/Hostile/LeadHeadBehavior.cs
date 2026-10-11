@@ -101,7 +101,7 @@ namespace Arterra.Data.Entity.Behavior {
         }
 
         public override void Update(BehaviorEntity.Animal self) {
-            if (self.context == BehaviorEntity.UpdateContext.JobSync) return;
+            if (self.context != BehaviorEntity.UpdateContext.Simulation) return;
             BodyCollider.SetGravityState(BodyGravitySyncStateName, TerrainCollider.GravityPriority.Override, HeadCollider.UseGravity);
             HeadCollider.transform.rotation = BodyCollider.transform.rotation;
             switch (BodyCUpdate.settings.interactType) {
@@ -155,11 +155,13 @@ namespace Arterra.Data.Entity.Behavior {
         }
 
         public abstract class Appendage : Entity {
+            [JsonIgnore] private Guid spatialId;
             public TerrainCollider collider;
             [JsonIgnore] public AppendageSettings aSettings;
             [JsonIgnore] protected Transform Controller;
             [JsonIgnore] protected IRigConstraint constraint;
             [JsonIgnore] protected BehaviorEntity.Animal self;
+            [JsonIgnore] public override bool VisualActive => self?.VisualActive == true;
             protected bool visible;
             [JsonConstructor]
             public Appendage() {} //Newtonsoft path
@@ -186,8 +188,7 @@ namespace Arterra.Data.Entity.Behavior {
                 this.aSettings = settings;
                 visible = false;
 
-                this.info.entityId = Guid.NewGuid();
-                this.info.rtEntityId = animal.info.entityId;
+                this.info.rtEntityId = animal.info.rtEntityId;
                 this.info.entityType = animal.info.entityType;
                 this.self = animal;
 
@@ -207,16 +208,19 @@ namespace Arterra.Data.Entity.Behavior {
             }
 
             private void RegisterAppendage() {
-                if (!EntityManager.EntityIndex.TryAdd(info.entityId, this))
+                spatialId = Guid.NewGuid();
+                info.rtEntityId = self.info.rtEntityId;
+                active = true;
+                if (!EntityManager.EntityIndex.TryAdd(spatialId, this))
                     throw new Exception("Failed to register leg for entity");
                 Bounds bounds = new ((float3)collider.transform.position, collider.transform.size);
-                EntityManager.ESTree.Insert(bounds, info.entityId);
+                EntityManager.ESTree.Insert(bounds, spatialId);
             }
 
             public override void Update() {
                 EntityManager.AddHandlerEvent(() => {
                     Bounds bounds = new Bounds((float3)collider.transform.position, collider.transform.size);
-                    EntityManager.ESTree.AssertEntityLocation(info.entityId, bounds);  
+                    EntityManager.ESTree.AssertEntityLocation(spatialId, bounds);
                 });
                 this.collider.Update(self);
                 this.collider.EntityCollisionUpdate(self);
@@ -236,12 +240,13 @@ namespace Arterra.Data.Entity.Behavior {
                 } if (!visible) return;
             }
             public override void Disable() {
+                collider?.transform.Dispose();
                 this.self = null;
                 if (!active) return;
                 active = false;
 
-                EntityManager.EntityIndex.Remove(info.entityId);
-                EntityManager.ESTree.Delete(info.entityId);
+                EntityManager.EntityIndex.Remove(spatialId);
+                EntityManager.ESTree.Delete(spatialId);
             }
         }
 

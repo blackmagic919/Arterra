@@ -104,7 +104,8 @@ namespace Arterra.Data.Entity.Behavior {
         private StateMachineManagerBehavior manager;
         private readonly Dictionary<GameEvent, RefEventHandler> eventHandlers = new();
         private readonly Dictionary<EntitySMTasks, List<AnimalSoundBehaviorSettings.StateSound>> stateSoundRuntime = new();
-        private FMOD.Studio.EventInstance currentSound;
+        private readonly List<FMOD.Studio.EventInstance> playingSounds = new();
+        private FMOD.Studio.EventInstance currentSound => playingSounds.Count == 0 ? default : playingSounds[playingSounds.Count - 1];
         private bool pendingSound;
         private float stateSoundTimer;
 
@@ -118,7 +119,8 @@ namespace Arterra.Data.Entity.Behavior {
             hierarchy.TryAdd(typeof(AnimalSoundBehaviorSettings), new AnimalSoundBehaviorSettings());
         }
 
-        public override void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
+        public override void InitializeVisual(BehaviorEntity.Animal self) {
+            var setting = self.settings;
             if (!setting.Is(out settings))
                 throw new Exception("Entity: AnimalSoundBehavior requires AnimalSettings to have AnimalSoundBehaviorSettings");
             if (!self.Is(out manager))
@@ -127,30 +129,16 @@ namespace Arterra.Data.Entity.Behavior {
             this.self = self;
             lastState = manager.TaskIndex;
             pendingSound = false;
-            currentSound = default;
+            playingSounds.Clear();
             stateSoundTimer = self.random.NextFloat() * 1E5f;
             BuildStateRuntimeCache();
             RegisterEventHandlers();
         }
 
-        public override void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
-            if (!setting.Is(out settings))
-                throw new Exception("Entity: AnimalSoundBehavior requires AnimalSettings to have AnimalSoundBehaviorSettings");
-            if (!self.Is(out manager))
-                throw new Exception("Entity: AnimalSoundBehavior requires AnimalInstance to have StateMachineManagerBehavior");
 
-            this.self = self;
-            lastState = manager.TaskIndex;
-            pendingSound = false;
-            currentSound = default;
-            stateSoundTimer = self.random.NextFloat() * 1E5f;
-            BuildStateRuntimeCache();
-            RegisterEventHandlers();
-        }
 
         public override void Update(BehaviorEntity.Animal self) {
-            if (self.context == BehaviorEntity.UpdateContext.JobSync || self.context == BehaviorEntity.UpdateContext.Main)
-                return;
+            if (self.context != BehaviorEntity.UpdateContext.Visual) return;
             stateSoundTimer += self.DeltaTime;
 
             if (!stateSoundRuntime.TryGetValue(manager.TaskIndex, out List<AnimalSoundBehaviorSettings.StateSound> stateSounds)) {
@@ -179,13 +167,14 @@ namespace Arterra.Data.Entity.Behavior {
             }
         }
 
-        public override void Disable(BehaviorEntity.Animal self) {
+        public override void DisposeVisual(BehaviorEntity.Animal self) {
             RemoveEventHandlers();
+            ForceStopCurrentSound();
             stateSoundRuntime.Clear();
             this.self = null;
             manager = null;
             pendingSound = false;
-            currentSound = default;
+            playingSounds.Clear();
             lastState = EntitySMTasks.None;
         }
 
@@ -236,7 +225,7 @@ namespace Arterra.Data.Entity.Behavior {
         }
 
         private bool TryPlayEffect(AnimalSoundBehaviorSettings.SoundEffect effect) {
-            if (self == null || !self.active) return false;
+            if (self == null || !self.active || !self.VisualActive) return false;
             if (effect.sound == AudioEvents.None) return false;
 
             switch (settings.triggerMode) {
@@ -260,7 +249,7 @@ namespace Arterra.Data.Entity.Behavior {
                 pendingSound = true;
 
             EntityManager.AddHandlerEvent(() => {
-                if (self == null || !self.active) {
+                if (self == null || !self.active || !self.VisualActive) {
                     pendingSound = false;
                     return;
                 }
@@ -271,10 +260,9 @@ namespace Arterra.Data.Entity.Behavior {
                 else
                     e = AudioManager.CreateEvent(effect.sound, self.position);
 
-                if (memoize) {
-                    currentSound = e;
-                    pendingSound = false;
-                }
+                playingSounds.RemoveAll(sound => !sound.isValid());
+                playingSounds.Add(e);
+                if (memoize) pendingSound = false;
             });
 
             return true;
@@ -290,11 +278,9 @@ namespace Arterra.Data.Entity.Behavior {
         }
 
         private void ForceStopCurrentSound() {
-            if (!currentSound.isValid()) return;
-
-            AudioManager.StopEvent(currentSound, false);
+            foreach (var sound in playingSounds) AudioManager.StopEvent(sound, false);
             pendingSound = false;
-            currentSound = default;
+            playingSounds.Clear();
         }
     }
 }

@@ -105,18 +105,26 @@ namespace Arterra.Data.Entity.Behavior {
         /// <summary>Initializes root player behavior state for a newly created player entity.</summary>
         public override void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
             status = StreamingStatus.Live;
-            self.eventCtrl.AddEventHandler(GameEvent.Entity_Death, TriggerDetach);
+
         }
 
         /// <summary>Initializes root player behavior state for a deserialized player entity.</summary>
         public override void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
             status = StreamingStatus.Live;
-            self.eventCtrl.AddEventHandler(GameEvent.Entity_Death, TriggerDetach);
+
 
             if (self.Is(out VitalityBehavior vitality) && vitality.IsDead) {
-                self.eventCtrl.RaiseEvent(GameEvent.System_Deserialize, self.info.entityId, null);
+                self.eventCtrl.RaiseEvent(GameEvent.System_Deserialize, self.info.rtEntityId, null);
                 if (self.controller != null) SetLayerRecursively(self.controller.transform, LayerMask.NameToLayer("Default"));
             }
+        }
+
+        public override void InitializeVisual(BehaviorEntity.Animal self) {
+            if (self.IsOwner) self.eventCtrl.AddEventHandler(GameEvent.Entity_Death, TriggerDetach);
+        }
+
+        public override void DisposeVisual(BehaviorEntity.Animal self) {
+            self.eventCtrl.RemoveEventHandler(GameEvent.Entity_Death, TriggerDetach);
         }
 
         /// <summary>Disables root player behavior and clears active references.</summary>

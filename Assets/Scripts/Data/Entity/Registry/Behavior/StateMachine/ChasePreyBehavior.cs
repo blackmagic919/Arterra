@@ -144,8 +144,8 @@ namespace Arterra.Data.Entity.Behavior {
 
         //Task 4
         public override void Update(BehaviorEntity.Animal self) {
+            if (self.context != BehaviorEntity.UpdateContext.Simulation) return;
             if (manager.TaskIndex != settings.TaskName) return;
-            if (self.context == BehaviorEntity.UpdateContext.JobSync) return;
             if (notFoundCooldown > 0) notFoundCooldown -= self.DeltaTime;
             
             if (!settings.FindPreferredPreyEntity(self, consumables,

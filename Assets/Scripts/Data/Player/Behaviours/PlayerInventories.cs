@@ -82,8 +82,8 @@ namespace Arterra.Data.Entity.Behavior {
 			this.self = self;
 			self.Register(this);
 			EnsureInventories();
-			self.eventCtrl.AddEventHandler(GameEvent.Entity_Collect, HandleCollect);
-			self.eventCtrl.AddEventHandler(GameEvent.Entity_RecieveItem, ReceiveItem);
+			if (self.IsAuthority) self.eventCtrl.AddEventHandler(GameEvent.Entity_Collect, HandleCollect);
+			if (self.IsAuthority) self.eventCtrl.AddEventHandler(GameEvent.Entity_RecieveItem, ReceiveItem);
 
 		}
 
@@ -94,8 +94,8 @@ namespace Arterra.Data.Entity.Behavior {
 			this.self = self;
 			self.Register(this);
 			EnsureInventories();
-			self.eventCtrl.AddEventHandler(GameEvent.Entity_Collect, HandleCollect);
-			self.eventCtrl.AddEventHandler(GameEvent.Entity_RecieveItem, ReceiveItem);
+			if (self.IsAuthority) self.eventCtrl.AddEventHandler(GameEvent.Entity_Collect, HandleCollect);
+			if (self.IsAuthority) self.eventCtrl.AddEventHandler(GameEvent.Entity_RecieveItem, ReceiveItem);
 		}
 
 		public override void Disable(BehaviorEntity.Animal self) {
@@ -134,9 +134,9 @@ namespace Arterra.Data.Entity.Behavior {
 			amount *= RecoverSpeedMultiplier;
 
 			if (PrimaryI.EntryDict.Count > 0) receiver.eventCtrl.EnqueueEvent(
-                GameEvent.Entity_RecieveItem, self.info.entityId, receiverId, PrimaryI.LootInventory(amount));
+                GameEvent.Entity_RecieveItem, self.info.rtEntityId, receiverId, PrimaryI.LootInventory(amount));
 			if (SecondaryI.EntryDict.Count > 0) receiver.eventCtrl.EnqueueEvent(
-                GameEvent.Entity_RecieveItem, self.info.entityId, receiverId, SecondaryI.LootInventory(amount));
+                GameEvent.Entity_RecieveItem, self.info.rtEntityId, receiverId, SecondaryI.LootInventory(amount));
 		}
 	}
 }

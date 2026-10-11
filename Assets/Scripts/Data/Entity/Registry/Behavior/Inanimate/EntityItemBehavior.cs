@@ -54,7 +54,7 @@ namespace Arterra.Data.Entity.Behavior {
 
             if (item.Value.AmountRaw <= 0) item.Value = null;
             target.eventCtrl.EnqueueEvent(GameEvent.Entity_RecieveItem,
-                self.info.entityId, target.info.entityId, ret);
+                self.info.rtEntityId, target.info.rtEntityId, ret);
             TryReleaseIfEmpty();
             return true;
         }
@@ -78,9 +78,9 @@ namespace Arterra.Data.Entity.Behavior {
                 Item.Create(rItems.RetrieveIndex(settings.DefaultItem), Item.UnitSize);
             }
 
-            self.eventCtrl.AddEventHandler(GameEvent.Entity_Collect, OnCollectedFrom);
-            self.eventCtrl.AddEventHandler(GameEvent.Entity_AttemptMerge, OnAttemptMerge);
-            self.eventCtrl.AddEventHandler(GameEvent.Entity_MergeAbsorb, OnMergedWith);
+            if (self.IsAuthority) self.eventCtrl.AddEventHandler(GameEvent.Entity_Collect, OnCollectedFrom);
+            if (self.IsAuthority) self.eventCtrl.AddEventHandler(GameEvent.Entity_AttemptMerge, OnAttemptMerge);
+            if (self.IsAuthority) self.eventCtrl.AddEventHandler(GameEvent.Entity_MergeAbsorb, OnMergedWith);
 
             self.Register<IEntitySearchItem>(this);
             self.Register<IDecaying>(this);
@@ -92,15 +92,15 @@ namespace Arterra.Data.Entity.Behavior {
 
             this.self = self;
             decomposition = math.min(settings.DecayTime, decomposition);
-            self.eventCtrl.AddEventHandler(GameEvent.Entity_Collect, OnCollectedFrom);
-            self.eventCtrl.AddEventHandler(GameEvent.Entity_AttemptMerge, OnAttemptMerge);
-            self.eventCtrl.AddEventHandler(GameEvent.Entity_MergeAbsorb, OnMergedWith);
+            if (self.IsAuthority) self.eventCtrl.AddEventHandler(GameEvent.Entity_Collect, OnCollectedFrom);
+            if (self.IsAuthority) self.eventCtrl.AddEventHandler(GameEvent.Entity_AttemptMerge, OnAttemptMerge);
+            if (self.IsAuthority) self.eventCtrl.AddEventHandler(GameEvent.Entity_MergeAbsorb, OnMergedWith);
             self.Register<IEntitySearchItem>(this);
             self.Register<IDecaying>(this);
         }
 
         public override void Update(BehaviorEntity.Animal self) {
-            if (self.context == BehaviorEntity.UpdateContext.JobSync) return;
+            if (self.context != BehaviorEntity.UpdateContext.Simulation) return;
             if (TryReleaseIfEmpty()) return;
 
             decomposition -= self.DeltaTime;
@@ -172,7 +172,7 @@ namespace Arterra.Data.Entity.Behavior {
             if (item.Value != null && item.Value.AmountRaw > 0) return false;
 
             item.Value = null;
-            EntityManager.ReleaseEntity(self.info.entityId);
+            EntityManager.ReleaseEntity(self.info.rtEntityId);
             return true;
         }
     }

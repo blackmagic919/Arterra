@@ -42,16 +42,16 @@ namespace Arterra.Data.Entity.Behavior {
             RefTuple<float> cxt = settings.AttackDuration;
             self.eventCtrl.RaiseEvent(
                 GameEvent.Entity_ReadyAttack,
-                self.info.entityId, target.info.entityId, cxt
+                self.info.rtEntityId, target.info.rtEntityId, cxt
             ); 
             attackProgress = cxt.Value;
-            AttackTarget = target.info.entityId;
+            AttackTarget = target.info.rtEntityId;
             AttackInProgress = true;
             return true;
         }
 
         public override void Update(BehaviorEntity.Animal self) {
-            if (self.context == BehaviorEntity.UpdateContext.JobSync) return;
+            if (self.context != BehaviorEntity.UpdateContext.Simulation) return;
             attackCooldown = math.max(attackCooldown - self.DeltaTime, 0);
             if (!AttackInProgress) return;
             attackProgress = math.max(attackProgress - self.DeltaTime, 0);
@@ -78,12 +78,12 @@ namespace Arterra.Data.Entity.Behavior {
             RefTuple<(float, float3)> cxt = (damage, knockback);
             self.eventCtrl.RaiseEvent(
                 GameEvent.Entity_Attack,
-                self.info.entityId, target.info.entityId, cxt
+                self.info.rtEntityId, target.info.rtEntityId, cxt
             ); (damage, knockback) = cxt.Value;
             target.eventCtrl.EnqueueEvent(
                 GameEvent.Apply_Damage,
-                target.info.entityId,
-                self.info.entityId,
+                target.info.rtEntityId,
+                self.info.rtEntityId,
                 (damage, knockback)
             );
         }
@@ -91,8 +91,8 @@ namespace Arterra.Data.Entity.Behavior {
         public static void RealAttackIndirect(Entity self, Entity target, float damage, float3 knockback) {
             target.eventCtrl.EnqueueEvent(
                 GameEvent.Apply_Damage,
-                target.info.entityId,
-                self.info.entityId,
+                target.info.rtEntityId,
+                self.info.rtEntityId,
                 (damage, knockback)
             );
         }

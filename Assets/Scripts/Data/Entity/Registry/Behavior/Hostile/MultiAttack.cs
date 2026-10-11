@@ -78,7 +78,7 @@ namespace Arterra.Data.Entity.Behavior {
         }
 
         public override void Update(BehaviorEntity.Animal self) {
-            if (self.context == BehaviorEntity.UpdateContext.Job) return;
+            if (self.context != BehaviorEntity.UpdateContext.Sync) return;
             if(animated == null || attack == null) return;
             
             if (!attack.AttackInProgress) PlayingAttack = false;
@@ -99,8 +99,8 @@ namespace Arterra.Data.Entity.Behavior {
                 throw new System.Exception("Entity: MultiAttack Behavior Requires AnimalSettings to have MultiAttackSettings");
             if (!self.Is(out animated)) animated = null;
             if (!self.Is(out attack)) attack = null;
-            self.eventCtrl.AddEventHandler(GameEvent.Entity_ReadyAttack, OnPrepareAttack);
-            self.eventCtrl.AddEventHandler(GameEvent.Entity_Attack, OnAttack);
+            if (self.IsAuthority) self.eventCtrl.AddEventHandler(GameEvent.Entity_ReadyAttack, OnPrepareAttack);
+            if (self.IsAuthority) self.eventCtrl.AddEventHandler(GameEvent.Entity_Attack, OnAttack);
             SelectedAttack = -1;
             PlayingAttack = false;
         }
@@ -110,8 +110,8 @@ namespace Arterra.Data.Entity.Behavior {
                 throw new System.Exception("Entity: MultiAttack Behavior Requires AnimalSettings to have MultiAttackSettings");
             if (!self.Is(out animated)) animated = null;
             if (!self.Is(out attack)) attack = null;
-            self.eventCtrl.AddEventHandler(GameEvent.Entity_ReadyAttack, OnPrepareAttack);
-            self.eventCtrl.AddEventHandler(GameEvent.Entity_Attack, OnAttack);
+            if (self.IsAuthority) self.eventCtrl.AddEventHandler(GameEvent.Entity_ReadyAttack, OnPrepareAttack);
+            if (self.IsAuthority) self.eventCtrl.AddEventHandler(GameEvent.Entity_Attack, OnAttack);
             PlayingAttack = false;
         }
     }

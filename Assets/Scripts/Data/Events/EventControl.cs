@@ -53,6 +53,8 @@ namespace Arterra.Core.Events {
         Entity_TouchMatLiquid = GameEventBases.Entity_Base + 31,
         Entity_DamageIndication = GameEventBases.Entity_Base + 32,
         Entity_CanMount = GameEventBases.Entity_Base + 33,
+        Entity_AddModifier = GameEventBases.Entity_Base + 34,
+        Entity_RemoveModifier = GameEventBases.Entity_Base + 35,
 
         
         Item_ConsumeFood = GameEventBases.Item_Base + 0,

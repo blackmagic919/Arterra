@@ -47,10 +47,7 @@ namespace Arterra.Data.Entity.Behavior {
         public void MultiplyFrictionNonPersisted(float value) => friction *= value;
 
         public override void Update(BehaviorEntity.Animal self) {
-            if (self.context == BehaviorEntity.UpdateContext.JobSync)
-                return;
-            if (self.context == BehaviorEntity.UpdateContext.Main)
-                return;
+            if (self.context != BehaviorEntity.UpdateContext.Simulation) return;
             
             switch (Interaction) {
                 case ColliderUpdateSettings.InteractType.Regular:

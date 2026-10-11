@@ -91,7 +91,7 @@ namespace Arterra.Data.Entity.Behavior {
 
             
             this.self = self;
-            self.eventCtrl.AddEventHandler(GameEvent.Entity_Interact,
+            if (self.IsAuthority) self.eventCtrl.AddEventHandler(GameEvent.Entity_Interact,
                 OnInteracted, EventHandlePriority.Override2);
         }
         
@@ -107,7 +107,7 @@ namespace Arterra.Data.Entity.Behavior {
 
             
             this.self = self;
-            self.eventCtrl.AddEventHandler(GameEvent.Entity_Interact, 
+            if (self.IsAuthority) self.eventCtrl.AddEventHandler(GameEvent.Entity_Interact,
                 OnInteracted, EventHandlePriority.Override2);
         }
         

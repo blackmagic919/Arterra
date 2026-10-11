@@ -37,7 +37,7 @@ namespace Arterra.Data.Item
         public override void OnEnter(ItemContext cxt) {
             if (cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
             if (cxt.TryGetHolder(out IEventControlled effect) && settings.Model.Enabled) 
-                effect.RaiseEvent(GameEvent.Item_HoldTool, effect is Entity.Entity ? ((Entity.Entity)effect).info.entityId : effect, this, ref settings.Model.Value);
+                effect.RaiseEvent(GameEvent.Item_HoldTool, effect is Entity.Entity ? ((Entity.Entity)effect).info.rtEntityId : effect, this, ref settings.Model.Value);
             Core.ArterraRuntime.MainLoopUpdateTasks.Enqueue(this);
             this.active = true; this.cxt = cxt;
             
@@ -52,7 +52,7 @@ namespace Arterra.Data.Item
         public override void OnLeave(ItemContext cxt) {
             if (cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
             if (cxt.TryGetHolder(out IEventControlled effect) && settings.Model.Enabled) 
-                effect.RaiseEvent(GameEvent.Item_UnholdTool, effect is Entity.Entity ? ((Entity.Entity)effect).info.entityId : effect, this, ref settings.Model.Value);
+                effect.RaiseEvent(GameEvent.Item_UnholdTool, effect is Entity.Entity ? ((Entity.Entity)effect).info.rtEntityId : effect, this, ref settings.Model.Value);
             this.active = false;
             this.cxt = null;
             
@@ -94,7 +94,7 @@ namespace Arterra.Data.Item
                 * interact.settings.ReachDistance;
 
             if (settings.OnUseAnim.Enabled && player is IEventControlled effectable)
-                effectable.RaiseEvent(GameEvent.Item_UseTool, player.info.entityId, this, ref settings.OnUseAnim.Value);
+                effectable.RaiseEvent(GameEvent.Item_UseTool, player.info.rtEntityId, this, ref settings.OnUseAnim.Value);
                     
             if (interact.RayTestSolid(out float3 terrHit)) hitPt = terrHit;
             if (!EntityManager.ESTree.FindClosestAlongRay(player.head, hitPt, player.info.rtEntityId, out Entity.Entity entity, out _))
@@ -110,7 +110,7 @@ namespace Arterra.Data.Item
                     atkDmg *= settings.CritMultiplier;
 
                 target.eventCtrl.EnqueueEvent(GameEvent.Apply_Damage,
-                    target.info.entityId, player.info.entityId, (atkDmg, knockback));
+                    target.info.rtEntityId, player.info.rtEntityId, (atkDmg, knockback));
                 durability--;
             
                 if (durability > 0) return;

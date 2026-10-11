@@ -34,8 +34,8 @@ namespace Arterra.Data.Entity.Behavior {
         private float AverageIdleTime => Modifier.Get(mod, MSettings.AverageIdleTime, settings.AverageIdleTime);
         private float AverageIdleVariance => Modifier.Get(mod, MSettings.AverageIdleVariance, settings.AverageIdleVariance);
         public override void Update(BehaviorEntity.Animal self) {
+            if (self.context != BehaviorEntity.UpdateContext.Simulation) return;
             if (manager.TaskIndex != settings.TaskName) return;
-            if (self.context == BehaviorEntity.UpdateContext.JobSync) return;
             
             if (manager.TaskDuration <= 0) manager.Transition(settings.OnCompleteTransition);
             if (settings.CheckTransitions.value == null) return;

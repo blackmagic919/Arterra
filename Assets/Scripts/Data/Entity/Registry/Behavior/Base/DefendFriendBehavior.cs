@@ -80,7 +80,7 @@ public class DefendFriendBehavior : SpeciesBehavior {
         if (!self.Is(out vit)) vit = null;
         if (!self.Is(out mod)) mod = null;
 
-        self.eventCtrl.AddEventHandler(GameEvent.Entity_Damaged, OnAttacked);
+        if (self.IsAuthority) self.eventCtrl.AddEventHandler(GameEvent.Entity_Damaged, OnAttacked);
     }
     
     public override void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
@@ -93,7 +93,7 @@ public class DefendFriendBehavior : SpeciesBehavior {
         if (!self.Is(out vit)) vit = null;
         if (!self.Is(out mod)) mod = null;
 
-        self.eventCtrl.AddEventHandler(GameEvent.Entity_Damaged, OnAttacked);
+        if (self.IsAuthority) self.eventCtrl.AddEventHandler(GameEvent.Entity_Damaged, OnAttacked);
     }
 }
 }

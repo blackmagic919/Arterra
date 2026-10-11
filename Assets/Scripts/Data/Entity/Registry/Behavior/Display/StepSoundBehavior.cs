@@ -40,7 +40,8 @@ namespace Arterra.Data.Entity.Behavior {
             hierarchy.TryAdd(typeof(StepSoundBehaviorSettings), new StepSoundBehaviorSettings());
         }
 
-        public override void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
+        public override void InitializeVisual(BehaviorEntity.Animal self) {
+            var setting = self.settings;
             if (!setting.Is(out settings))
                 throw new Exception("Entity: StepSoundBehavior requires AnimalSettings to have StepSoundBehaviorSettings");
                 
@@ -50,26 +51,17 @@ namespace Arterra.Data.Entity.Behavior {
             HookStepEvents();
         }
 
-        public override void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
-            if (!setting.Is(out settings))
-                throw new Exception("Entity: StepSoundBehavior requires AnimalSettings to have StepSoundBehaviorSettings");
-            
-            this.self = self;
-            lastPosition = self.position;
-            distFromLastStep = 0f;
-            HookStepEvents();
-        }
+
 
         public override void Update(BehaviorEntity.Animal self) {
-            if (self.context == BehaviorEntity.UpdateContext.JobSync || 
-                self.context == BehaviorEntity.UpdateContext.Main) return;
+            if (self.context != BehaviorEntity.UpdateContext.Visual) return;
 
             float frameDistance = math.distance(lastPosition, self.position);
             distFromLastStep += frameDistance;
             lastPosition = self.position;
         }
 
-        public override void Disable(BehaviorEntity.Animal self) {
+        public override void DisposeVisual(BehaviorEntity.Animal self) {
             self.eventCtrl.RemoveEventHandler(GameEvent.Entity_TouchMatSolid, OnTouchMaterial);
             self.eventCtrl.RemoveEventHandler(GameEvent.Entity_TouchMatLiquid, OnTouchMaterial);
             this.self = null;
@@ -94,7 +86,7 @@ namespace Arterra.Data.Entity.Behavior {
             EntityManager.AddHandlerEvent(TryPlayStep);
 
             void TryPlayStep() {
-                if (self == null || !self.active) return;
+                if (self == null || !self.active || !self.VisualActive) return;
                 float weight = math.clamp(1.0f - math.exp(-0.01f * self.weight), 0.0f, 0.999f);
                 if (contactEvent != AudioEvents.None) {
                     FMOD.Studio.EventInstance e = AudioManager.CreateEvent(contactEvent, self.position);

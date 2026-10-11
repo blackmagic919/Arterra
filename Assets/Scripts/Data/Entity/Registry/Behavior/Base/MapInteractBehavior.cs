@@ -4,6 +4,7 @@ using System.Diagnostics;
 using Arterra.GamePlay.Interaction;
 using Arterra.Utils;
 using Newtonsoft.Json;
+using Arterra.Core.Network;
 using Unity.Mathematics;
 
 namespace Arterra.Data.Entity.Behavior {
@@ -40,20 +41,19 @@ namespace Arterra.Data.Entity.Behavior {
         private Modifier mod;
         private VitalityBehavior vitality;
 
-        private float maxHoldBreathTime => Modifier.Get(mod, MSettings.HoldBreathTime, settings.HoldBreathTime);
-        [JsonIgnore] public float breathPercent => breath / maxHoldBreathTime;
+        [JsonProperty] private NetworkVariable<float> netBreath = new("Breath", NetworkPermission.Server);
+        [JsonIgnore] public float MaxBreath => Modifier.Get(mod, MSettings.HoldBreathTime, settings.HoldBreathTime);
+        [JsonIgnore] public float breathPercent => breath / MaxBreath;
         public const float FallDmgThresh = 10;
-        public float breath;
+        [JsonIgnore] public float breath { get => netBreath.Value; set => netBreath.Value = value; }
 
 
         public void SetInteractionType(MapInteractorSettings.InteractType type) => Interaction = type;
         public void ResetInteractionType() => Interaction = settings.interactType;
 
         public override void Update(BehaviorEntity.Animal self) {
-            if (self.context == BehaviorEntity.UpdateContext.JobSync)
-                return;
-            if (self.context == BehaviorEntity.UpdateContext.Main)
-                return;
+            if (self.context != BehaviorEntity.UpdateContext.Simulation) return;
+
 
             switch (Interaction) {
                 case MapInteractorSettings.InteractType.Terrestrial:
@@ -85,7 +85,7 @@ namespace Arterra.Data.Entity.Behavior {
 
         public void ProcessInSolid(BehaviorEntity.Animal self, float density) {
             self.Collider.RemoveGravityState(LiquidGravityStateName);
-            self.eventCtrl.RaiseEvent(Core.Events.GameEvent.Entity_InSolid, self.info.entityId, null, density);
+            self.eventCtrl.RaiseEvent(Core.Events.GameEvent.Entity_InSolid, self.info.rtEntityId, null, density);
             ProcessSuffocation(self, density);
         }
 
@@ -93,17 +93,17 @@ namespace Arterra.Data.Entity.Behavior {
             if (density <= 0) return;
             if (self.Is(out IVitality target) && target.IsDead)
                 return;
-            self.eventCtrl.RaiseEvent(Core.Events.GameEvent.Apply_Damage, self.info.entityId, null, (density / 255.0f, float3.zero));
+            self.eventCtrl.RaiseEvent(Core.Events.GameEvent.Apply_Damage, self.info.rtEntityId, null, (density / 255.0f, float3.zero));
         }
 
         public void ProcessInGas(BehaviorEntity.Animal self, float density) {
             self.Collider.RemoveGravityState(LiquidGravityStateName);
-            self.eventCtrl.RaiseEvent(Core.Events.GameEvent.Entity_InGas, self.info.entityId, null, density);
-            breath = maxHoldBreathTime;
+            self.eventCtrl.RaiseEvent(Core.Events.GameEvent.Entity_InGas, self.info.rtEntityId, null, density);
+            breath = MaxBreath;
         }
 
         public void ProcessInLiquid(BehaviorEntity.Animal self, TerrainCollider tCollider, float density) {
-            self.eventCtrl.RaiseEvent(Core.Events.GameEvent.Entity_InLiquid, self.info.entityId, null, density);
+            self.eventCtrl.RaiseEvent(Core.Events.GameEvent.Entity_InLiquid, self.info.rtEntityId, null, density);
             breath = math.max(breath - self.DeltaTime, 0);
             tCollider.transform.velocity += self.DeltaTime * settings.Bouyancy * -EntityJob.cxt.gravity;
             tCollider.SetGravityState(LiquidGravityStateName, TerrainCollider.GravityPriority.Environment, false);
@@ -114,7 +114,7 @@ namespace Arterra.Data.Entity.Behavior {
         }
 
         public void ProcessInLiquidAquatic(BehaviorEntity.Animal self, TerrainCollider tCollider, float density) {
-            self.eventCtrl.RaiseEvent(Core.Events.GameEvent.Entity_InLiquid, self.info.entityId, null, density);
+            self.eventCtrl.RaiseEvent(Core.Events.GameEvent.Entity_InLiquid, self.info.rtEntityId, null, density);
             breath = math.max(breath - self.DeltaTime, 0);
             tCollider.SetGravityState(LiquidGravityStateName, TerrainCollider.GravityPriority.Environment, false);
 
@@ -129,13 +129,13 @@ namespace Arterra.Data.Entity.Behavior {
 
         public void ProcessInGasAquatic(BehaviorEntity.Animal self, TerrainCollider tCollider, float density) {
             tCollider.RemoveGravityState(LiquidGravityStateName);
-            self.eventCtrl.RaiseEvent(Core.Events.GameEvent.Entity_InGas, self.info.entityId, null, density);
-            breath = maxHoldBreathTime;
+            self.eventCtrl.RaiseEvent(Core.Events.GameEvent.Entity_InGas, self.info.rtEntityId, null, density);
+            breath = MaxBreath;
         }
 
         public void ProcessInSolidSubterraneal(BehaviorEntity.Animal self, float density) {
             self.Collider.RemoveGravityState(LiquidGravityStateName);
-            self.eventCtrl.RaiseEvent(Core.Events.GameEvent.Entity_InSolid, self.info.entityId, null, density);
+            self.eventCtrl.RaiseEvent(Core.Events.GameEvent.Entity_InSolid, self.info.rtEntityId, null, density);
             //Just don't take damage
         }
 
@@ -151,7 +151,7 @@ namespace Arterra.Data.Entity.Behavior {
 
             if (srcId is not Guid sourceId) return;
             if (!EntityManager.TryGetEntity(sourceId, out Entity self)) return;
-            self.eventCtrl.RaiseEvent(Core.Events.GameEvent.Apply_Damage, self.info.entityId, null, (damage, float3.zero));
+            self.eventCtrl.RaiseEvent(Core.Events.GameEvent.Apply_Damage, self.info.rtEntityId, null, (damage, float3.zero));
         }
 
         public override void AddBehaviorDependencies(Dictionary<Behaviors, int> heirarchy) {
@@ -168,8 +168,9 @@ namespace Arterra.Data.Entity.Behavior {
             if (!self.Is(out vitality))
                 throw new System.Exception("Entity: MapInteractBehavior Requires AnimalSettings to have VitalityBehavior");
             if (!self.Is(out mod)) mod = null;
-            breath = maxHoldBreathTime;
-            if (settings.UseFallDamage) self.eventCtrl.AddEventHandler(Core.Events.GameEvent.Entity_HitGround, ProcessFallDamage);
+            breath = MaxBreath;
+            if (self.IsAuthority && settings.UseFallDamage) self.eventCtrl.AddEventHandler(Core.Events.GameEvent.Entity_HitGround, ProcessFallDamage);
+            netBreath.Register(self);
             ResetInteractionType();
         }
 
@@ -179,8 +180,14 @@ namespace Arterra.Data.Entity.Behavior {
             if (!self.Is(out vitality))
                 throw new System.Exception("Entity: MapInteractBehavior Requires AnimalSettings to have VitalityBehavior");
             if (!self.Is(out mod)) mod = null;
-            if (settings.UseFallDamage) self.eventCtrl.AddEventHandler(Core.Events.GameEvent.Entity_HitGround, ProcessFallDamage);
+            if (self.IsAuthority && settings.UseFallDamage) self.eventCtrl.AddEventHandler(Core.Events.GameEvent.Entity_HitGround, ProcessFallDamage);
+            netBreath.Register(self);
             ResetInteractionType();
+        }
+
+        public override void Disable(BehaviorEntity.Animal self) {
+            self.eventCtrl.RemoveEventHandler(Core.Events.GameEvent.Entity_HitGround, ProcessFallDamage);
+            netBreath?.Dispose();
         }
 
         

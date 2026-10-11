@@ -60,7 +60,7 @@ namespace Arterra.Data.Entity.Behavior {
         }
 
         public override void Update(BehaviorEntity.Animal self) {
-            if (self.context == BehaviorEntity.UpdateContext.JobSync) return;
+            if (self.context != BehaviorEntity.UpdateContext.Simulation) return;
 
             if (!vitality.IsDead) {
                 exploded = false;
@@ -70,7 +70,7 @@ namespace Arterra.Data.Entity.Behavior {
             exploded = true;
 
             float3 dropPosition = self.position;
-            EntityManager.ReleaseEntity(self.info.entityId);
+            EntityManager.ReleaseEntity(self.info.rtEntityId);
             DropAllDecompositionEntries(dropPosition);
         }
 

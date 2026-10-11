@@ -86,7 +86,7 @@ namespace Arterra.Data.Item
             durability = 100;
             if (cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
             if (cxt.TryGetHolder(out IEventControlled effect) && settings.Model.Enabled) 
-                effect.RaiseEvent(GameEvent.Item_HoldTool, effect is Entity.Entity ? ((Entity.Entity)effect).info.entityId : effect, this, ref settings.Model.Value);
+                effect.RaiseEvent(GameEvent.Item_HoldTool, effect is Entity.Entity ? ((Entity.Entity)effect).info.rtEntityId : effect, this, ref settings.Model.Value);
             
                 InputPoller.AddBinding(new ActionBind(
                     "BowDraw", _ => StartDrawingRod(cxt),
@@ -101,7 +101,7 @@ namespace Arterra.Data.Item
         public virtual void OnLeave(ItemContext cxt) {
             if (cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
             if (cxt.TryGetHolder(out IEventControlled effect) && settings.Model.Enabled)
-                effect.RaiseEvent(GameEvent.Item_UnholdTool, effect is Entity.Entity ? ((Entity.Entity)effect).info.entityId : effect, this, ref settings.Model.Value);
+                effect.RaiseEvent(GameEvent.Item_UnholdTool, effect is Entity.Entity ? ((Entity.Entity)effect).info.rtEntityId : effect, this, ref settings.Model.Value);
             
             if(line != null){
                 if(line.Active) TryRecollectBait(cxt, line);
@@ -113,7 +113,7 @@ namespace Arterra.Data.Item
             InputPoller.RemoveBinding("ITEM:FishingRod:REEL", "5.0::GamePlay");
             InputPoller.RemoveBinding("ITEM:FishingRod:RLS", "5.0::GamePlay");
             if (cxt.TryGetHolder(out effect))
-                effect.RaiseEvent(GameEvent.Item_ReleaseBow, effect is Entity.Entity ? ((Entity.Entity)effect).info.entityId : effect, this);
+                effect.RaiseEvent(GameEvent.Item_ReleaseBow, effect is Entity.Entity ? ((Entity.Entity)effect).info.rtEntityId : effect, this);
             
         }
 
@@ -144,7 +144,7 @@ namespace Arterra.Data.Item
             if (line != null && line.Active) return;
 
             if (cxt.TryGetHolder(out IEventControlled effect))
-                effect.RaiseEvent(GameEvent.Item_DrawRod, effect is Entity.Entity ? ((Entity.Entity)effect).info.entityId : effect, this);
+                effect.RaiseEvent(GameEvent.Item_DrawRod, effect is Entity.Entity ? ((Entity.Entity)effect).info.rtEntityId : effect, this);
             drawTime += Time.deltaTime;
         }
 
@@ -157,7 +157,7 @@ namespace Arterra.Data.Item
             float launchSpeed = Mathf.Lerp(settings.MinLaunchSpeed, settings.MaxLaunchSpeed, drawPercent);
             if (!CastHook(cxt, launchSpeed)) return;
             if (cxt.TryGetHolder(out Entity.Entity effect)) {
-                effect.eventCtrl.RaiseEvent(GameEvent.Item_ReleaseRod, effect.info.entityId, this);
+                effect.eventCtrl.RaiseEvent(GameEvent.Item_ReleaseRod, effect.info.rtEntityId, this);
             }
 
             durability -= 1.0f;
@@ -241,7 +241,7 @@ namespace Arterra.Data.Item
                 return false;
             foreach(IItem item in eItem.GetItems())
                 inv.AddStackable(item);   
-            EntityManager.ReleaseEntity(line.HookingEntity.info.entityId);
+            EntityManager.ReleaseEntity(line.HookingEntity.info.rtEntityId);
             return true;
         }
 

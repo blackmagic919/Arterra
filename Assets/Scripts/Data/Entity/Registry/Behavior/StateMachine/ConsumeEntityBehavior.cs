@@ -37,8 +37,8 @@ namespace Arterra.Data.Entity.Behavior {
         private Modifier mod;
         
         public override void Update(BehaviorEntity.Animal self) {
+            if (self.context != BehaviorEntity.UpdateContext.Simulation) return;
             if (manager.TaskIndex != settings.TaskName) return;
-            if (self.context == BehaviorEntity.UpdateContext.JobSync) return;
             
             if (!EntityManager.TryGetEntity(manager.TaskTarget, out Entity target)) {
                 manager.TaskTarget = Guid.Empty;
@@ -66,7 +66,7 @@ namespace Arterra.Data.Entity.Behavior {
 
         public void ConsumeTarget(Entity target, BehaviorEntity.Animal self) {
             target.eventCtrl.EnqueueEvent(GameEvent.Apply_Collect,
-                self.info.entityId, target.info.entityId, consume.ConsumptionRate);
+                self.info.rtEntityId, target.info.rtEntityId, consume.ConsumptionRate);
         }
 
         private void ReceiveItem(object source, object target, object context) {
@@ -105,7 +105,7 @@ namespace Arterra.Data.Entity.Behavior {
             if (!self.Is(out vitality))
                 throw new System.Exception("Entity: ConsumeTarget Behavior Requires AnimalInstance to have VitalityBehavior");
             if (!self.Is(out mod)) mod = null;
-            self.eventCtrl.AddEventHandler(GameEvent.Entity_RecieveItem, ReceiveItem);
+            if (self.IsAuthority) self.eventCtrl.AddEventHandler(GameEvent.Entity_RecieveItem, ReceiveItem);
         }
 
         public override void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
@@ -120,7 +120,7 @@ namespace Arterra.Data.Entity.Behavior {
             if (!self.Is(out vitality))
                 throw new System.Exception("Entity: ConsumeTarget Behavior Requires AnimalInstance to have VitalityBehavior");
             if (!self.Is(out mod)) mod = null;
-            self.eventCtrl.AddEventHandler(GameEvent.Entity_RecieveItem, ReceiveItem);
+            if (self.IsAuthority) self.eventCtrl.AddEventHandler(GameEvent.Entity_RecieveItem, ReceiveItem);
         }
     }
 }

@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using Arterra.Data.Entity.Behavior;
 using Arterra.Core.Events;
 using Arterra.Utils;
+using Arterra.Core.Network;
 
 /*
 Future Note: Make this done on a job system
@@ -427,7 +428,7 @@ namespace Arterra.GamePlay.Interaction {
 
             transform.position += displacement;
             float3 nVelocity = CancelVel(transform.velocity, displacement);
-            self?.eventCtrl.RaiseEvent(GameEvent.Entity_HitGround, self.info.entityId, null, (UseGravity, nVelocity.y - transform.velocity.y));
+            self?.eventCtrl.RaiseEvent(GameEvent.Entity_HitGround, self.info.rtEntityId, null, (UseGravity, nVelocity.y - transform.velocity.y));
             transform.velocity = nVelocity;
             return true;
         }
@@ -506,7 +507,7 @@ namespace Arterra.GamePlay.Interaction {
             
             float friction = TerrainInteractor.IsTouching(contactMask) ? maxFriction : baseFriction;
             bool useGravityNow = UseGravity;
-            if (useGravityNow) transform.velocity.xz *= 1 - friction;
+            if (useGravityNow) transform.velocity *= new float3(1 - friction, 1, 1 - friction);
             else transform.velocity *= 1 - friction;
 
             if (useGravityNow) transform.velocity += cxt.gravity * timeStep;
@@ -534,7 +535,7 @@ namespace Arterra.GamePlay.Interaction {
 
                 if (soft) {
                     transform.velocity += myFactor * mtv;
-                    cEntity.transform.velocity -= otherFactor * mtv;   
+                    cEntity.transform.velocity -= otherFactor * mtv;
                 } else {
                     transform.velocity = CancelVel(transform.velocity, mtv);
                     cEntity.velocity = CancelVel(cEntity.velocity, -mtv);
@@ -575,7 +576,7 @@ namespace Arterra.GamePlay.Interaction {
             if (math.all(deltVelocity == 0)) return;
 
             RefTuple<float3> cxt = new RefTuple<float3>(deltVelocity);
-            self.eventCtrl.RaiseEvent(moveType, self.info.entityId, null, cxt);
+            self.eventCtrl.RaiseEvent(moveType, self.info.rtEntityId, null, cxt);
             deltVelocity = cxt; this.transform.velocity += deltVelocity;
         }
 
@@ -587,15 +588,30 @@ namespace Arterra.GamePlay.Interaction {
 
         [Serializable]
         public struct Transform {
-            public double3 position;
-            public Quaternion rotation;
+            [JsonProperty] private NetworkVariable<double3> netPosition;
+            [JsonProperty] private NetworkVariable<Quaternion> netRotation;
+            [JsonProperty] private NetworkVariable<float3> netVelocity;
+            [JsonIgnore] public double3 position { get => netPosition.Value; set => netPosition.Value = value; }
+            [JsonIgnore] public Quaternion rotation { get => netRotation.Value; set => netRotation.Value = value; }
+            [JsonIgnore] public float3 velocity { get => netVelocity.Value; set => netVelocity.Value = value; }
             public float3 size;
-            public float3 velocity;
             public Transform(double3 position, float3 velocity, float3 size, Quaternion rotation) {
-                this.position = position;
-                this.rotation = rotation;
+                netPosition = new("Position", writePerm: NetworkPermission.Owner, initialValue: position);
+                netRotation = new("Rotation", writePerm: NetworkPermission.Owner, initialValue: rotation);
+                netVelocity = new("Velocity", writePerm: NetworkPermission.Owner, initialValue: velocity);
                 this.size = size;
-                this.velocity = velocity;
+            }
+
+            public void Register(Entity entity) {
+                netPosition.Register(entity);
+                netRotation.Register(entity);
+                netVelocity.Register(entity);
+            }
+
+            public void Dispose() {
+                netPosition?.Dispose();
+                netRotation?.Dispose();
+                netVelocity?.Dispose();
             }
         }
 

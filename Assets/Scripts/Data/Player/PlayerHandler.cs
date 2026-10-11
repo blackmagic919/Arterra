@@ -65,7 +65,7 @@ namespace Arterra.GamePlay{
         // A default connection denotes this machine's local player.
         public static Guid GetPlayerId(NetworkConnection peer = default) {
             var player = peer.IsCreated ? (Players.TryGetValue(peer, out var remote) ? remote : null) : data;
-            return player == null ? Guid.Empty : player.info.entityId;
+            return player == null ? Guid.Empty : player.info.rtEntityId;
         }
         private static AccountId localAccount;
         /// <summary>The current active runtime player entity.</summary>
@@ -90,30 +90,45 @@ namespace Arterra.GamePlay{
             localAccount = ClientAuthentication.LocalAccount;
             if (NetworkManager.IsActingServer) PlayerStorage.Initialize();
             else PlayerStorage.Release();
-            if (!TryLoadExistingPlayer())
-                CreatePlayer(immediate: true);
+            if (NetworkManager.IsActingServer) {
+                if (!TryLoadExistingPlayer()) CreatePlayer(immediate: true);
+            } else {
+                data = PlayerConnection.TakeInitialPlayer();
+                EntityManager.DeserializeE(data);
+                RebindPlayer(data);
+            }
 
             SpectatorController.Initialize();
             ArterraRuntime.MainLoopUpdateTasks.Enqueue(new ArterraRuntime.IndirectUpdate(Update));
             ArterraRuntime.MainFixedUpdateTasks.Enqueue(new ArterraRuntime.IndirectUpdate(FixedUpdate));
-            LoadingHandler.OnStartupTasksFinished += () => active = true;
+            LoadingHandler.OnStartupTasksFinished += OnStartupReady;
+        }
+
+        private static void OnStartupReady() {
+            if (data == null || !data.active) return;
+            if (!NetworkManager.IsActingServer) PlayerConnection.AcknowledgeReady(data.info.rtEntityId);
+            active = true;
         }
 
         private static void Update(MonoBehaviour mono) {
             if (!data.active) return;
             if (!active) return;
 
-            data.Update(BehaviorEntity.UpdateContext.Main);
+            EntityManager.CompleteJobs();
+            data.UpdateSynchronous();
         }
 
         private static void FixedUpdate(MonoBehaviour mono){
             if(!active) return;
             if(!data.active) return;
-            data.Update(BehaviorEntity.UpdateContext.Fixed);
+            data.Update(BehaviorEntity.UpdateContext.ClientSimulation);
+            data.Update(BehaviorEntity.UpdateContext.Simulation);
         }
 
         /// <summary>Releases the player handler and all resources tied to handling the player. </summary>
         public static void Release(){
+            active = false;
+            LoadingHandler.OnStartupTasksFinished -= OnStartupReady;
             InputPoller.SetCursorLock(false); //Release Cursor Lock
             SaveAll();
             Players.Clear();
@@ -145,6 +160,20 @@ namespace Arterra.GamePlay{
             return player;
         }
 
+        /// <summary>Invoked at the entity boundary after authentication; mapping precedes behavior setup.</summary>
+        internal static BehaviorEntity.Animal SpawnPlayer(NetworkConnection peer) {
+            var player = LoadPlayer(peer);
+            if (player != null) {
+                EntityManager.DeserializeE(player);
+                return player;
+            }
+            uint index = (uint)Config.CURRENT.Generation.Entities.RetrieveIndex("Player");
+            player = (BehaviorEntity.Animal)Config.CURRENT.Generation.Entities.Reg[(int)index].Entity;
+            RegisterPlayer(peer, player);
+            EntityManager.InitializeE(player, StartupPlacer.FindClearingAround(float3.zero), index);
+            return player;
+        }
+
         /// <summary>Associate an existing player with an authenticated connection, including after respawn.</summary>
         public static void RegisterPlayer(NetworkConnection peer, BehaviorEntity.Animal player) {
             RequireAccount(peer);
@@ -167,18 +196,19 @@ namespace Arterra.GamePlay{
             return account;
         }
 
-        // Disconnect only saves and removes the mapping; entity lifetime remains the caller's responsibility.
+        // Pending authentication work checks the connection before creating another player.
         internal static void RemovePeer(NetworkConnection peer, AccountId account) {
             if (!Players.TryGetValue(peer, out var player)) return;
             EntityManager.CompleteJobs();
             try {
-                if (PlayerStorage.IsInitialized) {
+                if (PlayerStorage.IsInitialized && EntityManager.ESTree.Contains(player.info.rtEntityId)) {
                     PlayerStorage.Capture(account, player);
                     PlayerStorage.Save();
                 }
             } finally {
+                EntityManager.ReleaseEntity(player.info.rtEntityId);
                 Players.TryRemove(peer, out _);
-                PlayerDisconnected?.Invoke(player.info.entityId);
+                PlayerDisconnected?.Invoke(player.info.rtEntityId);
             }
         }
 
@@ -201,24 +231,19 @@ namespace Arterra.GamePlay{
             uint entityIndex = (uint)Config.CURRENT.Generation.Entities.RetrieveIndex("Player");
             BehaviorEntity.Animal nPlayer = Config.CURRENT.Generation.Entities.Reg[(int)entityIndex].Entity as BehaviorEntity.Animal;
 
-            Action callback = () => {
-                if (nPlayer != null && nPlayer is BehaviorEntity.Animal nEntity)
-                    nEntity.context = BehaviorEntity.UpdateContext.Main;
-                if  (data != null && data is BehaviorEntity.Animal oEntity)
-                    oEntity.context = BehaviorEntity.UpdateContext.Job;
-                //Answer hooks
-                data?.eventCtrl.RaiseEvent(GameEvent.Entity_Respawn, data, nPlayer, null);
+            Action initialize = () => {
+                var previous = data;
+                // Ownership must be visible to behavior initialization, including on respawn.
                 data = nPlayer;
+                EntityManager.InitializeE(nPlayer, SpawnPoint, entityIndex);
+                //Answer hooks
+                previous?.eventCtrl.RaiseEvent(GameEvent.Entity_Respawn, previous, nPlayer, null);
                 RebindPlayer(data);
                 cb?.Invoke();
             };
 
-            if (!immediate) {
-                EntityManager.CreateEntity(SpawnPoint, entityIndex, nPlayer, cb : callback);
-            } else {
-                EntityManager.InitializeE(nPlayer, SpawnPoint, entityIndex);
-                callback?.Invoke();   
-            }
+            if (immediate) initialize();
+            else EntityManager.AddHandlerEvent(initialize);
         }
 
         private static bool RebindPlayer(Entity player) {

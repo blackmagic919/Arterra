@@ -55,7 +55,7 @@ namespace Arterra.Data.Item {
             float delta = AmountRaw - math.max(AmountRaw - settings.ConsumptionRate, 0);
             if (delta == 0) return;
 
-            player.eventCtrl.RaiseEvent(Core.Events.GameEvent.Item_ConsumeFood, player.info.entityId, this, delta);
+            player.eventCtrl.RaiseEvent(Core.Events.GameEvent.Item_ConsumeFood, player.info.rtEntityId, this, delta);
             float nutrition = delta / UnitSize * settings.NutritionValue;
             hung.Feed(ref nutrition);
             int deltaInt = CustomUtility.GetStaggeredDelta(nutrition * UnitSize / settings.NutritionValue);

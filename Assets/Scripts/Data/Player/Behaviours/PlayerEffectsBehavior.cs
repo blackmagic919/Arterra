@@ -32,11 +32,13 @@ namespace Arterra.Data.Entity.Behavior {
     /// </summary>
     public class PlayerEffectsBehavior : SpeciesBehavior {
         [JsonIgnore] public PlayerEffectsSettings settings;
+        private readonly Dictionary<GameEvent, RefEventHandler> visualHandlers = new();
 
         private PhysicalitySetting physicality;
         private BehaviorEntity.Animal self;
         private Animator animator;
         private GameObject heldItem;
+        private float3 movement;
         private bool isSwimming;
         private bool isShaking;
         private FMOD.Studio.EventInstance SubmergedSound;
@@ -45,7 +47,8 @@ namespace Arterra.Data.Entity.Behavior {
             hierarchy.TryAdd(typeof(PlayerEffectsSettings), new PlayerEffectsSettings());
         }
 
-        public override void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
+        public override void InitializeVisual(BehaviorEntity.Animal self) {
+            var setting = self.settings;
             if (!setting.Is(out settings))
                 throw new Exception("Entity: PlayerEffectsBehavior requires PlayerEffectsSettings");
             if (!setting.Is(out physicality)) physicality = null;
@@ -58,20 +61,14 @@ namespace Arterra.Data.Entity.Behavior {
             BindEvents(self);
         }
 
-        public override void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
-            if (!setting.Is(out settings))
-                throw new Exception("Entity: PlayerEffectsBehavior requires PlayerEffectsSettings");
-            if (!setting.Is(out physicality)) physicality = null;
 
-            this.self = self;
-            self.Register(this);
-            ResolveAnimator(self);
-            isSwimming = false;
-            isShaking = false;
-            BindEvents(self);
-        }
 
-        public override void Disable(BehaviorEntity.Animal self) {
+        public override void DisposeVisual(BehaviorEntity.Animal self) {
+            foreach (var pair in visualHandlers)
+                self.eventCtrl.RemoveEventHandler(pair.Key, pair.Value);
+            visualHandlers.Clear();
+            AudioManager.StopEvent(SubmergedSound, false);
+            SubmergedSound = default;
             this.self = null;
 
             if (heldItem != null) {
@@ -83,26 +80,23 @@ namespace Arterra.Data.Entity.Behavior {
         }
 
         public override void Update(BehaviorEntity.Animal self) {
-            if (animator == null) return;
-            if (self.context == BehaviorEntity.UpdateContext.Job)
-                return;
-            if (self.context == BehaviorEntity.UpdateContext.Fixed)
-                return;
-
-            float speed = Mathf.Lerp(animator.GetFloat("Speed"), math.length(self.velocity), 0.35f);
-            animator.SetFloat("Speed", speed);
-        }
-
-        public void PlayAnimatorMove(float3 normVel) {
+            if (self.context != BehaviorEntity.UpdateContext.Visual) return;
             if (animator == null) return;
 
-            float speed = Mathf.Lerp(animator.GetFloat("Speed"), (float)math.length(normVel), 0.35f);
-            float angleTheta = Mathf.Atan2(normVel.z, normVel.x) / Mathf.PI;
-            angleTheta = Mathf.Lerp(animator.GetFloat("MoveTheta"), angleTheta, 0.35f);
-
+            bool mounted = self.Is(out PlayerMovementBehavior movementBehavior) && movementBehavior.IsMounted;
+            animator.SetBool("IsSitting", mounted);
+            if (mounted) animator.SetBool("IsJumping", false);
+            float3 velocity = self.IsOwner ? movement : self.velocity;
+            float speed = Mathf.Lerp(animator.GetFloat("Speed"), math.length(velocity), 0.35f);
             animator.SetFloat("Speed", speed);
-            animator.SetFloat("MoveTheta", angleTheta);
+            if (self.IsOwner) {
+                float angle = Mathf.Atan2(velocity.z, velocity.x) / Mathf.PI;
+                animator.SetFloat("MoveTheta", Mathf.Lerp(animator.GetFloat("MoveTheta"), angle, 0.35f));
+            }
         }
+
+        // Movement captures the presentation value; Animator writes happen in Visual.
+        public void PlayAnimatorMove(float3 normVel) => movement = normVel;
 
         private void ResolveAnimator(BehaviorEntity.Animal self) {
             if (self.controller == null || self.controller.transform == null) {
@@ -122,34 +116,39 @@ namespace Arterra.Data.Entity.Behavior {
             }
         }
 
+        private void Bind(GameEvent type, RefEventHandler handler) {
+            visualHandlers[type] = handler;
+            self.eventCtrl.AddEventHandler(type, handler);
+        }
+
         private void BindEvents(BehaviorEntity.Animal self) {
             // Keep animator states in sync with entity events raised by movement/interaction behaviors.
-            self.eventCtrl.AddEventHandler(GameEvent.Action_Jump, (_, _, __) => SetBool("IsJumping", true));
-            self.eventCtrl.AddEventHandler(GameEvent.Item_ConsumeFood, (_, _, __) => SetTrigger("Eat"));
-            self.eventCtrl.AddEventHandler(GameEvent.Action_RemoveTerrain, (_, _, __) => SetTrigger("Place"));
-            self.eventCtrl.AddEventHandler(GameEvent.Action_PlaceTerrain, (_, _, __) => SetTrigger("Place"));
-            self.eventCtrl.AddEventHandler(GameEvent.Action_LookDirect, (_, _, cxt) => PlayLookDirect(cxt));
-            self.eventCtrl.AddEventHandler(GameEvent.System_Deserialize, PlayDeserialize);
-            self.eventCtrl.AddEventHandler(GameEvent.Entity_Death, (_, _, __) => SetBool("IsDead", true));
-            self.eventCtrl.AddEventHandler(GameEvent.Entity_Damaged, PlayDamaged);
-            self.eventCtrl.AddEventHandler(GameEvent.Entity_HitGround, PlayTouchdown);
-            self.eventCtrl.AddEventHandler(GameEvent.Entity_InLiquid, PlayStartSwim);
-            self.eventCtrl.AddEventHandler(GameEvent.Entity_InGas, PlayStopSwim);
-            self.eventCtrl.AddEventHandler(GameEvent.Action_MountRideable, (_, _, __) => {
+            Bind(GameEvent.Action_Jump, (_, _, __) => SetBool("IsJumping", true));
+            Bind(GameEvent.Item_ConsumeFood, (_, _, __) => SetTrigger("Eat"));
+            Bind(GameEvent.Action_RemoveTerrain, (_, _, __) => SetTrigger("Place"));
+            Bind(GameEvent.Action_PlaceTerrain, (_, _, __) => SetTrigger("Place"));
+            Bind(GameEvent.Action_LookDirect, (_, _, cxt) => PlayLookDirect(cxt));
+            Bind(GameEvent.System_Deserialize, PlayDeserialize);
+            Bind(GameEvent.Entity_Death, (_, _, __) => SetBool("IsDead", true));
+            Bind(GameEvent.Entity_Damaged, PlayDamaged);
+            Bind(GameEvent.Entity_HitGround, PlayTouchdown);
+            Bind(GameEvent.Entity_InLiquid, PlayStartSwim);
+            Bind(GameEvent.Entity_InGas, PlayStopSwim);
+            Bind(GameEvent.Action_MountRideable, (_, _, __) => {
                 SetBool("IsSitting", true);
                 SetBool("IsJumping", false);
                 SetBool("IsSwimming", false);
             });
-            self.eventCtrl.AddEventHandler(GameEvent.Action_DismountRideable, (_, _, __) => SetBool("IsSitting", false));
-            self.eventCtrl.AddEventHandler(GameEvent.Entity_Attack, (_, _, __) => SetTrigger(UnityEngine.Random.Range(0, 2) == 0 ? "PunchR" : "PunchL"));
-            self.eventCtrl.AddEventHandler(GameEvent.Item_HoldTool, (_, _, cxt) => PlayHoldTool(cxt));
-            self.eventCtrl.AddEventHandler(GameEvent.Item_UnholdTool, (_, _, __) => PlayUnholdTool());
-            self.eventCtrl.AddEventHandler(GameEvent.Item_UseTool, (_, _, cxt) => {
+            Bind(GameEvent.Action_DismountRideable, (_, _, __) => SetBool("IsSitting", false));
+            Bind(GameEvent.Entity_Attack, (_, _, __) => SetTrigger(UnityEngine.Random.Range(0, 2) == 0 ? "PunchR" : "PunchL"));
+            Bind(GameEvent.Item_HoldTool, (_, _, cxt) => PlayHoldTool(cxt));
+            Bind(GameEvent.Item_UnholdTool, (_, _, __) => PlayUnholdTool());
+            Bind(GameEvent.Item_UseTool, (_, _, cxt) => {
                 if (cxt is string anim) SetTrigger(anim);
             });
-            self.eventCtrl.AddEventHandler(GameEvent.Item_DrawBow, (_, _, __) => SetDrawingBow(true));
-            self.eventCtrl.AddEventHandler(GameEvent.Item_ReleaseBow, (_, _, __) => SetDrawingBow(false));
-            self.eventCtrl.AddEventHandler(GameEvent.Action_LookGradual, (_, _, cxt) => {
+            Bind(GameEvent.Item_DrawBow, (_, _, __) => SetDrawingBow(true));
+            Bind(GameEvent.Item_ReleaseBow, (_, _, __) => SetDrawingBow(false));
+            Bind(GameEvent.Action_LookGradual, (_, _, cxt) => {
                 if (cxt is not RefTuple<(float, float)> look) return;
                 SetBool("DisableShuffle", false);
                 SetFloat("LookY", look.Value.Item1);
@@ -180,7 +179,7 @@ namespace Arterra.Data.Entity.Behavior {
             isSwimming = true;
 
             AudioManager.StopEvent(SubmergedSound, false);
-            SubmergedSound = AudioManager.CreateEvent(AudioEvents.Action_WaterSubmerged);
+            if (self.IsOwner) SubmergedSound = AudioManager.CreateEvent(AudioEvents.Action_WaterSubmerged);
         }
 
         private void PlayStopSwim(object srcId, object target, object density) {
@@ -225,7 +224,7 @@ namespace Arterra.Data.Entity.Behavior {
             float thresh = physicality != null ? physicality.MaxHealth * 0.01f : 0.1f;
             if (damaged.Value.Item1 < thresh) return;
 
-            if (!isShaking) ArterraRuntime.MainCoroutines.Enqueue(CameraShake(0.2f, 0.25f));
+            if (self.IsOwner && !isShaking) ArterraRuntime.MainCoroutines.Enqueue(CameraShake(0.2f, 0.25f));
 
             quaternion wsToOs = math.inverse(self.transform.rotation);
             float3 knockback = math.mul(wsToOs, damaged.Value.Item2);
@@ -299,7 +298,7 @@ namespace Arterra.Data.Entity.Behavior {
         }
 
         private IEnumerator CameraShake(float duration, float rotationStrength) {
-            if (isShaking) yield break;
+            if (isShaking || self == null || !self.IsOwner || !self.VisualActive) yield break;
             isShaking = true;
 
             Transform cameraLocal = PlayerHandler.Camera.GetChild(0);
@@ -307,20 +306,20 @@ namespace Arterra.Data.Entity.Behavior {
             Quaternion randomRotation = Quaternion.Euler(new Vector3(0, 0, UnityEngine.Random.Range(-180f, 180f) * rotationStrength));
 
             float elapsed = 0.0f;
-            while (elapsed < duration) {
+            while (elapsed < duration && self?.VisualActive == true && self.IsOwner) {
                 cameraLocal.localRotation = Quaternion.Slerp(cameraLocal.localRotation, randomRotation, elapsed / duration);
                 elapsed += self.DeltaTime;
                 yield return null;
             }
 
             elapsed = 0.0f;
-            while (elapsed < duration) {
+            while (elapsed < duration && self?.VisualActive == true && self.IsOwner) {
                 cameraLocal.localRotation = Quaternion.Slerp(cameraLocal.localRotation, originRotation, elapsed / duration);
                 elapsed += self.DeltaTime;
                 yield return null;
             }
 
-            cameraLocal.localRotation = originRotation;
+            if (self?.IsOwner == true) cameraLocal.localRotation = originRotation;
             isShaking = false;
         }
 

@@ -107,7 +107,7 @@ namespace Arterra.Data.Entity.Behavior {
 
             settings.Exercises.value ??= new List<HungerSettings.Exercise>();
             foreach (HungerSettings.Exercise e in settings.Exercises.value) {
-                self.eventCtrl.AddContextlessEventHandler(e.trigger, (s, t) => HandleExerciseEvent(e));
+                if (self.IsAuthority) self.eventCtrl.AddContextlessEventHandler(e.trigger, (s, t) => HandleExerciseEvent(e));
             }
 
             SyncTrackingArrays();
@@ -165,13 +165,12 @@ namespace Arterra.Data.Entity.Behavior {
 
 
         public override void Update(BehaviorEntity.Animal self) {
-            if (self.context == BehaviorEntity.UpdateContext.JobSync || 
-                self.context == BehaviorEntity.UpdateContext.Main) {
+            if (self.context == BehaviorEntity.UpdateContext.Visual) {
                 UpdateHungerDisplay();
                 return;
             };
             
-            if (self.context == BehaviorEntity.UpdateContext.Main) return;
+            if (self.context != BehaviorEntity.UpdateContext.Simulation) return;
             FlushDeltaHunger(-StarveRate * self.DeltaTime);
             SyncTrackingArrays();
             UpdateEffects();
@@ -190,7 +189,7 @@ namespace Arterra.Data.Entity.Behavior {
 
         private float FlushDeltaHunger(float delta) {
             RefTuple<float> cxt = new RefTuple<float>(delta);
-            self.eventCtrl.RaiseEvent(GameEvent.Entity_FlushHungerDelta, self.info.entityId, null, cxt);
+            self.eventCtrl.RaiseEvent(GameEvent.Entity_FlushHungerDelta, self.info.rtEntityId, null, cxt);
             delta = cxt;
 
             delta = math.clamp(HungerPercent + delta, 0f, 2f) - HungerPercent;
@@ -199,12 +198,16 @@ namespace Arterra.Data.Entity.Behavior {
         }
 
         private void UpdateModifiers() {
+            if (!self.IsAuthority) return;
             if (mod == null || modifiers == null) return;
             int modifierCount = math.min(settings.Modifiers.value.Count, modifiers.Length);
             for(int i = 0; i < modifierCount; i++) {
                 HungerSettings.Modifier m = settings.Modifiers.value[i];
                 if(!mod.TryGetModifier(modifiers[i], out SettingModifier s)) continue;
-                s.value = m.modify.Evaluate(HungerPercent);
+                float value = m.modify.Evaluate(HungerPercent);
+                if (s.value == value) continue;
+                s.value = value;
+                mod.SetDirty(m.setting, s.Id);
             }
         }
 
@@ -249,7 +252,7 @@ namespace Arterra.Data.Entity.Behavior {
             else delta = -exercise.cost;
             RefTuple<float> cxt = delta;
             self.eventCtrl.RaiseEvent(GameEvent.Entity_ExertHunger,
-                self.info.entityId, null, cxt);
+                self.info.rtEntityId, null, cxt);
             delta = cxt;
 
             FlushDeltaHunger(delta);

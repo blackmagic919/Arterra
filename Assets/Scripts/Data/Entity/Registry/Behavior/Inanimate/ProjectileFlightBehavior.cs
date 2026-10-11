@@ -61,7 +61,7 @@ namespace Arterra.Data.Entity.Behavior {
         }
 
         public override void Update(BehaviorEntity.Animal self) {
-            if (self.context != BehaviorEntity.UpdateContext.Job) return;
+            if (self.context != BehaviorEntity.UpdateContext.Simulation) return;
             if (!CheckEntityRayCollision(self, self.position, self.velocity)) return;
         }
 
@@ -69,7 +69,7 @@ namespace Arterra.Data.Entity.Behavior {
             float3 endGS = startGS + pVel * EntityJob.cxt.deltaTime;
             if (!EntityManager.ESTree.FindClosestAlongRay(startGS, endGS, self.info.rtEntityId, out Entity hitEntity, out _))
                 return false;
-            self.eventCtrl.RaiseEvent(Core.Events.GameEvent.Entity_ProjectileHit, self.info.entityId, hitEntity?.info.entityId);
+            self.eventCtrl.RaiseEvent(Core.Events.GameEvent.Entity_ProjectileHit, self.info.rtEntityId, hitEntity?.info.rtEntityId);
             if (!hitEntity.Is(out IVitality atkEntity)) return false;
 
             float speed = math.length(pVel);
@@ -80,7 +80,7 @@ namespace Arterra.Data.Entity.Behavior {
                 EntityManager.TryGetEntity(self.info.rtEntityId, out attacker);
 
             if (speed > settings.MinDamagingSpeed) {
-                if(attacker.info.entityId == self.info.rtEntityId)
+                if(attacker.info.rtEntityId == self.info.rtEntityId)
                     AttackBehavior.RealAttack(attacker, hitEntity, damage, knockback);
                 else AttackBehavior.RealAttackIndirect(attacker, hitEntity, damage, knockback);
             }
@@ -92,7 +92,7 @@ namespace Arterra.Data.Entity.Behavior {
                     self.velocity = self.velocity - 2 * (1 - TerrainCollider.BaseFriction) * reflect;
                     break;
                 case ProjectileFlightSettings.EntityInteraction.Destroy:
-                    EntityManager.ReleaseEntity(self.info.entityId);
+                    EntityManager.ReleaseEntity(self.info.rtEntityId);
                     break;
                 case ProjectileFlightSettings.EntityInteraction.Penetrate:
                     break;

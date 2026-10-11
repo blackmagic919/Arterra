@@ -83,7 +83,7 @@ namespace Arterra.Data.Entity.Behavior {
         }
 
         public override void Update(BehaviorEntity.Animal self) {
-            if (self.context == BehaviorEntity.UpdateContext.JobSync) return;
+            if (self.context != BehaviorEntity.UpdateContext.Simulation) return;
 
             if (!vitality.IsDead) {
                 timer = DecayTime;
@@ -91,7 +91,7 @@ namespace Arterra.Data.Entity.Behavior {
             }
 
             timer -= self.DeltaTime;
-            if (timer <= 0) EntityManager.ReleaseEntity(self.info.entityId);
+            if (timer <= 0) EntityManager.ReleaseEntity(self.info.rtEntityId);
         }
 
         public override void Disable(BehaviorEntity.Animal self) {
@@ -111,7 +111,7 @@ namespace Arterra.Data.Entity.Behavior {
                 GameEvent evt = interactEvent.Event;
                 float deltaTime = interactEvent.DeltaTime;
                 RefEventHandler handler = (actor, target, cxt) => timer += deltaTime;
-                self.eventCtrl.AddEventHandler(evt, handler);
+                if (self.IsAuthority) self.eventCtrl.AddEventHandler(evt, handler);
                 dynamicHandlers.Add((evt, handler));
             }
         }

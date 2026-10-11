@@ -108,7 +108,6 @@ namespace Arterra.Data.Entity.Behavior {
             attackCooldown = 0;
             this.self = self;
 
-            BindInput();
         }
 
         public override void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
@@ -119,19 +118,19 @@ namespace Arterra.Data.Entity.Behavior {
             self.Register(this);
             this.self = self;
 
-            BindInput();
         }
 
+        public override void InitializeVisual(BehaviorEntity.Animal self) {
+            if (self.IsOwner) BindInput();
+        }
+        public override void DisposeVisual(BehaviorEntity.Animal self) => UnbindInput();
+
         public override void Disable(BehaviorEntity.Animal self) {
-            UnbindInput();
             this.self = null;
         }
 
         public override void Update(BehaviorEntity.Animal self) {
-            if (self.context == BehaviorEntity.UpdateContext.JobSync)
-                return;
-            if (self.context == BehaviorEntity.UpdateContext.Fixed)
-                return;
+            if (!self.IsOwner || self.context != BehaviorEntity.UpdateContext.Visual) return;
             attackCooldown = math.max(attackCooldown - self.DeltaTime, 0);
         }
 
@@ -172,14 +171,14 @@ namespace Arterra.Data.Entity.Behavior {
         private bool RayTestSolidCurrent(out float3 hitPt) => RayTestSolid(self, ReachDistance, out hitPt);
         private bool CylinderTestSolidCurrent(out float3 hitPt) => CylinderTestSolid(self, ReachDistance, CylinderRadius, out hitPt);
 
-        private string AttackEntityName => $"PlayerInteraction:ATK::{self.info.entityId}"; 
-        private string PlaceTerrainName => $"PlayerInteraction:PL::{self.info.entityId}"; 
-        private string RemoveTerrainName => $"PlayerInteraction:RM::{self.info.entityId}"; 
+        private string AttackEntityName => $"PlayerInteraction:ATK::{self.info.rtEntityId}";
+        private string PlaceTerrainName => $"PlayerInteraction:PL::{self.info.rtEntityId}";
+        private string RemoveTerrainName => $"PlayerInteraction:RM::{self.info.rtEntityId}";
         private void BindInput() {
             if (hasBindings) return;
             hasBindings = true;
 
-            self.eventCtrl.AddContextlessEventHandler(GameEvent.Entity_Death, (_, _) => self.RemoveBehavior(Id));
+            self.eventCtrl.AddEventHandler(GameEvent.Entity_Death, OnDeath);
             InputPoller.AddBinding(new ActionBind("Attack", AttackEntity), AttackEntityName, "5.0::GamePlay");
             InputPoller.AddBinding(new ActionBind("Place", PlaceTerrain), PlaceTerrainName, "5.0::GamePlay");
             InputPoller.AddBinding(new ActionBind("Remove", RemoveTerrain), RemoveTerrainName, "5.0::GamePlay");
@@ -188,14 +187,17 @@ namespace Arterra.Data.Entity.Behavior {
         private void UnbindInput() {
             if (!hasBindings) return;
             hasBindings = false;
+            self.eventCtrl.RemoveEventHandler(GameEvent.Entity_Death, OnDeath);
 
             InputPoller.RemoveBinding(AttackEntityName, "5.0::GamePlay");
             InputPoller.RemoveBinding(PlaceTerrainName, "5.0::GamePlay");
             InputPoller.RemoveBinding(RemoveTerrainName, "5.0::GamePlay");
         }
 
+        private void OnDeath(object source, object target, object context) => self.RemoveBehavior(Id);
+
         private void AttackEntity(float _) {
-            if (self == null || !self.active) return;
+            if (self == null || !self.active || !PlayerHandler.active) return;
             if (attackCooldown > 0) return;
             attackCooldown = AttackFrequency;
 
@@ -213,15 +215,15 @@ namespace Arterra.Data.Entity.Behavior {
 
             RefTuple<(float, float3)> cxt = (damage, knockback);
             self.eventCtrl.RaiseEvent(GameEvent.Entity_Attack,
-                self.info.entityId,
-                entity.info.entityId,
+                self.info.rtEntityId,
+                entity.info.rtEntityId,
                 cxt
             );
             (damage, knockback) = cxt.Value;
             entity.eventCtrl.EnqueueEvent(
                 GameEvent.Apply_Damage,
-                entity.info.entityId,
-                self.info.entityId,
+                entity.info.rtEntityId,
+                self.info.rtEntityId,
                 (damage, knockback)
             );
         }
@@ -257,7 +259,7 @@ namespace Arterra.Data.Entity.Behavior {
             if (selMat is not PlaceableItem setting) return;
             if (!setting.IsSolid || !matInfo.Contains(setting.MaterialName)) return;
 
-            self.eventCtrl.RaiseEvent(GameEvent.Action_PlaceTerrain, self.info.entityId, null, hitPt);
+            self.eventCtrl.RaiseEvent(GameEvent.Action_PlaceTerrain, self.info.rtEntityId, null, hitPt);
             Terraforming.Terraform(hitPt, TerraformRadius,
                 (GCoord, speed) => HandleAddSolidInternal(
                     InventoryController.Selected,
@@ -277,7 +279,7 @@ namespace Arterra.Data.Entity.Behavior {
                 return;
             }
 
-            self.eventCtrl.RaiseEvent(GameEvent.Action_RemoveTerrain, self.info.entityId, null, hitPt);
+            self.eventCtrl.RaiseEvent(GameEvent.Action_RemoveTerrain, self.info.rtEntityId, null, hitPt);
             Terraforming.Terraform(hitPt, TerraformRadius, RemoveSolidBareHand, CallOnMapRemoving);
         }
 
@@ -340,7 +342,7 @@ namespace Arterra.Data.Entity.Behavior {
 
             delta.viscosity = solidDelta;
             delta.density = solidDelta;
-            self.eventCtrl.RaiseEvent(Arterra.Core.Events.GameEvent.Entity_PlaceMaterial, self, authoring, delta);
+            self.eventCtrl.RaiseEvent(GameEvent.Entity_PlaceMaterial, self, authoring, delta);
 
             // Add density before viscosity since viscosity can force density overflow.
             pointInfo.density += delta.density;
@@ -367,7 +369,7 @@ namespace Arterra.Data.Entity.Behavior {
             delta.density = InventoryController.RemoveStackable(delta.density, matItem.Index);
 
             MaterialInstance authoring = new(GCoord, pointInfo.material);
-            self.eventCtrl.RaiseEvent(Arterra.Core.Events.GameEvent.Entity_PlaceMaterial, self, authoring, delta);
+            self.eventCtrl.RaiseEvent(GameEvent.Entity_PlaceMaterial, self, authoring, delta);
 
             pointInfo.density += delta.density;
             liquidDensity += delta.density;
@@ -462,15 +464,15 @@ namespace Arterra.Data.Entity.Behavior {
             if (!targEnt.IsDead) {
                 target.eventCtrl.EnqueueEvent(
                     GameEvent.Entity_Interact,
-                    target.info.entityId,
-                    self.info.entityId,
+                    target.info.rtEntityId,
+                    self.info.rtEntityId,
                     held
                 );
             } else {
                 target.eventCtrl.EnqueueEvent(
                     GameEvent.Apply_Collect,
-                    self.info.entityId,
-                    target.info.entityId,
+                    self.info.rtEntityId,
+                    target.info.rtEntityId,
                     PickupRate
                 );
             }

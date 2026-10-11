@@ -61,7 +61,20 @@ namespace Arterra.Core.Storage {
             region[index] = subscription;
             previous?.Release();
             chunk.Generation.Start(chunk, Source);
+            if (Source is LocalChunkSource) _ = InitializeLocalVisualsAsync(subscription);
             return subscription;
+        }
+
+        private static async Task InitializeLocalVisualsAsync(Subscription subscription) {
+            try {
+                await subscription.Ready;
+                EntityManager.AddHandlerEvent(() => {
+                    if (!subscription.Active) return;
+                    foreach (var entity in EntityManager.GetChunkEntities(subscription.Chunk.CCoord))
+                        subscription.Driver.Source.EnterEntity(entity);
+                });
+            } catch (OperationCanceledException) { }
+            catch (Exception exception) { Debug.LogException(exception); }
         }
 
         public void Release(int3 coordinate) {
@@ -96,6 +109,11 @@ namespace Arterra.Core.Storage {
 
             internal void Release() {
                 if (!Chunk.Generation.Subscribers.Remove(this)) return;
+                if (Driver.Source is LocalChunkSource && !Chunk.Generation.GetDriverSet().Contains(Driver)) {
+                    EntityManager.CompleteJobs();
+                    foreach (var entity in EntityManager.GetChunkEntities(Chunk.CCoord))
+                        Driver.Source.LeaveEntity(entity.info.rtEntityId);
+                }
                 _ = ReleaseUnusedAsync();
             }
 
@@ -269,7 +287,9 @@ namespace Arterra.Core.Storage {
             await Task.WhenAll(map, entities);
         }
         //Default values for local chunk
-        public override void EnterEntity(Entity entity) => EntityManager.DeserializeEntity(entity);
-        public override void LeaveEntity(Guid entityId) => EntityManager.ReleaseEntity(entityId);
+        public override void EnterEntity(Entity entity) => entity.InitializeVisual();
+        public override void LeaveEntity(Guid entityId) {
+            if (EntityManager.TryGetEntity(entityId, out var entity)) entity.DisposeVisual();
+        }
     }
 }

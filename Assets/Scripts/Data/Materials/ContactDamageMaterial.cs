@@ -21,7 +21,7 @@ namespace Arterra.Data.Material {
             if (state != State.Solid) return;
             if (!entity.Is(out IVitality target)) return;
             entity.eventCtrl.EnqueueEvent(Arterra.Core.Events.GameEvent.Apply_Damage,
-                entity.info.entityId, null, (ContactDamage, float3.zero));
+                entity.info.rtEntityId, null, (ContactDamage, float3.zero));
         }
 
         public override void OnEntityTouchLiquid(int3 GCoord, Entity.Entity entity) {
@@ -29,7 +29,7 @@ namespace Arterra.Data.Material {
             if (state != State.Liquid) return;
             if (!entity.Is(out IVitality target)) return;
             entity.eventCtrl.EnqueueEvent(Arterra.Core.Events.GameEvent.Apply_Damage,
-                entity.info.entityId, null, (ContactDamage, float3.zero));
+                entity.info.rtEntityId, null, (ContactDamage, float3.zero));
         }
     }
 }

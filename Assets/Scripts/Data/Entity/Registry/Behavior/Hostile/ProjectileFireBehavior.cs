@@ -58,9 +58,9 @@ namespace Arterra.Data.Entity.Behavior {
         private float ChargeTime => Modifier.Get(mod, MSettings.ChargeTime, settings.Projectile.ChargeTime);
 
         public override void Update(BehaviorEntity.Animal self) {
-            if (self.context != BehaviorEntity.UpdateContext.JobSync)
+            if (self.context == BehaviorEntity.UpdateContext.Simulation)
                 CoreUpdate(self);
-            if (self.context != BehaviorEntity.UpdateContext.Job)
+            if (self.context == BehaviorEntity.UpdateContext.Sync)
                 ControllerUpdate(self);
         }
 

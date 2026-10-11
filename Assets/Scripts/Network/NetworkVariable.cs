@@ -4,35 +4,41 @@ using System.Text;
 using Arterra.Data.Entity;
 using Arterra.GamePlay;
 using Unity.Networking.Transport;
+using Newtonsoft.Json;
 
 namespace Arterra.Core.Network {
     /// <summary>A named entity variable. Register once after the shared entity ID is assigned.</summary>
     public sealed class NetworkVariable<T> : NetworkVariableBase<T> {
-        private readonly Guid offsetId;
+        [JsonProperty] private readonly Guid offsetId;
         private Entity entity;
 
-        public NetworkVariable(string name, NetworkPermission writePerm = NetworkPermission.Server,
-            NetworkPermission readPerm = NetworkPermission.All, bool retainValueOnDisconnect = false)
+        public NetworkVariable(string name, NetworkPermission writePerm = NetworkPermission.Owner,
+            NetworkPermission readPerm = NetworkPermission.All, bool retainValueOnDisconnect = true, T initialValue = default)
             : base(retainValueOnDisconnect, writePerm, readPerm) {
             offsetId = NetworkReferenceId.FromName(name);
+            SetInitialValue(initialValue);
         }
+
+        [JsonConstructor]
+        private NetworkVariable(Guid offsetId, NetworkPermission writePerm, NetworkPermission readPerm, bool retainValueOnDisconnect)
+            : base(retainValueOnDisconnect, writePerm, readPerm) => this.offsetId = offsetId;
 
         public void Register(Entity entity) {
             if (entity == null) throw new ArgumentNullException(nameof(entity));
-            if (entity.info.entityId == Guid.Empty)
+            if (entity.info.rtEntityId == Guid.Empty)
                 throw new ArgumentException("Assign the shared entity ID before registration.", nameof(entity));
             if (this.entity != null && !ReferenceEquals(this.entity, entity))
                 throw new InvalidOperationException("This variable already belongs to another entity.");
 
-            RegisterReference(NetworkReferenceId.ForEntity(entity.info.entityId, offsetId));
+            RegisterReference(NetworkReferenceId.ForEntity(entity.info.rtEntityId, offsetId));
             this.entity = entity;
         }
 
         protected override bool CanAccess(NetworkPermission permission, NetworkConnection peer) {
             if (permission != NetworkPermission.Owner) return base.CanAccess(permission, peer);
             if (base.CanAccess(NetworkPermission.Server, peer)) return true;
-            return entity != null && entity.info.entityId != Guid.Empty
-                && PlayerHandler.GetPlayerId(peer) == entity.info.entityId;
+            return entity != null && entity.info.rtEntityId != Guid.Empty
+                && PlayerHandler.GetPlayerId(peer) == entity.info.rtEntityId;
         }
 
     }
