@@ -227,8 +227,6 @@ namespace Arterra.Data.Entity.Behavior {
         public enum UpdateContext {
             // Authoritative gameplay and physics only.
             Simulation,
-            // Locally owned movement, including the host's own player.
-            ClientSimulation,
             Sync,
             Visual
         }
@@ -417,15 +415,17 @@ namespace Arterra.Data.Entity.Behavior {
             }
 
             [JsonIgnore] public override ref TerrainCollider.Transform transform => ref Collider.transform; 
-            [JsonIgnore] public override float3 head => colliderInfo.HeadPosition;
+            [JsonIgnore] public override float3 head => colliderInfo?.HeadPosition ?? default;
             [JsonIgnore] public override Quaternion Facing => Rotation;
             [JsonIgnore] public int3 PathCoord => (int3)math.floor(PathCollider.transform.position);
             [JsonIgnore] public UpdateContext context = UpdateContext.Simulation;
             [JsonIgnore] public float DeltaTime => IsOwner
-                ? (context is UpdateContext.Simulation or UpdateContext.ClientSimulation ? Time.fixedDeltaTime : Time.deltaTime)
+                ? (context == UpdateContext.Simulation 
+                ? Time.fixedDeltaTime : Time.deltaTime)
                 : EntityJob.cxt.deltaTime;
             [JsonIgnore] public float ExactDeltaTime => IsOwner
-                ? (context is UpdateContext.Simulation or UpdateContext.ClientSimulation ? Time.fixedDeltaTime : Time.deltaTime)
+                ?  (context == UpdateContext.Simulation
+                ? Time.fixedDeltaTime : Time.deltaTime)
                 : EntityJob.cxt.totDeltaTime;
 
 
@@ -513,7 +513,6 @@ namespace Arterra.Data.Entity.Behavior {
                 if (!active) return;
                 if (ctx == UpdateContext.Sync && !IsAuthority) return;
                 if (ctx == UpdateContext.Simulation && !IsAuthority) return;
-                if (ctx == UpdateContext.ClientSimulation && !IsOwner) return;
                 if (ctx == UpdateContext.Visual && !VisualActive) return;
                 context = ctx;
                 foreach (Behavior behavior in Behaviors) {

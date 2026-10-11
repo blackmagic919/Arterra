@@ -23,6 +23,7 @@ using Unity.Mathematics;
 using static Arterra.Core.Storage.SharedResourceManager;
 using MeshGenerator = Arterra.Engine.Terrain.MeshGeneration.Creator;
 using Arterra.Core.Network;
+using Arterra.Core.Network.Authentication;
 
 namespace Arterra.Engine.Terrain{
 /// <summary>  The factory protocol for the collective game system. This
@@ -65,30 +66,34 @@ public static class SystemProtocol{
         //We need to make sure keybinds are rebound in the same order
         //as the state they were saved at
         InputPoller.Initialize();
-        PlayerHandler.Initialize();
-        GameUIManager.Initialize();
+        PlayerHandler.Initialize(FinishStartup);
 
-        AtmospherePass.Initialize();
-        NauseaPass.Initialize();
-        DizzinessPass.Initialize();
-        BlindnessPass.Initialize();
-        Chunk.Initialize();
-        OptionsHandler.RefreshDisplayMap();
-        NetworkManager.Initialize();
+        void FinishStartup() {
+            GameUIManager.Initialize();
 
-        Structure.Creator.PresetData();
-        Surface.Creator.PresetData();
-        Map.Creator.PresetData();
-        EntityGenerator.Initialize();
-        MeshGenerator.PresetData();
-        SubChunkShaderGraph.PresetData();
-        RegionReconstructor.PresetData();
-        SpriteExtruder.PresetData();
+            AtmospherePass.Initialize();
+            NauseaPass.Initialize();
+            DizzinessPass.Initialize();
+            BlindnessPass.Initialize();
+            Chunk.Initialize();
+            OptionsHandler.RefreshDisplayMap();
+            NetworkManager.Initialize();
 
-        Readback.AsyncGenInfoReadback.PresetData();
-        Readback.AsyncMeshReadback.PresetData();
-        ChunkGenerationDriver.Initialize(new LocalChunkSource());
-        OctreeTerrain.Initialize();
+            Structure.Creator.PresetData();
+            Surface.Creator.PresetData();
+            Map.Creator.PresetData();
+            EntityGenerator.Initialize();
+            MeshGenerator.PresetData();
+            SubChunkShaderGraph.PresetData();
+            RegionReconstructor.PresetData();
+            SpriteExtruder.PresetData();
+
+            Readback.AsyncGenInfoReadback.PresetData();
+            Readback.AsyncMeshReadback.PresetData();
+            ChunkGenerationDriver.Initialize(NetworkManager.IsActingServer
+                ? new LocalChunkSource() : new ClientSource(PlayerHandler.GetPlayerId()));
+            OctreeTerrain.Initialize();
+        }
     }
 
     /// <summary>  Sets up the minimal amount of information to operate and use
@@ -146,6 +151,8 @@ public static class SystemProtocol{
 
         TryShutdown(() => TerrainUpdate.CompleteJobs(), nameof(TerrainUpdate));
         TryShutdown(() => EntityManager.FlushPendingHandlers(), nameof(EntityManager));
+        TryShutdown(() => PlayerConnection.DisconnectPlayers(), nameof(PlayerConnection));
+        TryShutdown(() => ChunkGenerationDriver.Local?.Source.Dispose(), nameof(ChunkSource));
         TryShutdown(() => CPUMapManager.StopGeneration(), "Stop chunk generation");
         TryShutdown(() => MapGenerationPipeline.ReleaseAll(), nameof(MapGenerationPipeline));
         TryShutdown(() => ArterraRuntime.FinishGraphics(), "Drain submitted GPU work");

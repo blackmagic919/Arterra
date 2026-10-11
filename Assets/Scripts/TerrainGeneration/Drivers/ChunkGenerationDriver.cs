@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using System.Threading;
 using Arterra.Configuration;
 using Arterra.Data.Entity;
 using Arterra.Engine.Terrain;
@@ -61,7 +62,7 @@ namespace Arterra.Core.Storage {
             region[index] = subscription;
             previous?.Release();
             chunk.Generation.Start(chunk, Source);
-            if (Source is LocalChunkSource) _ = InitializeLocalVisualsAsync(subscription);
+            if (ReferenceEquals(this, Local) && NetworkManager.IsActingServer) _ = InitializeLocalVisualsAsync(subscription);
             return subscription;
         }
 
@@ -109,8 +110,7 @@ namespace Arterra.Core.Storage {
 
             internal void Release() {
                 if (!Chunk.Generation.Subscribers.Remove(this)) return;
-                if (Driver.Source is LocalChunkSource && !Chunk.Generation.GetDriverSet().Contains(Driver)) {
-                    EntityManager.CompleteJobs();
+                if (ReferenceEquals(Driver, Local) && NetworkManager.IsActingServer && !Chunk.Generation.GetDriverSet().Contains(Driver)) {
                     foreach (var entity in EntityManager.GetChunkEntities(Chunk.CCoord))
                         Driver.Source.LeaveEntity(entity.info.rtEntityId);
                 }
@@ -140,12 +140,16 @@ namespace Arterra.Core.Storage {
             public MapGenerationPipeline Pipeline { get; private set; }
             public EntityGenerator Entities { get; internal set; }
             private TaskCompletionSource<bool> completion;
+            private CancellationTokenSource cancellation;
             public Task Ready => completion?.Task;
             internal Task Loading { get; private set; }
             // The first subscriber supplies its driver's source.
             // That source serves the shared load and release for all subscribers
             internal ChunkSource Source { get; private set; }
-            internal void Cancel() => completion?.TrySetCanceled();
+            internal void Cancel() {
+                completion?.TrySetCanceled();
+                cancellation?.Cancel();
+            }
             private void CheckCanceled() {
                 if (Ready.IsCanceled) throw new OperationCanceledException();
             }
@@ -154,6 +158,7 @@ namespace Arterra.Core.Storage {
                 if (Ready != null) return;
                 Source = source ?? throw new ArgumentNullException(nameof(source));
                 completion = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+                cancellation = new CancellationTokenSource();
                 Loading = LoadAsync(chunk, completion);
             }
 
@@ -178,12 +183,15 @@ namespace Arterra.Core.Storage {
                         chunk.EntityProgress = ChunkMapInfo.State.Failed;
                     }
                     completion.TrySetException(exception);
+                } finally {
+                    cancellation.Dispose();
+                    cancellation = null;
                 }
             }
 
             private async Task LoadContentAsync(ChunkMapInfo chunk) {
                 CheckCanceled();
-                Chunk.ReadbackInfo content = await Source.ReadAsync(chunk.CCoord);
+                Chunk.ReadbackInfo content = await Source.ReadAsync(chunk.CCoord, cancellation.Token);
                 CheckCanceled();
                 bool generateMap = content.map.map == null;
                 bool generateEntities = content.entity.entities == null;
@@ -207,27 +215,29 @@ namespace Arterra.Core.Storage {
                     foreach (var entry in content.map.mapMeta) MapMetaData[entry.Key] = entry.Value;
                 chunk.MapProgress = ChunkMapInfo.State.Finished;
 
-                byte context = AsyncGenInfoReadback.CREATE_PLANNED_ENTITIES;
-                if (generateMeta) context |= AsyncGenInfoReadback.CREATE_META;
-                if (generateEntities) {
-                    context |= AsyncGenInfoReadback.CREATE_ENTITIES;
-                    Pipeline.MapCreator.PopulateBiomes(Pipeline.Origin,
-                        Pipeline.SurfCreator.SurfaceMapAddress, size, 1);
-                }
-                // Supplied chunks still resolve candidates waiting in lower neighbors.
-                var readback = Pipeline?.MetaReadback ?? new AsyncGenInfoReadback(null);
-                var planner = Pipeline?.Entities ?? new EntityGenerator();
-                try {
-                    planner.PlanEntities(readback, Engine.Terrain.Map.Creator.bufferOffsets.biomeMapStart, chunk.CCoord, generateEntities);
-                    Task planning = readback.GenInfoReadback(chunk.CCoord, context);
-                    await Task.WhenAny(planning, Ready);
-                    CheckCanceled();
-                    await planning;
-                } finally {
-                    if (Pipeline == null) readback.Release();
+                if (NetworkManager.IsActingServer) {
+                    byte context = AsyncGenInfoReadback.CREATE_PLANNED_ENTITIES;
+                    if (generateMeta) context |= AsyncGenInfoReadback.CREATE_META;
+                    if (generateEntities) {
+                        context |= AsyncGenInfoReadback.CREATE_ENTITIES;
+                        Pipeline.MapCreator.PopulateBiomes(Pipeline.Origin,
+                            Pipeline.SurfCreator.SurfaceMapAddress, size, 1);
+                    }
+                    // Supplied chunks still resolve candidates waiting in lower neighbors.
+                    var readback = Pipeline?.MetaReadback ?? new AsyncGenInfoReadback(null);
+                    var planner = Pipeline?.Entities ?? new EntityGenerator();
+                    try {
+                        planner.PlanEntities(readback, Engine.Terrain.Map.Creator.bufferOffsets.biomeMapStart, chunk.CCoord, generateEntities);
+                        Task planning = readback.GenInfoReadback(chunk.CCoord, context);
+                        await Task.WhenAny(planning, Ready);
+                        CheckCanceled();
+                        await planning;
+                    } finally {
+                        if (Pipeline == null) readback.Release();
+                    }
                 }
                 CheckCanceled();
-                Task entities = EntityManager.InitializeChunkEntitiesAsync(content.entity.entities);
+                Task entities = Source.InitializeEntitiesAsync(chunk.CCoord, content.entity.entities, cancellation.Token);
                 await Task.WhenAny(entities, Ready);
                 CheckCanceled();
                 await entities;
@@ -250,46 +260,4 @@ namespace Arterra.Core.Storage {
         void ReflectChunk(Dictionary<int, MapData> updatedValues);
     }
 
-    /// <summary>Supplies authoritative content/permissions. The driver owns generation and shared completion.</summary>
-    public abstract class ChunkSource {
-        public abstract Task<Chunk.ReadbackInfo> ReadAsync(int3 coordinate);
-        public abstract Task<MapData[]> ReadVisualAsync(int3 coordinate, int depth);
-        // Receives already-offloaded data. The caller owns disposal after every user finishes.
-        public abstract Task ReleaseAsync(ChunkMapInfo chunk);
-        public abstract void EnterEntity(Entity entity);
-        public abstract void LeaveEntity(Guid entityId);
-    }
-
-    public sealed class LocalChunkSource : ChunkSource {
-        private static void RequireLocalAuthority() {
-            if (!NetworkManager.IsActingServer)
-                throw new NotSupportedException("A remote chunk source is required; the chunk-request protocol is not installed.");
-        }
-
-        public override Task<Chunk.ReadbackInfo> ReadAsync(int3 CCoord) {
-            RequireLocalAuthority();
-            return Task.Run(() => Chunk.ReadChunkInfo(CCoord));
-        }
-
-        public override Task<MapData[]> ReadVisualAsync(int3 coordinate, int depth) {
-            RequireLocalAuthority();
-            return Task.Run(() => Chunk.ReadVisualChunkMap(coordinate, depth));
-        }
-
-        public override async Task ReleaseAsync(ChunkMapInfo chunk) {
-            RequireLocalAuthority();
-            bool saveMap = chunk.HasMap && chunk.Generation.OffloadFlags == ChunkMapInfo.Flags.Dirty;
-            Task entities = EntityManager.ReleaseChunkEntitiesAsync(chunk.CCoord, chunk.HasEntities);
-            
-            Task map;
-            if (saveMap) map = Chunk.SaveChunkToBinAsync(chunk, chunk.CCoord);
-            else map = Task.CompletedTask;
-            await Task.WhenAll(map, entities);
-        }
-        //Default values for local chunk
-        public override void EnterEntity(Entity entity) => entity.InitializeVisual();
-        public override void LeaveEntity(Guid entityId) {
-            if (EntityManager.TryGetEntity(entityId, out var entity)) entity.DisposeVisual();
-        }
-    }
 }

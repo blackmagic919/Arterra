@@ -74,13 +74,13 @@ namespace Arterra.GamePlay.UI {
         public static void Deactivate(Action callback = null) {
             if (!active) return;
             active = false;
-            spinChunk?.CancelLoad();
 
             _ = SaveOptions();
             sAnimator.SetTrigger("Mask");
             new AnimatorAwaitTask(sAnimator, "MaskedAnimation", () => {
                 sAnimator.ResetTrigger("Mask");
                 ReleaseDisplay(infoContent);
+                spinChunk?.CancelLoad();
                 callback?.Invoke();
             }).Invoke();
         }
@@ -128,10 +128,7 @@ namespace Arterra.GamePlay.UI {
             infoContent.GetComponent<VerticalLayoutGroup>().padding.left = 0;
         }
 
-        public void LateUpdate() {
-            if (!active) return;
-            spinChunk.Render(this);
-        }
+        public void LateUpdate() => spinChunk.Render(this);
 
         // Called after host chunk storage initializes, even when no preview UI is open.
         public static void RefreshDisplayMap() => SingleChunkDisplay.RefreshDisplayMap();

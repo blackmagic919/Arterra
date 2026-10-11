@@ -12,6 +12,7 @@ using UnityEngine;
 using Arterra.Configuration;
 using Arterra.Data.Entity.Behavior;
 using Newtonsoft.Json;
+using Arterra.Core.Storage;
 
 namespace Arterra.Core.Network.Authentication {
     /// <summary>Prototype Unity-session proof binding a connection to an account. Main-thread only.</summary>
@@ -23,6 +24,7 @@ namespace Arterra.Core.Network.Authentication {
         private static readonly PlayerConnection instance = new();
         private readonly Dictionary<NetworkConnection, Pending> pending = new();
         private readonly Dictionary<NetworkConnection, AccountId> accounts = new();
+        private readonly Dictionary<NetworkConnection, NetworkSource> sources = new();
         private bool initialized;
         private static string initialPlayerJson;
         public static bool TryGetAccount(NetworkConnection peer, out AccountId account) => instance.accounts.TryGetValue(peer, out account);
@@ -100,15 +102,15 @@ namespace Arterra.Core.Network.Authentication {
                 if (accounts.Values.Contains(account)) throw new InvalidOperationException("This account is already connected.");
                 accounts.Add(message.Peer, account);
                 var spawned = new TaskCompletionSource<BehaviorEntity.Animal>(TaskCreationOptions.RunContinuationsAsynchronously);
-                EntityManager.AddHandlerEvent(() => {
+                EntityManager.AddHandlerEvent(async () => {
                     try {
                         if (!Current()) throw new OperationCanceledException("Peer left during player setup.");
-                        spawned.SetResult(PlayerHandler.SpawnPlayer(message.Peer));
+                        spawned.SetResult(await PlayerHandler.SpawnPlayerAsync(message.Peer));
                     } catch (Exception exception) { spawned.SetException(exception); }
                 });
                 var runtimePlayer = await spawned.Task;
                 if (!Current()) throw new OperationCanceledException("Peer left during player setup.");
-                EntityManager.CompleteJobs();
+                sources.Add(message.Peer, new NetworkSource(message.Peer, runtimePlayer.info.rtEntityId));
                 byte[] payload = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(new Registerable<BehaviorEntity.Animal>(runtimePlayer)));
                 TransportManager.Instance.SendEvent(message.Peer, Reference, Accepted, payload, message.MessageId);
                 pending.Remove(message.Peer);
@@ -129,10 +131,17 @@ namespace Arterra.Core.Network.Authentication {
 
         private void Disconnected(NetworkConnection peer) {
             pending.Remove(peer);
+            if (sources.Remove(peer, out var source)) source.Dispose();
             if (!accounts.Remove(peer, out var account)) return;
             PlayerHandler.RemovePeer(peer, account);
         }
+        public static void DisconnectPlayers() {
+            foreach (var peer in instance.accounts.Keys.ToArray())
+                TransportManager.Instance.Disconnect(peer);
+        }
+
         private void Stopped(Exception reason) {
+            if (ChunkGenerationDriver.Local?.Source is ClientSource source) source.Dispose();
             initialPlayerJson = null;
             foreach (var peer in accounts.Keys.ToArray()) {
                 try { Disconnected(peer); }

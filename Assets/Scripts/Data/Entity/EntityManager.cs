@@ -10,6 +10,7 @@ using System.Collections.Concurrent;
 using UnityEngine.Profiling;
 using Arterra.Core.Storage;
 using System.Threading.Tasks;
+using System.Threading;
 using System.Linq;
 using Arterra.Configuration;
 using Arterra.Data.Entity;
@@ -47,29 +48,58 @@ public static class EntityManager
         if ((AsyncGenInfoReadback.CREATE_ENTITIES & cxt) == 0) return; //No Gen
         int mapSize = Config.CURRENT.Quality.Terrain.value.mapChunkSize;
         int3 GCoord = CCoord * mapSize + genInfo.position;
-        Authoring authoring = Config.CURRENT.Generation.Entities.Reg[(int)genInfo.index];
-        Entity newEntity = authoring.Entity;
-        AddHandlerEvent(() => InitializeE(newEntity, GCoord, genInfo.index));
+        CreateEntity(GCoord, genInfo.index);
     }
 
-    public static Entity CreateEntity(float3 GCoord, uint entityIndex, Entity sEntity = null, Action cb = null) {
+    public static Entity CreateEntity(float3 GCoord, uint entityIndex, Entity sEntity = null, Action cb = null,
+        Action<Exception> onError = null, CancellationToken token = default) {
         if (sEntity == null) {
             Authoring authoring = Config.CURRENT.Generation.Entities.Reg[(int)entityIndex];
             sEntity = authoring.Entity;
         }
 
         AddHandlerEvent(() => {
-            InitializeE(sEntity, GCoord, entityIndex);
-            cb?.Invoke();
+            try {
+                token.ThrowIfCancellationRequested();
+                InitializeE(sEntity, GCoord, entityIndex);
+                cb?.Invoke();
+            } catch (Exception exception) {
+                if (onError == null) throw;
+                onError(exception);
+            }
         });
         return sEntity;
     }
-    public static Entity DeserializeEntity(Entity sEntity, Action cb = null){
+    public static Entity DeserializeEntity(Entity sEntity, Action cb = null,
+        Action<Exception> onError = null, CancellationToken token = default){
         AddHandlerEvent(() => {
-            DeserializeE(sEntity);
-            cb?.Invoke();
+            try {
+                token.ThrowIfCancellationRequested();
+                DeserializeE(sEntity);
+                cb?.Invoke();
+            } catch (Exception exception) {
+                if (onError == null) throw;
+                onError(exception);
+            }
         });
         return sEntity;
+    }
+
+    public static async Task<Entity> CreateEntityAsync(float3 coordinate, uint entityIndex,
+        Entity entity = null, CancellationToken token = default) {
+        var completion = new TaskCompletionSource<Entity>(TaskCreationOptions.RunContinuationsAsynchronously);
+        using var cancellation = token.Register(() => completion.TrySetCanceled());
+        entity = CreateEntity(coordinate, entityIndex, entity,
+            () => completion.TrySetResult(entity), error => completion.TrySetException(error), token);
+        return await completion.Task;
+    }
+
+    public static async Task<Entity> DeserializeEntityAsync(Entity entity, CancellationToken token = default) {
+        var completion = new TaskCompletionSource<Entity>(TaskCreationOptions.RunContinuationsAsynchronously);
+        using var cancellation = token.Register(() => completion.TrySetCanceled());
+        DeserializeEntity(entity, () => completion.TrySetResult(entity),
+            error => completion.TrySetException(error), token);
+        return await completion.Task;
     }
 
     public static void ReleaseEntity(Guid entityId, Action cb = null) {
@@ -86,15 +116,11 @@ public static class EntityManager
 
     public static void CompleteJobs() => Executor?.Complete();
 
-    public static Task InitializeChunkEntitiesAsync(List<Entity> entities) {
-        var completion = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-        AddHandlerEvent(() => {
-            try {
-                if (entities != null) foreach (var entity in entities) DeserializeE(entity);
-                completion.TrySetResult(true);
-            } catch (Exception exception) { completion.TrySetException(exception); }
-        });
-        return completion.Task;
+    public static Task InitializeChunkEntitiesAsync(List<Entity> entities, CancellationToken token = default) {
+        if (entities == null) return Task.CompletedTask;
+        var tasks = new List<Task>(entities.Count);
+        foreach (var entity in entities) tasks.Add(DeserializeEntityAsync(entity, token));
+        return Task.WhenAll(tasks);
     }
 
     public static void FlushPendingHandlers() {
@@ -104,7 +130,6 @@ public static class EntityManager
     }
 
     public static async Task ReleaseChunkEntitiesAsync(int3 coordinate, bool save = true) {
-        CompleteJobs();
         if (ESTree.tree == null) return;
         var entities = GetChunkEntities(coordinate);
         entities.RemoveAll(entity => entity.IsOwner || (!PlayerHandler.Players.IsEmpty && PlayerHandler.Players.Values.Contains(entity)));
@@ -133,7 +158,7 @@ public static class EntityManager
         entity.Disable();
     }
 
-    public static void InitializeE(Entity nEntity, float3 GCoord, uint entityIndex) {
+    private static void InitializeE(Entity nEntity, float3 GCoord, uint entityIndex) {
         Authoring authoring = Config.CURRENT.Generation.Entities.Reg[(int)entityIndex];
         nEntity.info.rtEntityId = Guid.NewGuid();
         nEntity.info.entityType = entityIndex;
@@ -147,7 +172,7 @@ public static class EntityManager
         InitializeLocalVisual(nEntity);
     }
 
-    public static void DeserializeE(Entity sEntity){
+    private static void DeserializeE(Entity sEntity){
         if (sEntity == null) throw new System.ArgumentNullException(nameof(sEntity));
         if (sEntity.info.rtEntityId == Guid.Empty)
             throw new ArgumentException("A loaded entity must have its shared runtime ID.", nameof(sEntity));
@@ -315,7 +340,7 @@ public static class EntityManager
 
     public static int3 GetChunkCoordinate(float3 position) => CPUMapManager.GSToCS((int3)math.floor(position));
 
-    /// <summary>Fresh origin-based membership. Call only after completing entity jobs.</summary>
+    /// <summary>Fresh origin-based chunk membership.</summary>
     public static List<Entity> GetChunkEntities(int3 coordinate) {
         int size = Config.CURRENT.Quality.Terrain.value.mapChunkSize;
         var result = new HashSet<Entity>();

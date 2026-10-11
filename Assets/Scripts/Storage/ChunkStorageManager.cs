@@ -1,16 +1,11 @@
 using System.Collections.Generic;
 using System.IO;
 using Unity.Mathematics;
-using System.Text;
-using System.IO.Compression;
 using Arterra.Utils;
 using System.Linq;
 using Newtonsoft.Json;
 using System;
 using UnityEngine;
-using Unity.Collections.LowLevel.Unsafe;
-using Unity.Collections;
-using System.Buffers;
 using System.Threading.Tasks;
 using Arterra.Configuration;
 using Arterra.Data.Entity;
@@ -79,23 +74,12 @@ namespace Arterra.Core.Storage {
 
         private static void SaveChunkToBin(string fileAdd, CPUMapManager.ChunkMapInfo chunk) {
             using FileStream fs = File.Create(fileAdd);
-            MemoryStream mapStream = WriteChunkMaps(chunk, out ChunkHeader header);
-            MemoryStream headerStream = WriteChunkHeader(header);
-            headerStream.Seek(0, SeekOrigin.Begin);
-            headerStream.CopyTo(fs);
-            headerStream.Close();
-
-            mapStream.Seek(0, SeekOrigin.Begin);
-            mapStream.CopyTo(fs);
-            mapStream.Close();
-
-            fs.Flush();
-            fs.Close();
+            ChunkMapCodec.Write(fs, chunk, includeResolutions: true, includeMetadata: true);
         }
 
         private static void SaveEntityToJson(string fileAdd, List<Entity> entities) {
             using (FileStream fs = File.Create(fileAdd)) {
-                MemoryStream headerStream = WriteChunkHeader(SerializeEntities(entities));
+                MemoryStream headerStream = ChunkMapCodec.WriteHeader(SerializeEntities(entities));
                 headerStream.Seek(0, SeekOrigin.Begin);
                 headerStream.CopyTo(fs);
                 headerStream.Close();
@@ -191,11 +175,7 @@ namespace Arterra.Core.Storage {
                 MapData[] map = null;
                 //Caller has to copy for persistence
                 using (FileStream fs = File.Open(fileAdd, FileMode.Open, FileAccess.Read)) {
-                    uint mapStart = ReadChunkHeader(fs, out header);
-                    if (depth != 0) mapStart += (uint)header.ResolutionOffsets[depth - 1];
-                    fs.Seek(mapStart, SeekOrigin.Begin);
-                    map = ReadChunkMap(fs, maxChunkSize >> depth);
-                    DeserializeHeader(ref map, ref header);
+                    map = ChunkMapCodec.Read(fs, maxChunkSize, depth, out header);
                 }
                 return map;
             } catch (Exception e) {
@@ -220,7 +200,7 @@ namespace Arterra.Core.Storage {
                 //Caller has to copy for persistence
                 using (FileStream fs = File.Open(fileAdd, FileMode.Open, FileAccess.Read)) {
                     //It's automatically deserialized by a custom json rule
-                    ReadChunkHeader(fs, out sEntities);
+                    ChunkMapCodec.ReadHeader(fs, out sEntities);
                 }
                 return DeserializeEntities(sEntities);
             } catch (Exception e) {
@@ -280,137 +260,6 @@ namespace Arterra.Core.Storage {
             List<Entity> entities = new List<Entity>();
             foreach (Registerable<Entity> sEntity in eSerial) { entities.Add(sEntity.Value); }
             return entities;
-        }
-
-        static ChunkHeader SerializeHeader(CPUMapManager.ChunkMapInfo chunk) {
-            Dictionary<int, int> RegisterDict = new();
-            int numPoints = maxChunkSize * maxChunkSize * maxChunkSize; int nextId = 0;
-            for (int i = 0; i < numPoints; i++) {
-                MapData mapPt = chunk.ChunkData[chunk.Offset + i];
-                if (!RegisterDict.TryGetValue(mapPt.material, out int registeredId)) {
-                    registeredId = nextId++;
-                    RegisterDict[mapPt.material] = registeredId;
-                }
-
-                mapPt._material = registeredId;
-                chunk.ChunkData[chunk.Offset + i] = mapPt;
-            }
-
-            string[] dict = new string[RegisterDict.Count];
-            var mReg = Config.CURRENT.Generation.Materials.value.MaterialDictionary;
-            foreach (var pair in RegisterDict) {
-                dict[pair.Value] = mReg.RetrieveName(pair.Key);
-            }
-
-            return new ChunkHeader {
-                RegisterNames = dict.ToList(),
-                MapEntryMetaData = chunk.MapMetaData.ToArray(),
-            };
-        }
-
-        private static void DeserializeHeader(ref MapData[] map, ref ChunkHeader header) {
-            var mReg = Config.CURRENT.Generation.Materials.value.MaterialDictionary;
-            int[] materialIndexCache = new int[header.RegisterNames.Count];
-            for (int i = 0; i < header.RegisterNames.Count; i++) { materialIndexCache[i] = mReg.RetrieveIndex(header.RegisterNames[i]); }
-            for (int i = 0; i < map.Length; i++) { map[i].material = materialIndexCache[map[i].material]; }
-        }
-
-        private static MemoryStream WriteChunkHeader(object header) {
-            MemoryStream ms = new MemoryStream();
-            if (header == null) return ms;
-            ms.Seek(4, SeekOrigin.Begin);
-
-            string json = JsonConvert.SerializeObject(header, Formatting.Indented);
-            byte[] buffer = Encoding.ASCII.GetBytes(json);
-            using (GZipStream zs = new GZipStream(ms, CompressionMode.Compress, true)) {
-                zs.Write(buffer);
-                zs.Flush();
-            }
-            byte[] size = new byte[4];
-            UnsafeUtility.As<byte, uint>(ref size[0]) = (uint)ms.Length;
-            ms.Seek(0, SeekOrigin.Begin);
-            ms.Write(size);
-            ms.Flush();
-            return ms;
-        }
-
-        private static uint ReadChunkHeader<T>(FileStream fs, out T header) {
-            byte[] readSize = new byte[4]; fs.Read(readSize);
-            uint size = UnsafeUtility.As<byte, uint>(ref readSize[0]);
-            byte[] buffer = new byte[size]; fs.Read(buffer);
-
-            using MemoryStream ms = new(buffer);
-            using GZipStream zs = new(ms, CompressionMode.Decompress, true);
-            using StreamReader sr = new(zs);
-            header = JsonConvert.DeserializeObject<T>(sr.ReadToEnd());
-            return size; //add 4 for the size of the size of the header(yeah lol)
-        }
-
-
-        //IT IS CALLERS RESPONSIBILITY TO DISPOSE MEMORY STREAM
-        private static MemoryStream WriteChunkMaps(CPUMapManager.ChunkMapInfo chunk, out ChunkHeader header) {
-            MemoryStream ms = new MemoryStream();
-            header = SerializeHeader(chunk);
-            header.ResolutionOffsets = new List<int>();
-            for (int skipInc = 1; skipInc <= maxChunkSize; skipInc <<= 1) {
-                int numPointsAxis = maxChunkSize / skipInc;
-                int numPoints = numPointsAxis * numPointsAxis * numPointsAxis;
-                var mBuffer = ArrayPool<byte>.Shared.Rent(numPoints * 4);
-
-                uint mBPos = 0;
-                unsafe {
-                    fixed (byte* destPtr = mBuffer) {
-                        if (skipInc == 1) {
-                            UnsafeUtility.MemCpy(destPtr, (MapData*)chunk.ChunkData.GetUnsafePtr() +
-                            chunk.Offset, numPoints * 4);
-                        } else {
-
-                            int yStride = maxChunkSize;
-                            int zStride = maxChunkSize * maxChunkSize;
-
-                            for (int z = 0; z < maxChunkSize; z += skipInc) {
-                                int zOffset = z * zStride + chunk.Offset;
-                                for (int y = 0; y < maxChunkSize; y += skipInc) {
-                                    int yzOffset = zOffset + y * yStride;
-                                    for (int x = 0; x < maxChunkSize; x += skipInc) {
-                                        UnsafeUtility.As<byte, uint>(ref mBuffer[mBPos]) = chunk.ChunkData[yzOffset + x].data;
-                                        mBPos += 4;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-
-                using (GZipStream zs = new(ms, CompressionMode.Compress, true)) {
-                    zs.Write(mBuffer);
-                    zs.Flush();
-                }
-                header.ResolutionOffsets.Add((int)ms.Length);
-                ArrayPool<byte>.Shared.Return(mBuffer);
-            }
-            ms.Flush();
-            return ms;
-        }
-
-        private static MapData[] ReadChunkMap(FileStream fs, int chunkSize) {
-            int numPointsAxis = chunkSize;
-            int numPoints = numPointsAxis * numPointsAxis * numPointsAxis;
-            MapData[] outStream = new MapData[numPoints];
-
-            using (GZipStream zs = new GZipStream(fs, CompressionMode.Decompress, true)) {
-                byte[] buffer = new byte[4 * numPoints];
-                zs.Read(buffer);
-                unsafe {
-                    fixed (byte* inPtr = buffer) {
-                        fixed (MapData* outPtr = outStream) {
-                            UnsafeUtility.MemCpy(outPtr, inPtr, numPoints * 4);
-                        }
-                    }
-                }
-                zs.Close();
-            }
-            return outStream;
         }
 
         /// <summary> A struct representing the header of a chunk's map information file. 

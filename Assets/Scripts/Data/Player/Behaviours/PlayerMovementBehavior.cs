@@ -178,19 +178,7 @@ namespace Arterra.Data.Entity.Behavior {
 
         /// <summary>Runs per-frame movement input stack processing for the controlled player.</summary>
         public override void Update(BehaviorEntity.Animal self) {
-            if (activeMount != null) {
-                if (activeMount.AsEntity?.active != true || activeMount.RiderTarget != self.info.rtEntityId)
-                    ClearMount();
-                else if (self.context == BehaviorEntity.UpdateContext.Simulation && !self.IsOwner) {
-                    self.position = CPUMapManager.WSToGS(activeMount.GetRiderRoot().position)
-                        + new float3(0, self.settings.collider.size.y / 2, 0);
-                    self.velocity = float3.zero;
-                } else if (self.context == BehaviorEntity.UpdateContext.Visual) {
-                    Transform subTransform = GetRiderSubTransform();
-                    if (subTransform != null) subTransform.rotation = activeMount.GetRiderRoot().rotation;
-                }
-            }
-            if (!self.VisualActive || self.context != BehaviorEntity.UpdateContext.ClientSimulation) return;
+            if (!self.VisualActive) return;
             InputPoller.InvokeStackTop("Movement::Update");
         }
 
@@ -297,7 +285,7 @@ namespace Arterra.Data.Entity.Behavior {
         }
 
         private void AddVelocity2D(float2 aim, float maxSpeed, GameEvent moveEvent) {
-            if (!Arterra.GamePlay.PlayerHandler.active) return;
+            if (!GamePlay.PlayerHandler.active) return;
             if (math.length(self.velocity.xz) > maxSpeed) return;
             float3 delta = 0; delta.xz = (maxSpeed / AccelTime) * self.DeltaTime * aim;;
             RefTuple<float3> cxt = new RefTuple<float3>(delta);

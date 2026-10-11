@@ -88,7 +88,8 @@ namespace Arterra.Core.Storage {
             TerrainUpdate.CompleteJobs();
             EntityManager.CompleteJobs();
             var records = ChunkData.Values.ToArray();
-            foreach (ChunkMapInfo info in records) info.Generation.Subscribers.Clear();
+            foreach (ChunkMapInfo info in records) 
+                info.Generation.Subscribers.Clear();
             Task[] saves = pendingReleases.ToArray();
             Task[] releases = records.Select(info => ReleaseChunkIfUnusedAsync(info)).ToArray();
             EntityManager.FlushPendingHandlers();
