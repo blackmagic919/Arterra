@@ -10,6 +10,7 @@ using UnityEngine;
 using Arterra.Data.Material;
 
 namespace Arterra.Data.Entity.Behavior {
+    [Serializable]
     public class StepSoundBehaviorSettings : IBehaviorSetting {
         [JsonIgnore] public static string Name => "Stepping";
         public float StepDistance = 1.5f;

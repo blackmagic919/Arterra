@@ -47,6 +47,8 @@ namespace Arterra.Core.Storage {
         private static float lerpScale;
         private static bool initialized = false;
         private static readonly HashSet<Task> pendingReleases = new();
+        private static event Action<int3> OnCreateChunk;
+        private static event Action<int3> OnReleaseChunk;
 
         /// <summary> Initializes the CPU Map Manager with the current game settings. This will allocate all necessary memory
         /// and prepare the CPU Map Manager for use. If the CPU Map Manager has already been initialized,
@@ -84,16 +86,23 @@ namespace Arterra.Core.Storage {
 
         /// <summary>Force-detach chunks after generation cancellation and the final GPU drain.</summary>
         public static async Task ReleaseAsync() {
+            Debug.Log("[Shutdown] CPU map: canceling generation.");
             StopGeneration();
+            Debug.Log("[Shutdown] CPU map: completing terrain jobs.");
             TerrainUpdate.CompleteJobs();
+            Debug.Log("[Shutdown] CPU map: completing entity jobs.");
             EntityManager.CompleteJobs();
+            Debug.Log("[Shutdown] CPU map: jobs complete; releasing chunk records.");
             var records = ChunkData.Values.ToArray();
             foreach (ChunkMapInfo info in records) 
                 info.Generation.Subscribers.Clear();
             Task[] saves = pendingReleases.ToArray();
             Task[] releases = records.Select(info => ReleaseChunkIfUnusedAsync(info)).ToArray();
+            Debug.Log("[Shutdown] CPU map: flushing deferred entity handlers.");
             EntityManager.FlushPendingHandlers();
+            Debug.Log($"[Shutdown] CPU map: awaiting {releases.Length} chunk releases and {saves.Length} pending releases/saves.");
             await Task.WhenAll(releases.Concat(saves));
+            Debug.Log("[Shutdown] CPU map: chunk releases and saves complete.");
         }
 
         /// <summary>Modulo hash for a bounded region; global storage uses full chunk coordinates.</summary>
@@ -109,7 +118,11 @@ namespace Arterra.Core.Storage {
 
             uint flagIndex = ChunkFlags.Enqueue(ChunkMapInfo.Flags.Clean);
             var chunk = new ChunkMapInfo(CCoord, (int)flagIndex, numPoints);
-            if (ChunkData.TryAdd(CCoord, chunk)) return chunk;
+            if (ChunkData.TryAdd(CCoord, chunk)) {
+                OnCreateChunk?.Invoke(CCoord);
+                return chunk;
+            }
+
             chunk.Dispose();
             ChunkFlags.Remove(flagIndex);
             return ChunkData[CCoord];
@@ -153,6 +166,7 @@ namespace Arterra.Core.Storage {
             chunk.Generation.Entities?.Release(coordinate);
             chunk.Generation.Pipeline?.Release();
             ChunkData.TryRemove(coordinate, out _);
+            OnReleaseChunk?.Invoke(coordinate);
             var flags = ChunkFlags[(uint)chunk.FlagIndex];
             ChunkFlags.Remove((uint)chunk.FlagIndex);
             ChunkMapInfo offloaded = chunk.Offload();
@@ -386,6 +400,12 @@ namespace Arterra.Core.Storage {
             ChunkFlags[(uint)mapInfo.FlagIndex] = ChunkMapInfo.Flags.Dirty;
             return mapInfo.MapMetaData.TryRemove(PIndex, out _);
         }
+
+        public static void AddOnCreateChunk(Action<int3> callback) => OnCreateChunk += callback;
+        public static void RemoveOnCreateChunk(Action<int3> callback) => OnCreateChunk -= callback;
+
+        public static void AddOnReleaseChunk(Action<int3> callback) => OnReleaseChunk += callback;
+        public static void RemoveOnReleaseChunk(Action<int3> callback) => OnReleaseChunk -= callback;
 
         /// <summary>
         /// A value-type view of a shared chunk allocation. Every copy refers to the same Generation

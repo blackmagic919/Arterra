@@ -19,9 +19,12 @@ namespace Arterra.Core.Storage {
             // Localization must not rewrite the authoritative map when sending it to a subscriber.
             var map = new MapData[chunk.Length];
             NativeArray<MapData>.Copy(chunk.ChunkData, chunk.Offset, map, 0, map.Length);
+
             var materials = new Dictionary<int, int>();
             var names = new List<string>();
+
             var registry = Config.CURRENT.Generation.Materials.value.MaterialDictionary;
+
             for (int i = 0; i < map.Length; i++) {
                 int material = map[i].material;
                 if (!materials.TryGetValue(material, out int local)) {
@@ -29,19 +32,24 @@ namespace Arterra.Core.Storage {
                     materials.Add(material, local);
                     names.Add(registry.RetrieveName(material));
                 }
+
                 map[i]._material = local;
             }
+
             var header = new Chunk.ChunkHeader {
                 RegisterNames = names,
                 ResolutionOffsets = new List<int>(),
                 MapEntryMetaData = includeMetadata ? chunk.MapMetaData.ToArray() : null,
             };
+
             int size = Config.CURRENT.Quality.Terrain.value.mapChunkSize;
             using var maps = new MemoryStream();
+
             for (int skip = 1; skip <= (includeResolutions ? size : 1); skip <<= 1) {
                 int axis = size / skip;
                 int byteCount = axis * axis * axis * 4;
                 byte[] buffer = ArrayPool<byte>.Shared.Rent(byteCount);
+
                 try {
                     int offset = 0;
                     for (int z = 0; z < size; z += skip)
@@ -51,14 +59,18 @@ namespace Arterra.Core.Storage {
                                     z * size * size + y * size + x].data;
                                 offset += 4;
                             }
+
                     using (var zip = new GZipStream(maps, CompressionMode.Compress, true))
                         zip.Write(buffer, 0, byteCount);
                 } finally { ArrayPool<byte>.Shared.Return(buffer); }
+
                 header.ResolutionOffsets.Add((int)maps.Length);
             }
+
             using var encodedHeader = WriteHeader(header);
             encodedHeader.Position = 0;
             encodedHeader.CopyTo(destination);
+
             maps.Position = 0;
             maps.CopyTo(destination);
         }
@@ -68,33 +80,41 @@ namespace Arterra.Core.Storage {
             uint mapStart = ReadHeader(source, out header);
             if (depth != 0) mapStart += (uint)header.ResolutionOffsets[depth - 1];
             source.Position = start + mapStart;
+
             int axis = size >> depth;
             var map = new MapData[axis * axis * axis];
             byte[] buffer = new byte[map.Length * 4];
+
             using (var zip = new GZipStream(source, CompressionMode.Decompress, true))
                 ReadFully(zip, buffer);
+
             var registry = Config.CURRENT.Generation.Materials.value.MaterialDictionary;
             int[] materials = new int[header.RegisterNames.Count];
             for (int i = 0; i < header.RegisterNames.Count; i++)
                 materials[i] = registry.RetrieveIndex(header.RegisterNames[i]);
+
             for (int i = 0; i < map.Length; i++) {
                 map[i].data = UnsafeUtility.As<byte, uint>(ref buffer[i * 4]);
                 map[i].material = materials[map[i].material];
             }
+
             return map;
         }
 
         public static MemoryStream WriteHeader(object header) {
             var stream = new MemoryStream();
             if (header == null) return stream;
+
             stream.Position = 4;
             string json = JsonConvert.SerializeObject(header, Formatting.Indented);
             byte[] bytes = Encoding.ASCII.GetBytes(json);
             using (var zip = new GZipStream(stream, CompressionMode.Compress, true))
                 zip.Write(bytes, 0, bytes.Length);
+
             byte[] size = BitConverter.GetBytes((uint)stream.Length);
             stream.Position = 0;
             stream.Write(size, 0, size.Length);
+
             return stream;
         }
 
@@ -102,12 +122,15 @@ namespace Arterra.Core.Storage {
             byte[] sizeBytes = new byte[4];
             ReadFully(source, sizeBytes);
             uint size = BitConverter.ToUInt32(sizeBytes, 0);
+
             byte[] buffer = new byte[checked((int)size - 4)];
             ReadFully(source, buffer);
+
             using var stream = new MemoryStream(buffer);
             using var zip = new GZipStream(stream, CompressionMode.Decompress);
             using var reader = new StreamReader(zip);
             header = JsonConvert.DeserializeObject<T>(reader.ReadToEnd());
+
             return size;
         }
 

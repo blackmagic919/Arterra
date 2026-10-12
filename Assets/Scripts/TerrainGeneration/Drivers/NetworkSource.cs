@@ -14,6 +14,7 @@ namespace Arterra.Core.Storage {
     /// <summary>One remote player's server-side driver. Requests allocate server-local shared chunks.</summary>
     public sealed class NetworkSource : LocalChunkSource, ITransportEventListener, IChunkConsumer {
         internal const ushort Generate = 1, Content = 2, Enter = 3, Leave = 4, Failed = 5;
+
         private readonly NetworkConnection peer;
         private readonly Guid referenceId;
         private readonly ChunkGenerationDriver driver;
@@ -26,11 +27,13 @@ namespace Arterra.Core.Storage {
             this.peer = peer;
             referenceId = ReferenceFor(playerId);
             driver = new ChunkGenerationDriver(CPUMapManager.numChunksAxis, this);
+
             TransportManager.Instance.Register(referenceId, this);
         }
 
         public void OnEvent(TransportEvent message) {
             if (disposed || message.Peer != peer || message.EventId != Generate) return;
+
             GenerateAsync(message);
         }
 
@@ -40,11 +43,13 @@ namespace Arterra.Core.Storage {
                 var subscription = driver.Allocate(this, coordinate);
                 await subscription.Ready;
                 if (disposed || !subscription.Active) return;
+
                 // Capture anew for every request, including requests for an already loaded chunk.
                 byte[] bytes = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(ChunkTransfer.Capture(subscription.Chunk)));
                 TransportManager.Instance.SendEvent(peer, referenceId, Content, bytes, request.MessageId);
             } catch (Exception exception) {
                 if (disposed) return;
+
                 Debug.LogException(exception);
                 TransportManager.Instance.SendEvent(peer, referenceId, Failed,
                     Encoding.UTF8.GetBytes(exception.Message), request.MessageId);
@@ -53,12 +58,14 @@ namespace Arterra.Core.Storage {
 
         public override void EnterEntity(Entity entity) {
             if (disposed) return;
+
             TransportManager.Instance.SendEvent(peer, referenceId, Enter,
                 Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(new Registerable<Entity>(entity))));
         }
 
         public override void LeaveEntity(Guid entityId) {
             if (disposed) return;
+
             TransportManager.Instance.SendEvent(peer, referenceId, Leave, entityId.ToByteArray());
         }
 
@@ -68,7 +75,9 @@ namespace Arterra.Core.Storage {
 
         public override void Dispose() {
             if (disposed) return;
+
             disposed = true;
+
             TransportManager.Instance.Unregister(referenceId, this);
             driver.Release();
         }

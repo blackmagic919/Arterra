@@ -132,26 +132,36 @@ public static class SystemProtocol{
     }
 
     private static async Task ShutdownAll() {
+        var shutdownTimer = System.Diagnostics.Stopwatch.StartNew();
+        Debug.Log("[Shutdown] World shutdown started.");
         // Startup marks state as Active before all systems are guaranteed initialized.
         // Shutdown must therefore tolerate partially initialized systems.
         static void TryShutdown(System.Action action, string systemName) {
+            var timer = System.Diagnostics.Stopwatch.StartNew();
+            Debug.Log($"[Shutdown] Starting {systemName}.");
             try {
                 action?.Invoke();
+                Debug.Log($"[Shutdown] Completed {systemName} in {timer.ElapsedMilliseconds} ms.");
             } catch (System.Exception ex) {
-                Debug.LogWarning($"ShutdownAll: Failed while releasing {systemName}: {ex.Message}");
+                Debug.LogWarning($"[Shutdown] Failed {systemName} after {timer.ElapsedMilliseconds} ms: {ex}");
             }
         }
 
         static async Task TryShutdownAsync(System.Func<Task> action, string systemName) {
-            try { await action(); }
-            catch (System.Exception ex) {
-                Debug.LogWarning($"ShutdownAll: Failed while releasing {systemName}: {ex.Message}");
+            var timer = System.Diagnostics.Stopwatch.StartNew();
+            Debug.Log($"[Shutdown] Starting {systemName}.");
+            try {
+                await action();
+                Debug.Log($"[Shutdown] Completed {systemName} in {timer.ElapsedMilliseconds} ms.");
+            } catch (System.Exception ex) {
+                Debug.LogWarning($"[Shutdown] Failed {systemName} after {timer.ElapsedMilliseconds} ms: {ex}");
             }
         }
 
-        TryShutdown(() => TerrainUpdate.CompleteJobs(), nameof(TerrainUpdate));
+        TryShutdown(() => TerrainUpdate.Release(), nameof(TerrainUpdate));
         TryShutdown(() => EntityManager.FlushPendingHandlers(), nameof(EntityManager));
         TryShutdown(() => PlayerConnection.DisconnectPlayers(), nameof(PlayerConnection));
+        await TryShutdownAsync(() => NetworkManager.ReleaseAsync(), nameof(NetworkManager));
         TryShutdown(() => ChunkGenerationDriver.Local?.Source.Dispose(), nameof(ChunkSource));
         TryShutdown(() => CPUMapManager.StopGeneration(), "Stop chunk generation");
         TryShutdown(() => MapGenerationPipeline.ReleaseAll(), nameof(MapGenerationPipeline));
@@ -174,6 +184,7 @@ public static class SystemProtocol{
         TryShutdown(() => WorldDataHandler.Release(), nameof(WorldDataHandler));
         TryShutdown(() => SharedResourceManager.Release(), nameof(SharedResourceManager));
         state = SystemState.Inactive;
+        Debug.Log($"[Shutdown] World shutdown finished in {shutdownTimer.ElapsedMilliseconds} ms.");
     }
 
     private static void ShutdownMinimal() {

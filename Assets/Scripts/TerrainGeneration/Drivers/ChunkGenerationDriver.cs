@@ -22,6 +22,7 @@ namespace Arterra.Core.Storage {
     public sealed class ChunkGenerationDriver {
         public ChunkSource Source { get; }
         public static ChunkGenerationDriver Local { get; private set; }
+
         private readonly Subscription[] region;
         private readonly int numChunksAxis;
 
@@ -29,12 +30,14 @@ namespace Arterra.Core.Storage {
         public static void Initialize(ChunkSource source) {
             if (!CPUMapManager.ChunkData.IsEmpty)
                 throw new InvalidOperationException("Release the previous world's chunks before initializing the local driver.");
+
             Local = new ChunkGenerationDriver(CPUMapManager.numChunksAxis, source);
         }
 
         public ChunkGenerationDriver(int numChunksAxis, ChunkSource source) {
             Source = source ?? throw new ArgumentNullException(nameof(source));
             if (numChunksAxis <= 0) throw new ArgumentOutOfRangeException(nameof(numChunksAxis));
+
             this.numChunksAxis = numChunksAxis;
             region = new Subscription[checked(numChunksAxis * numChunksAxis * numChunksAxis)];
         }
@@ -57,12 +60,15 @@ namespace Arterra.Core.Storage {
 
             ChunkMapInfo chunk = CPUMapManager.GetOrCreateChunkInfo(coordinate);
             var subscription = new Subscription(this, owner, chunk);
+
             // Subscribe first so replacing the owner at this coordinate never unloads the data.
             chunk.Generation.Subscribers.Add(subscription);
             region[index] = subscription;
             previous?.Release();
+
             chunk.Generation.Start(chunk, Source);
             if (ReferenceEquals(this, Local) && NetworkManager.IsActingServer) _ = InitializeLocalVisualsAsync(subscription);
+
             return subscription;
         }
 
@@ -82,6 +88,7 @@ namespace Arterra.Core.Storage {
             int index = HashCoord(coordinate);
             Subscription subscription = region[index];
             if (subscription == null || math.any(subscription.Chunk.CCoord != coordinate)) return;
+
             region[index] = null;
             subscription.Release();
         }
@@ -100,6 +107,7 @@ namespace Arterra.Core.Storage {
             public readonly IChunkConsumer Owner;
             public readonly ChunkMapInfo Chunk;
             public bool Active => Chunk.Generation.Subscribers.Contains(this);
+
             public Task Ready => Chunk.Generation.Ready;
 
             internal Subscription(ChunkGenerationDriver driver, IChunkConsumer owner, ChunkMapInfo chunk) {
@@ -114,6 +122,7 @@ namespace Arterra.Core.Storage {
                     foreach (var entity in EntityManager.GetChunkEntities(Chunk.CCoord))
                         Driver.Source.LeaveEntity(entity.info.rtEntityId);
                 }
+
                 _ = ReleaseUnusedAsync();
             }
 
@@ -133,29 +142,37 @@ namespace Arterra.Core.Storage {
             internal GenerationState(System.Collections.Concurrent.ConcurrentDictionary<uint, object> metadata = null) {
                 MapMetaData = metadata ?? new();
             }
+
             internal readonly HashSet<Subscription> Subscribers = new();
             internal int mapProgress;
             internal int entityProgress;
             internal ChunkMapInfo.Flags OffloadFlags;
+
             public MapGenerationPipeline Pipeline { get; private set; }
             public EntityGenerator Entities { get; internal set; }
+
             private TaskCompletionSource<bool> completion;
             private CancellationTokenSource cancellation;
+
             public Task Ready => completion?.Task;
             internal Task Loading { get; private set; }
+
             // The first subscriber supplies its driver's source.
             // That source serves the shared load and release for all subscribers
             internal ChunkSource Source { get; private set; }
+
             internal void Cancel() {
                 completion?.TrySetCanceled();
                 cancellation?.Cancel();
             }
+
             private void CheckCanceled() {
                 if (Ready.IsCanceled) throw new OperationCanceledException();
             }
 
             internal void Start(ChunkMapInfo chunk, ChunkSource source) {
                 if (Ready != null) return;
+
                 Source = source ?? throw new ArgumentNullException(nameof(source));
                 completion = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
                 cancellation = new CancellationTokenSource();
@@ -165,9 +182,11 @@ namespace Arterra.Core.Storage {
             private async Task LoadAsync(ChunkMapInfo chunk, TaskCompletionSource<bool> completion) {
                 chunk.MapProgress = ChunkMapInfo.State.InProgress;
                 chunk.EntityProgress = ChunkMapInfo.State.InProgress;
+
                 try {
                     await LoadContentAsync(chunk);
                     CheckCanceled();
+
                     chunk.MapProgress = ChunkMapInfo.State.Finished;
                     chunk.EntityProgress = ChunkMapInfo.State.Finished;
                     completion.TrySetResult(true);
@@ -193,6 +212,7 @@ namespace Arterra.Core.Storage {
                 CheckCanceled();
                 Chunk.ReadbackInfo content = await Source.ReadAsync(chunk.CCoord, cancellation.Token);
                 CheckCanceled();
+
                 bool generateMap = content.map.map == null;
                 bool generateEntities = content.entity.entities == null;
                 bool generateMeta = content.map.mapMeta == null;
@@ -203,9 +223,11 @@ namespace Arterra.Core.Storage {
                     await Pipeline.Start(generateMap);
                     CheckCanceled();
                 }
+
                 if (generateMap) {
                     Task write = Pipeline.ReadbackAsync(chunk.ChunkData, chunk.Offset);
                     chunk.PendingWrites.Add(write);
+
                     try { await write; }
                     finally { chunk.PendingWrites.Remove(write); }
                     CheckCanceled();
@@ -223,9 +245,12 @@ namespace Arterra.Core.Storage {
                         Pipeline.MapCreator.PopulateBiomes(Pipeline.Origin,
                             Pipeline.SurfCreator.SurfaceMapAddress, size, 1);
                     }
+
                     // Supplied chunks still resolve candidates waiting in lower neighbors.
                     var readback = Pipeline?.MetaReadback ?? new AsyncGenInfoReadback(null);
+
                     var planner = Pipeline?.Entities ?? new EntityGenerator();
+
                     try {
                         planner.PlanEntities(readback, Engine.Terrain.Map.Creator.bufferOffsets.biomeMapStart, chunk.CCoord, generateEntities);
                         Task planning = readback.GenInfoReadback(chunk.CCoord, context);
@@ -248,6 +273,7 @@ namespace Arterra.Core.Storage {
                 foreach (Subscription subscriber in snapshot)
                     if (subscriber.Active) subscriber.Owner.ReflectChunk(updatedValues);
             }
+
             public HashSet<ChunkGenerationDriver> GetDriverSet() {
                 if (Subscribers == null) return null;
                 return Subscribers.Select(s => s.Driver).ToHashSet();

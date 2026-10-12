@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
-using Arterra.Utils;
 using Unity.Collections;
 using Unity.Networking.Transport;
 using Unity.Networking.Transport.Relay;
@@ -27,7 +26,6 @@ namespace Arterra.Core.Network {
         private NetworkPipeline reliable;
         private readonly List<NetworkConnection> peers = new();
         private NetworkConnection server;
-        private RuntimeUpdateTask pump;
         private TaskCompletionSource<bool> connected;
         private bool starting;
         private int generation;
@@ -77,6 +75,7 @@ namespace Arterra.Core.Network {
             if (starting || driver.IsCreated) throw new InvalidOperationException("Transport already started.");
             if (configuration.Type == NetworkType.DistributedAuthority) throw new NotSupportedException("Arterra uses a host-authoritative connection.");
 
+            Debug.Log($"[Network Transport] Starting {configuration.Role} over {configuration.Type}; update component active: {NetworkManager.Instance != null && NetworkManager.Instance.isActiveAndEnabled}.");
             starting = true;
             int epoch = ++generation;
             Configuration = configuration;
@@ -115,9 +114,9 @@ namespace Arterra.Core.Network {
                     peers.Add(server);
                 }
                 Application.quitting += OnQuit;
-                pump = new RuntimeUpdateTask(Tick, Fail);
-                pump.Invoke();
+                Debug.Log("[Network Transport] Driver created and bound; waiting for connection/relay readiness.");
                 await WithTimeout(connected.Task, ConnectionTimeoutMilliseconds);
+                Debug.Log("[Network Transport] Connection/relay readiness confirmed.");
                 if (epoch != generation) throw new OperationCanceledException("Transport stopped while connecting.");
                 IsRunning = true;
             } catch {
@@ -132,22 +131,26 @@ namespace Arterra.Core.Network {
             ++SessionVersion;
             ++generation;
             starting = false;
+            Debug.Log($"[Network Transport] Stopping transport ({(reason == null ? "requested" : $"{reason.GetType().Name}: {reason.Message}")}).");
             IsRunning = false;
             Application.quitting -= OnQuit;
-            pump?.Disable();
-            pump = null;
             connected?.TrySetCanceled();
             if (driver.IsCreated) {
+                Debug.Log("[Shutdown] Transport: disconnecting peers and completing final driver update.");
                 foreach (var peer in peers) driver.Disconnect(peer);
                 driver.ScheduleUpdate().Complete();
+                Debug.Log("[Shutdown] Transport: final update complete; disposing driver.");
                 driver.Dispose();
+                Debug.Log("[Shutdown] Transport: driver disposed.");
             }
             driver = default;
             peers.Clear();
             server = default;
             Configuration = null;
+            Debug.Log("[Shutdown] Transport: resetting events and notifying stopped listeners.");
             ResetEvents(reason);
             Stopped?.Invoke(reason);
+            Debug.Log("[Shutdown] Transport: stopped listeners complete.");
             return Task.CompletedTask;
         }
 
@@ -158,6 +161,11 @@ namespace Arterra.Core.Network {
                 timer.Cancel();
                 return await task;
             }
+        }
+
+        internal void Update() {
+            try { Tick(); }
+            catch (Exception exception) { Fail(exception); }
         }
 
         private void Tick() {

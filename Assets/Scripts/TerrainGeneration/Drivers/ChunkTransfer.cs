@@ -15,6 +15,7 @@ namespace Arterra.Core.Storage {
         public static ChunkTransfer Capture(CPUMapManager.ChunkMapInfo chunk) {
             using var map = new MemoryStream();
             ChunkMapCodec.Write(map, chunk, includeResolutions: false, includeMetadata: false);
+
             return new ChunkTransfer {
                 MapData = map.ToArray(),
                 EntityData = EntityManager.GetChunkEntities(chunk.CCoord)
@@ -25,6 +26,7 @@ namespace Arterra.Core.Storage {
 
         public Chunk.ReadbackInfo Read() {
             using var map = new MemoryStream(MapData);
+
             return new Chunk.ReadbackInfo(
                 ChunkMapCodec.Read(map, Config.CURRENT.Quality.Terrain.value.mapChunkSize, 0, out _),
                 MapMetadata,

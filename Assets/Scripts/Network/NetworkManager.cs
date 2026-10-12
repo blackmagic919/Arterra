@@ -5,7 +5,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using Arterra.Configuration;
 using Arterra.Core.Storage;
-using Arterra.Utils;
 using Newtonsoft.Json;
 using Arterra.Core.Network.Authentication;
 using Unity.Services.Multiplayer;
@@ -13,7 +12,9 @@ using UnityEngine;
 
 namespace Arterra.Core.Network {
     /// <summary>Session advertisement and discovery. Invoke on Unity's main thread.</summary>
-    public static class NetworkManager {
+    public sealed class NetworkManager : MonoBehaviour {
+        public static NetworkManager Instance { get; private set; }
+        private static bool initialized;
         private const string WorldMetaProperty = "configJson";
         private const string MultiplayerHook = "EnableMultiplayer";
         private const int PropertyByteLimit = 2048;
@@ -38,19 +39,39 @@ namespace Arterra.Core.Network {
         /// <summary>Offline games and hosts own their state; joining clients do not.</summary>
         public static bool IsActingServer => !joiningClient && (TransportManager.Instance.Configuration == null || TransportManager.Instance.IsServer);
 
+        private void Awake() {
+            if (Instance == null) {
+                Instance = this;
+                DontDestroyOnLoad(gameObject);
+            } else {
+                Destroy(gameObject);
+            }
+        }
+
+        private void Update() {
+            if (Instance == this) 
+                TransportManager.Instance.Update();
+        }
+
+        private void OnDestroy() {
+            if (Instance != this) return;
+            Instance = null;
+            Observe(ReleaseAsync());
+        }
+
         public static void Initialize() {
-            if (RuntimeUpdateTask.Active) return;
+            if (initialized) return;
 
             Config.CURRENT.System.AddHook(MultiplayerHook, ToggleMultiplayer);
-            RuntimeUpdateTask.Initialize();
+            initialized = true;
             if (MultiplayerEnabled) Observe(EnableMultiplayer());
         }
 
         public static async Task ReleaseAsync() {
-            if (RuntimeUpdateTask.Active)
+            if (initialized)
                 Config.CURRENT.System.RemoveHook(MultiplayerHook, ToggleMultiplayer);
 
-            RuntimeUpdateTask.Release();
+            initialized = false;
             await DisableMultiplayer();
         }
 
@@ -195,9 +216,12 @@ namespace Arterra.Core.Network {
         }
 
         public static async Task DisableMultiplayer() {
+            Debug.Log("[Shutdown] Network: stopping hosting recovery.");
             StopHostingRecovery();
+            Debug.Log("[Shutdown] Network: waiting for lifecycle lock.");
             await lifecycle.WaitAsync();
             try {
+                Debug.Log("[Shutdown] Network: lifecycle lock acquired.");
                 StopHostingRecovery();
                 await LeaveSessionAsync();
             } finally { lifecycle.Release(); }
@@ -209,12 +233,16 @@ namespace Arterra.Core.Network {
         public static async Task ConnectSessionAsync(string sessionId,
             CancellationToken token = default, string password = null) {
             if (string.IsNullOrWhiteSpace(sessionId)) throw new ArgumentException("Missing session ID.", nameof(sessionId));
+            Debug.Log($"[Network Join] Session {sessionId}: waiting for lifecycle lock.");
             await lifecycle.WaitAsync(token);
 
             try {
+                Debug.Log($"[Network Join] Session {sessionId}: lifecycle lock acquired.");
                 if (hosting != null || Session?.IsHost == true) throw new InvalidOperationException("Stop hosting before joining another world.");
 
+                Debug.Log("[Network Join] Ensuring Unity services and sign-in.");
                 await EnsureServicesAsync();
+                Debug.Log("[Network Join] Unity services and sign-in ready.");
                 token.ThrowIfCancellationRequested();
 
                 if (Session != null && //Leave any current session we're a part of
@@ -224,6 +252,7 @@ namespace Arterra.Core.Network {
                 try {
                     if (Session == null) await JoinSessionAsync(sessionId, password, token);
                     token.ThrowIfCancellationRequested();
+                    Debug.Log($"[Network Join] Session {sessionId}: connection and authentication complete.");
                 } catch {
                     try { await LeaveSessionAsync(); }
                     catch (Exception cleanupError) { Debug.LogException(cleanupError); }
@@ -240,7 +269,9 @@ namespace Arterra.Core.Network {
             // The host's session metadata supplies Relay configuration.
             joiningClient = true;
             try {
+                Debug.Log($"[Network Join] Session {sessionId}: calling Unity JoinSessionByIdAsync.");
                 Session = await MultiplayerService.Instance.JoinSessionByIdAsync(sessionId, options);
+                Debug.Log($"[Network Join] Session {sessionId}: Unity join returned; starting host authentication.");
                 await PlayerConnection.JoinAsync(Session, token);
             } finally { joiningClient = false; }
         }
@@ -261,8 +292,15 @@ namespace Arterra.Core.Network {
             }
 
             try {
-                if (Session?.IsHost == true) await Session.AsHost().DeleteAsync();
-                else if (Session != null) await Session.LeaveAsync();
+                if (Session?.IsHost == true) {
+                    Debug.Log("[Shutdown] Network: deleting hosted Unity session.");
+                    await Session.AsHost().DeleteAsync();
+                    Debug.Log("[Shutdown] Network: hosted Unity session deleted.");
+                } else if (Session != null) {
+                    Debug.Log("[Shutdown] Network: leaving Unity session.");
+                    await Session.LeaveAsync();
+                    Debug.Log("[Shutdown] Network: left Unity session.");
+                }
             } finally {
                 Session = null;
                 await TransportManager.Instance.StopAsync();

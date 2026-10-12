@@ -158,14 +158,22 @@ namespace Arterra.Core.Network {
                 bool expired = false;
                 if (incoming.TryGetValue(peer, out var messages)) {
                     foreach (var partial in messages)
-                        if (now >= partial.Value.Deadline) { expired = true; break; }
+                        if (now >= partial.Value.Deadline) {
+                            UnityEngine.Debug.LogWarning($"[Network Transport] Incoming event {partial.Value.EventId}, message {partial.Key} from {peer} expired after receiving {partial.Value.Received}/{partial.Value.Bytes.Length} bytes.");
+                            expired = true;
+                            break;
+                        }
                 }
                 if (expired) { Disconnect(peer); continue; }
                 if (!outgoing.TryGetValue(peer, out var queue)) continue;
                 for (int n = 0; n < MaxChunksPerPeerPerUpdate && queue.Count > 0; n++) {
                     var message = queue.Peek();
                     if (message.Canceled) { queue.Dequeue(); continue; }
-                    if (now >= message.Deadline) { Disconnect(peer); break; }
+                    if (now >= message.Deadline) {
+                        UnityEngine.Debug.LogWarning($"[Network Transport] Outgoing event {message.EventId}, message {message.Id} to {peer} expired after sending {message.Sent}/{message.Bytes.Length} bytes.");
+                        Disconnect(peer);
+                        break;
+                    }
                     int count = Math.Min(ChunkBytes, message.Bytes.Length - message.Sent);
                     if (!TrySendChunk(peer, message, count)) break;
                     message.Sent += count;
