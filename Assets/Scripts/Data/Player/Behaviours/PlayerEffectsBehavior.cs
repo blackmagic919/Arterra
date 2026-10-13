@@ -83,9 +83,6 @@ namespace Arterra.Data.Entity.Behavior {
             if (self.context != BehaviorEntity.UpdateContext.Visual) return;
             if (animator == null) return;
 
-            bool mounted = self.Is(out PlayerMovementBehavior movementBehavior) && movementBehavior.IsMounted;
-            animator.SetBool("IsSitting", mounted);
-            if (mounted) animator.SetBool("IsJumping", false);
             float3 velocity = self.IsOwner ? movement : self.velocity;
             float speed = Mathf.Lerp(animator.GetFloat("Speed"), math.length(velocity), 0.35f);
             animator.SetFloat("Speed", speed);

@@ -42,25 +42,6 @@ namespace Arterra.Core.Network {
         public event Action<Exception> Stopped;
         public IReadOnlyList<NetworkConnection> Peers => peerView;
 
-        // Write directly into Unity's send buffer; no temporary packet arrays or streams.
-        private bool TrySendChunk(NetworkConnection peer, OutgoingEvent message, int count) {
-            if (!driver.IsCreated || !peers.Contains(peer)) return false;
-            bool first = message.Sent == 0;
-            int headerBytes = first ? FirstHeaderBytes : MessageIdBytes;
-            if (driver.BeginSend(reliable, peer, out var writer, headerBytes + count) != 0) return false;
-            writer.WriteUInt(message.Id);
-            if (first) {
-                Span<byte> referenceBytes = stackalloc byte[ReferenceIdBytes];
-                message.ReferenceId.TryWriteBytes(referenceBytes);
-                for (int i = 0; i < ReferenceIdBytes; i++) writer.WriteByte(referenceBytes[i]);
-                writer.WriteUShort(message.EventId);
-                writer.WriteUInt(message.ReplyTo);
-                writer.WriteInt(message.Bytes.Length);
-            }
-            for (int i = 0; i < count; i++) writer.WriteByte(message.Bytes[message.Sent + i]);
-            return driver.EndSend(writer) >= 0;
-        }
-
         public void Disconnect(NetworkConnection peer) {
             if (!driver.IsCreated || !peers.Contains(peer)) return;
             if (!IsServer) { Fail(new IOException("Disconnected from host.")); return; }
@@ -75,7 +56,7 @@ namespace Arterra.Core.Network {
             if (starting || driver.IsCreated) throw new InvalidOperationException("Transport already started.");
             if (configuration.Type == NetworkType.DistributedAuthority) throw new NotSupportedException("Arterra uses a host-authoritative connection.");
 
-            Debug.Log($"[Network Transport] Starting {configuration.Role} over {configuration.Type}; update component active: {NetworkManager.Instance != null && NetworkManager.Instance.isActiveAndEnabled}.");
+            Debug.Log($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Network Transport] Starting {configuration.Role} over {configuration.Type}; update component active: {NetworkManager.Instance != null && NetworkManager.Instance.isActiveAndEnabled}.");
             starting = true;
             int epoch = ++generation;
             Configuration = configuration;
@@ -114,11 +95,14 @@ namespace Arterra.Core.Network {
                     peers.Add(server);
                 }
                 Application.quitting += OnQuit;
-                Debug.Log("[Network Transport] Driver created and bound; waiting for connection/relay readiness.");
+                Debug.Log($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Network Transport] Driver created and bound; waiting for connection/relay readiness.");
                 await WithTimeout(connected.Task, ConnectionTimeoutMilliseconds);
-                Debug.Log("[Network Transport] Connection/relay readiness confirmed.");
+                Debug.Log($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Network Transport] Connection/relay readiness confirmed.");
                 if (epoch != generation) throw new OperationCanceledException("Transport stopped while connecting.");
                 IsRunning = true;
+                if (!IsServer) {
+                    foreach (var referenceId in listeners.Keys) SendSubscription(referenceId, Subscribe);
+                }
             } catch {
                 if (epoch == generation) await StopAsync();
                 throw;
@@ -131,26 +115,26 @@ namespace Arterra.Core.Network {
             ++SessionVersion;
             ++generation;
             starting = false;
-            Debug.Log($"[Network Transport] Stopping transport ({(reason == null ? "requested" : $"{reason.GetType().Name}: {reason.Message}")}).");
+            Debug.Log($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Network Transport] Stopping transport ({(reason == null ? "requested" : $"{reason.GetType().Name}: {reason.Message}")}).");
             IsRunning = false;
             Application.quitting -= OnQuit;
             connected?.TrySetCanceled();
             if (driver.IsCreated) {
-                Debug.Log("[Shutdown] Transport: disconnecting peers and completing final driver update.");
+                Debug.Log($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Shutdown] Transport: disconnecting peers and completing final driver update.");
                 foreach (var peer in peers) driver.Disconnect(peer);
                 driver.ScheduleUpdate().Complete();
-                Debug.Log("[Shutdown] Transport: final update complete; disposing driver.");
+                Debug.Log($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Shutdown] Transport: final update complete; disposing driver.");
                 driver.Dispose();
-                Debug.Log("[Shutdown] Transport: driver disposed.");
+                Debug.Log($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Shutdown] Transport: driver disposed.");
             }
             driver = default;
             peers.Clear();
             server = default;
             Configuration = null;
-            Debug.Log("[Shutdown] Transport: resetting events and notifying stopped listeners.");
+            Debug.Log($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Shutdown] Transport: resetting events and notifying stopped listeners.");
             ResetEvents(reason);
             Stopped?.Invoke(reason);
-            Debug.Log("[Shutdown] Transport: stopped listeners complete.");
+            Debug.Log($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Shutdown] Transport: stopped listeners complete.");
             return Task.CompletedTask;
         }
 

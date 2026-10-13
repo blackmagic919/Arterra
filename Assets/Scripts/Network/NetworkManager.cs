@@ -216,12 +216,12 @@ namespace Arterra.Core.Network {
         }
 
         public static async Task DisableMultiplayer() {
-            Debug.Log("[Shutdown] Network: stopping hosting recovery.");
+            Debug.Log($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Shutdown] Network: stopping hosting recovery.");
             StopHostingRecovery();
-            Debug.Log("[Shutdown] Network: waiting for lifecycle lock.");
+            Debug.Log($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Shutdown] Network: waiting for lifecycle lock.");
             await lifecycle.WaitAsync();
             try {
-                Debug.Log("[Shutdown] Network: lifecycle lock acquired.");
+                Debug.Log($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Shutdown] Network: lifecycle lock acquired.");
                 StopHostingRecovery();
                 await LeaveSessionAsync();
             } finally { lifecycle.Release(); }
@@ -233,16 +233,16 @@ namespace Arterra.Core.Network {
         public static async Task ConnectSessionAsync(string sessionId,
             CancellationToken token = default, string password = null) {
             if (string.IsNullOrWhiteSpace(sessionId)) throw new ArgumentException("Missing session ID.", nameof(sessionId));
-            Debug.Log($"[Network Join] Session {sessionId}: waiting for lifecycle lock.");
+            Debug.Log($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Network Join] Session {sessionId}: waiting for lifecycle lock.");
             await lifecycle.WaitAsync(token);
 
             try {
-                Debug.Log($"[Network Join] Session {sessionId}: lifecycle lock acquired.");
+                Debug.Log($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Network Join] Session {sessionId}: lifecycle lock acquired.");
                 if (hosting != null || Session?.IsHost == true) throw new InvalidOperationException("Stop hosting before joining another world.");
 
-                Debug.Log("[Network Join] Ensuring Unity services and sign-in.");
+                Debug.Log($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Network Join] Ensuring Unity services and sign-in.");
                 await EnsureServicesAsync();
-                Debug.Log("[Network Join] Unity services and sign-in ready.");
+                Debug.Log($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Network Join] Unity services and sign-in ready.");
                 token.ThrowIfCancellationRequested();
 
                 if (Session != null && //Leave any current session we're a part of
@@ -252,7 +252,7 @@ namespace Arterra.Core.Network {
                 try {
                     if (Session == null) await JoinSessionAsync(sessionId, password, token);
                     token.ThrowIfCancellationRequested();
-                    Debug.Log($"[Network Join] Session {sessionId}: connection and authentication complete.");
+                    Debug.Log($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Network Join] Session {sessionId}: connection and authentication complete.");
                 } catch {
                     try { await LeaveSessionAsync(); }
                     catch (Exception cleanupError) { Debug.LogException(cleanupError); }
@@ -269,9 +269,9 @@ namespace Arterra.Core.Network {
             // The host's session metadata supplies Relay configuration.
             joiningClient = true;
             try {
-                Debug.Log($"[Network Join] Session {sessionId}: calling Unity JoinSessionByIdAsync.");
+                Debug.Log($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Network Join] Session {sessionId}: calling Unity JoinSessionByIdAsync.");
                 Session = await MultiplayerService.Instance.JoinSessionByIdAsync(sessionId, options);
-                Debug.Log($"[Network Join] Session {sessionId}: Unity join returned; starting host authentication.");
+                Debug.Log($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Network Join] Session {sessionId}: Unity join returned; starting host authentication.");
                 await PlayerConnection.JoinAsync(Session, token);
             } finally { joiningClient = false; }
         }
@@ -293,13 +293,13 @@ namespace Arterra.Core.Network {
 
             try {
                 if (Session?.IsHost == true) {
-                    Debug.Log("[Shutdown] Network: deleting hosted Unity session.");
+                    Debug.Log($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Shutdown] Network: deleting hosted Unity session.");
                     await Session.AsHost().DeleteAsync();
-                    Debug.Log("[Shutdown] Network: hosted Unity session deleted.");
+                    Debug.Log($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Shutdown] Network: hosted Unity session deleted.");
                 } else if (Session != null) {
-                    Debug.Log("[Shutdown] Network: leaving Unity session.");
+                    Debug.Log($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Shutdown] Network: leaving Unity session.");
                     await Session.LeaveAsync();
-                    Debug.Log("[Shutdown] Network: left Unity session.");
+                    Debug.Log($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Shutdown] Network: left Unity session.");
                 }
             } finally {
                 Session = null;

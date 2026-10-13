@@ -10,6 +10,7 @@ using System.Linq;
 using Arterra.Core.Storage;
 using UnityEngine.Profiling;
 using Arterra.Core.Events;
+using Arterra.GamePlay;
 
 namespace Arterra.Data.Entity.Behavior {
     public interface IBehaviorSetting : ICloneable {
@@ -419,11 +420,11 @@ namespace Arterra.Data.Entity.Behavior {
             [JsonIgnore] public override Quaternion Facing => Rotation;
             [JsonIgnore] public int3 PathCoord => (int3)math.floor(PathCollider.transform.position);
             [JsonIgnore] public UpdateContext context = UpdateContext.Simulation;
-            [JsonIgnore] public float DeltaTime => IsOwner
+            [JsonIgnore] public float DeltaTime => PlayerHandler.IsPlayer(this)
                 ? (context == UpdateContext.Simulation 
                 ? Time.fixedDeltaTime : Time.deltaTime)
                 : EntityJob.cxt.deltaTime;
-            [JsonIgnore] public float ExactDeltaTime => IsOwner
+            [JsonIgnore] public float ExactDeltaTime => PlayerHandler.IsPlayer(this)
                 ?  (context == UpdateContext.Simulation
                 ? Time.fixedDeltaTime : Time.deltaTime)
                 : EntityJob.cxt.totDeltaTime;
@@ -522,9 +523,9 @@ namespace Arterra.Data.Entity.Behavior {
                 }
             }
 
-            // The local player keeps its main-thread fixed/frame scheduling.
+            // PlayerHandler owns player fixed/frame scheduling on the main thread.
             public override void Update() {
-                if (!IsOwner) Update(UpdateContext.Simulation);
+                if (!PlayerHandler.IsPlayer(this)) Update(UpdateContext.Simulation);
             }
 
             public void UpdateSynchronous() {
@@ -535,7 +536,7 @@ namespace Arterra.Data.Entity.Behavior {
             }
 
             public override void UpdateJobSync() {
-                if (!IsOwner) UpdateSynchronous();
+                if (!PlayerHandler.IsPlayer(this)) UpdateSynchronous();
             }
 
             public override void OnDrawGizmos() {

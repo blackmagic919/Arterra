@@ -127,10 +127,10 @@ namespace Arterra.Core.Storage {
                     Config previous = Config.CURRENT;
                     await NetworkManager.ConnectSessionAsync(meta.SessionId, cancellationToken);
                     try {
-                        Debug.Log("[Network Join] Requesting host world configuration.");
+                        Debug.Log($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Network Join] Requesting host world configuration.");
                         loaded = await Config.CurrentVariable.GetAsync(cancellationToken)
                             ?? throw new InvalidOperationException("The host returned a null world configuration.");
-                        Debug.Log("[Network Join] Host world configuration received.");
+                        Debug.Log($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Network Join] Host world configuration received.");
                     } catch {
                         try { await NetworkManager.DisconnectClientAsync(); }
                         catch (Exception cleanupError) { Debug.LogException(cleanupError); }

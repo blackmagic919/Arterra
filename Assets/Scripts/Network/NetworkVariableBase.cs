@@ -52,8 +52,8 @@ namespace Arterra.Core.Network {
             if (referenceId == Guid.Empty) throw new ArgumentException("A variable requires a nonempty reference ID.", nameof(referenceId));
             if (ReferenceId == referenceId) return;
             if (ReferenceId != Guid.Empty) throw new InvalidOperationException("This variable is already registered.");
-            transport.Register(referenceId, this);
             ReferenceId = referenceId;
+            transport.Register(referenceId, this);
         }
 
         // An uncreated peer represents local access, not an incoming client event.
@@ -137,6 +137,13 @@ namespace Arterra.Core.Network {
             }
         }
 
+        void ITransportEventListener.OnSubscribed(NetworkConnection peer) {
+            if (disposed) return;
+            CheckSession();
+            if (CanAccess(readPerm, peer))
+                transport.SendEvent(peer, ReferenceId, Update, Encode(value), replacePending: true);
+        }
+
         void ITransportEventListener.OnEvent(TransportEvent message) {
             if (disposed || !message.Peer.IsCreated || message.ReferenceId != ReferenceId) return;
             CheckSession();
@@ -188,9 +195,10 @@ namespace Arterra.Core.Network {
             hasCachedValue = false;
             if (transport.IsRunning && readPerm != NetworkPermission.Server) {
                 byte[] payload = Encode(next);
-                if (readPerm == NetworkPermission.All) transport.Broadcast(ReferenceId, Update, payload);
+                if (readPerm == NetworkPermission.All) transport.Broadcast(ReferenceId, Update, payload, replacePending: true);
                 else foreach (var peer in transport.Peers) {
-                    if (CanAccess(readPerm, peer)) transport.SendEvent(peer, ReferenceId, Update, payload);
+                    if (transport.IsSubscribed(peer, ReferenceId) && CanAccess(readPerm, peer))
+                        transport.SendEvent(peer, ReferenceId, Update, payload, replacePending: true);
                 }
             }
         }

@@ -38,14 +38,14 @@ namespace Arterra.Core.Network.Authentication {
 
         private static async Task SignInAsync() {
             if (UnityServices.State != ServicesInitializationState.Initialized) {
-                Debug.Log("[Network Auth] Initializing Unity services.");
+                Debug.Log($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Network Auth] Initializing Unity services.");
                 await UnityServices.InitializeAsync();
-                Debug.Log("[Network Auth] Unity services initialized.");
+                Debug.Log($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Network Auth] Unity services initialized.");
             }
             if (!AuthenticationService.Instance.IsSignedIn) {
-                Debug.Log("[Network Auth] Signing in anonymously.");
+                Debug.Log($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Network Auth] Signing in anonymously.");
                 await AuthenticationService.Instance.SignInAnonymouslyAsync();
-                Debug.Log("[Network Auth] Sign-in complete.");
+                Debug.Log($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Network Auth] Sign-in complete.");
             }
             PlayerPrefs.SetString(CachedPlayerKey, AuthenticationService.Instance.PlayerId);
             PlayerPrefs.Save();
@@ -55,9 +55,9 @@ namespace Arterra.Core.Network.Authentication {
             if (session.CurrentPlayer == null || session.CurrentPlayer.Id != AuthenticationService.Instance.PlayerId)
                 throw new InvalidOperationException("Session does not belong to the signed-in player.");
             session.CurrentPlayer.SetProperty(ProofProperty, new PlayerProperty(challenge, VisibilityPropertyOptions.Member));
-            Debug.Log("[Network Auth] Publishing connection proof to Unity session.");
+            Debug.Log($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Network Auth] Publishing connection proof to Unity session.");
             await session.SaveCurrentPlayerDataAsync();
-            Debug.Log("[Network Auth] Connection proof published.");
+            Debug.Log($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Network Auth] Connection proof published.");
         }
     }
 }

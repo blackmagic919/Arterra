@@ -133,28 +133,28 @@ public static class SystemProtocol{
 
     private static async Task ShutdownAll() {
         var shutdownTimer = System.Diagnostics.Stopwatch.StartNew();
-        Debug.Log("[Shutdown] World shutdown started.");
+        Debug.Log($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Shutdown] World shutdown started.");
         // Startup marks state as Active before all systems are guaranteed initialized.
         // Shutdown must therefore tolerate partially initialized systems.
         static void TryShutdown(System.Action action, string systemName) {
             var timer = System.Diagnostics.Stopwatch.StartNew();
-            Debug.Log($"[Shutdown] Starting {systemName}.");
+            Debug.Log($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Shutdown] Starting {systemName}.");
             try {
                 action?.Invoke();
-                Debug.Log($"[Shutdown] Completed {systemName} in {timer.ElapsedMilliseconds} ms.");
+                Debug.Log($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Shutdown] Completed {systemName} in {timer.ElapsedMilliseconds} ms.");
             } catch (System.Exception ex) {
-                Debug.LogWarning($"[Shutdown] Failed {systemName} after {timer.ElapsedMilliseconds} ms: {ex}");
+                Debug.LogWarning($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Shutdown] Failed {systemName} after {timer.ElapsedMilliseconds} ms: {ex}");
             }
         }
 
         static async Task TryShutdownAsync(System.Func<Task> action, string systemName) {
             var timer = System.Diagnostics.Stopwatch.StartNew();
-            Debug.Log($"[Shutdown] Starting {systemName}.");
+            Debug.Log($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Shutdown] Starting {systemName}.");
             try {
                 await action();
-                Debug.Log($"[Shutdown] Completed {systemName} in {timer.ElapsedMilliseconds} ms.");
+                Debug.Log($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Shutdown] Completed {systemName} in {timer.ElapsedMilliseconds} ms.");
             } catch (System.Exception ex) {
-                Debug.LogWarning($"[Shutdown] Failed {systemName} after {timer.ElapsedMilliseconds} ms: {ex}");
+                Debug.LogWarning($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Shutdown] Failed {systemName} after {timer.ElapsedMilliseconds} ms: {ex}");
             }
         }
 
@@ -184,7 +184,7 @@ public static class SystemProtocol{
         TryShutdown(() => WorldDataHandler.Release(), nameof(WorldDataHandler));
         TryShutdown(() => SharedResourceManager.Release(), nameof(SharedResourceManager));
         state = SystemState.Inactive;
-        Debug.Log($"[Shutdown] World shutdown finished in {shutdownTimer.ElapsedMilliseconds} ms.");
+        Debug.Log($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Shutdown] World shutdown finished in {shutdownTimer.ElapsedMilliseconds} ms.");
     }
 
     private static void ShutdownMinimal() {

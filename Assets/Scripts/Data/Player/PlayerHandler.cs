@@ -62,6 +62,12 @@ namespace Arterra.GamePlay{
     public static class PlayerHandler {
         public static readonly ConcurrentDictionary<NetworkConnection, BehaviorEntity.Animal> Players = new();
         public static event Action<Guid> PlayerDisconnected;
+        private static readonly HashSet<Guid> playerIds = new();
+
+        public static bool IsPlayer(Entity entity) {
+            if (entity == null) return false;
+            return playerIds.Contains(entity.info.rtEntityId);
+        }
 
         // A default connection denotes this machine's local player.
         public static Guid GetPlayerId(NetworkConnection peer = default) {
@@ -88,6 +94,7 @@ namespace Arterra.GamePlay{
 
             active = false;
             Players.Clear();
+            playerIds.Clear();
             localAccount = ClientAuthentication.LocalAccount;
             if (NetworkManager.IsActingServer) PlayerStorage.Initialize();
             else PlayerStorage.Release();
@@ -95,6 +102,7 @@ namespace Arterra.GamePlay{
                 if (!TryLoadExistingPlayer(FinishInitialize)) CreatePlayer(FinishInitialize);
             } else {
                 data = PlayerConnection.TakeInitialPlayer();
+                playerIds.Add(data.info.rtEntityId);
                 EntityManager.DeserializeEntity(data, () => {
                     RebindPlayer(data);
                     FinishInitialize();
@@ -117,16 +125,23 @@ namespace Arterra.GamePlay{
         }
 
         private static void Update(MonoBehaviour mono) {
-            if (!data.active) return;
             if (!active) return;
 
-            data.UpdateSynchronous();
+            data?.UpdateSynchronous();
+            foreach (var pair in Players) {
+                if (ReferenceEquals(pair.Value, data)) continue;
+                pair.Value.UpdateSynchronous();
+            }
         }
 
-        private static void FixedUpdate(MonoBehaviour mono){
-            if(!active) return;
-            if(!data.active) return;
-            data.Update(BehaviorEntity.UpdateContext.Simulation);
+        private static void FixedUpdate(MonoBehaviour mono) {
+            if (!active) return;
+
+            data?.Update(BehaviorEntity.UpdateContext.Simulation);
+            foreach (var pair in Players) {
+                if (ReferenceEquals(pair.Value, data)) continue;
+                pair.Value.Update(BehaviorEntity.UpdateContext.Simulation);
+            }
         }
 
         /// <summary>Releases the player handler and all resources tied to handling the player. </summary>
@@ -136,6 +151,7 @@ namespace Arterra.GamePlay{
             InputPoller.SetCursorLock(false); //Release Cursor Lock
             SaveAll();
             Players.Clear();
+            playerIds.Clear();
             PlayerStorage.Release();
             InventoryController.Release();
             PanelNavbarManager.Release();
@@ -159,7 +175,7 @@ namespace Arterra.GamePlay{
             var account = RequireAccount(peer);
             if (Players.TryGetValue(peer, out var current)) return current;
             var player = PlayerStorage.Load(account);
-            if (player != null) Players.TryAdd(peer, player);
+            if (player != null) RegisterPlayer(peer, player);
             return player;
         }
 
@@ -173,7 +189,12 @@ namespace Arterra.GamePlay{
             uint index = (uint)Config.CURRENT.Generation.Entities.RetrieveIndex("Player");
             player = (BehaviorEntity.Animal)Config.CURRENT.Generation.Entities.Reg[(int)index].Entity;
             RegisterPlayer(peer, player);
-            await EntityManager.CreateEntityAsync(StartupPlacer.FindClearingAround(float3.zero), index, player);
+            var spawned = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+            EntityManager.CreateEntity(StartupPlacer.FindClearingAround(float3.zero), index, player, () => {
+                playerIds.Add(player.info.rtEntityId);
+                spawned.TrySetResult(true);
+            }, error => spawned.TrySetException(error));
+            await spawned.Task;
             return player;
         }
 
@@ -181,7 +202,11 @@ namespace Arterra.GamePlay{
         public static void RegisterPlayer(NetworkConnection peer, BehaviorEntity.Animal player) {
             RequireAccount(peer);
             if (player == null) throw new System.ArgumentNullException(nameof(player));
+            if (Players.TryGetValue(peer, out var previous))
+                playerIds.Remove(previous.info.rtEntityId);
             Players[peer] = player;
+            if (player.info.rtEntityId != Guid.Empty)
+                playerIds.Add(player.info.rtEntityId);
         }
 
         public static void SavePlayer(NetworkConnection peer) {
@@ -209,14 +234,17 @@ namespace Arterra.GamePlay{
             } finally {
                 EntityManager.ReleaseEntity(player.info.rtEntityId);
                 Players.TryRemove(peer, out _);
+                playerIds.Remove(player.info.rtEntityId);
                 PlayerDisconnected?.Invoke(player.info.rtEntityId);
             }
         }
 
         public static bool TryLoadExistingPlayer(Action cb = null) {
+            if (data != null) playerIds.Remove(data.info.rtEntityId);
             data = PlayerStorage.IsInitialized ? PlayerStorage.Load(localAccount) : null;
             if (data == null) return false;
             if (data.Is(out VitalityBehavior vitality) && vitality.IsDead) return false;
+            playerIds.Add(data.info.rtEntityId);
             EntityManager.DeserializeEntity(data, () => {
                 RebindPlayer(data);
                 cb?.Invoke();
@@ -234,9 +262,11 @@ namespace Arterra.GamePlay{
             BehaviorEntity.Animal nPlayer = Config.CURRENT.Generation.Entities.Reg[(int)entityIndex].Entity as BehaviorEntity.Animal;
 
             var previous = data;
+            if (previous != null) playerIds.Remove(previous.info.rtEntityId);
             // Ownership must be visible to behavior initialization, including on respawn.
             data = nPlayer;
             EntityManager.CreateEntity(SpawnPoint, entityIndex, nPlayer, () => {
+                playerIds.Add(nPlayer.info.rtEntityId);
                 previous?.eventCtrl.RaiseEvent(GameEvent.Entity_Respawn, previous, nPlayer, null);
                 RebindPlayer(data);
                 cb?.Invoke();

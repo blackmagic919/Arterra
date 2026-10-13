@@ -30,8 +30,8 @@ namespace Arterra.Core.Network {
             if (this.entity != null && !ReferenceEquals(this.entity, entity))
                 throw new InvalidOperationException("This variable already belongs to another entity.");
 
-            RegisterReference(NetworkReferenceId.ForEntity(entity.info.rtEntityId, offsetId));
             this.entity = entity;
+            RegisterReference(NetworkReferenceId.ForEntity(entity.info.rtEntityId, offsetId));
         }
 
         protected override bool CanAccess(NetworkPermission permission, NetworkConnection peer) {
