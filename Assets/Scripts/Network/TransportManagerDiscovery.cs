@@ -16,9 +16,11 @@ namespace Arterra.Core.Network {
         private string discoveryTicket;
         private Guid joiningIntroduction;
         private readonly Dictionary<Guid, Introduction> introductions = new();
-        private readonly Dictionary<NetPeer, Guid> peerIdentities = new();
 
-        internal bool TryGetUser(NetPeer peer, out Guid userId) => peerIdentities.TryGetValue(peer, out userId);
+        internal bool TryGetUser(NetPeer peer, out Guid userId) {
+            userId = peer?.Tag is Guid id ? id : Guid.Empty;
+            return userId != Guid.Empty;
+        }
 
         private void BeginDiscovery(Guid sessionId, ConnectionTicket ticket) {
             discoverySession = sessionId;
@@ -30,7 +32,6 @@ namespace Arterra.Core.Network {
             var hello = new NetDataWriter();
             hello.Put(1); // Discovery protocol version, not a game connection request.
             discoveryPeer = driver.Connect(ticket.DiscoveryEndpoint.Host, ticket.DiscoveryEndpoint.Port, hello);
-            Debug.Log($"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Network Discovery] Connecting for {(IsServer ? "hosting" : "joining")} session {sessionId}.");
         }
 
         private void AuthenticateDiscovery() {
@@ -54,7 +55,6 @@ namespace Arterra.Core.Network {
                 case "hostReady" when IsServer && message.SessionId == discoverySession:
                     IsRunning = true;
                     connected.TrySetResult(true);
-                    Debug.Log($"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Network Discovery] Hosted session is discoverable.");
                     break;
                 case "introduction" when message.SessionId == discoverySession:
                     if (message.IntroductionId == Guid.Empty || message.RemoteUserId == Guid.Empty)
@@ -100,7 +100,7 @@ namespace Arterra.Core.Network {
             hello.Put(id.ToString("N"));
             var peer = driver.Connect(endpoint, hello);
             introduction.Candidates.Add(peer);
-            peerIdentities[peer] = introduction.UserId;
+            peer.Tag = introduction.UserId;
         }
 
         private void OnConnectionRequest(ConnectionRequest request) {
@@ -116,7 +116,7 @@ namespace Arterra.Core.Network {
             var peer = request.Accept();
             if (peer == null) return;
             introduction.Accepted = true;
-            peerIdentities[peer] = introduction.UserId;
+            peer.Tag = introduction.UserId;
         }
 
         private void ReportIntroduction(bool success) {
@@ -140,14 +140,15 @@ namespace Arterra.Core.Network {
             foreach (var request in introduction.Requests) request.Reject();
             foreach (var peer in introduction.Candidates) {
                 if (peer == server) continue;
-                peerIdentities.Remove(peer);
+                peer.Tag = null;
                 peer.Disconnect();
             }
         }
 
         private void ResetDiscovery() {
+            foreach (var introduction in introductions.Values)
+                foreach (var peer in introduction.Candidates) peer.Tag = null;
             introductions.Clear();
-            peerIdentities.Clear();
             discoveryPeer = null;
             discoveryTicket = null;
             joiningIntroduction = Guid.Empty;

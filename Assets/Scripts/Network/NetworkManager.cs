@@ -129,10 +129,9 @@ namespace Arterra.Core.Network {
                 LastAccessTime = meta.LastAccessTime, Config = Config.CURRENT
             };
             byte[] metadata = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(published));
-            byte[] chunk = WorldPreview.Encode(OptionsHandler.GetDisplayMap());
+            byte[] chunk = ChunkMapCodec.EncodePreview(OptionsHandler.GetDisplayMap());
 
             try {
-                Log("Creating session and uploading world preview.");
                 var created = await api.CreateAsync(meta.Name, metadata, chunk, token);
                 SessionId = created.SessionId;
                 await Task.WhenAll(GameServiceClient.UploadAsync(created.Metadata, metadata, token),
@@ -140,7 +139,6 @@ namespace Arterra.Core.Network {
                 await api.CompleteAsync(created.SessionId, token);
                 var ticket = await api.HostAsync(created.SessionId, token);
                 await TransportManager.Instance.StartAsync(created.SessionId, ticket, true, token);
-                Log("Hosting session " + created.SessionId);
             } catch {
                 await TransportManager.Instance.StopAsync();
                 throw;
@@ -212,12 +210,9 @@ namespace Arterra.Core.Network {
         }
 
         public static async Task DisableMultiplayer() {
-            Debug.Log($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Shutdown] Network: stopping hosting recovery.");
             StopHostingRecovery();
-            Debug.Log($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Shutdown] Network: waiting for lifecycle lock.");
             await lifecycle.WaitAsync();
             try {
-                Debug.Log($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Shutdown] Network: lifecycle lock acquired.");
                 StopHostingRecovery();
                 await LeaveSessionAsync();
             } finally {
@@ -240,7 +235,6 @@ namespace Arterra.Core.Network {
                 PlayerConnection.Initialize();
                 joiningClient = true;
                 try {
-                    Log("Requesting a connection ticket for session " + id);
                     var joined = await api.JoinAsync(sessionId, token);
                     SessionId = id;
                     await TransportManager.Instance.StartAsync(id, joined.Connection, false, token);
@@ -248,7 +242,6 @@ namespace Arterra.Core.Network {
                     await Config.CurrentVariable.GetAsync(token);
                     Config.CURRENT.System.Network.value.ServiceUrl = api.BaseUrl;
                     await PlayerConnection.JoinAsync(token);
-                    Log("Session joined; owning player received.");
                 } catch {
                     await LeaveSessionAsync();
                     throw;
@@ -271,7 +264,6 @@ namespace Arterra.Core.Network {
             // End the socket lease even if HTTP deletion fails.
             await TransportManager.Instance.StopAsync();
             if (hosted && id.HasValue) {
-                Log("Deleting hosted session " + id);
                 await service.DeleteAsync(id.Value);
             }
         }
@@ -317,10 +309,8 @@ namespace Arterra.Core.Network {
         public static async Task<MapData[]> LoadPreviewMapAsync(string id, CancellationToken token = default) {
             var session = await Service.GetAsync(id, token);
             var bytes = await GameServiceClient.DownloadAsync(session.DisplayChunkUrl, token);
-            return WorldPreview.Decode(bytes);
+            return ChunkMapCodec.DecodePreview(bytes);
         }
 
-        private static void Log(string message) =>
-            Debug.Log($"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Network Session] {message}");
     }
 }

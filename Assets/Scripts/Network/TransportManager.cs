@@ -48,7 +48,7 @@ namespace Arterra.Core.Network {
             listener.NetworkReceiveEvent += (peer, reader, channel, method) => {
                 try {
                     if (peer == discoveryPeer) ReceiveDiscovery(reader.GetRemainingBytes());
-                    else if (peers.Contains(peer)) ReceivePacket(peer, reader);
+                    else if (peers.Contains(peer)) ReceiveMessage(peer, reader);
                 } catch (Exception exception) {
                     Debug.LogException(exception);
                     if (peer == discoveryPeer) Fail(exception);
@@ -75,7 +75,7 @@ namespace Arterra.Core.Network {
 
         private void OnPeerConnected(NetPeer peer) {
             if (peer == discoveryPeer) { AuthenticateDiscovery(); return; }
-            if (!peerIdentities.ContainsKey(peer)) { peer.Disconnect(); return; }
+            if (!TryGetUser(peer, out _)) { peer.Disconnect(); return; }
             if (!IsServer) {
                 if (server != null && server != peer) { peer.Disconnect(); return; }
                 server = peer;
@@ -87,7 +87,6 @@ namespace Arterra.Core.Network {
             ReportIntroduction(true);
             foreach (var referenceId in listeners.Keys) SendSubscription(referenceId, Subscribe);
             connected.TrySetResult(true);
-            Debug.Log($"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Network Transport] Direct host connection established.");
         }
 
         private void OnPeerDisconnected(NetPeer peer, DisconnectInfo info) {
@@ -99,7 +98,7 @@ namespace Arterra.Core.Network {
                 Fail(new IOException("Discovery connection ended: " + detail));
                 return;
             }
-            peerIdentities.Remove(peer);
+            peer.Tag = null;
             if (!peers.Remove(peer)) return; // An unsuccessful NAT candidate isn't a game connection.
             if (!IsServer) { Fail(new IOException("Host disconnected.")); return; }
             ForgetPeer(peer, new IOException("Peer disconnected."));
@@ -111,7 +110,7 @@ namespace Arterra.Core.Network {
             if (!IsServer) { Fail(new IOException("Disconnected from host.")); return; }
             peer.Disconnect();
             peers.Remove(peer);
-            peerIdentities.Remove(peer);
+            peer.Tag = null;
             ForgetPeer(peer, new IOException("Peer disconnected."));
             PeerDisconnected?.Invoke(peer);
         }
@@ -121,19 +120,18 @@ namespace Arterra.Core.Network {
         private Task Stop(Exception reason) {
             ++SessionVersion;
             ++generation;
-            Debug.Log($"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Network Transport] Stopping ({reason?.Message ?? "requested"}).");
             IsRunning = false;
             Application.quitting -= OnQuit;
             connected?.TrySetCanceled();
             driver?.Stop();
             driver = null;
+            foreach (var peer in peers) peer.Tag = null;
             peers.Clear();
             server = null;
             IsServer = false;
             ResetDiscovery();
             ResetEvents(reason);
             Stopped?.Invoke(reason);
-            Debug.Log($"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Shutdown] Transport stopped.");
             return Task.CompletedTask;
         }
 

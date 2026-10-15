@@ -42,7 +42,6 @@ namespace Arterra.Core.Network.Authentication {
             var response = await transport.RequestEventAsync(transport.Server, Reference, Begin, Array.Empty<byte>(), token);
             if (response.EventId != Accepted) throw new InvalidOperationException("Host rejected player setup.");
             initialPlayerJson = Encoding.UTF8.GetString(response.Payload);
-            Debug.Log($"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Network Auth] Owning player received ({response.Payload.Length} bytes).");
         }
 
         internal static BehaviorEntity.Animal TakeInitialPlayer() {
@@ -60,7 +59,6 @@ namespace Arterra.Core.Network.Authentication {
         public void OnEvent(TransportEvent message) {
             if (!TransportManager.Instance.IsServer) return;
 
-            Debug.Log($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Network Auth] Host: received event {message.EventId} from peer {message.Peer}, request {message.MessageId}.");
             if (message.EventId == Begin) SpawnAsync(message);
             else if (message.EventId == Ready) {
                 if (message.Payload.Length != 16 || !accounts.ContainsKey(message.Peer)
@@ -89,7 +87,6 @@ namespace Arterra.Core.Network.Authentication {
                 EntityManager.AddHandlerEvent(async () => {
                     try {
                         if (!Current()) throw new OperationCanceledException("Peer left during player setup.");
-                        Debug.Log($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Network Auth] Host: deferred spawn handler running for peer {message.Peer}.");
                         spawned.SetResult(await PlayerHandler.SpawnPlayerAsync(message.Peer));
                     } catch (Exception exception) {
                         spawned.SetException(exception);
@@ -99,13 +96,10 @@ namespace Arterra.Core.Network.Authentication {
                 var runtimePlayer = await spawned.Task;
                 if (!Current()) throw new OperationCanceledException("Peer left during player setup.");
 
-                Debug.Log($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Network Auth] Host: player spawn complete for peer {message.Peer}; creating network source.");
                 sources.Add(message.Peer, new NetworkSource(message.Peer, runtimePlayer.info.rtEntityId));
-                Debug.Log($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Network Auth] Host: network source created for peer {message.Peer}; serializing player.");
 
                 byte[] payload = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(new Registerable<BehaviorEntity.Animal>(runtimePlayer)));
                 TransportManager.Instance.SendEvent(message.Peer, Reference, Accepted, payload, message.MessageId);
-                Debug.Log($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Network Auth] Host: acceptance queued for peer {message.Peer} ({payload.Length} bytes).");
 
             } catch (Exception exception) {
                 Debug.LogException(exception);

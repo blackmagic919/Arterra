@@ -9,7 +9,7 @@ using LiteNetLib;
 using LiteNetLib.Utils;
 
 namespace Arterra.Core.Network {
-    /// <summary>A complete, reconstructed application event. IDs are independent of packet boundaries.</summary>
+    /// <summary>A complete application message delivered by LiteNetLib.</summary>
     public readonly struct TransportEvent {
         public readonly NetPeer Peer;
         public readonly Guid ReferenceId;
@@ -32,23 +32,17 @@ namespace Arterra.Core.Network {
         // Guid.Empty is reserved for transport subscription control.
         private const ushort Subscribe = 1, Unsubscribe = 2;
         private readonly Dictionary<NetPeer, HashSet<Guid>> subscriptions = new();
-        private const int MessageIdBytes = sizeof(uint);
         private const int ReferenceIdBytes = 16;
-        private const int FragmentHeaderBytes = MessageIdBytes + sizeof(ushort);
-        private const int FirstHeaderBytes = FragmentHeaderBytes + ReferenceIdBytes + sizeof(uint) + sizeof(ushort) + sizeof(int);
-        private const int DefaultEventTimeoutSeconds = 60;
-        public static readonly TimeSpan DefaultEventTimeout = TimeSpan.FromSeconds(DefaultEventTimeoutSeconds);
+        private const int MessageHeaderBytes = ReferenceIdBytes + sizeof(ushort) + 2 * sizeof(uint);
+        public static readonly TimeSpan DefaultEventTimeout = TimeSpan.FromSeconds(60);
         private readonly Dictionary<Guid, ITransportEventListener> listeners = new();
-        private readonly Dictionary<NetPeer, LinkedList<OutgoingEvent>> outgoing = new();
-        private readonly Dictionary<NetPeer, Dictionary<uint, IncomingEvent>> incoming = new();
         private readonly Dictionary<(NetPeer, uint), EventRequest> requests = new();
-        private readonly List<NetPeer> peerSnapshot = new();
         private ConcurrentQueue<(NetPeer peer, OutgoingEvent message)> pendingEvents = new();
         private int nextMessageId;
-        private int firstSendPeer;
+        private readonly List<(NetPeer peer, OutgoingEvent message)> outgoing = new();
         private readonly Dictionary<(NetPeer, Guid), OutgoingEvent> variableUpdates = new();
-        private readonly Queue<NetPeer> sendPeers = new();
-        private readonly List<(LinkedListNode<OutgoingEvent> node, int count)> packetFragments = new();
+        private readonly NetDataWriter messageWriter = new();
+        private SendTiming sendTiming;
 
         /// <summary>One listener per reference, regardless of the listener's value type.</summary>
         public void Register(Guid referenceId, ITransportEventListener listener) {
@@ -86,12 +80,6 @@ namespace Arterra.Core.Network {
                     references.Remove(referenceId);
                     if (references.Count == 0) subscriptions.Remove(message.Peer);
                 }
-                if (!outgoing.TryGetValue(message.Peer, out var queue)) return;
-                foreach (var update in queue) {
-                    if (update.ReferenceId == referenceId && (update.Broadcast || update.Replaceable)
-                        && update.ReplyTo == 0 && update.Sent == 0)
-                        update.Canceled = true;
-                }
             }
         }
 
@@ -101,9 +89,8 @@ namespace Arterra.Core.Network {
             if (IsRunning && !IsServer) SendSubscription(referenceId, Unsubscribe);
             foreach (var pair in variableUpdates) {
                 if (pair.Key.Item2 != referenceId) continue;
-                // An in-progress message must finish, but its unsent replacement is disposable.
-                if (pair.Value.Sent == 0) pair.Value.Canceled = true;
-                if (pair.Value.Pending != null) pair.Value.Pending.Value.Canceled = true;
+                pair.Value.Canceled = true;
+                if (pair.Value.Pending != null) pair.Value.Pending.Canceled = true;
             }
             foreach (var pair in new List<KeyValuePair<(NetPeer, uint), EventRequest>>(requests)) {
                 if (pair.Value.ReferenceId != referenceId) continue;
@@ -112,7 +99,7 @@ namespace Arterra.Core.Network {
             }
         }
 
-        /// <summary>Queue a complete event. Transport owns its copied bytes and all packet-level work.</summary>
+        /// <summary>Queue a complete event. LiteNetLib owns fragmentation and packet delivery.</summary>
         public uint SendEvent(NetPeer peer, Guid referenceId, ushort eventId,
             byte[] payload, uint replyTo = 0, bool replacePending = false) {
             return QueueEvent(peer, referenceId, eventId, payload, replyTo, replacePending: replacePending).Id;
@@ -134,7 +121,6 @@ namespace Arterra.Core.Network {
             var request = new EventRequest(referenceId);
             var key = (peer, queued.Id);
             requests.Add(key, request);
-            UnityEngine.Debug.Log($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Network Transport] Request queued: peer {peer}, reference {referenceId}, event {eventId}, message {queued.Id}.");
             try {
                 using var timer = new CancellationTokenSource();
                 using var cancellation = token.Register(() => request.Response.TrySetCanceled());
@@ -146,9 +132,8 @@ namespace Arterra.Core.Network {
                 } finally { timer.Cancel(); }
             } finally {
                 requests.Remove(key);
-                // A canceled/timed-out request need not start sending. A partially sent
-                // message must finish so subsequent messages keep valid boundaries.
-                if (queued.Sent == 0) queued.Canceled = true;
+                // Cancel an unsent request; a submitted message already belongs to LiteNetLib.
+                queued.Canceled = true;
             }
         }
 
@@ -177,7 +162,7 @@ namespace Arterra.Core.Network {
             return message;
         }
 
-        // Only Tick touches peer lists and the per-peer outgoing queues.
+        // Only Tick expands broadcasts and coalesces this update's outgoing batch.
         private void DrainEvents() {
             // Capture this update's batch; producers can continue queuing for the next update.
             int count = pendingEvents.Count;
@@ -188,7 +173,7 @@ namespace Arterra.Core.Network {
                     if (!IsServer) continue;
                     foreach (var peer in peers) {
                         if (!IsSubscribed(peer, message.ReferenceId) && !(peer == pending.peer && message.ReplyTo != 0)) continue;
-                        // Each recipient owns its send position; payload bytes are shared.
+                        // Replacement/cancellation belongs to each recipient; payload bytes are shared.
                         EnqueueEvent(peer, new OutgoingEvent {
                             ReferenceId = message.ReferenceId, EventId = message.EventId, Id = message.Id,
                             ReplyTo = peer == pending.peer ? message.ReplyTo : 0,
@@ -203,170 +188,58 @@ namespace Arterra.Core.Network {
         }
 
         private void EnqueueEvent(NetPeer peer, OutgoingEvent message) {
-            if (!outgoing.TryGetValue(peer, out var queue)) outgoing.Add(peer, queue = new());
             if (message.Replaceable) {
                 var key = (peer, message.ReferenceId);
-                if (variableUpdates.TryGetValue(key, out var current)) {
-                    if (current.Pending != null) {
-                        queue.Remove(current.Pending);
-                        current.Pending.Value = message;
-                        queue.AddLast(current.Pending);
-                    } else current.Pending = queue.AddLast(message);
-                    return;
-                }
-                variableUpdates.Add(key, message);
+                if (variableUpdates.TryGetValue(key, out var first)) {
+                    // Preserve the first update and only the latest pending replacement.
+                    if (first.Pending != null) first.Pending.Canceled = true;
+                    first.Pending = message;
+                } else variableUpdates.Add(key, message);
             }
-            queue.AddLast(message);
-        }
-
-        private void RemoveOutgoing(NetPeer peer, LinkedList<OutgoingEvent> queue,
-            LinkedListNode<OutgoingEvent> node) {
-            var message = node.Value;
-            if (message.Replaceable) {
-                var key = (peer, message.ReferenceId);
-                if (message.Pending != null) variableUpdates[key] = message.Pending.Value;
-                else variableUpdates.Remove(key);
-            }
-            queue.Remove(node);
+            outgoing.Add((peer, message));
         }
 
         private void UpdateEvents() {
+            long started = Stopwatch.GetTimestamp();
             DrainEvents();
-            long now = Stopwatch.GetTimestamp();
-            peerSnapshot.Clear();
-            peerSnapshot.AddRange(peers);
-            foreach (var peer in peerSnapshot) {
-                if (!incoming.TryGetValue(peer, out var messages)) continue;
-                foreach (var partial in messages) {
-                    if (now < partial.Value.Deadline) continue;
-                    UnityEngine.Debug.LogWarning($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Network Transport] Incoming event {partial.Value.EventId}, message {partial.Key} from {peer} expired after receiving {partial.Value.Received}/{partial.Value.Bytes.Length} bytes.");
-                    Disconnect(peer);
-                    break;
-                }
-            }
-
-            if (peerSnapshot.Count == 0) return;
-            int start = firstSendPeer++ % peerSnapshot.Count;
-            if (firstSendPeer == int.MaxValue) firstSendPeer = 0;
-            sendPeers.Clear();
-            for (int i = 0; i < peerSnapshot.Count; i++)
-                sendPeers.Enqueue(peerSnapshot[(start + i) % peerSnapshot.Count]);
-
-            while (sendPeers.TryDequeue(out var peer)) {
-                if (!peers.Contains(peer) || !outgoing.TryGetValue(peer, out var queue)) continue;
+            foreach (var (peer, message) in outgoing) {
+                if (message.Canceled || !peers.Contains(peer)) continue;
                 try {
-                    bool sent = TrySendPacket(peer, queue, now);
-                    if (queue.Count == 0) outgoing.Remove(peer);
-                    else if (sent) sendPeers.Enqueue(peer);
-                    // A blocked peer retries on the next transport update.
+                    if (Stopwatch.GetTimestamp() >= message.Deadline)
+                        throw new IOException($"Outgoing event {message.EventId}, message {message.Id} to {peer} expired before submission.");
+
+                    messageWriter.Reset();
+                    messageWriter.Put(message.Id);
+                    messageWriter.Put(message.ReferenceId);
+                    messageWriter.Put(message.EventId);
+                    messageWriter.Put(message.ReplyTo);
+                    messageWriter.Put(message.Bytes);
+                    peer.Send(messageWriter, DeliveryMethod.ReliableOrdered);
+                    sendTiming.Messages++;
+                    sendTiming.Bytes += messageWriter.Length;
                 } catch (IOException exception) {
                     UnityEngine.Debug.LogException(exception);
                     Disconnect(peer);
+                    if (!IsRunning) return;
                 }
             }
+            outgoing.Clear();
+            variableUpdates.Clear();
+            sendTiming.Record(started);
         }
 
-        // Pack application fragments; LiteNetLib owns reliable delivery and retransmission.
-        private bool TrySendPacket(NetPeer peer, LinkedList<OutgoingEvent> queue, long now) {
-            while (queue.First != null && queue.First.Value.Canceled)
-                RemoveOutgoing(peer, queue, queue.First);
-            if (queue.Count == 0) return false;
-
-            int capacity = peer.GetMaxSinglePacketSize(DeliveryMethod.ReliableOrdered);
-            if (capacity < FirstHeaderBytes)
-                throw new IOException($"Transport payload capacity is invalid: {capacity}.");
-            var writer = new NetDataWriter(false, capacity);
-
-            packetFragments.Clear();
-            for (var node = queue.First; node != null; node = node.Next) {
-                var message = node.Value;
-                if (message.Canceled) continue;
-                // Pending state cannot begin until its predecessor's packet has been submitted.
-                if (message.Replaceable && variableUpdates[(peer, message.ReferenceId)] != message) break;
-                if (now >= message.Deadline) {
-                    throw new IOException($"Outgoing event {message.EventId}, message {message.Id} to {peer} expired after sending {message.Sent}/{message.Bytes.Length} bytes.");
-                }
-                bool first = message.Sent == 0;
-                int headerBytes = first ? FirstHeaderBytes : FragmentHeaderBytes;
-                int available = capacity - writer.Length - headerBytes;
-                int remaining = message.Bytes.Length - message.Sent;
-                if (available < 0 || (available == 0 && remaining > 0)) break;
-                int count = Math.Min(remaining, Math.Min(available, ushort.MaxValue));
-                writer.Put(message.Id);
-                writer.Put((ushort)count);
-                if (first) {
-                    Span<byte> referenceBytes = stackalloc byte[ReferenceIdBytes];
-                    message.ReferenceId.TryWriteBytes(referenceBytes);
-                    for (int i = 0; i < ReferenceIdBytes; i++) writer.Put(referenceBytes[i]);
-                    writer.Put(message.EventId);
-                    writer.Put(message.ReplyTo);
-                    writer.Put(message.Bytes.Length);
-                }
-                for (int i = 0; i < count; i++) writer.Put(message.Bytes[message.Sent + i]);
-                packetFragments.Add((node, count));
-                if (count < remaining) break;
-            }
-
-            peer.Send(writer, DeliveryMethod.ReliableOrdered);
-            foreach (var fragment in packetFragments) {
-                var message = fragment.node.Value;
-                message.Sent += fragment.count;
-                if (message.ReplyTo != 0)
-                    UnityEngine.Debug.Log($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Network Transport] Reply send submitted: peer {peer}, event {message.EventId}, message {message.Id}, reply to {message.ReplyTo}, {message.Sent}/{message.Bytes.Length} bytes.");
-                if (message.Sent == message.Bytes.Length) RemoveOutgoing(peer, queue, fragment.node);
-            }
-            packetFragments.Clear();
-            return true;
-        }
-
-        private void ReceivePacket(NetPeer peer, NetDataReader reader) {
-            if (reader.AvailableBytes == 0) throw new InvalidDataException("Empty event packet.");
-            while (!reader.EndOfData) {
-                ReceiveFragment(peer, ref reader);
-                if (!IsStarted || !peers.Contains(peer)) return;
-            }
-        }
-
-        private void ReceiveFragment(NetPeer peer, ref NetDataReader reader) {
-            if (reader.AvailableBytes < FragmentHeaderBytes)
-                throw new InvalidDataException("Incomplete fragment header.");
+        private void ReceiveMessage(NetPeer peer, NetDataReader reader) {
+            if (reader.AvailableBytes < MessageHeaderBytes)
+                throw new InvalidDataException("Incomplete event header.");
             uint messageId = reader.GetUInt();
-            if (messageId == 0) throw new InvalidDataException("Message ID zero is reserved.");
+            Guid referenceId = reader.GetGuid();
+            ushort eventId = reader.GetUShort();
+            uint replyTo = reader.GetUInt();
+            if (messageId == 0 || eventId == 0)
+                throw new InvalidDataException("Message and event ID zero are reserved.");
 
-            int count = reader.GetUShort();
-            incoming.TryGetValue(peer, out var messages);
-            IncomingEvent message = null;
-            if (messages == null || !messages.TryGetValue(messageId, out message)) {
-                // An unknown ID starts a message; only this packet carries its metadata.
-                if (reader.AvailableBytes < FirstHeaderBytes - FragmentHeaderBytes) throw new InvalidDataException("Incomplete message header.");
-                Span<byte> referenceBytes = stackalloc byte[ReferenceIdBytes];
-                for (int i = 0; i < ReferenceIdBytes; i++) referenceBytes[i] = reader.GetByte();
-                Guid referenceId = new Guid(referenceBytes);
-                ushort eventId = reader.GetUShort();
-                uint replyTo = reader.GetUInt();
-                int total = reader.GetInt();
-                if (eventId == 0 || total < 0 || count > total || (count == 0 && total != 0))
-                    throw new InvalidDataException("Invalid message size or event ID.");
-                message = new IncomingEvent {
-                    ReferenceId = referenceId, EventId = eventId, ReplyTo = replyTo,
-                    Bytes = new byte[total],
-                    Deadline = Stopwatch.GetTimestamp() + (long)(DefaultEventTimeout.TotalSeconds * Stopwatch.Frequency)
-                };
-                if (messages == null) incoming.Add(peer, messages = new());
-                messages.Add(messageId, message);
-            }
-            if (count > reader.AvailableBytes || count > message.Bytes.Length - message.Received
-                || (count == 0 && message.Bytes.Length != 0))
-                throw new InvalidDataException("Invalid message payload length.");
-            // Reliable delivery preserves each message's chunk order, including when interleaved.
-            for (int i = 0; i < count; i++) message.Bytes[message.Received + i] = reader.GetByte();
-            message.Received += count;
-            if (message.ReplyTo != 0)
-                UnityEngine.Debug.Log($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Network Transport] Reply received: peer {peer}, event {message.EventId}, message {messageId}, reply to {message.ReplyTo}, {message.Received}/{message.Bytes.Length} bytes.");
-            if (message.Received != message.Bytes.Length) return;
-            messages.Remove(messageId);
-            DispatchEvent(new TransportEvent(peer, message.ReferenceId, message.EventId,
-                messageId, message.ReplyTo, message.Bytes));
+            DispatchEvent(new TransportEvent(peer, referenceId, eventId,
+                messageId, replyTo, reader.GetRemainingBytes()));
         }
 
         private void DispatchEvent(TransportEvent message) {
@@ -376,8 +249,6 @@ namespace Arterra.Core.Network {
             }
             var peer = message.Peer;
             requests.TryGetValue((peer, message.ReplyTo), out var request);
-            if (message.ReplyTo != 0)
-                UnityEngine.Debug.Log($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Network Transport] Reply assembled: message {message.MessageId}, reply to {message.ReplyTo}, pending request found: {request != null}.");
             if (request != null && request.ReferenceId != message.ReferenceId)
                 throw new InvalidDataException("Reply targets the wrong reference.");
             // Apply state before waking a caller awaiting this response.
@@ -392,12 +263,6 @@ namespace Arterra.Core.Network {
 
         private void ForgetPeer(NetPeer peer, Exception reason) {
             subscriptions.Remove(peer);
-            if (outgoing.TryGetValue(peer, out var queue)) {
-                foreach (var message in queue)
-                    if (message.Replaceable) variableUpdates.Remove((peer, message.ReferenceId));
-            }
-            outgoing.Remove(peer);
-            incoming.Remove(peer);
             foreach (var pair in new List<KeyValuePair<(NetPeer, uint), EventRequest>>(requests)) {
                 if (pair.Key.Item1 != peer) continue;
                 pair.Value.Response.TrySetException(reason);
@@ -412,8 +277,31 @@ namespace Arterra.Core.Network {
                 if (reason == null) request.Response.TrySetCanceled();
                 else request.Response.TrySetException(reason);
             }
-            requests.Clear(); outgoing.Clear(); incoming.Clear(); variableUpdates.Clear(); subscriptions.Clear();
-            packetFragments.Clear();
+            requests.Clear(); outgoing.Clear(); variableUpdates.Clear(); subscriptions.Clear();
+            sendTiming = default;
+        }
+
+        // Aggregate once per second; this measures queue draining, packing and submission,
+        // not LiteNetLib's background retransmissions or network delivery latency.
+        private struct SendTiming {
+            public long Bytes;
+            public int Messages;
+            private long windowStart, totalTicks, peakTicks;
+
+            public void Record(long started) {
+                long now = Stopwatch.GetTimestamp();
+                long elapsed = now - started;
+                if (windowStart == 0) windowStart = started;
+                totalTicks += elapsed;
+                peakTicks = Math.Max(peakTicks, elapsed);
+                if (now - windowStart < Stopwatch.Frequency) return;
+
+                if (Messages > 0) {
+                    double milliseconds = 1000.0 / Stopwatch.Frequency;
+                    UnityEngine.Debug.Log($"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Network Transport] Outgoing work over {(now - windowStart) * milliseconds:F0} ms: {totalTicks * milliseconds:F2} ms total, {peakTicks * milliseconds:F2} ms peak/update; {Messages} messages, {Bytes / 1048576.0:F2} MiB submitted.");
+                }
+                this = default;
+            }
         }
 
         private sealed class EventRequest {
@@ -426,17 +314,8 @@ namespace Arterra.Core.Network {
             public uint Id, ReplyTo;
             public ushort EventId;
             public byte[] Bytes;
-            public int Sent;
             public bool Canceled, Replaceable, Broadcast;
-            public LinkedListNode<OutgoingEvent> Pending;
-            public long Deadline;
-        }
-        private sealed class IncomingEvent {
-            public Guid ReferenceId;
-            public uint ReplyTo;
-            public ushort EventId;
-            public byte[] Bytes;
-            public int Received;
+            public OutgoingEvent Pending;
             public long Deadline;
         }
     }

@@ -30,5 +30,15 @@ Use two processes/accounts. Enable multiplayer in a local world on the host, the
 that session under DirectWAN on the other process. Verify the preview before clicking Play.
 Test player/chunk streaming, disconnect/rejoin, and disabling multiplayer. Use two different
 networks to verify real NAT traversal; local tests cannot establish router compatibility.
-Connection progress and shutdown logs include UTC timestamps. If a direct connection cannot
+Transport logs summarize outgoing work once per second (total and peak CPU time, message count, and submitted bytes). Warnings and errors remain enabled. If a direct connection cannot
 be established, joining reports a timeout; there is no relay fallback.
+
+Game transport sends one complete reliable-ordered LiteNetLib message per application event.
+Its header is message ID (uint), reference ID (Guid), event ID (ushort), and reply-to ID (uint),
+followed by the payload. LiteNetLib handles fragmentation, reassembly, and small-packet merging.
+The deferred send batch keeps the first variable update and its latest pending replacement;
+submission releases it immediately, without waiting for delivery acknowledgment.
+Request timeouts and cancellation remain application-level. Partial-message storage and cleanup
+belong to LiteNetLib and the connection lifecycle; there is no separate application reassembly timer.
+Authenticated user IDs are stored in NetPeer.Tag and cleared when the connection is removed.
+Both peers must use this message format; the previous custom-fragment format is incompatible.

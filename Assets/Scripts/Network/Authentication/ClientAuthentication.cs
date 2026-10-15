@@ -36,14 +36,10 @@ namespace Arterra.Core.Network.Authentication {
 
         private static async Task SignInAsync() {
             if (UnityServices.State != ServicesInitializationState.Initialized) {
-                Debug.Log($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Network Auth] Initializing Unity services.");
                 await UnityServices.InitializeAsync();
-                Debug.Log($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Network Auth] Unity services initialized.");
             }
             if (!AuthenticationService.Instance.IsSignedIn) {
-                Debug.Log($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Network Auth] Signing in anonymously.");
                 await AuthenticationService.Instance.SignInAnonymouslyAsync();
-                Debug.Log($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Network Auth] Sign-in complete.");
             }
             PlayerPrefs.SetString(CachedPlayerKey, AuthenticationService.Instance.PlayerId);
             PlayerPrefs.Save();

@@ -227,7 +227,8 @@ namespace Arterra.GamePlay.UI {
             public void Render(MonoBehaviour self) {
                 if (!active) return;
 
-                float3 rotSpeed = Config.CURRENT.System.WorldApperance.value.RotateSpeed;
+                float3 rotSpeed = Config.CURRENT?.System.WorldApperance.value.RotateSpeed 
+                    ?? Config.TEMPLATE.System.WorldApperance.value.RotateSpeed;
                 CameraController.transform.Rotate(rotSpeed * Time.deltaTime);
                 ChunkModel?.Render();
                 ChunkGrid?.Render();
