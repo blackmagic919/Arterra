@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.IO;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using LiteNetLib;
@@ -76,6 +77,7 @@ namespace Arterra.Core.Network {
                 if (references.Add(referenceId) && listeners.TryGetValue(referenceId, out var listener))
                     listener.OnSubscribed(message.Peer);
             } else {
+                ForgetVariable((message.Peer, referenceId));
                 if (subscriptions.TryGetValue(message.Peer, out var references)) {
                     references.Remove(referenceId);
                     if (references.Count == 0) subscriptions.Remove(message.Peer);
@@ -87,11 +89,8 @@ namespace Arterra.Core.Network {
             if (!listeners.TryGetValue(referenceId, out var current) || !ReferenceEquals(current, listener)) return;
             listeners.Remove(referenceId);
             if (IsRunning && !IsServer) SendSubscription(referenceId, Unsubscribe);
-            foreach (var pair in variableUpdates) {
-                if (pair.Key.Item2 != referenceId) continue;
-                pair.Value.Canceled = true;
-                if (pair.Value.Pending != null) pair.Value.Pending.Canceled = true;
-            }
+            foreach (var key in new List<(NetPeer, Guid)>(variableUpdates.Keys))
+                if (key.Item2 == referenceId) ForgetVariable(key);
             foreach (var pair in new List<KeyValuePair<(NetPeer, uint), EventRequest>>(requests)) {
                 if (pair.Value.ReferenceId != referenceId) continue;
                 pair.Value.Response.TrySetException(new ObjectDisposedException($"Reference {referenceId}"));
@@ -191,12 +190,30 @@ namespace Arterra.Core.Network {
             if (message.Replaceable) {
                 var key = (peer, message.ReferenceId);
                 if (variableUpdates.TryGetValue(key, out var first)) {
-                    // Preserve the first update and only the latest pending replacement.
-                    if (first.Pending != null) first.Pending.Canceled = true;
+                    // Keep only the latest value while the first awaits delivery acknowledgment.
                     first.Pending = message;
+                    return;
                 } else variableUpdates.Add(key, message);
             }
             outgoing.Add((peer, message));
+        }
+
+        private void OnVariableDelivered(NetPeer peer, object userData) {
+            if (userData is not OutgoingEvent delivered) return;
+            var key = (peer, delivered.ReferenceId);
+            if (!variableUpdates.TryGetValue(key, out var current) || current != delivered) return;
+
+            variableUpdates.Remove(key);
+            var pending = delivered.Pending;
+            delivered.Pending = null;
+            if (pending != null) EnqueueEvent(peer, pending);
+        }
+
+        private void ForgetVariable((NetPeer, Guid) key) {
+            if (!variableUpdates.TryGetValue(key, out var message)) return;
+            message.Canceled = true;
+            message.Pending = null;
+            variableUpdates.Remove(key);
         }
 
         private void UpdateEvents() {
@@ -214,9 +231,11 @@ namespace Arterra.Core.Network {
                     messageWriter.Put(message.EventId);
                     messageWriter.Put(message.ReplyTo);
                     messageWriter.Put(message.Bytes);
-                    peer.Send(messageWriter, DeliveryMethod.ReliableOrdered);
-                    sendTiming.Messages++;
-                    sendTiming.Bytes += messageWriter.Length;
+                    if (message.Replaceable)
+                        peer.SendWithDeliveryEvent(messageWriter, DeliveryMethod.ReliableOrdered, message);
+                    else peer.Send(messageWriter, DeliveryMethod.ReliableOrdered);
+                    listeners.TryGetValue(message.ReferenceId, out var listener);
+                    sendTiming.Count(listener?.GetType(), message.EventId, messageWriter.Length);
                 } catch (IOException exception) {
                     UnityEngine.Debug.LogException(exception);
                     Disconnect(peer);
@@ -224,7 +243,6 @@ namespace Arterra.Core.Network {
                 }
             }
             outgoing.Clear();
-            variableUpdates.Clear();
             sendTiming.Record(started);
         }
 
@@ -263,6 +281,8 @@ namespace Arterra.Core.Network {
 
         private void ForgetPeer(NetPeer peer, Exception reason) {
             subscriptions.Remove(peer);
+            foreach (var key in new List<(NetPeer, Guid)>(variableUpdates.Keys))
+                if (key.Item1 == peer) ForgetVariable(key);
             foreach (var pair in new List<KeyValuePair<(NetPeer, uint), EventRequest>>(requests)) {
                 if (pair.Key.Item1 != peer) continue;
                 pair.Value.Response.TrySetException(reason);
@@ -284,9 +304,19 @@ namespace Arterra.Core.Network {
         // Aggregate once per second; this measures queue draining, packing and submission,
         // not LiteNetLib's background retransmissions or network delivery latency.
         private struct SendTiming {
-            public long Bytes;
-            public int Messages;
+            private long bytes;
+            private int messages;
             private long windowStart, totalTicks, peakTicks;
+            private Dictionary<(Type Type, ushort Event), (long Bytes, int Messages)> composition;
+
+            public void Count(Type type, ushort eventId, int length) {
+                bytes += length;
+                messages++;
+                composition ??= new();
+                var key = (type, eventId);
+                composition.TryGetValue(key, out var count);
+                composition[key] = (count.Bytes + length, count.Messages + 1);
+            }
 
             public void Record(long started) {
                 long now = Stopwatch.GetTimestamp();
@@ -296,11 +326,26 @@ namespace Arterra.Core.Network {
                 peakTicks = Math.Max(peakTicks, elapsed);
                 if (now - windowStart < Stopwatch.Frequency) return;
 
-                if (Messages > 0) {
+                if (messages > 0) {
                     double milliseconds = 1000.0 / Stopwatch.Frequency;
-                    UnityEngine.Debug.Log($"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Network Transport] Outgoing work over {(now - windowStart) * milliseconds:F0} ms: {totalTicks * milliseconds:F2} ms total, {peakTicks * milliseconds:F2} ms peak/update; {Messages} messages, {Bytes / 1048576.0:F2} MiB submitted.");
+                    var breakdown = new StringBuilder();
+                    var entries = new List<KeyValuePair<(Type Type, ushort Event), (long Bytes, int Messages)>>(composition);
+                    entries.Sort((a, b) => b.Value.Bytes.CompareTo(a.Value.Bytes));
+                    foreach (var entry in entries) {
+                        var count = entry.Value;
+                        breakdown.Append($"\n  {TypeLabel(entry.Key.Type)} event {entry.Key.Event}: {count.Bytes / 1048576.0:F3} MiB ({100.0 * count.Bytes / bytes:F1}%), {count.Messages} messages, {count.Bytes / count.Messages} B/message");
+                    }
+                    UnityEngine.Debug.Log($"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Network Transport] Outgoing work over {(now - windowStart) * milliseconds:F0} ms: {totalTicks * milliseconds:F2} ms total, {peakTicks * milliseconds:F2} ms peak/update; {messages} messages, {bytes / 1048576.0:F2} MiB submitted.{breakdown}");
                 }
-                this = default;
+                composition?.Clear();
+                this = new SendTiming { composition = composition };
+            }
+
+            private static string TypeLabel(Type type) {
+                if (type == null) return "Control/unregistered";
+                if (!type.IsGenericType) return type.Name;
+                var arguments = Array.ConvertAll(type.GetGenericArguments(), TypeLabel);
+                return type.Name.Split('`')[0] + "<" + string.Join(",", arguments) + ">";
             }
         }
 

@@ -44,6 +44,7 @@ namespace Arterra.Core.Network {
             };
             listener.PeerConnectedEvent += OnPeerConnected;
             listener.PeerDisconnectedEvent += OnPeerDisconnected;
+            listener.DeliveryEvent += OnVariableDelivered;
             listener.ConnectionRequestEvent += OnConnectionRequest;
             listener.NetworkReceiveEvent += (peer, reader, channel, method) => {
                 try {

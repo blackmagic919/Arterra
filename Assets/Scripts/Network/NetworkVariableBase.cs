@@ -78,7 +78,7 @@ namespace Arterra.Core.Network {
                         throw new UnauthorizedAccessException("Write permission denied for this variable.");
                     RequireConnection();
                     if (!HasValue) throw new InvalidOperationException("Read the authoritative value/version before writing.");
-                    transport.SendEvent(transport.Server, ReferenceId, Write, Encode(value));
+                    transport.SendEvent(transport.Server, ReferenceId, Write, Encode(value), replacePending: true);
                     Apply(value, writerVersion);
                 }
             }
