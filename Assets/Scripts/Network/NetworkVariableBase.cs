@@ -5,7 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 using System.Runtime.Serialization;
-using Unity.Networking.Transport;
+using LiteNetLib;
 
 namespace Arterra.Core.Network {
     public enum NetworkPermission { Server, All, Owner }
@@ -19,8 +19,8 @@ namespace Arterra.Core.Network {
         private Task<T> pendingRead;
         private uint sessionVersion;
         [JsonProperty] private uint writerVersion;
-        // A default connection denotes a server-local writer. NetworkConnection includes its generation.
-        private NetworkConnection lastWriter;
+        // A null peer denotes a server-local writer; each remote connection has its own NetPeer.
+        private NetPeer lastWriter;
         [JsonIgnore] public uint WriterVersion { get { CheckSession(); return writerVersion; } }
         private bool hasCachedValue, disposed;
         [JsonProperty] private readonly bool retainValueOnDisconnect;
@@ -56,9 +56,9 @@ namespace Arterra.Core.Network {
             transport.Register(referenceId, this);
         }
 
-        // An uncreated peer represents local access, not an incoming client event.
-        protected virtual bool CanAccess(NetworkPermission permission, NetworkConnection peer) =>
-            (NetworkManager.IsActingServer && !peer.IsCreated) || permission == NetworkPermission.All;
+        // A null peer represents local access, not an incoming client event.
+        protected virtual bool CanAccess(NetworkPermission permission, NetPeer peer) =>
+            (NetworkManager.IsActingServer && peer == null) || permission == NetworkPermission.All;
 
         [JsonIgnore]
         public T Value {
@@ -86,7 +86,7 @@ namespace Arterra.Core.Network {
 
         public void SetInitialValue(T initialValue) {
             CheckSession();
-            if (ReferenceId != Guid.Empty && (transport.IsRunning || transport.Configuration != null))
+            if (ReferenceId != Guid.Empty && transport.IsStarted)
                 throw new InvalidOperationException("Initialize before starting the transport; use Value while hosting.");
             lastWriter = default;
             Apply(initialValue, 0);
@@ -101,7 +101,7 @@ namespace Arterra.Core.Network {
         /// <summary>Discard a retained value before connecting to a different authority.</summary>
         public void ClearCache() {
             CheckSession();
-            if (transport.IsRunning || transport.Configuration != null)
+            if (transport.IsStarted)
                 throw new InvalidOperationException("Clear the cache before starting the transport.");
             hasCachedValue = false; value = default; pendingRead = null;
             writerVersion = 0; lastWriter = default;
@@ -137,7 +137,7 @@ namespace Arterra.Core.Network {
             }
         }
 
-        void ITransportEventListener.OnSubscribed(NetworkConnection peer) {
+        void ITransportEventListener.OnSubscribed(NetPeer peer) {
             if (disposed) return;
             CheckSession();
             if (CanAccess(readPerm, peer))
@@ -145,7 +145,7 @@ namespace Arterra.Core.Network {
         }
 
         void ITransportEventListener.OnEvent(TransportEvent message) {
-            if (disposed || !message.Peer.IsCreated || message.ReferenceId != ReferenceId) return;
+            if (disposed || message.Peer == null || message.ReferenceId != ReferenceId) return;
             CheckSession();
             if (NetworkManager.IsActingServer) {
                 if (message.EventId == Read) {
@@ -185,7 +185,7 @@ namespace Arterra.Core.Network {
             if (!transport.IsRunning) throw new InvalidOperationException("Await the client connection before accessing uncached network state.");
         }
 
-        private void Publish(T next, NetworkConnection writer = default) {
+        private void Publish(T next, NetPeer writer = default) {
             if (transport.IsRunning) RequireConnection();
             // Server-local writes bypass expected-version validation. Accepted remote writes reach
             // here only after validation; ordinary writes by the same writer can remain in flight.

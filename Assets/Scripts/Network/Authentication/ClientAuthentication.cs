@@ -2,13 +2,11 @@ using System;
 using System.Threading.Tasks;
 using Unity.Services.Authentication;
 using Unity.Services.Core;
-using Unity.Services.Multiplayer;
 using UnityEngine;
 
 namespace Arterra.Core.Network.Authentication {
-    /// <summary>Unity-specific client login and session proof. No account tokens are sent to game hosts.</summary>
+    /// <summary>Unity identity-provider login. The game service exchanges its JWT for an Arterra login.</summary>
     public static class ClientAuthentication {
-        internal const string ProofProperty = "arterra.connectionProof";
         private const string CachedPlayerKey = "Arterra.UnityPlayerId";
         private const string LocalProfileKey = "Arterra.LocalProfileId";
         private static Task initialization;
@@ -51,13 +49,5 @@ namespace Arterra.Core.Network.Authentication {
             PlayerPrefs.Save();
         }
 
-        internal static async Task PublishProofAsync(ISession session, string challenge) {
-            if (session.CurrentPlayer == null || session.CurrentPlayer.Id != AuthenticationService.Instance.PlayerId)
-                throw new InvalidOperationException("Session does not belong to the signed-in player.");
-            session.CurrentPlayer.SetProperty(ProofProperty, new PlayerProperty(challenge, VisibilityPropertyOptions.Member));
-            Debug.Log($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Network Auth] Publishing connection proof to Unity session.");
-            await session.SaveCurrentPlayerDataAsync();
-            Debug.Log($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Network Auth] Connection proof published.");
-        }
     }
 }

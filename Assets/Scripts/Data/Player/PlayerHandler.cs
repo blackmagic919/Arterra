@@ -16,7 +16,7 @@ using Arterra.Core;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Collections.Concurrent;
-using Unity.Networking.Transport;
+using LiteNetLib;
 
 
 
@@ -60,7 +60,7 @@ namespace Arterra.GamePlay{
     /// <remarks> If the player runtime entity were analogous to the 
     /// player's current body, this class would be the player's soul </remarks>///  
     public static class PlayerHandler {
-        public static readonly ConcurrentDictionary<NetworkConnection, BehaviorEntity.Animal> Players = new();
+        public static readonly ConcurrentDictionary<NetPeer, BehaviorEntity.Animal> Players = new();
         public static event Action<Guid> PlayerDisconnected;
         private static readonly HashSet<Guid> playerIds = new();
 
@@ -70,8 +70,8 @@ namespace Arterra.GamePlay{
         }
 
         // A default connection denotes this machine's local player.
-        public static Guid GetPlayerId(NetworkConnection peer = default) {
-            var player = peer.IsCreated ? (Players.TryGetValue(peer, out var remote) ? remote : null) : data;
+        public static Guid GetPlayerId(NetPeer peer = default) {
+            var player = peer != null ? (Players.TryGetValue(peer, out var remote) ? remote : null) : data;
             return player == null ? Guid.Empty : player.info.rtEntityId;
         }
         private static AccountId localAccount;
@@ -171,7 +171,7 @@ namespace Arterra.GamePlay{
 
         /// <summary>Load and register saved data for an authenticated peer; does not initialize or spawn the entity.
         /// Returns null for a new account. The caller creates its player and calls RegisterPlayer.</summary>
-        public static BehaviorEntity.Animal LoadPlayer(NetworkConnection peer) {
+        public static BehaviorEntity.Animal LoadPlayer(NetPeer peer) {
             var account = RequireAccount(peer);
             if (Players.TryGetValue(peer, out var current)) return current;
             var player = PlayerStorage.Load(account);
@@ -180,7 +180,7 @@ namespace Arterra.GamePlay{
         }
 
         /// <summary>Invoked at the entity boundary after authentication; mapping precedes behavior setup.</summary>
-        internal static async Task<BehaviorEntity.Animal> SpawnPlayerAsync(NetworkConnection peer) {
+        internal static async Task<BehaviorEntity.Animal> SpawnPlayerAsync(NetPeer peer) {
             var player = LoadPlayer(peer);
             if (player != null) {
                 await EntityManager.DeserializeEntityAsync(player);
@@ -199,7 +199,7 @@ namespace Arterra.GamePlay{
         }
 
         /// <summary>Associate an existing player with an authenticated connection, including after respawn.</summary>
-        public static void RegisterPlayer(NetworkConnection peer, BehaviorEntity.Animal player) {
+        public static void RegisterPlayer(NetPeer peer, BehaviorEntity.Animal player) {
             RequireAccount(peer);
             if (player == null) throw new System.ArgumentNullException(nameof(player));
             if (Players.TryGetValue(peer, out var previous))
@@ -209,14 +209,14 @@ namespace Arterra.GamePlay{
                 playerIds.Add(player.info.rtEntityId);
         }
 
-        public static void SavePlayer(NetworkConnection peer) {
+        public static void SavePlayer(NetPeer peer) {
             var account = RequireAccount(peer);
             if (!Players.TryGetValue(peer, out var player)) return;
             PlayerStorage.Capture(account, player);
             PlayerStorage.Save();
         }
 
-        private static AccountId RequireAccount(NetworkConnection peer) {
+        private static AccountId RequireAccount(NetPeer peer) {
             if (!PlayerStorage.IsInitialized) throw new InvalidOperationException("Open a local world before accessing its player saves.");
             if (!PlayerConnection.TryGetAccount(peer, out var account))
                 throw new UnauthorizedAccessException("Authenticate the connection before accessing player data.");
@@ -224,7 +224,7 @@ namespace Arterra.GamePlay{
         }
 
         // Pending authentication work checks the connection before creating another player.
-        internal static void RemovePeer(NetworkConnection peer, AccountId account) {
+        internal static void RemovePeer(NetPeer peer, AccountId account) {
             if (!Players.TryGetValue(peer, out var player)) return;
             try {
                 if (PlayerStorage.IsInitialized && EntityManager.ESTree.Contains(player.info.rtEntityId)) {

@@ -7,7 +7,7 @@ using Arterra.Data.Entity;
 using Arterra.Engine.Terrain;
 using Newtonsoft.Json;
 using Unity.Mathematics;
-using Unity.Networking.Transport;
+using LiteNetLib;
 using UnityEngine;
 
 namespace Arterra.Core.Storage {
@@ -15,7 +15,7 @@ namespace Arterra.Core.Storage {
     public sealed class NetworkSource : LocalChunkSource, ITransportEventListener, IChunkConsumer {
         internal const ushort Generate = 1, Content = 2, Enter = 3, Leave = 4, Failed = 5;
 
-        private readonly NetworkConnection peer;
+        private readonly NetPeer peer;
         private readonly Guid referenceId;
         private readonly ChunkGenerationDriver driver;
         private bool disposed;
@@ -23,7 +23,7 @@ namespace Arterra.Core.Storage {
         internal static Guid ReferenceFor(Guid playerId) =>
             NetworkReferenceId.ForEntity(playerId, NetworkReferenceId.FromName("ChunkSource"));
 
-        public NetworkSource(NetworkConnection peer, Guid playerId) {
+        public NetworkSource(NetPeer peer, Guid playerId) {
             this.peer = peer;
             referenceId = ReferenceFor(playerId);
             driver = new ChunkGenerationDriver(CPUMapManager.numChunksAxis, this);

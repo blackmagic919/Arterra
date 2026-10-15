@@ -20,6 +20,15 @@ namespace Arterra.Core.Storage {
             var map = new MapData[chunk.Length];
             NativeArray<MapData>.Copy(chunk.ChunkData, chunk.Offset, map, 0, map.Length);
 
+            WriteMap(destination, map, includeResolutions,
+                includeMetadata ? chunk.MapMetaData.ToArray() : null);
+        }
+
+        public static void Write(Stream destination, MapData[] map) =>
+            WriteMap(destination, (MapData[])map.Clone(), false, null);
+
+        private static void WriteMap(Stream destination, MapData[] map, bool includeResolutions,
+            KeyValuePair<uint, object>[] metadata) {
             var materials = new Dictionary<int, int>();
             var names = new List<string>();
 
@@ -39,7 +48,7 @@ namespace Arterra.Core.Storage {
             var header = new Chunk.ChunkHeader {
                 RegisterNames = names,
                 ResolutionOffsets = new List<int>(),
-                MapEntryMetaData = includeMetadata ? chunk.MapMetaData.ToArray() : null,
+                MapEntryMetaData = metadata,
             };
 
             int size = Config.CURRENT.Quality.Terrain.value.mapChunkSize;

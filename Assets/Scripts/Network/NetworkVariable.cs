@@ -3,7 +3,7 @@ using System.Security.Cryptography;
 using System.Text;
 using Arterra.Data.Entity;
 using Arterra.GamePlay;
-using Unity.Networking.Transport;
+using LiteNetLib;
 using Newtonsoft.Json;
 
 namespace Arterra.Core.Network {
@@ -34,7 +34,7 @@ namespace Arterra.Core.Network {
             RegisterReference(NetworkReferenceId.ForEntity(entity.info.rtEntityId, offsetId));
         }
 
-        protected override bool CanAccess(NetworkPermission permission, NetworkConnection peer) {
+        protected override bool CanAccess(NetworkPermission permission, NetPeer peer) {
             if (permission != NetworkPermission.Owner) return base.CanAccess(permission, peer);
             if (base.CanAccess(NetworkPermission.Server, peer)) return true;
             return entity != null && entity.info.rtEntityId != Guid.Empty

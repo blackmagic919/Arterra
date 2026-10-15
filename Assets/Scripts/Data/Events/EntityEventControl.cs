@@ -7,7 +7,6 @@ using System.Linq;
 using Arterra.Core.Network;
 using Arterra.Data.Entity;
 using Arterra.GamePlay;
-using Unity.Networking.Transport;
 
 namespace Arterra.Core.Events {
     /// <summary>Entity event forwarding. Register after assigning the shared entity ID; dispose when released.</summary>

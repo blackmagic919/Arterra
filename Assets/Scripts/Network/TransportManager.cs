@@ -3,110 +3,117 @@ using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
-using Unity.Collections;
-using Unity.Networking.Transport;
-using Unity.Networking.Transport.Relay;
-using Unity.Networking.Transport.Utilities;
-using Unity.Services.Multiplayer;
+using Arterra.Core.Network.Service;
+using LiteNetLib;
 using UnityEngine;
-using TransportSettings = Unity.Networking.Transport.NetworkSettings;
 
 namespace Arterra.Core.Network {
-    /// <summary>
-    /// Session connections and reliable packet transport, independent of application protocols.
-    /// All operations and callbacks run on Unity's main thread.
-    /// </summary>
-    public sealed partial class TransportManager : INetworkHandler {
+    /// <summary>Reliable game traffic on the same UDP socket used for NAT introduction.</summary>
+    public sealed partial class TransportManager {
         public static TransportManager Instance { get; } = new();
-        private const int ReliableWindowSize = 64;
-        private const int ConnectionTimeoutMilliseconds = 30000;
-        //maximum total connections. Adjust this in the future, temporary limit
-        private const int MaxPeers = 128;
-        private NetworkDriver driver;
-        private NetworkPipeline reliable;
-        private readonly List<NetworkConnection> peers = new();
-        private NetworkConnection server;
+        private NetManager driver;
+        private readonly List<NetPeer> peers = new();
+        private NetPeer server;
         private TaskCompletionSource<bool> connected;
-        private bool starting;
         private int generation;
+
         public bool IsRunning { get; private set; }
+        public bool IsStarted => driver != null;
+        public bool IsServer { get; private set; }
         public uint SessionVersion { get; private set; }
-        public NetworkConfiguration Configuration { get; private set; }
-        public bool IsServer => Configuration != null && Configuration.Role != NetworkRole.Client;
-
-        private readonly IReadOnlyList<NetworkConnection> peerView;
-        private TransportManager() => peerView = peers.AsReadOnly();
-
-        public NetworkConnection Server => server;
-        public event Action<NetworkConnection> PeerDisconnected;
+        public NetPeer Server => server;
+        public event Action<NetPeer> PeerDisconnected;
         public event Action<Exception> Stopped;
-        public IReadOnlyList<NetworkConnection> Peers => peerView;
+        public IReadOnlyList<NetPeer> Peers { get; }
 
-        public void Disconnect(NetworkConnection peer) {
-            if (!driver.IsCreated || !peers.Contains(peer)) return;
-            if (!IsServer) { Fail(new IOException("Disconnected from host.")); return; }
-            driver.Disconnect(peer);
-            peers.Remove(peer);
+        private TransportManager() => Peers = peers.AsReadOnly();
+
+        internal async Task StartAsync(Guid sessionId, ConnectionTicket ticket, bool host, CancellationToken token) {
+            if (IsStarted) throw new InvalidOperationException("Transport already started.");
+            if (ticket.ExpiresAt <= DateTimeOffset.UtcNow) throw new InvalidOperationException("Connection ticket expired.");
+            token.ThrowIfCancellationRequested();
+            int epoch = ++generation;
+            IsServer = host;
+            if (!host) ++SessionVersion;
+            connected = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            var listener = new EventBasedNetListener();
+            driver = new NetManager(listener) {
+                IPv6Enabled = false, NatPunchEnabled = true, AutoRecycle = true,
+                DisconnectTimeout = 10000
+            };
+            listener.PeerConnectedEvent += OnPeerConnected;
+            listener.PeerDisconnectedEvent += OnPeerDisconnected;
+            listener.ConnectionRequestEvent += OnConnectionRequest;
+            listener.NetworkReceiveEvent += (peer, reader, channel, method) => {
+                try {
+                    if (peer == discoveryPeer) ReceiveDiscovery(reader.GetRemainingBytes());
+                    else if (peers.Contains(peer)) ReceivePacket(peer, reader);
+                } catch (Exception exception) {
+                    Debug.LogException(exception);
+                    if (peer == discoveryPeer) Fail(exception);
+                    else Disconnect(peer);
+                }
+            };
+            listener.NetworkErrorEvent += (endpoint, error) =>
+                Debug.LogWarning($"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Network Transport] Socket error: {error}.");
+
+            try {
+                if (!driver.Start()) throw new IOException("Could not bind the game UDP socket.");
+                Application.quitting += OnQuit;
+                BeginDiscovery(sessionId, ticket);
+                using var timeout = CancellationTokenSource.CreateLinkedTokenSource(token);
+                timeout.CancelAfter(TimeSpan.FromSeconds(30));
+                using var cancellation = timeout.Token.Register(() => connected.TrySetCanceled());
+                await connected.Task;
+                if (epoch != generation) throw new OperationCanceledException("Transport stopped while connecting.");
+            } catch {
+                if (epoch == generation) await StopAsync();
+                throw;
+            }
+        }
+
+        private void OnPeerConnected(NetPeer peer) {
+            if (peer == discoveryPeer) { AuthenticateDiscovery(); return; }
+            if (!peerIdentities.ContainsKey(peer)) { peer.Disconnect(); return; }
+            if (!IsServer) {
+                if (server != null && server != peer) { peer.Disconnect(); return; }
+                server = peer;
+                IsRunning = true;
+            }
+            peers.Add(peer);
+            if (IsServer) return;
+
+            ReportIntroduction(true);
+            foreach (var referenceId in listeners.Keys) SendSubscription(referenceId, Subscribe);
+            connected.TrySetResult(true);
+            Debug.Log($"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Network Transport] Direct host connection established.");
+        }
+
+        private void OnPeerDisconnected(NetPeer peer, DisconnectInfo info) {
+            if (peer == discoveryPeer) {
+                discoveryPeer = null;
+                if (!IsServer && server != null) return; // Introduction finished; the game socket stays open.
+                string detail = info.AdditionalData.AvailableBytes > 0
+                    ? System.Text.Encoding.UTF8.GetString(info.AdditionalData.GetRemainingBytes()) : info.Reason.ToString();
+                Fail(new IOException("Discovery connection ended: " + detail));
+                return;
+            }
+            peerIdentities.Remove(peer);
+            if (!peers.Remove(peer)) return; // An unsuccessful NAT candidate isn't a game connection.
+            if (!IsServer) { Fail(new IOException("Host disconnected.")); return; }
             ForgetPeer(peer, new IOException("Peer disconnected."));
             PeerDisconnected?.Invoke(peer);
         }
 
-        public async Task StartAsync(NetworkConfiguration configuration) {
-            if (configuration == null) throw new System.ArgumentNullException(nameof(configuration));
-            if (starting || driver.IsCreated) throw new InvalidOperationException("Transport already started.");
-            if (configuration.Type == NetworkType.DistributedAuthority) throw new NotSupportedException("Arterra uses a host-authoritative connection.");
-
-            Debug.Log($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Network Transport] Starting {configuration.Role} over {configuration.Type}; update component active: {NetworkManager.Instance != null && NetworkManager.Instance.isActiveAndEnabled}.");
-            starting = true;
-            int epoch = ++generation;
-            Configuration = configuration;
-            // A new client authority must not reuse values from a local game or an old host.
-            if (!IsServer) ++SessionVersion;
-            connected = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
-
-            try {
-                var settings = new TransportSettings(Allocator.Temp);
-                try { //Create driver to communicate with websocket
-                    settings.WithReliableStageParameters(windowSize: ReliableWindowSize);
-                    if (configuration.Type == NetworkType.Relay) {
-                        // MPS supplies host and joining-client allocations here; RelayClientData is Entities-specific.
-                        var relay = configuration.RelayServerData;
-                        settings.WithRelayParameters(ref relay);
-                        driver = relay.IsWebSocket != 0
-                            ? NetworkDriver.Create(new WebSocketNetworkInterface(), settings)
-                            : NetworkDriver.Create(settings);
-                    } else driver = NetworkDriver.Create(settings);
-                } finally { settings.Dispose(); }
-                reliable = driver.CreatePipeline(typeof(ReliableSequencedPipelineStage));
-                var bind = IsServer && configuration.Type == NetworkType.Direct
-                    ? configuration.DirectNetworkListenAddress : NetworkEndpoint.AnyIpv4;
-                if (driver.Bind(bind) != 0) throw new IOException("Could not bind transport socket.");
-                if (IsServer) {
-                    if (driver.Listen() != 0) throw new IOException("Could not listen for peers.");
-                    if (configuration.Type == NetworkType.Direct) {
-                        configuration.UpdatePublishPort(driver.GetLocalEndpoint().Port);
-                        connected.TrySetResult(true);
-                    }
-                } else {
-                    var endpoint = configuration.Type == NetworkType.Direct
-                        ? configuration.DirectNetworkPublishAddress : configuration.RelayServerData.Endpoint;
-                    server = driver.Connect(endpoint);
-                    if (!server.IsCreated) throw new IOException("Could not initiate server connection.");
-                    peers.Add(server);
-                }
-                Application.quitting += OnQuit;
-                Debug.Log($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Network Transport] Driver created and bound; waiting for connection/relay readiness.");
-                await WithTimeout(connected.Task, ConnectionTimeoutMilliseconds);
-                Debug.Log($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Network Transport] Connection/relay readiness confirmed.");
-                if (epoch != generation) throw new OperationCanceledException("Transport stopped while connecting.");
-                IsRunning = true;
-                if (!IsServer) {
-                    foreach (var referenceId in listeners.Keys) SendSubscription(referenceId, Subscribe);
-                }
-            } catch {
-                if (epoch == generation) await StopAsync();
-                throw;
-            } finally { if (epoch == generation) starting = false; }
+        public void Disconnect(NetPeer peer) {
+            if (!IsStarted || !peers.Contains(peer)) return;
+            if (!IsServer) { Fail(new IOException("Disconnected from host.")); return; }
+            peer.Disconnect();
+            peers.Remove(peer);
+            peerIdentities.Remove(peer);
+            ForgetPeer(peer, new IOException("Peer disconnected."));
+            PeerDisconnected?.Invoke(peer);
         }
 
         public Task StopAsync() => Stop(null);
@@ -114,87 +121,31 @@ namespace Arterra.Core.Network {
         private Task Stop(Exception reason) {
             ++SessionVersion;
             ++generation;
-            starting = false;
-            Debug.Log($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Network Transport] Stopping transport ({(reason == null ? "requested" : $"{reason.GetType().Name}: {reason.Message}")}).");
+            Debug.Log($"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Network Transport] Stopping ({reason?.Message ?? "requested"}).");
             IsRunning = false;
             Application.quitting -= OnQuit;
             connected?.TrySetCanceled();
-            if (driver.IsCreated) {
-                Debug.Log($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Shutdown] Transport: disconnecting peers and completing final driver update.");
-                foreach (var peer in peers) driver.Disconnect(peer);
-                driver.ScheduleUpdate().Complete();
-                Debug.Log($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Shutdown] Transport: final update complete; disposing driver.");
-                driver.Dispose();
-                Debug.Log($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Shutdown] Transport: driver disposed.");
-            }
-            driver = default;
+            driver?.Stop();
+            driver = null;
             peers.Clear();
-            server = default;
-            Configuration = null;
-            Debug.Log($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Shutdown] Transport: resetting events and notifying stopped listeners.");
+            server = null;
+            IsServer = false;
+            ResetDiscovery();
             ResetEvents(reason);
             Stopped?.Invoke(reason);
-            Debug.Log($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Shutdown] Transport: stopped listeners complete.");
+            Debug.Log($"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Shutdown] Transport stopped.");
             return Task.CompletedTask;
         }
 
-        private static async Task<T> WithTimeout<T>(Task<T> task, int milliseconds) {
-            using (var timer = new CancellationTokenSource()) {
-                var delay = Task.Delay(milliseconds, timer.Token);
-                if (await Task.WhenAny(task, delay) != task) throw new TimeoutException("Network operation timed out.");
-                timer.Cancel();
-                return await task;
-            }
-        }
-
         internal void Update() {
-            try { Tick(); }
-            catch (Exception exception) { Fail(exception); }
-        }
-
-        private void Tick() {
-            if (!driver.IsCreated) return;
-            driver.ScheduleUpdate().Complete();
-            if (Configuration.Type == NetworkType.Relay) {
-                var status = driver.GetRelayConnectionStatus();
-                if (status == RelayConnectionStatus.AllocationInvalid)
-                    throw new IOException("Relay allocation expired or is invalid.");
-                if (IsServer && status == RelayConnectionStatus.Established) connected.TrySetResult(true);
-            }
-            if (IsServer) {
-                NetworkConnection peer;
-                while ((peer = driver.Accept()).IsCreated) {
-                    if (peers.Count >= MaxPeers) driver.Disconnect(peer);
-                    else peers.Add(peer);
-                }
-            }
-            // Protocol callbacks may disconnect peers while processing a packet.
-            peerSnapshot.Clear();
-            peerSnapshot.AddRange(peers);
-            foreach (var peer in peerSnapshot) {
-                if (!peers.Contains(peer)) continue;
-                NetworkEvent.Type type;
-                while ((type = driver.PopEventForConnection(peer, out var reader)) != NetworkEvent.Type.Empty) {
-                    if (type == NetworkEvent.Type.Connect && !IsServer) connected.TrySetResult(true);
-                    else if (type == NetworkEvent.Type.Disconnect) {
-                        peers.Remove(peer);
-                        if (!IsServer) { Fail(new IOException("Host disconnected.")); return; }
-                        ForgetPeer(peer, new IOException("Peer disconnected."));
-                        PeerDisconnected?.Invoke(peer);
-                        if (!driver.IsCreated) return;
-                        break;
-                    } else if (type == NetworkEvent.Type.Data) {
-                        try { ReceivePacket(peer, reader); }
-                        catch (InvalidDataException exception) {
-                            Debug.LogException(exception);
-                            Disconnect(peer);
-                        }
-                        if (!driver.IsCreated) return;
-                        if (!peers.Contains(peer)) break;
-                    }
-                }
-            }
-            UpdateEvents();
+            if (!IsStarted) return;
+            try {
+                driver.PollEvents();
+                if (!IsStarted) return;
+                driver.NatPunchModule.PollEvents();
+                ExpireIntroductions();
+                if (IsRunning) UpdateEvents();
+            } catch (Exception exception) { Fail(exception); }
         }
 
         private void Fail(Exception exception) {
@@ -202,6 +153,7 @@ namespace Arterra.Core.Network {
             Debug.LogException(exception);
             _ = Stop(exception);
         }
+
         private void OnQuit() => _ = StopAsync();
     }
 }

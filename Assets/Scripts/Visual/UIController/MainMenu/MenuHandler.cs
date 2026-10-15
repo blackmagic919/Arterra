@@ -74,8 +74,17 @@ namespace Arterra.GamePlay.UI {
         public async void Play() {
             if (!active) return;
             if (!await EnsureWorldReadyAsync() || !active) return;
-            _ = Core.Storage.World.SaveOptions();
-            SceneManager.LoadScene("GameScene");
+            active = false;
+            try {
+                var meta = Core.Storage.World.WORLD_SELECTION.First.Value;
+                if (meta.Type == Core.Storage.World.GalaxyType.DirectWAN)
+                    await Core.Network.NetworkManager.ConnectSessionAsync(meta.SessionId);
+                _ = Core.Storage.World.SaveOptions();
+                SceneManager.LoadScene("GameScene");
+            } catch (Exception exception) {
+                active = true;
+                Debug.LogException(exception);
+            }
         }
         public async void Select() {
             if (!active) return;

@@ -5,19 +5,18 @@ using System.Diagnostics;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
-using Unity.Collections;
-using Unity.Networking.Transport;
-using Error = Unity.Networking.Transport.Error;
+using LiteNetLib;
+using LiteNetLib.Utils;
 
 namespace Arterra.Core.Network {
     /// <summary>A complete, reconstructed application event. IDs are independent of packet boundaries.</summary>
     public readonly struct TransportEvent {
-        public readonly NetworkConnection Peer;
+        public readonly NetPeer Peer;
         public readonly Guid ReferenceId;
         public readonly uint MessageId, ReplyTo;
         public readonly ushort EventId;
         public readonly byte[] Payload;
-        internal TransportEvent(NetworkConnection peer, Guid referenceId, ushort eventId,
+        internal TransportEvent(NetPeer peer, Guid referenceId, ushort eventId,
             uint messageId, uint replyTo, byte[] payload) {
             Peer = peer; ReferenceId = referenceId; EventId = eventId;
             MessageId = messageId; ReplyTo = replyTo; Payload = payload;
@@ -26,13 +25,13 @@ namespace Arterra.Core.Network {
 
     public interface ITransportEventListener {
         void OnEvent(TransportEvent message);
-        void OnSubscribed(NetworkConnection peer) { }
+        void OnSubscribed(NetPeer peer) { }
     }
 
     public sealed partial class TransportManager {
         // Guid.Empty is reserved for transport subscription control.
         private const ushort Subscribe = 1, Unsubscribe = 2;
-        private readonly Dictionary<NetworkConnection, HashSet<Guid>> subscriptions = new();
+        private readonly Dictionary<NetPeer, HashSet<Guid>> subscriptions = new();
         private const int MessageIdBytes = sizeof(uint);
         private const int ReferenceIdBytes = 16;
         private const int FragmentHeaderBytes = MessageIdBytes + sizeof(ushort);
@@ -40,15 +39,15 @@ namespace Arterra.Core.Network {
         private const int DefaultEventTimeoutSeconds = 60;
         public static readonly TimeSpan DefaultEventTimeout = TimeSpan.FromSeconds(DefaultEventTimeoutSeconds);
         private readonly Dictionary<Guid, ITransportEventListener> listeners = new();
-        private readonly Dictionary<NetworkConnection, LinkedList<OutgoingEvent>> outgoing = new();
-        private readonly Dictionary<NetworkConnection, Dictionary<uint, IncomingEvent>> incoming = new();
-        private readonly Dictionary<(NetworkConnection, uint), EventRequest> requests = new();
-        private readonly List<NetworkConnection> peerSnapshot = new();
-        private ConcurrentQueue<(NetworkConnection peer, OutgoingEvent message)> pendingEvents = new();
+        private readonly Dictionary<NetPeer, LinkedList<OutgoingEvent>> outgoing = new();
+        private readonly Dictionary<NetPeer, Dictionary<uint, IncomingEvent>> incoming = new();
+        private readonly Dictionary<(NetPeer, uint), EventRequest> requests = new();
+        private readonly List<NetPeer> peerSnapshot = new();
+        private ConcurrentQueue<(NetPeer peer, OutgoingEvent message)> pendingEvents = new();
         private int nextMessageId;
         private int firstSendPeer;
-        private readonly Dictionary<(NetworkConnection, Guid), OutgoingEvent> variableUpdates = new();
-        private readonly Queue<NetworkConnection> sendPeers = new();
+        private readonly Dictionary<(NetPeer, Guid), OutgoingEvent> variableUpdates = new();
+        private readonly Queue<NetPeer> sendPeers = new();
         private readonly List<(LinkedListNode<OutgoingEvent> node, int count)> packetFragments = new();
 
         /// <summary>One listener per reference, regardless of the listener's value type.</summary>
@@ -67,7 +66,7 @@ namespace Arterra.Core.Network {
         private void SendSubscription(Guid referenceId, ushort operation) =>
             SendEvent(server, Guid.Empty, operation, referenceId.ToByteArray());
 
-        public bool IsSubscribed(NetworkConnection peer, Guid referenceId) =>
+        public bool IsSubscribed(NetPeer peer, Guid referenceId) =>
             subscriptions.TryGetValue(peer, out var references) && references.Contains(referenceId);
 
         private void ReceiveSubscription(TransportEvent message) {
@@ -106,7 +105,7 @@ namespace Arterra.Core.Network {
                 if (pair.Value.Sent == 0) pair.Value.Canceled = true;
                 if (pair.Value.Pending != null) pair.Value.Pending.Value.Canceled = true;
             }
-            foreach (var pair in new List<KeyValuePair<(NetworkConnection, uint), EventRequest>>(requests)) {
+            foreach (var pair in new List<KeyValuePair<(NetPeer, uint), EventRequest>>(requests)) {
                 if (pair.Value.ReferenceId != referenceId) continue;
                 pair.Value.Response.TrySetException(new ObjectDisposedException($"Reference {referenceId}"));
                 requests.Remove(pair.Key);
@@ -114,19 +113,19 @@ namespace Arterra.Core.Network {
         }
 
         /// <summary>Queue a complete event. Transport owns its copied bytes and all packet-level work.</summary>
-        public uint SendEvent(NetworkConnection peer, Guid referenceId, ushort eventId,
+        public uint SendEvent(NetPeer peer, Guid referenceId, ushort eventId,
             byte[] payload, uint replyTo = 0, bool replacePending = false) {
             return QueueEvent(peer, referenceId, eventId, payload, replyTo, replacePending: replacePending).Id;
         }
 
         public void Broadcast(Guid referenceId, ushort eventId, byte[] payload,
-            NetworkConnection replyPeer = default, uint replyTo = 0, bool replacePending = false) {
+            NetPeer replyPeer = default, uint replyTo = 0, bool replacePending = false) {
             if (!IsServer) throw new InvalidOperationException("Only the server can broadcast to its peers.");
             QueueEvent(replyPeer, referenceId, eventId, payload, replyTo, broadcast: true, replacePending: replacePending);
         }
 
         /// <summary>Await a correlated reply. Cancellation stops waiting; it does not undo remote execution.</summary>
-        public async Task<TransportEvent> RequestEventAsync(NetworkConnection peer, Guid referenceId,
+        public async Task<TransportEvent> RequestEventAsync(NetPeer peer, Guid referenceId,
             ushort eventId, byte[] payload, CancellationToken token = default, TimeSpan? timeout = null) {
             token.ThrowIfCancellationRequested();
             var duration = timeout ?? DefaultEventTimeout;
@@ -159,7 +158,7 @@ namespace Arterra.Core.Network {
         }
 
         // Validate and copy once at the shared entry point for sends, broadcasts, and requests.
-        private OutgoingEvent QueueEvent(NetworkConnection peer, Guid referenceId, ushort eventId,
+        private OutgoingEvent QueueEvent(NetPeer peer, Guid referenceId, ushort eventId,
             byte[] payload, uint replyTo, bool broadcast = false, bool replacePending = false) {
             if (replacePending && replyTo != 0)
                 throw new ArgumentException("Correlated replies cannot be replaced.", nameof(replacePending));
@@ -203,7 +202,7 @@ namespace Arterra.Core.Network {
             }
         }
 
-        private void EnqueueEvent(NetworkConnection peer, OutgoingEvent message) {
+        private void EnqueueEvent(NetPeer peer, OutgoingEvent message) {
             if (!outgoing.TryGetValue(peer, out var queue)) outgoing.Add(peer, queue = new());
             if (message.Replaceable) {
                 var key = (peer, message.ReferenceId);
@@ -220,7 +219,7 @@ namespace Arterra.Core.Network {
             queue.AddLast(message);
         }
 
-        private void RemoveOutgoing(NetworkConnection peer, LinkedList<OutgoingEvent> queue,
+        private void RemoveOutgoing(NetPeer peer, LinkedList<OutgoingEvent> queue,
             LinkedListNode<OutgoingEvent> node) {
             var message = node.Value;
             if (message.Replaceable) {
@@ -267,17 +266,16 @@ namespace Arterra.Core.Network {
             }
         }
 
-        // Stage fragments without consuming queue entries; commit only after EndSend succeeds.
-        private bool TrySendPacket(NetworkConnection peer, LinkedList<OutgoingEvent> queue, long now) {
+        // Pack application fragments; LiteNetLib owns reliable delivery and retransmission.
+        private bool TrySendPacket(NetPeer peer, LinkedList<OutgoingEvent> queue, long now) {
             while (queue.First != null && queue.First.Value.Canceled)
                 RemoveOutgoing(peer, queue, queue.First);
             if (queue.Count == 0) return false;
 
-            int capacity = driver.GetMaxSupportedPayloadSize(peer, reliable);
+            int capacity = peer.GetMaxSinglePacketSize(DeliveryMethod.ReliableOrdered);
             if (capacity < FirstHeaderBytes)
                 throw new IOException($"Transport payload capacity is invalid: {capacity}.");
-            int result = driver.BeginSend(reliable, peer, out var writer, capacity);
-            if (!SendAccepted(result, peer)) return false;
+            var writer = new NetDataWriter(false, capacity);
 
             packetFragments.Clear();
             for (var node = queue.First; node != null; node = node.Next) {
@@ -286,35 +284,30 @@ namespace Arterra.Core.Network {
                 // Pending state cannot begin until its predecessor's packet has been submitted.
                 if (message.Replaceable && variableUpdates[(peer, message.ReferenceId)] != message) break;
                 if (now >= message.Deadline) {
-                    driver.AbortSend(writer);
                     throw new IOException($"Outgoing event {message.EventId}, message {message.Id} to {peer} expired after sending {message.Sent}/{message.Bytes.Length} bytes.");
                 }
                 bool first = message.Sent == 0;
                 int headerBytes = first ? FirstHeaderBytes : FragmentHeaderBytes;
-                int available = writer.Capacity - writer.Length - headerBytes;
+                int available = capacity - writer.Length - headerBytes;
                 int remaining = message.Bytes.Length - message.Sent;
                 if (available < 0 || (available == 0 && remaining > 0)) break;
                 int count = Math.Min(remaining, Math.Min(available, ushort.MaxValue));
-                writer.WriteUInt(message.Id);
-                writer.WriteUShort((ushort)count);
+                writer.Put(message.Id);
+                writer.Put((ushort)count);
                 if (first) {
                     Span<byte> referenceBytes = stackalloc byte[ReferenceIdBytes];
                     message.ReferenceId.TryWriteBytes(referenceBytes);
-                    for (int i = 0; i < ReferenceIdBytes; i++) writer.WriteByte(referenceBytes[i]);
-                    writer.WriteUShort(message.EventId);
-                    writer.WriteUInt(message.ReplyTo);
-                    writer.WriteInt(message.Bytes.Length);
+                    for (int i = 0; i < ReferenceIdBytes; i++) writer.Put(referenceBytes[i]);
+                    writer.Put(message.EventId);
+                    writer.Put(message.ReplyTo);
+                    writer.Put(message.Bytes.Length);
                 }
-                for (int i = 0; i < count; i++) writer.WriteByte(message.Bytes[message.Sent + i]);
+                for (int i = 0; i < count; i++) writer.Put(message.Bytes[message.Sent + i]);
                 packetFragments.Add((node, count));
                 if (count < remaining) break;
             }
 
-            result = driver.EndSend(writer);
-            if (!SendAccepted(result, peer)) {
-                packetFragments.Clear();
-                return false;
-            }
+            peer.Send(writer, DeliveryMethod.ReliableOrdered);
             foreach (var fragment in packetFragments) {
                 var message = fragment.node.Value;
                 message.Sent += fragment.count;
@@ -326,38 +319,32 @@ namespace Arterra.Core.Network {
             return true;
         }
 
-        private static bool SendAccepted(int result, NetworkConnection peer) {
-            if (result >= 0) return true;
-            if (result == (int)Error.StatusCode.NetworkSendQueueFull) return false;
-            throw new IOException($"Transport send to {peer} failed: {(Error.StatusCode)result} ({result}).");
-        }
-
-        private void ReceivePacket(NetworkConnection peer, DataStreamReader reader) {
-            if (reader.Length == 0) throw new InvalidDataException("Empty event packet.");
-            while (reader.GetBytesRead() < reader.Length) {
+        private void ReceivePacket(NetPeer peer, NetDataReader reader) {
+            if (reader.AvailableBytes == 0) throw new InvalidDataException("Empty event packet.");
+            while (!reader.EndOfData) {
                 ReceiveFragment(peer, ref reader);
-                if (!driver.IsCreated || !peers.Contains(peer)) return;
+                if (!IsStarted || !peers.Contains(peer)) return;
             }
         }
 
-        private void ReceiveFragment(NetworkConnection peer, ref DataStreamReader reader) {
-            if (reader.Length - reader.GetBytesRead() < FragmentHeaderBytes)
+        private void ReceiveFragment(NetPeer peer, ref NetDataReader reader) {
+            if (reader.AvailableBytes < FragmentHeaderBytes)
                 throw new InvalidDataException("Incomplete fragment header.");
-            uint messageId = reader.ReadUInt();
+            uint messageId = reader.GetUInt();
             if (messageId == 0) throw new InvalidDataException("Message ID zero is reserved.");
 
-            int count = reader.ReadUShort();
+            int count = reader.GetUShort();
             incoming.TryGetValue(peer, out var messages);
             IncomingEvent message = null;
             if (messages == null || !messages.TryGetValue(messageId, out message)) {
                 // An unknown ID starts a message; only this packet carries its metadata.
-                if (reader.Length - reader.GetBytesRead() < FirstHeaderBytes - FragmentHeaderBytes) throw new InvalidDataException("Incomplete message header.");
+                if (reader.AvailableBytes < FirstHeaderBytes - FragmentHeaderBytes) throw new InvalidDataException("Incomplete message header.");
                 Span<byte> referenceBytes = stackalloc byte[ReferenceIdBytes];
-                for (int i = 0; i < ReferenceIdBytes; i++) referenceBytes[i] = reader.ReadByte();
+                for (int i = 0; i < ReferenceIdBytes; i++) referenceBytes[i] = reader.GetByte();
                 Guid referenceId = new Guid(referenceBytes);
-                ushort eventId = reader.ReadUShort();
-                uint replyTo = reader.ReadUInt();
-                int total = reader.ReadInt();
+                ushort eventId = reader.GetUShort();
+                uint replyTo = reader.GetUInt();
+                int total = reader.GetInt();
                 if (eventId == 0 || total < 0 || count > total || (count == 0 && total != 0))
                     throw new InvalidDataException("Invalid message size or event ID.");
                 message = new IncomingEvent {
@@ -368,11 +355,11 @@ namespace Arterra.Core.Network {
                 if (messages == null) incoming.Add(peer, messages = new());
                 messages.Add(messageId, message);
             }
-            if (count > reader.Length - reader.GetBytesRead() || count > message.Bytes.Length - message.Received
+            if (count > reader.AvailableBytes || count > message.Bytes.Length - message.Received
                 || (count == 0 && message.Bytes.Length != 0))
                 throw new InvalidDataException("Invalid message payload length.");
             // Reliable delivery preserves each message's chunk order, including when interleaved.
-            for (int i = 0; i < count; i++) message.Bytes[message.Received + i] = reader.ReadByte();
+            for (int i = 0; i < count; i++) message.Bytes[message.Received + i] = reader.GetByte();
             message.Received += count;
             if (message.ReplyTo != 0)
                 UnityEngine.Debug.Log($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Network Transport] Reply received: peer {peer}, event {message.EventId}, message {messageId}, reply to {message.ReplyTo}, {message.Received}/{message.Bytes.Length} bytes.");
@@ -403,7 +390,7 @@ namespace Arterra.Core.Network {
             }
         }
 
-        private void ForgetPeer(NetworkConnection peer, Exception reason) {
+        private void ForgetPeer(NetPeer peer, Exception reason) {
             subscriptions.Remove(peer);
             if (outgoing.TryGetValue(peer, out var queue)) {
                 foreach (var message in queue)
@@ -411,7 +398,7 @@ namespace Arterra.Core.Network {
             }
             outgoing.Remove(peer);
             incoming.Remove(peer);
-            foreach (var pair in new List<KeyValuePair<(NetworkConnection, uint), EventRequest>>(requests)) {
+            foreach (var pair in new List<KeyValuePair<(NetPeer, uint), EventRequest>>(requests)) {
                 if (pair.Key.Item1 != peer) continue;
                 pair.Value.Response.TrySetException(reason);
                 requests.Remove(pair.Key);

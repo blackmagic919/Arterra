@@ -1,13 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Arterra.GamePlay;
-using Unity.Networking.Transport;
-using Unity.Services.Multiplayer;
+using LiteNetLib;
 using UnityEngine;
 using Arterra.Configuration;
 using Arterra.Data.Entity.Behavior;
@@ -15,22 +13,19 @@ using Newtonsoft.Json;
 using Arterra.Core.Storage;
 
 namespace Arterra.Core.Network.Authentication {
-    /// <summary>Prototype Unity-session proof binding a connection to an account. Main-thread only.</summary>
+    /// <summary>Creates the owning player after discovery has authenticated its connection. Main-thread only.</summary>
     public sealed class PlayerConnection : ITransportEventListener {
         private static readonly Guid Reference = new("2ff008b2-eccf-46b8-b02b-7d43f266177b");
-        private const ushort Begin = 1, Challenge = 2, Prove = 3, Accepted = 4, Rejected = 5, Ready = 6;
-        private const int ChallengeBytes = 32;
-        private const int ProofLifetimeSeconds = 60;
+        private const ushort Begin = 1, Accepted = 4, Rejected = 5, Ready = 6;
 
         private static readonly PlayerConnection instance = new();
-        private readonly Dictionary<NetworkConnection, Pending> pending = new();
-        private readonly Dictionary<NetworkConnection, AccountId> accounts = new();
-        private readonly Dictionary<NetworkConnection, NetworkSource> sources = new();
+        private readonly Dictionary<NetPeer, AccountId> accounts = new();
+        private readonly Dictionary<NetPeer, NetworkSource> sources = new();
 
         private bool initialized;
         private static string initialPlayerJson;
 
-        public static bool TryGetAccount(NetworkConnection peer, out AccountId account) => instance.accounts.TryGetValue(peer, out account);
+        public static bool TryGetAccount(NetPeer peer, out AccountId account) => instance.accounts.TryGetValue(peer, out account);
 
         public static void Initialize() {
             if (instance.initialized) return;
@@ -42,28 +37,12 @@ namespace Arterra.Core.Network.Authentication {
             instance.initialized = true;
         }
 
-        public static async Task JoinAsync(ISession session, CancellationToken token) {
+        public static async Task JoinAsync(CancellationToken token) {
             var transport = TransportManager.Instance;
-            var peer = transport.Server;
-
-            Debug.Log($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Network Auth] Client: requesting challenge from peer {peer}.");
-            var response = await transport.RequestEventAsync(peer, Reference, Begin, Array.Empty<byte>(), token);
-            Debug.Log($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Network Auth] Client: challenge request returned event {response.EventId} (expected {Challenge}).");
-            if (response.EventId != Challenge) throw new InvalidOperationException("Host refused authentication.");
-
-            await ClientAuthentication.PublishProofAsync(session, Encoding.UTF8.GetString(response.Payload));
-
-            token.ThrowIfCancellationRequested();
-            if (NetworkManager.Session != session || !transport.IsRunning || transport.Server != peer)
-                throw new OperationCanceledException("Session changed while authenticating.");
-
-            Debug.Log($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Network Auth] Client: requesting host verification; waiting for acceptance and player data.");
-            response = await transport.RequestEventAsync(peer, Reference, Prove, Encoding.UTF8.GetBytes(session.CurrentPlayer.Id), token);
-            Debug.Log($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Network Auth] Client: verification returned event {response.EventId} (expected {Accepted}).");
-            if (response.EventId != Accepted) throw new InvalidOperationException("Host rejected player authentication.");
-
+            var response = await transport.RequestEventAsync(transport.Server, Reference, Begin, Array.Empty<byte>(), token);
+            if (response.EventId != Accepted) throw new InvalidOperationException("Host rejected player setup.");
             initialPlayerJson = Encoding.UTF8.GetString(response.Payload);
-            Debug.Log($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Network Auth] Client: initial player received ({response.Payload.Length} bytes).");
+            Debug.Log($"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Network Auth] Owning player received ({response.Payload.Length} bytes).");
         }
 
         internal static BehaviorEntity.Animal TakeInitialPlayer() {
@@ -82,27 +61,7 @@ namespace Arterra.Core.Network.Authentication {
             if (!TransportManager.Instance.IsServer) return;
 
             Debug.Log($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Network Auth] Host: received event {message.EventId} from peer {message.Peer}, request {message.MessageId}.");
-            if (message.EventId == Begin) {
-                var session = NetworkManager.Session;
-                if (session?.IsHost != true || accounts.ContainsKey(message.Peer)
-                    || pending.ContainsKey(message.Peer)) {
-                    Reject(message);
-                    return;
-                }
-
-                byte[] bytes = new byte[ChallengeBytes];
-                using (var random = RandomNumberGenerator.Create()) random.GetBytes(bytes);
-
-                var proof = new Pending {
-                    Session = session,
-                    Value = Convert.ToBase64String(bytes),
-                    Expires = DateTime.UtcNow.AddSeconds(ProofLifetimeSeconds)
-                };
-                pending.Add(message.Peer, proof);
-
-                TransportManager.Instance.SendEvent(message.Peer, Reference, Challenge, Encoding.UTF8.GetBytes(proof.Value), message.MessageId);
-                Debug.Log($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Network Auth] Host: challenge queued for peer {message.Peer}.");
-            } else if (message.EventId == Prove) VerifyAsync(message);
+            if (message.EventId == Begin) SpawnAsync(message);
             else if (message.EventId == Ready) {
                 if (message.Payload.Length != 16 || !accounts.ContainsKey(message.Peer)
                     || PlayerHandler.GetPlayerId(message.Peer) != new Guid(message.Payload)) Reject(message);
@@ -110,35 +69,22 @@ namespace Arterra.Core.Network.Authentication {
             else Reject(message);
         }
 
-        private async void VerifyAsync(TransportEvent message) {
-            if (!pending.TryGetValue(message.Peer, out var proof) || proof.Verifying) {
+        private async void SpawnAsync(TransportEvent message) {
+            var transport = TransportManager.Instance;
+            uint session = transport.SessionVersion;
+            if (!transport.TryGetUser(message.Peer, out var userId) || accounts.ContainsKey(message.Peer)) {
                 Reject(message);
                 return;
             }
 
-            proof.Verifying = true;
+            var account = new AccountId("Arterra", NetworkManager.Service.BaseUrl + "/" + userId.ToString("D"));
+            if (accounts.Values.Contains(account) || userId == NetworkManager.Service.UserId) {
+                Reject(message);
+                return;
+            }
+            accounts.Add(message.Peer, account);
 
             try {
-                if (!Current()) throw new InvalidOperationException("Authentication challenge expired.");
-
-                string playerId = Encoding.UTF8.GetString(message.Payload);
-                Debug.Log($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Network Auth] Host: refreshing session to verify peer {message.Peer}.");
-                await proof.Session.RefreshAsync();
-                Debug.Log($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Network Auth] Host: session refresh complete for peer {message.Peer}.");
-                if (!Current()) throw new OperationCanceledException("Session changed while verifying.");
-
-                var player = proof.Session.Players.FirstOrDefault(p => p.Id == playerId);
-                if (player == null || playerId == proof.Session.Host
-                    || !player.Properties.TryGetValue(ClientAuthentication.ProofProperty, out var property)
-                    || property.Value != proof.Value)
-                    throw new UnauthorizedAccessException("The connection proof does not match the session player.");
-
-                var account = new AccountId("Unity", playerId);
-                if (accounts.Values.Contains(account)) throw new InvalidOperationException("This account is already connected.");
-
-                accounts.Add(message.Peer, account);
-                Debug.Log($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Network Auth] Host: proof verified for peer {message.Peer}; queuing player spawn.");
-
                 var spawned = new TaskCompletionSource<BehaviorEntity.Animal>(TaskCreationOptions.RunContinuationsAsynchronously);
                 EntityManager.AddHandlerEvent(async () => {
                     try {
@@ -161,17 +107,16 @@ namespace Arterra.Core.Network.Authentication {
                 TransportManager.Instance.SendEvent(message.Peer, Reference, Accepted, payload, message.MessageId);
                 Debug.Log($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Network Auth] Host: acceptance queued for peer {message.Peer} ({payload.Length} bytes).");
 
-                pending.Remove(message.Peer);
             } catch (Exception exception) {
                 Debug.LogException(exception);
-                if (pending.TryGetValue(message.Peer, out var current) && ReferenceEquals(current, proof)) {
+                if (Current()) {
                     Reject(message);
-                    TransportManager.Instance.Disconnect(message.Peer);
+                    transport.Disconnect(message.Peer);
                 }
             }
 
-            bool Current() => NetworkManager.Session == proof.Session && DateTime.UtcNow < proof.Expires
-                && pending.TryGetValue(message.Peer, out var current) && ReferenceEquals(current, proof);
+            bool Current() => transport.IsRunning && transport.SessionVersion == session
+                && accounts.ContainsKey(message.Peer);
         }
 
         private static void Reject(TransportEvent message) {
@@ -179,8 +124,7 @@ namespace Arterra.Core.Network.Authentication {
             TransportManager.Instance.SendEvent(message.Peer, Reference, Rejected, Array.Empty<byte>(), message.MessageId);
         }
 
-        private void Disconnected(NetworkConnection peer) {
-            pending.Remove(peer);
+        private void Disconnected(NetPeer peer) {
             if (sources.Remove(peer, out var source)) source.Dispose();
 
             if (!accounts.Remove(peer, out var account)) return;
@@ -202,14 +146,7 @@ namespace Arterra.Core.Network.Authentication {
                 catch (Exception exception) { Debug.LogException(exception); }
             }
 
-            pending.Clear();
         }
 
-        private sealed class Pending {
-            public ISession Session;
-            public string Value;
-            public DateTime Expires;
-            public bool Verifying;
-        }
     }
 }

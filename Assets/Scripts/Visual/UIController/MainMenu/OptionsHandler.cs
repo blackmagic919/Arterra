@@ -131,15 +131,15 @@ namespace Arterra.GamePlay.UI {
         public void LateUpdate() => spinChunk.Render(this);
 
         // Called after host chunk storage initializes, even when no preview UI is open.
+        public static uint[] GetDisplayMap() => SingleChunkDisplay.DisplayMap;
         public static void RefreshDisplayMap() => SingleChunkDisplay.RefreshDisplayMap();
 
         private class SingleChunkDisplay {
-            private static readonly Guid DisplayMapReferenceId = new("00000000-0000-0000-0000-000000000002");
-            private static readonly NetworkVariableBase<uint[]> DisplayMap = new(DisplayMapReferenceId, retainValueOnDisconnect: true);
+            public static uint[] DisplayMap;
 
             // Chunk storage and the material registry must be initialized for the selected local world.
             public static void RefreshDisplayMap() {
-                if (!NetworkManager.IsActingServer) return;
+                if (WORLD_SELECTION?.First?.Value.Type != GalaxyType.Local) return;
                 var coord = Config.CURRENT.System.WorldApperance.value.DisplayedChunk;
                 var map = Chunk.ReadChunkMap(coord).map;
                 if (map == null && Chunk.TryFindSavedMapChunk(out coord)) {
@@ -147,7 +147,7 @@ namespace Arterra.GamePlay.UI {
                     Config.CURRENT.System.WorldApperance.IsDirty = true;
                     map = Chunk.ReadChunkMap(coord).map;
                 }
-                DisplayMap.Value = map == null ? null : Array.ConvertAll(map, point => point.data);
+                DisplayMap = map == null ? null : Array.ConvertAll(map, point => point.data);
             }
 
             private int loadVersion;
@@ -176,15 +176,18 @@ namespace Arterra.GamePlay.UI {
                 try {
                     await SystemProtocol.ShutdownTask;
                     if (version != loadVersion) return;
-                    if (NetworkManager.IsActingServer) {
-                        SystemProtocol.MinimalStartup();
+                    SystemProtocol.MinimalStartup();
+                    MapData[] chunk;
+                    if (meta.Type == GalaxyType.Local) {
                         RefreshDisplayMap();
+                        uint[] packed = SingleChunkDisplay.DisplayMap;
+                        chunk = packed == null ? null : Array.ConvertAll(packed, bits => new MapData { data = bits });
+                    } else {
+                        chunk = await NetworkManager.LoadPreviewMapAsync(meta.SessionId);
                     }
-                    uint[] packed = await DisplayMap.GetAsync();
                     if (version != loadVersion || !ChunkDisplay ||
                         !ReferenceEquals(meta, WORLD_SELECTION.First.Value)) return;
 
-                    var chunk = packed == null ? null : Array.ConvertAll(packed, bits => new MapData { data = bits });
                     LoadWorldChunkDisplay(chunk);
                     shownWorld = meta;
                 } catch (Exception exception) {

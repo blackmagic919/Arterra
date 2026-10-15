@@ -7,7 +7,10 @@ using Arterra.Configuration;
 using Arterra.Core.Storage;
 using Newtonsoft.Json;
 using Arterra.Core.Network.Authentication;
-using Unity.Services.Multiplayer;
+using Arterra.Core.Network.Service;
+using Arterra.GamePlay.UI;
+using System.IO;
+using Arterra.Engine.Terrain;
 using UnityEngine;
 
 namespace Arterra.Core.Network {
@@ -15,12 +18,7 @@ namespace Arterra.Core.Network {
     public sealed class NetworkManager : MonoBehaviour {
         public static NetworkManager Instance { get; private set; }
         private static bool initialized;
-        private const string WorldMetaProperty = "configJson";
         private const string MultiplayerHook = "EnableMultiplayer";
-        private const int PropertyByteLimit = 2048;
-        private const int QueryPageSize = 100;
-        private const double QueryIntervalSeconds = 1.1;
-        private const int MetadataMaxDepth = 8;
         private const int RecoveryInitialDelayMilliseconds = 2000;
         private const int RecoveryMaxDelayMilliseconds = 30000;
 
@@ -31,13 +29,21 @@ namespace Arterra.Core.Network {
         private static string hostedWorldId;
         private static bool recovering;
 
-        private static DateTime nextQueryUtc;
         private static NetworkSettings settings => Config.CURRENT.System.Network.value;
         private static bool MultiplayerEnabled => Config.CURRENT.GamePlay.Gamemodes.value.EnableMultiplayer;
 
-        public static ISession Session { get; private set; }
+        public static Guid? SessionId { get; private set; }
+        private static GameServiceClient service;
+        internal static GameServiceClient Service {
+            get {
+                string url = settings.ServiceUrl.TrimEnd('/');
+                if (service == null || (SessionId == null && service.BaseUrl != url))
+                    service = new GameServiceClient(url);
+                return service;
+            }
+        }
         /// <summary>Offline games and hosts own their state; joining clients do not.</summary>
-        public static bool IsActingServer => !joiningClient && (TransportManager.Instance.Configuration == null || TransportManager.Instance.IsServer);
+        public static bool IsActingServer => !joiningClient && (!TransportManager.Instance.IsStarted || TransportManager.Instance.IsServer);
 
         private void Awake() {
             if (Instance == null) {
@@ -64,7 +70,7 @@ namespace Arterra.Core.Network {
 
             Config.CURRENT.System.AddHook(MultiplayerHook, ToggleMultiplayer);
             initialized = true;
-            if (MultiplayerEnabled) Observe(EnableMultiplayer());
+            if (MultiplayerEnabled && World.GALAXY_TYPE == World.GalaxyType.Local) Observe(EnableMultiplayer());
         }
 
         public static async Task ReleaseAsync() {
@@ -76,7 +82,7 @@ namespace Arterra.Core.Network {
         }
 
         private static void ToggleMultiplayer(ref object rule) {
-            if (rule is bool enabled)
+            if (World.GALAXY_TYPE == World.GalaxyType.Local && rule is bool enabled)
                 Observe(enabled ? EnableMultiplayer() : DisableMultiplayer());
         }
 
@@ -86,24 +92,18 @@ namespace Arterra.Core.Network {
             catch (Exception exception) { Debug.LogException(exception); }
         }
 
-        private static async Task EnsureServicesAsync() {
-            await ClientAuthentication.EnsureSignedInAsync();
-            PlayerConnection.Initialize();
-        }
-
         /// <summary>Advertise the selected world's metadata once; repeated calls are safe.</summary>
         public static async Task EnableMultiplayer() {
             await lifecycle.WaitAsync();
             try {
-                if (Session?.IsHost == true && TransportManager.Instance.IsRunning) return;
-                if (Session != null && !Session.IsHost)
+                if (hosting != null && TransportManager.Instance.IsRunning) return;
+                if (SessionId != null && hosting == null)
                     throw new InvalidOperationException("Leave the remote world before hosting.");
 
                 World.WorldMeta meta = World.WORLD_SELECTION?.First?.Value;
                 if (meta == null || meta.Type != World.GalaxyType.Local)
                     throw new InvalidOperationException("Select a local world before hosting.");
 
-                if (settings.MaxPlayers < 1) throw new InvalidOperationException("MaxPlayers must include at least the host.");
                 if (hosting != null) { ScheduleRecovery(); return; }
 
                 hosting = new CancellationTokenSource();
@@ -120,38 +120,34 @@ namespace Arterra.Core.Network {
 
         // Caller holds the lifecycle semaphore.
         private static async Task CreateHostSessionAsync(World.WorldMeta meta) {
-            string configJson = SerializeMeta(meta);
-            var options = new SessionOptions {
-                Name = meta.Name,
-                MaxPlayers = settings.MaxPlayers,
-                IsPrivate = settings.IsPrivate,
-                Password = string.IsNullOrEmpty(settings.Password) ? null : settings.Password,
-                SessionProperties = new Dictionary<string, SessionProperty> {
-                    [WorldMetaProperty] = new(configJson, VisibilityPropertyOptions.Public)
-                }
+            var token = hosting.Token;
+            var api = Service;
+            PlayerConnection.Initialize();
+            OptionsHandler.RefreshDisplayMap();
+            var published = new PublishedWorld {
+                Id = meta.Id, CreationTime = meta.CreationTime,
+                LastAccessTime = meta.LastAccessTime, Config = Config.CURRENT
             };
-            options.WithRelayNetwork().WithNetworkHandler(TransportManager.Instance);
-            await EnsureServicesAsync();
+            byte[] metadata = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(published));
+            byte[] chunk = WorldPreview.Encode(OptionsHandler.GetDisplayMap());
 
             try {
-                Debug.Log("Launching Session");
-                Session = await MultiplayerService.Instance.CreateSessionAsync(options);
-
-                Session.StateChanged += OnSessionStateChanged;
-                Session.Deleted += OnSessionLost;
-                Session.RemovedFromSession += OnSessionLost;
+                Log("Creating session and uploading world preview.");
+                var created = await api.CreateAsync(meta.Name, metadata, chunk, token);
+                SessionId = created.SessionId;
+                await Task.WhenAll(GameServiceClient.UploadAsync(created.Metadata, metadata, token),
+                    GameServiceClient.UploadAsync(created.DisplayChunk, chunk, token));
+                await api.CompleteAsync(created.SessionId, token);
+                var ticket = await api.HostAsync(created.SessionId, token);
+                await TransportManager.Instance.StartAsync(created.SessionId, ticket, true, token);
+                Log("Hosting session " + created.SessionId);
             } catch {
                 await TransportManager.Instance.StopAsync();
                 throw;
             }
         }
 
-        private static void OnSessionLost() => Observe(TransportManager.Instance.StopAsync());
         private static void OnTransportStopped(Exception reason) => ScheduleRecovery();
-
-        private static void OnSessionStateChanged(SessionState state) {
-            if (state == SessionState.Disconnected || state == SessionState.Deleted) ScheduleRecovery();
-        }
 
         private static bool ShouldRecover(CancellationTokenSource lifetime) {
             return hosting == lifetime && !lifetime.IsCancellationRequested && Application.isPlaying
@@ -178,7 +174,7 @@ namespace Arterra.Core.Network {
 
                     try {
                         if (!ShouldRecover(lifetime)) return;
-                        if (Session?.State == SessionState.Connected && TransportManager.Instance.IsRunning) return;
+                        if (SessionId.HasValue && TransportManager.Instance.IsRunning) return;
 
                         try { await LeaveSessionAsync(); }
                         catch (Exception exception) { Debug.LogException(exception); }
@@ -186,7 +182,7 @@ namespace Arterra.Core.Network {
                         if (!ShouldRecover(lifetime)) return;
                         await CreateHostSessionAsync(World.WORLD_SELECTION.First.Value);
                         if (!ShouldRecover(lifetime)) return;
-                        if (Session?.State == SessionState.Connected && TransportManager.Instance.IsRunning) return;
+                        if (SessionId.HasValue && TransportManager.Instance.IsRunning) return;
                     } catch (Exception exception) {
                         Debug.LogException(exception);
                     } finally { lifecycle.Release(); }
@@ -224,169 +220,107 @@ namespace Arterra.Core.Network {
                 Debug.Log($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Shutdown] Network: lifecycle lock acquired.");
                 StopHostingRecovery();
                 await LeaveSessionAsync();
-            } finally { lifecycle.Release(); }
+            } finally {
+                hostedWorldId = null;
+                lifecycle.Release();
+            }
         }
 
         /// <summary>
         /// Connect to a session, leaving any previous client session. Replicated state is fetched separately.
         /// </summary>
-        public static async Task ConnectSessionAsync(string sessionId,
-            CancellationToken token = default, string password = null) {
-            if (string.IsNullOrWhiteSpace(sessionId)) throw new ArgumentException("Missing session ID.", nameof(sessionId));
-            Debug.Log($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Network Join] Session {sessionId}: waiting for lifecycle lock.");
+        public static async Task ConnectSessionAsync(string sessionId, CancellationToken token = default) {
+            Guid id = Guid.Parse(sessionId);
             await lifecycle.WaitAsync(token);
-
             try {
-                Debug.Log($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Network Join] Session {sessionId}: lifecycle lock acquired.");
-                if (hosting != null || Session?.IsHost == true) throw new InvalidOperationException("Stop hosting before joining another world.");
-
-                Debug.Log($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Network Join] Ensuring Unity services and sign-in.");
-                await EnsureServicesAsync();
-                Debug.Log($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Network Join] Unity services and sign-in ready.");
-                token.ThrowIfCancellationRequested();
-
-                if (Session != null && //Leave any current session we're a part of
-                    (Session.Id != sessionId || !TransportManager.Instance.IsRunning))
-                    await LeaveSessionAsync();
-
+                if (hosting != null) throw new InvalidOperationException("Stop hosting before joining another world.");
+                if (SessionId == id && TransportManager.Instance.IsRunning) return;
+                await LeaveSessionAsync();
+                var api = Service;
+                PlayerConnection.Initialize();
+                joiningClient = true;
                 try {
-                    if (Session == null) await JoinSessionAsync(sessionId, password, token);
-                    token.ThrowIfCancellationRequested();
-                    Debug.Log($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Network Join] Session {sessionId}: connection and authentication complete.");
+                    Log("Requesting a connection ticket for session " + id);
+                    var joined = await api.JoinAsync(sessionId, token);
+                    SessionId = id;
+                    await TransportManager.Instance.StartAsync(id, joined.Connection, false, token);
+                    // The published preview may be older than the live host configuration.
+                    await Config.CurrentVariable.GetAsync(token);
+                    Config.CURRENT.System.Network.value.ServiceUrl = api.BaseUrl;
+                    await PlayerConnection.JoinAsync(token);
+                    Log("Session joined; owning player received.");
                 } catch {
-                    try { await LeaveSessionAsync(); }
-                    catch (Exception cleanupError) { Debug.LogException(cleanupError); }
+                    await LeaveSessionAsync();
                     throw;
-                }
+                } finally { joiningClient = false; }
             } finally { lifecycle.Release(); }
-        }
-
-        // Called while holding the lifecycle semaphore, after services are initialized.
-        private static async Task JoinSessionAsync(string sessionId, string password, CancellationToken token) {
-            var options = new JoinSessionOptions { Password = password }
-                .WithNetworkHandler(TransportManager.Instance);
-
-            // The host's session metadata supplies Relay configuration.
-            joiningClient = true;
-            try {
-                Debug.Log($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Network Join] Session {sessionId}: calling Unity JoinSessionByIdAsync.");
-                Session = await MultiplayerService.Instance.JoinSessionByIdAsync(sessionId, options);
-                Debug.Log($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Network Join] Session {sessionId}: Unity join returned; starting host authentication.");
-                await PlayerConnection.JoinAsync(Session, token);
-            } finally { joiningClient = false; }
         }
 
         public static async Task DisconnectClientAsync() {
             await lifecycle.WaitAsync();
             try {
-                if (hosting == null && Session?.IsHost != true) await LeaveSessionAsync();
+                if (hosting == null) await LeaveSessionAsync();
             } finally { lifecycle.Release(); }
         }
 
         // Called while holding the lifecycle semaphore.
         private static async Task LeaveSessionAsync() {
-            if (Session != null) {
-                Session.StateChanged -= OnSessionStateChanged;
-                Session.Deleted -= OnSessionLost;
-                Session.RemovedFromSession -= OnSessionLost;
-            }
-
-            try {
-                if (Session?.IsHost == true) {
-                    Debug.Log($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Shutdown] Network: deleting hosted Unity session.");
-                    await Session.AsHost().DeleteAsync();
-                    Debug.Log($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Shutdown] Network: hosted Unity session deleted.");
-                } else if (Session != null) {
-                    Debug.Log($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Shutdown] Network: leaving Unity session.");
-                    await Session.LeaveAsync();
-                    Debug.Log($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Shutdown] Network: left Unity session.");
-                }
-            } finally {
-                Session = null;
-                await TransportManager.Instance.StopAsync();
+            var id = SessionId;
+            bool hosted = TransportManager.Instance.IsServer || hostedWorldId != null;
+            SessionId = null;
+            // End the socket lease even if HTTP deletion fails.
+            await TransportManager.Instance.StopAsync();
+            if (hosted && id.HasValue) {
+                Log("Deleting hosted session " + id);
+                await service.DeleteAsync(id.Value);
             }
         }
 
-        /// <summary>
-        /// Returns discoverable public worlds marked Remote, each with its SessionId populated.
-        /// Follows query pagination; private/inactive sessions are not discoverable.
-        /// Results are a changing directory, not an atomic snapshot. Remote metadata
-        /// is for display/joining only: never pass it to World.SelectWorld as a local save.
-        /// </summary>
-        public static async Task<List<World.WorldMeta>> QueryWorldMetasAsync(
-            CancellationToken cancellationToken = default) {
+        public static async Task<List<World.WorldMeta>> QueryWorldMetasAsync(CancellationToken cancellationToken = default) {
             await queries.WaitAsync(cancellationToken);
             try {
-                await EnsureServicesAsync();
-
-                var worlds = new Dictionary<string, World.WorldMeta>();
-                var tokens = new HashSet<string>();
-                var options = new QuerySessionsOptions { Count = QueryPageSize };
-
-                while (true) { //query loop
-                    cancellationToken.ThrowIfCancellationRequested();
-                    TimeSpan delay = nextQueryUtc - DateTime.UtcNow;
-                    if (delay > TimeSpan.Zero) await Task.Delay(delay, cancellationToken);
-                    nextQueryUtc = DateTime.UtcNow.AddSeconds(QueryIntervalSeconds);
-
-                    var page = await MultiplayerService.Instance.QuerySessionsAsync(options);
-                    cancellationToken.ThrowIfCancellationRequested();
-
+                var api = Service;
+                var worlds = new List<World.WorldMeta>();
+                var cursors = new HashSet<Guid>();
+                Guid? cursor = null;
+                do {
+                    var page = await api.ListAsync(cursor, cancellationToken);
                     foreach (var session in page.Sessions) {
-                        if (!session.Properties.TryGetValue(WorldMetaProperty, out var property)) continue;
-                        World.WorldMeta meta = DeserializeMeta(property.Value, session.Id);
-                        if (meta != null) worlds[session.Id] = meta;
+                        worlds.Add(new World.WorldMeta(session.SessionId.ToString()) {
+                            Type = World.GalaxyType.DirectWAN,
+                            SessionId = session.SessionId.ToString(), Name = session.Name
+                        });
                     }
-
-                    if (page.Sessions.Count == 0 || string.IsNullOrEmpty(page.ContinuationToken)) break;
-                    if (!tokens.Add(page.ContinuationToken))
-                        throw new InvalidOperationException("Session query returned a repeated continuation token.");
-                    options.ContinuationToken = page.ContinuationToken;
-                }
-
-                return new List<World.WorldMeta>(worlds.Values);
+                    cursor = page.NextCursor;
+                    if (cursor.HasValue && !cursors.Add(cursor.Value))
+                        throw new InvalidDataException("Repeated session-list cursor.");
+                    // An empty filtered page can still have a continuation cursor.
+                } while (cursor.HasValue);
+                return worlds;
             } finally { queries.Release(); }
         }
 
-        private static string SerializeMeta(World.WorldMeta meta) {
-            if (string.IsNullOrWhiteSpace(meta.Id) || string.IsNullOrWhiteSpace(meta.Name))
-                throw new ArgumentException("World metadata needs an Id and Name.");
-
-            // Explicit projection: do not advertise the host's local filesystem path.
-            string json = JsonConvert.SerializeObject(new PublishedWorldMeta {
-                Id = meta.Id, Name = meta.Name,
-                LastAccessTime = meta.LastAccessTime, CreationTime = meta.CreationTime
-            });
-
-            if (Encoding.UTF8.GetByteCount(json) > PropertyByteLimit)
-                throw new ArgumentException("WorldMeta exceeds the 2 KB session-property limit.");
-
-            return json;
+        public static async Task<Config> LoadPreviewConfigAsync(World.WorldMeta meta, CancellationToken token) {
+            var api = Service;
+            var session = await api.GetAsync(meta.SessionId, token);
+            byte[] bytes = await GameServiceClient.DownloadAsync(session.MetadataUrl, token);
+            var world = JsonConvert.DeserializeObject<PublishedWorld>(Encoding.UTF8.GetString(bytes));
+            if (world?.Config == null) throw new InvalidDataException("Session has no world configuration.");
+            meta.Id = world.Id;
+            meta.CreationTime = world.CreationTime;
+            meta.LastAccessTime = world.LastAccessTime;
+            // Service selection belongs to this machine, not the downloaded world's settings.
+            world.Config.System.Network.value.ServiceUrl = api.BaseUrl;
+            return world.Config;
         }
 
-        private static World.WorldMeta DeserializeMeta(string json, string sessionId) {
-            if (string.IsNullOrEmpty(json) || Encoding.UTF8.GetByteCount(json) > PropertyByteLimit) return null;
-
-            try {
-                var meta = JsonConvert.DeserializeObject<PublishedWorldMeta>(json, new JsonSerializerSettings {
-                    TypeNameHandling = TypeNameHandling.None, MaxDepth = MetadataMaxDepth
-                });
-                if (meta == null || string.IsNullOrWhiteSpace(meta.Id) || string.IsNullOrWhiteSpace(meta.Name)) return null;
-
-                return new World.WorldMeta(meta.Id) {
-                    Type = World.GalaxyType.DirectWAN,
-                    SessionId = sessionId, Name = meta.Name,
-                    LastAccessTime = meta.LastAccessTime, CreationTime = meta.CreationTime
-                };
-            } catch (JsonException) { return null; }
+        public static async Task<MapData[]> LoadPreviewMapAsync(string id, CancellationToken token = default) {
+            var session = await Service.GetAsync(id, token);
+            var bytes = await GameServiceClient.DownloadAsync(session.DisplayChunkUrl, token);
+            return WorldPreview.Decode(bytes);
         }
 
-        [JsonObject(MemberSerialization.OptIn)]
-        private sealed class PublishedWorldMeta {
-            [JsonProperty] public string Id;
-            [JsonProperty] public string Name;
-            [JsonProperty] public DateTime LastAccessTime;
-            [JsonProperty] public DateTime CreationTime;
-        }
+        private static void Log(string message) =>
+            Debug.Log($"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Network Session] {message}");
     }
 }

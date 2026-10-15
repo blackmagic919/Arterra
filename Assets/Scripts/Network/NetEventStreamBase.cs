@@ -3,7 +3,7 @@ using System.IO;
 using System.Collections.Generic;
 using System.Text;
 using Newtonsoft.Json;
-using Unity.Networking.Transport;
+using LiteNetLib;
 
 namespace Arterra.Core.Network {
     /// <summary>Typed transient events. Use on Unity's main thread; events are neither cached nor replayed.</summary>
@@ -41,17 +41,17 @@ namespace Arterra.Core.Network {
             ReferenceId = referenceId;
         }
 
-        // An uncreated peer represents local access, not an incoming client event.
-        protected virtual bool CanAccess(NetworkPermission permission, NetworkConnection peer) =>
-            (NetworkManager.IsActingServer && !peer.IsCreated) || permission == NetworkPermission.All;
+        // A null peer represents local access, not an incoming client event.
+        protected virtual bool CanAccess(NetworkPermission permission, NetPeer peer) =>
+            (NetworkManager.IsActingServer && peer == null) || permission == NetworkPermission.All;
 
         // Specializations can validate application identities and route both local and relayed events.
-        protected virtual bool ValidateRemoteWrite(T data, NetworkConnection peer) => true;
-        protected virtual IEnumerable<NetworkConnection> GetRecipients(T data) => null;
+        protected virtual bool ValidateRemoteWrite(T data, NetPeer peer) => true;
+        protected virtual IEnumerable<NetPeer> GetRecipients(T data) => null;
 
         /// <summary>Submit an event to the server. On the server, null recipients broadcasts;
         /// an explicit recipient list limits remote delivery without changing local delivery.</summary>
-        public void Fire(T data, Action<T> localOverride = null, IEnumerable<NetworkConnection> recipients = null) {
+        public void Fire(T data, Action<T> localOverride = null, IEnumerable<NetPeer> recipients = null) {
             CheckDisposed();
             if (!CanAccess(writePerm, default)) throw new UnauthorizedAccessException("Write permission denied for this stream.");
             if (NetworkManager.IsActingServer) Publish(data, localOverride, recipients);
@@ -64,7 +64,7 @@ namespace Arterra.Core.Network {
         }
 
         void ITransportEventListener.OnEvent(TransportEvent message) {
-            if (disposed || !message.Peer.IsCreated || message.ReferenceId != ReferenceId) return;
+            if (disposed || message.Peer == null || message.ReferenceId != ReferenceId) return;
             if (NetworkManager.IsActingServer) {
                 if (message.EventId != Write || !CanAccess(writePerm, message.Peer)) {
                     transport.SendEvent(message.Peer, ReferenceId, Rejected, Array.Empty<byte>(), message.MessageId);
@@ -92,7 +92,7 @@ namespace Arterra.Core.Network {
             }
         }
 
-        private void Publish(T data, Action<T> localOverride = null, IEnumerable<NetworkConnection> recipients = null) {
+        private void Publish(T data, Action<T> localOverride = null, IEnumerable<NetPeer> recipients = null) {
             if (transport.IsRunning) {
                 RequireConnection();
                 recipients ??= GetRecipients(data);
@@ -101,7 +101,7 @@ namespace Arterra.Core.Network {
                 else if (readPerm != NetworkPermission.Server) {
                     byte[] payload = null;
                     foreach (var peer in recipients ?? transport.Peers) {
-                        if (peer.IsCreated && CanAccess(readPerm, peer))
+                        if (peer != null && CanAccess(readPerm, peer))
                             transport.SendEvent(peer, ReferenceId, Delivery, payload ??= Encode(data));
                     }
                 }

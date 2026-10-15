@@ -1,7 +1,7 @@
 using System;
 using Arterra.Data.Entity;
 using Arterra.GamePlay;
-using Unity.Networking.Transport;
+using LiteNetLib;
 
 namespace Arterra.Core.Network {
     /// <summary>A named entity event stream. Register after the shared entity ID is assigned.</summary>
@@ -25,7 +25,7 @@ namespace Arterra.Core.Network {
             this.entity = entity;
         }
 
-        protected override bool CanAccess(NetworkPermission permission, NetworkConnection peer) {
+        protected override bool CanAccess(NetworkPermission permission, NetPeer peer) {
             if (permission != NetworkPermission.Owner) return base.CanAccess(permission, peer);
             if (base.CanAccess(NetworkPermission.Server, peer)) return true;
             return entity != null && entity.info.rtEntityId != Guid.Empty

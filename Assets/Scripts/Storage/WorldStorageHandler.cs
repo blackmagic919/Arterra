@@ -124,20 +124,8 @@ namespace Arterra.Core.Storage {
                     }
                     break;
                 case GalaxyType.DirectWAN:
-                    Config previous = Config.CURRENT;
-                    await NetworkManager.ConnectSessionAsync(meta.SessionId, cancellationToken);
-                    try {
-                        Debug.Log($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Network Join] Requesting host world configuration.");
-                        loaded = await Config.CurrentVariable.GetAsync(cancellationToken)
-                            ?? throw new InvalidOperationException("The host returned a null world configuration.");
-                        Debug.Log($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Network Join] Host world configuration received.");
-                    } catch {
-                        try { await NetworkManager.DisconnectClientAsync(); }
-                        catch (Exception cleanupError) { Debug.LogException(cleanupError); }
-                        if (!TransportManager.Instance.IsRunning && TransportManager.Instance.Configuration == null)
-                            Config.CURRENT = previous;
-                        throw;
-                    }
+                    await NetworkManager.DisconnectClientAsync();
+                    loaded = await NetworkManager.LoadPreviewConfigAsync(meta, cancellationToken);
                     break;
                 default:
                     Debug.Log($"Galaxy type {meta.Type} is not implemented yet.");
@@ -147,8 +135,7 @@ namespace Arterra.Core.Storage {
             cancellationToken.ThrowIfCancellationRequested();
             if (!ReferenceEquals(meta, WORLD_SELECTION?.First?.Value))
                 throw new OperationCanceledException("World selection changed during options loading.");
-            // Remote reads already populate the network variable; do not send them back as writes.
-            if (meta.Type == GalaxyType.Local) Config.CURRENT = loaded;
+            Config.CURRENT = loaded;
         }
 
         /// <summary> Asynchronously saves the world selection meta data object to the corresponding file located
