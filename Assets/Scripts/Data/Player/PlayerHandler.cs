@@ -267,7 +267,7 @@ namespace Arterra.GamePlay{
             data = nPlayer;
             EntityManager.CreateEntity(SpawnPoint, entityIndex, nPlayer, () => {
                 playerIds.Add(nPlayer.info.rtEntityId);
-                previous?.eventCtrl.RaiseEvent(GameEvent.Entity_Respawn, previous, nPlayer, null);
+                previous?.eventCtrl.RaiseEvent(GameEvent.Entity_Respawn, previous.info.rtEntityId, nPlayer.info.rtEntityId, null);
                 RebindPlayer(data);
                 cb?.Invoke();
             });

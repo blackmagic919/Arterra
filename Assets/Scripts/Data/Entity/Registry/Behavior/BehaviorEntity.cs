@@ -228,8 +228,9 @@ namespace Arterra.Data.Entity.Behavior {
         public enum UpdateContext {
             // Authoritative gameplay and physics only.
             Simulation,
+            ClientSimulation,
             Sync,
-            Visual
+            Visual,
         }
 
         public override void OnValidate() {
@@ -421,11 +422,11 @@ namespace Arterra.Data.Entity.Behavior {
             [JsonIgnore] public int3 PathCoord => (int3)math.floor(PathCollider.transform.position);
             [JsonIgnore] public UpdateContext context = UpdateContext.Simulation;
             [JsonIgnore] public float DeltaTime => PlayerHandler.IsPlayer(this)
-                ? (context == UpdateContext.Simulation 
+                ? (context == UpdateContext.Simulation || context == UpdateContext.ClientSimulation
                 ? Time.fixedDeltaTime : Time.deltaTime)
                 : EntityJob.cxt.deltaTime;
             [JsonIgnore] public float ExactDeltaTime => PlayerHandler.IsPlayer(this)
-                ?  (context == UpdateContext.Simulation
+                ? (context == UpdateContext.Simulation || context == UpdateContext.ClientSimulation
                 ? Time.fixedDeltaTime : Time.deltaTime)
                 : EntityJob.cxt.totDeltaTime;
 
@@ -513,7 +514,8 @@ namespace Arterra.Data.Entity.Behavior {
             public void Update(UpdateContext ctx) {
                 if (!active) return;
                 if (ctx == UpdateContext.Sync && !IsAuthority) return;
-                if (ctx == UpdateContext.Simulation && !IsAuthority) return;
+                if (ctx == UpdateContext.Simulation && !IsAuthority) 
+                    ctx = UpdateContext.ClientSimulation;
                 if (ctx == UpdateContext.Visual && !VisualActive) return;
                 context = ctx;
                 foreach (Behavior behavior in Behaviors) {

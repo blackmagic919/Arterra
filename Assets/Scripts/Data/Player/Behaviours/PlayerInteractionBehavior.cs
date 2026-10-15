@@ -342,7 +342,7 @@ namespace Arterra.Data.Entity.Behavior {
 
             delta.viscosity = solidDelta;
             delta.density = solidDelta;
-            self.eventCtrl.RaiseEvent(GameEvent.Entity_PlaceMaterial, self, authoring, delta);
+            self.eventCtrl.RaiseEvent(GameEvent.Entity_PlaceMaterial, self.info.rtEntityId, authoring, delta);
 
             // Add density before viscosity since viscosity can force density overflow.
             pointInfo.density += delta.density;
@@ -369,7 +369,7 @@ namespace Arterra.Data.Entity.Behavior {
             delta.density = InventoryController.RemoveStackable(delta.density, matItem.Index);
 
             MaterialInstance authoring = new(GCoord, pointInfo.material);
-            self.eventCtrl.RaiseEvent(GameEvent.Entity_PlaceMaterial, self, authoring, delta);
+            self.eventCtrl.RaiseEvent(GameEvent.Entity_PlaceMaterial, self.info.rtEntityId, authoring, delta);
 
             pointInfo.density += delta.density;
             liquidDensity += delta.density;
@@ -388,7 +388,7 @@ namespace Arterra.Data.Entity.Behavior {
             delta.density = CustomUtility.GetStaggeredDelta(solidDensity, -brushStrength);
             delta.viscosity = delta.density;
             MaterialInstance authoring = new(GCoord, pointInfo.material);
-            self.eventCtrl.RaiseEvent(Arterra.Core.Events.GameEvent.Entity_RemoveMaterial, self, authoring, delta);
+            self.eventCtrl.RaiseEvent(Arterra.Core.Events.GameEvent.Entity_RemoveMaterial, self.info.rtEntityId, authoring, delta);
 
             pointInfo.viscosity -= delta.viscosity;
             pointInfo.density -= delta.density;
@@ -413,7 +413,7 @@ namespace Arterra.Data.Entity.Behavior {
             delta.viscosity = 0;
 
             MaterialInstance authoring = new(GCoord, pointInfo.material);
-            self.eventCtrl.RaiseEvent(Arterra.Core.Events.GameEvent.Entity_RemoveMaterial, self, authoring, delta);
+            self.eventCtrl.RaiseEvent(Arterra.Core.Events.GameEvent.Entity_RemoveMaterial, self.info.rtEntityId, authoring, delta);
 
             pointInfo.density -= delta.density;
             IItem matItem = authoring.Authoring.OnRemoved(GCoord, delta);

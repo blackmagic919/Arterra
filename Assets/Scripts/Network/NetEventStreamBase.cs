@@ -15,6 +15,7 @@ namespace Arterra.Core.Network {
         private bool disposed;
         [JsonIgnore] public Guid ReferenceId { get; private set; }
         public event Action<T> RecieveEvent;
+        [JsonIgnore] public Func<byte[], Arterra.Core.Events.GameEvent?> GameEventTypeGetter { get; set; }
 
         public NetEventStreamBase(Guid referenceId, NetworkPermission writePerm = NetworkPermission.Server,
             NetworkPermission readPerm = NetworkPermission.All, Action<T> recieveEvent = null)

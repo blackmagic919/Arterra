@@ -19,7 +19,9 @@ namespace Arterra.Core.Events {
 
         public EntityEventControl() {
             networkEventStream = new NetEventStream<RaisedEvent>("EventControl:Events",
-                NetworkPermission.All, NetworkPermission.All, RecieveEventAsync);
+                NetworkPermission.All, NetworkPermission.All, RecieveEventAsync) {
+                GameEventTypeGetter = GetGameEventType
+            };
             subscriptionStream = new NetEventStream<Subscription>("EventControl:Subscriptions",
                 NetworkPermission.All, NetworkPermission.All, RecieveRemoteSubscription);
             unsubscriptionStream = new NetEventStream<Subscription>("EventControl:Unsubscriptions",
@@ -82,9 +84,11 @@ namespace Arterra.Core.Events {
             }
         }
 
-        public override void RaiseEvent(GameEvent type, object actor, object target, object ctx = null) {
+        public override void RaiseEvent(GameEvent type, object actor, object target, object ctx = null) 
+            => RaiseEvent(type, actor, target, ctx, false);
+        public void RaiseEvent(GameEvent type, object actor, object target, object ctx = null, bool local = false) {
             RaisedEvent newEvent = new (type, actor, target, ctx);
-            if (remoteSubscription.TryGetValue(type, out var subscribers)) {
+            if (remoteSubscription.TryGetValue(type, out var subscribers) && !local) {
                 var recipients = NetworkManager.IsActingServer
                     ? PlayerHandler.Players.Where(pair => subscribers.Contains(pair.Value.info.rtEntityId)).Select(pair => pair.Key)
                     : null;
@@ -92,9 +96,9 @@ namespace Arterra.Core.Events {
             } else RecieveEvent(newEvent);
         }
 
-        public void EnqueueEvent(GameEvent type, object actor, object target, object ctx = null) {
+        public void EnqueueEvent(GameEvent type, object actor, object target, object ctx = null, bool local = false) {
             RaisedEvent newEvent = new (type, actor, target, ctx);
-            if (remoteSubscription.TryGetValue(type, out var subscribers)) {
+            if (remoteSubscription.TryGetValue(type, out var subscribers) && !local) {
                 var recipients = NetworkManager.IsActingServer
                     ? PlayerHandler.Players.Where(pair => subscribers.Contains(pair.Value.info.rtEntityId)).Select(pair => pair.Key)
                     : null;
@@ -105,10 +109,25 @@ namespace Arterra.Core.Events {
         private void RecieveEvent(RaisedEvent ev) => 
             base.RaiseEvent(ev.type, ev.source, ev.target, ev.context);
 
+        // Read only the leading event discriminator, never deserialize its entity/behavior arguments.
+        private static GameEvent? GetGameEventType(byte[] payload) {
+            using var stream = new System.IO.MemoryStream(payload, false);
+            using var text = new System.IO.StreamReader(stream);
+            using var reader = new JsonTextReader(text);
+            while (reader.Read()) {
+                if (reader.TokenType != JsonToken.PropertyName || reader.Depth != 1
+                    || (string)reader.Value != "type") continue;
+                return reader.Read() && reader.TokenType == JsonToken.Integer
+                    ? (GameEvent)Convert.ToInt32(reader.Value) : null;
+            }
+            return null;
+        }
+
         private void RecieveEventAsync(RaisedEvent ev) => 
             EntityManager.AddHandlerEvent(() => base.RaiseEvent(ev.type, ev.source, ev.target, ev.context));
-        public override Action<object, object, object> GetRaiseEventAction(GameEvent type) =>
-            (actor, target, ctx) => RaiseEvent(type, actor, target, ctx);
+        public override Action<object, object, object> GetRaiseEventAction(GameEvent type) => GetRaiseEventAction(type, false);
+        public Action<object, object, object> GetRaiseEventAction(GameEvent type, bool local = false) =>
+            (actor, target, ctx) => RaiseEvent(type, actor, target, ctx, local);
         
 
         private void RecieveRemoteSubscription(Subscription s) {

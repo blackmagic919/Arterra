@@ -8,6 +8,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using LiteNetLib;
 using LiteNetLib.Utils;
+using Arterra.Core.Events;
 
 namespace Arterra.Core.Network {
     /// <summary>A complete application message delivered by LiteNetLib.</summary>
@@ -25,6 +26,8 @@ namespace Arterra.Core.Network {
     }
 
     public interface ITransportEventListener {
+        // Temporary traffic diagnostics; absent for streams without gameplay events.
+        Func<byte[], GameEvent?> GameEventTypeGetter => null;
         void OnEvent(TransportEvent message);
         void OnSubscribed(NetPeer peer) { }
     }
@@ -235,7 +238,8 @@ namespace Arterra.Core.Network {
                         peer.SendWithDeliveryEvent(messageWriter, DeliveryMethod.ReliableOrdered, message);
                     else peer.Send(messageWriter, DeliveryMethod.ReliableOrdered);
                     listeners.TryGetValue(message.ReferenceId, out var listener);
-                    sendTiming.Count(listener?.GetType(), message.EventId, messageWriter.Length);
+                    var gameEvent = listener?.GameEventTypeGetter?.Invoke(message.Bytes);
+                    sendTiming.Count(listener?.GetType(), message.EventId, gameEvent, messageWriter.Length);
                 } catch (IOException exception) {
                     UnityEngine.Debug.LogException(exception);
                     Disconnect(peer);
@@ -307,13 +311,13 @@ namespace Arterra.Core.Network {
             private long bytes;
             private int messages;
             private long windowStart, totalTicks, peakTicks;
-            private Dictionary<(Type Type, ushort Event), (long Bytes, int Messages)> composition;
+            private Dictionary<(Type Type, ushort Event, GameEvent? GameEvent), (long Bytes, int Messages)> composition;
 
-            public void Count(Type type, ushort eventId, int length) {
+            public void Count(Type type, ushort eventId, GameEvent? gameEvent, int length) {
                 bytes += length;
                 messages++;
                 composition ??= new();
-                var key = (type, eventId);
+                var key = (type, eventId, gameEvent);
                 composition.TryGetValue(key, out var count);
                 composition[key] = (count.Bytes + length, count.Messages + 1);
             }
@@ -329,11 +333,12 @@ namespace Arterra.Core.Network {
                 if (messages > 0) {
                     double milliseconds = 1000.0 / Stopwatch.Frequency;
                     var breakdown = new StringBuilder();
-                    var entries = new List<KeyValuePair<(Type Type, ushort Event), (long Bytes, int Messages)>>(composition);
+                    var entries = new List<KeyValuePair<(Type Type, ushort Event, GameEvent? GameEvent), (long Bytes, int Messages)>>(composition);
                     entries.Sort((a, b) => b.Value.Bytes.CompareTo(a.Value.Bytes));
                     foreach (var entry in entries) {
                         var count = entry.Value;
-                        breakdown.Append($"\n  {TypeLabel(entry.Key.Type)} event {entry.Key.Event}: {count.Bytes / 1048576.0:F3} MiB ({100.0 * count.Bytes / bytes:F1}%), {count.Messages} messages, {count.Bytes / count.Messages} B/message");
+                        string gameEvent = entry.Key.GameEvent.HasValue ? $" [{entry.Key.GameEvent.Value}]" : "";
+                        breakdown.Append($"\n  {TypeLabel(entry.Key.Type)} event {entry.Key.Event}{gameEvent}: {count.Bytes / 1048576.0:F3} MiB ({100.0 * count.Bytes / bytes:F1}%), {count.Messages} messages, {count.Bytes / count.Messages} B/message");
                     }
                     UnityEngine.Debug.Log($"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Network Transport] Outgoing work over {(now - windowStart) * milliseconds:F0} ms: {totalTicks * milliseconds:F2} ms total, {peakTicks * milliseconds:F2} ms peak/update; {messages} messages, {bytes / 1048576.0:F2} MiB submitted.{breakdown}");
                 }

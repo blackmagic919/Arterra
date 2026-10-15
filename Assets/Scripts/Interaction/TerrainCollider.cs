@@ -391,6 +391,7 @@ namespace Arterra.GamePlay.Interaction {
 
 
         public static bool SampleCollision(float3 originGS, float3 boundsGS) => TerrainInteractor.TouchSolid(TerrainInteractor.SampleContact(originGS, boundsGS, out float friction, null));
+        public void TriggerContact(Entity entity) => TerrainInteractor.SampleContact((float3)transform.position, transform.size, out float friction, entity);
 
         public static bool SampleCollision(in float3 originGS, in float3 boundsGS, out float3 displacement) {
             float3 origin = originGS;

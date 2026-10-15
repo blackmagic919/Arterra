@@ -97,8 +97,9 @@ namespace Arterra.GamePlay.UI {
             cxt.cur.eventCtrl.AddEventHandler(
                 GameEvent.Entity_Respawn,
                 delegate (object actor, object target, object ctx) {
-                    if (actor is not Entity actorEntity) return;
-                    if (target is not Entity targetEntity) return;
+                    if (actor is not Guid actorId || target is not Guid targetId) return;
+                    EntityManager.TryGetEntity(actorId, out Entity actorEntity);
+                    if (!EntityManager.TryGetEntity(targetId, out Entity targetEntity)) return;
                     var args = (actorEntity, targetEntity);
                     RebindInventories(ref args);
                 }

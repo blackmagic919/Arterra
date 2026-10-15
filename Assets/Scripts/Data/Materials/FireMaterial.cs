@@ -108,7 +108,7 @@ namespace Arterra.Data.Material{
         }
 
         public override void OnEntityTouchSolid(int3 GCoord, Entity.Entity entity) {
-            if (entity == null) return;
+            if (entity == null || !entity.IsAuthority) return;
             if (!entity.Is(out BehaviorEntity.Animal target)) return;
             if (ContactEffects.value == null) return;
 

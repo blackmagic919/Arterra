@@ -76,8 +76,8 @@ namespace Arterra.GamePlay.Interaction {
                     mat.OnEntityTouchLiquid(coord, caller);
                     friction = math.max(mat.Roughness, friction);
 
-                    touchMatL ??= caller?.eventCtrl.GetRaiseEventAction(Core.Events.GameEvent.Entity_TouchMatLiquid);
-                    touchMatL?.Invoke(caller, m[corner], coord);
+                    touchMatL ??= caller?.eventCtrl.GetRaiseEventAction(Core.Events.GameEvent.Entity_TouchMatLiquid, true);
+                    touchMatL?.Invoke(caller.info.rtEntityId, m[corner], coord);
                 }
             }
 
@@ -94,8 +94,8 @@ namespace Arterra.GamePlay.Interaction {
                     friction = math.max(mat.Roughness, friction);
                     mat.OnEntityTouchSolid(coord, caller);
 
-                    touchMatS ??= caller?.eventCtrl.GetRaiseEventAction(Core.Events.GameEvent.Entity_TouchMatSolid);
-                    touchMatS?.Invoke(caller, m[corner], coord);
+                    touchMatS ??= caller?.eventCtrl.GetRaiseEventAction(Core.Events.GameEvent.Entity_TouchMatSolid, true);
+                    touchMatS?.Invoke(caller.info.rtEntityId, m[corner], coord);
                 }
             } 
 
@@ -156,8 +156,8 @@ namespace Arterra.GamePlay.Interaction {
                     friction = math.max(mat.Roughness, friction);
                     mat.OnEntityTouchLiquid(coords[corner], caller);
 
-                    touchMatL ??= caller?.eventCtrl.GetRaiseEventAction(Core.Events.GameEvent.Entity_TouchMatLiquid);
-                    touchMatL?.Invoke(caller, m[corner], coords[corner]);
+                    touchMatL ??= caller?.eventCtrl.GetRaiseEventAction(Core.Events.GameEvent.Entity_TouchMatLiquid, true);
+                    touchMatL?.Invoke(caller.info.rtEntityId, m[corner], coords[corner]);
                 }
             }
 
@@ -171,8 +171,8 @@ namespace Arterra.GamePlay.Interaction {
                     friction = math.max(mat.Roughness, friction);
                     mat.OnEntityTouchSolid(coords[corner], caller);
 
-                    touchMatS ??= caller?.eventCtrl.GetRaiseEventAction(Core.Events.GameEvent.Entity_TouchMatSolid);
-                    touchMatS?.Invoke(caller, m[corner], coords[corner]);
+                    touchMatS ??= caller?.eventCtrl.GetRaiseEventAction(Core.Events.GameEvent.Entity_TouchMatSolid, true);
+                    touchMatS?.Invoke(caller.info.rtEntityId, m[corner], coords[corner]);
                 }
             }
 
@@ -210,7 +210,7 @@ namespace Arterra.GamePlay.Interaction {
                 friction = math.max(mat.Roughness, friction);
                 mat.OnEntityTouchLiquid(c, caller);
 
-                caller?.eventCtrl.RaiseEvent(Core.Events.GameEvent.Entity_TouchMatLiquid, caller, pt, c);
+                caller?.eventCtrl.RaiseEvent(Core.Events.GameEvent.Entity_TouchMatLiquid, caller.info.rtEntityId, pt, c, true);
             } else if (LinearBlend(m0.SolidDensity, m1.SolidDensity, td, out corner)) {
                 MapData pt = corner != 0 ? m1 : m0;
                 int3 c = corner != 0 ? c1 : c0;
@@ -221,7 +221,7 @@ namespace Arterra.GamePlay.Interaction {
                 friction = math.max(mat.Roughness, friction);
                 mat.OnEntityTouchSolid(c, caller);
 
-                caller?.eventCtrl.RaiseEvent(Core.Events.GameEvent.Entity_TouchMatSolid, caller, pt, c);
+                caller?.eventCtrl.RaiseEvent(Core.Events.GameEvent.Entity_TouchMatSolid, caller.info.rtEntityId, pt, c, true);
             }
 
             contact |= IsTouching(contact) ? (byte)0 : Gas;
@@ -236,7 +236,7 @@ namespace Arterra.GamePlay.Interaction {
                 friction = math.max(mat.Roughness, friction);
                 mat.OnEntityTouchLiquid(posGS, caller);
 
-                caller?.eventCtrl.RaiseEvent(Core.Events.GameEvent.Entity_TouchMatSolid, caller, m, posGS);
+                caller?.eventCtrl.RaiseEvent(Core.Events.GameEvent.Entity_TouchMatSolid, caller.info.rtEntityId, m, posGS, true);
                 return Liquid;
             } else if (m.SolidDensity >= IsoValue) {
                 if (m.IsNull) return Solid;
@@ -244,7 +244,7 @@ namespace Arterra.GamePlay.Interaction {
                 friction = math.max(mat.Roughness, friction);
                 mat.OnEntityTouchSolid(posGS, caller);
 
-                caller?.eventCtrl.RaiseEvent(Core.Events.GameEvent.Entity_TouchMatSolid, caller, m, posGS);
+                caller?.eventCtrl.RaiseEvent(Core.Events.GameEvent.Entity_TouchMatSolid, caller.info.rtEntityId, m, posGS, true);
                 return Solid;
             }
             return 0;

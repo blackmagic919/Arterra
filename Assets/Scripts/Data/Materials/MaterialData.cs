@@ -175,7 +175,7 @@ namespace Arterra.Data.Material
             MaterialInstance authoring = new (GCoord, mapData.material);
             if (authoring.Authoring.OnRemoving(GCoord, caller))
                 return false;
-            caller?.eventCtrl.RaiseEvent(Core.Events.GameEvent.Entity_RemoveMaterial, caller, authoring, mapData);
+            caller?.eventCtrl.RaiseEvent(Core.Events.GameEvent.Entity_RemoveMaterial, caller.info.rtEntityId, authoring, mapData);
             ReplacedItem = authoring.Authoring.OnRemoved(GCoord, mapData);
 
             authoring = new (GCoord, newMaterial);
@@ -185,7 +185,7 @@ namespace Arterra.Data.Material
                 return false;
             }
             mapData.material = newMaterial;
-            caller?.eventCtrl.RaiseEvent(Core.Events.GameEvent.Entity_PlaceMaterial, caller, authoring, mapData);
+            caller?.eventCtrl.RaiseEvent(Core.Events.GameEvent.Entity_PlaceMaterial, caller.info.rtEntityId, authoring, mapData);
             authoring.Authoring.OnPlaced(GCoord, mapData);
             CPUMapManager.SetMap(mapData, GCoord);
             return true;
