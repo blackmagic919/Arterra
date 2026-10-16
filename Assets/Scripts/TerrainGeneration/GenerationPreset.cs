@@ -161,14 +161,16 @@ public static class SystemProtocol{
         TryShutdown(() => TerrainUpdate.Release(), nameof(TerrainUpdate));
         TryShutdown(() => EntityManager.FlushPendingHandlers(), nameof(EntityManager));
         TryShutdown(() => PlayerConnection.DisconnectPlayers(), nameof(PlayerConnection));
-        await TryShutdownAsync(() => NetworkManager.ReleaseAsync(), nameof(NetworkManager));
+        // ReleaseAsync stops local networking immediately; remote session deletion can finish later.
+        Task networkShutdown = TryShutdownAsync(() => NetworkManager.ReleaseAsync(), nameof(NetworkManager));
         TryShutdown(() => ChunkGenerationDriver.Local?.Source.Dispose(), nameof(ChunkSource));
         TryShutdown(() => CPUMapManager.StopGeneration(), "Stop chunk generation");
         TryShutdown(() => MapGenerationPipeline.ReleaseAll(), nameof(MapGenerationPipeline));
         TryShutdown(() => ArterraRuntime.FinishGraphics(), "Drain submitted GPU work");
         TryShutdown(() => OctreeTerrain.Disable(), nameof(OctreeTerrain));
         TryShutdown(() => ChunkGenerationDriver.Local?.Release(), nameof(ChunkGenerationDriver));
-        await TryShutdownAsync(() => CPUMapManager.ReleaseAsync(), nameof(CPUMapManager));
+        // Detach chunks and flush entity handlers now; await remaining saves after resource teardown.
+        Task cpuMapShutdown = TryShutdownAsync(() => CPUMapManager.ReleaseAsync(), nameof(CPUMapManager));
         TryShutdown(() => AudioManager.Instance?.Release(), nameof(AudioManager));
         TryShutdown(() => PlayerHandler.Release(), nameof(PlayerHandler));
         TryShutdown(() => EntityManager.Release(), nameof(EntityManager));
@@ -183,6 +185,7 @@ public static class SystemProtocol{
         TryShutdown(() => GenerationPreset.Release(), nameof(GenerationPreset));
         TryShutdown(() => WorldDataHandler.Release(), nameof(WorldDataHandler));
         TryShutdown(() => SharedResourceManager.Release(), nameof(SharedResourceManager));
+        await Task.WhenAll(cpuMapShutdown, networkShutdown);
         state = SystemState.Inactive;
         Debug.Log($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Shutdown] World shutdown finished in {shutdownTimer.ElapsedMilliseconds} ms.");
     }

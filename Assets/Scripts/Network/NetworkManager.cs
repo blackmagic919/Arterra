@@ -78,6 +78,9 @@ namespace Arterra.Core.Network {
                 Config.CURRENT.System.RemoveHook(MultiplayerHook, ToggleMultiplayer);
 
             initialized = false;
+            // Local teardown must finish before a lifecycle/HTTP wait lets Unity unload the world.
+            StopHostingRecovery();
+            await TransportManager.Instance.StopAsync();
             await DisableMultiplayer();
         }
 
@@ -262,7 +265,8 @@ namespace Arterra.Core.Network {
             bool hosted = TransportManager.Instance.IsServer || hostedWorldId != null;
             SessionId = null;
             // End the socket lease even if HTTP deletion fails.
-            await TransportManager.Instance.StopAsync();
+            if (TransportManager.Instance.IsStarted)
+                await TransportManager.Instance.StopAsync();
             if (hosted && id.HasValue) {
                 await service.DeleteAsync(id.Value);
             }

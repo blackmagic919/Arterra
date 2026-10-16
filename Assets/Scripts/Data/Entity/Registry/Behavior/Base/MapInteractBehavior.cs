@@ -6,6 +6,7 @@ using Arterra.Utils;
 using Newtonsoft.Json;
 using Arterra.Core.Network;
 using Unity.Mathematics;
+using Arterra.Core.Events;
 
 namespace Arterra.Data.Entity.Behavior {
     [Serializable]
@@ -52,7 +53,13 @@ namespace Arterra.Data.Entity.Behavior {
         public void ResetInteractionType() => Interaction = settings.interactType;
 
         public override void Update(BehaviorEntity.Animal self) {
-            if (self.context != BehaviorEntity.UpdateContext.Simulation) return;
+            if (self.context == BehaviorEntity.UpdateContext.ClientSimulation) {
+                TerrainInteractor.DetectMapInteraction(self.position, 
+                    OnInSolid: (dens) => ProcessInMedium(GameEvent.Entity_InSolid, self, dens),
+                    OnInLiquid: (dens) => ProcessInMedium(GameEvent.Entity_InLiquid, self, dens),
+                    OnInGas: (dens) => ProcessInMedium(GameEvent.Entity_InGas, self, dens)
+                );
+            } if (self.context != BehaviorEntity.UpdateContext.Simulation) return;
 
 
             switch (Interaction) {
@@ -83,9 +90,12 @@ namespace Arterra.Data.Entity.Behavior {
             }
         }
 
+        private void ProcessInMedium(GameEvent type, BehaviorEntity.Animal self, float density)
+            => self.eventCtrl.RaiseEvent(type, self.info.rtEntityId, null, density, true);
+
         public void ProcessInSolid(BehaviorEntity.Animal self, float density) {
             self.Collider.RemoveGravityState(LiquidGravityStateName);
-            self.eventCtrl.RaiseEvent(Core.Events.GameEvent.Entity_InSolid, self.info.rtEntityId, null, density);
+            self.eventCtrl.RaiseEvent(GameEvent.Entity_InSolid, self.info.rtEntityId, null, density, true);
             ProcessSuffocation(self, density);
         }
 
@@ -93,17 +103,17 @@ namespace Arterra.Data.Entity.Behavior {
             if (density <= 0) return;
             if (self.Is(out IVitality target) && target.IsDead)
                 return;
-            self.eventCtrl.RaiseEvent(Core.Events.GameEvent.Apply_Damage, self.info.rtEntityId, null, (density / 255.0f, float3.zero));
+            self.eventCtrl.RaiseEvent(GameEvent.Apply_Damage, self.info.rtEntityId, null, (density / 255.0f, float3.zero));
         }
 
-        public void ProcessInGas(BehaviorEntity.Animal self, float density) {
+        private void ProcessInGas(BehaviorEntity.Animal self, float density) {
             self.Collider.RemoveGravityState(LiquidGravityStateName);
-            self.eventCtrl.RaiseEvent(Core.Events.GameEvent.Entity_InGas, self.info.rtEntityId, null, density);
+            self.eventCtrl.RaiseEvent(GameEvent.Entity_InGas, self.info.rtEntityId, null, density, true);
             breath = MaxBreath;
         }
 
-        public void ProcessInLiquid(BehaviorEntity.Animal self, TerrainCollider tCollider, float density) {
-            self.eventCtrl.RaiseEvent(Core.Events.GameEvent.Entity_InLiquid, self.info.rtEntityId, null, density);
+        private void ProcessInLiquid(BehaviorEntity.Animal self, TerrainCollider tCollider, float density) {
+            self.eventCtrl.RaiseEvent(GameEvent.Entity_InLiquid, self.info.rtEntityId, null, density, true);
             breath = math.max(breath - self.DeltaTime, 0);
             tCollider.transform.velocity += self.DeltaTime * settings.Bouyancy * -EntityJob.cxt.gravity;
             tCollider.SetGravityState(LiquidGravityStateName, TerrainCollider.GravityPriority.Environment, false);
@@ -113,8 +123,8 @@ namespace Arterra.Data.Entity.Behavior {
             ProcessSuffocation(self, density);
         }
 
-        public void ProcessInLiquidAquatic(BehaviorEntity.Animal self, TerrainCollider tCollider, float density) {
-            self.eventCtrl.RaiseEvent(Core.Events.GameEvent.Entity_InLiquid, self.info.rtEntityId, null, density);
+        private void ProcessInLiquidAquatic(BehaviorEntity.Animal self, TerrainCollider tCollider, float density) {
+            self.eventCtrl.RaiseEvent(GameEvent.Entity_InLiquid, self.info.rtEntityId, null, density, true);
             breath = math.max(breath - self.DeltaTime, 0);
             tCollider.SetGravityState(LiquidGravityStateName, TerrainCollider.GravityPriority.Environment, false);
 
@@ -127,15 +137,15 @@ namespace Arterra.Data.Entity.Behavior {
             ProcessSuffocation(self, density);
         }
 
-        public void ProcessInGasAquatic(BehaviorEntity.Animal self, TerrainCollider tCollider, float density) {
+        private void ProcessInGasAquatic(BehaviorEntity.Animal self, TerrainCollider tCollider, float density) {
             tCollider.RemoveGravityState(LiquidGravityStateName);
-            self.eventCtrl.RaiseEvent(Core.Events.GameEvent.Entity_InGas, self.info.rtEntityId, null, density);
+            self.eventCtrl.RaiseEvent(GameEvent.Entity_InGas, self.info.rtEntityId, null, density, true);
             breath = MaxBreath;
         }
 
-        public void ProcessInSolidSubterraneal(BehaviorEntity.Animal self, float density) {
+        private void ProcessInSolidSubterraneal(BehaviorEntity.Animal self, float density) {
             self.Collider.RemoveGravityState(LiquidGravityStateName);
-            self.eventCtrl.RaiseEvent(Core.Events.GameEvent.Entity_InSolid, self.info.rtEntityId, null, density);
+            self.eventCtrl.RaiseEvent(GameEvent.Entity_InSolid, self.info.rtEntityId, null, density, true);
             //Just don't take damage
         }
 
@@ -151,7 +161,7 @@ namespace Arterra.Data.Entity.Behavior {
 
             if (srcId is not Guid sourceId) return;
             if (!EntityManager.TryGetEntity(sourceId, out Entity self)) return;
-            self.eventCtrl.RaiseEvent(Core.Events.GameEvent.Apply_Damage, self.info.rtEntityId, null, (damage, float3.zero));
+            self.eventCtrl.RaiseEvent(GameEvent.Apply_Damage, self.info.rtEntityId, null, (damage, float3.zero));
         }
 
         public override void AddBehaviorDependencies(Dictionary<Behaviors, int> heirarchy) {
