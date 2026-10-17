@@ -22,11 +22,11 @@ namespace Arterra.Core.Network {
         // A null peer denotes a server-local writer; each remote connection has its own NetPeer.
         private NetPeer lastWriter;
         [JsonIgnore] public uint WriterVersion { get { CheckSession(); return writerVersion; } }
-        private bool hasCachedValue, disposed;
+        private bool hasCachedValue, hasLocalWrite, disposed;
         [JsonProperty] private readonly bool retainValueOnDisconnect;
         [JsonProperty] private readonly NetworkPermission readPerm, writePerm;
         /// <summary>Keep one outstanding update and the latest pending value; false merges only queued updates and releases the slot at submission.</summary>
-        [JsonProperty] public bool WaitForDelivery { get; private set; } = true;
+        [JsonProperty] public bool WaitForDelivery { get; internal set; } = true;
         [JsonIgnore] public Guid ReferenceId { get; private set; }
         [JsonIgnore] public bool HasValue { get { CheckSession(); return NetworkManager.IsActingServer || (CanAccess(readPerm, default) && hasCachedValue); } }
         [JsonIgnore] public bool IsActivelyReading { get => pendingRead != null && !pendingRead.IsCompleted; } 
@@ -82,7 +82,7 @@ namespace Arterra.Core.Network {
                     RequireConnection();
                     if (!HasValue) throw new InvalidOperationException("Read the authoritative value/version before writing.");
                     transport.SendEvent(transport.Server, ReferenceId, Write, Encode(value), waitForDelivery: WaitForDelivery, coalescePending: true);
-                    Apply(value, writerVersion);
+                    Apply(value, writerVersion, localWrite: true);
                 }
             }
         }
@@ -107,6 +107,7 @@ namespace Arterra.Core.Network {
             if (transport.IsStarted)
                 throw new InvalidOperationException("Clear the cache before starting the transport.");
             hasCachedValue = false; value = default; pendingRead = null;
+            hasLocalWrite = false;
             writerVersion = 0; lastWriter = default;
         }
 
@@ -175,6 +176,8 @@ namespace Arterra.Core.Network {
                     throw new InvalidDataException("Invalid server variable event.");
                 if (message.Payload.Length != 0 && CanAccess(readPerm, default)) {
                     Snapshot incoming = Decode(message.Payload);
+                    // An echo in our current writer version must not roll back a newer local write.
+                    if (hasLocalWrite && incoming.Version == writerVersion) return;
                     Apply(incoming.Value, incoming.Version);
                 }
             }
@@ -207,9 +210,10 @@ namespace Arterra.Core.Network {
         }
 
         // Complete snapshots and replies share the reliable per-peer FIFO transport. No client sequence.
-        private void Apply(T next, uint version) {
+        private void Apply(T next, uint version, bool localWrite = false) {
             value = next;
             writerVersion = version;
+            hasLocalWrite = localWrite;
             hasCachedValue = !NetworkManager.IsActingServer;
         }
         private byte[] Encode(T data) => Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(
@@ -231,6 +235,7 @@ namespace Arterra.Core.Network {
             pendingRead = null;
             writerVersion = 0; lastWriter = default;
             hasCachedValue = false;
+            hasLocalWrite = false;
             if (!retainValueOnDisconnect) value = default;
         }
 
