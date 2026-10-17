@@ -30,6 +30,14 @@ namespace Arterra.Data.Entity.Behavior {
         }
 
         private void OnStartup() {
+            if (!self.IsOwner) { //Set proper layer
+                int selfLayer = LayerMask.NameToLayer("Self");
+                int visibleLayer = LayerMask.NameToLayer("Default");
+                foreach (Transform child in self.controller.gameObject.GetComponentsInChildren<Transform>(true)) {
+                    if (child.gameObject.layer == selfLayer) child.gameObject.layer = visibleLayer;
+                }
+            }
+
             Config.CURRENT.System.AddHook("Gamemode:Intangibility", ToggleIntangibility);
             Config.CURRENT.System.AddHook("Gamemode:Invulnerability", ToggleInvulnerability);
             if (self.IsAuthority) self.eventCtrl.AddContextlessEventHandler(GameEvent.Entity_Death, (_, _) => self.RemoveBehavior(Id));

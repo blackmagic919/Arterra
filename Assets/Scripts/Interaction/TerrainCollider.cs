@@ -598,12 +598,14 @@ namespace Arterra.GamePlay.Interaction {
             public float3 size;
             public Transform(double3 position, float3 velocity, float3 size, Quaternion rotation) {
                 netPosition = new("Position", writePerm: NetworkPermission.Owner, initialValue: position, waitForDelivery: false);
-                netRotation = new("Rotation", writePerm: NetworkPermission.Owner, initialValue: rotation);
+                netRotation = new("Rotation", writePerm: NetworkPermission.Owner, initialValue: rotation, waitForDelivery: false);
                 netVelocity = new("Velocity", writePerm: NetworkPermission.Owner, initialValue: velocity);
                 this.size = size;
             }
 
             public void Register(Entity entity) {
+                netPosition.WaitForDelivery = false;
+                netRotation.WaitForDelivery = false;
                 netPosition.Register(entity);
                 netRotation.Register(entity);
                 netVelocity.Register(entity);
