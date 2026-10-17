@@ -49,7 +49,7 @@ namespace Arterra.Core.Network {
             listener.NetworkReceiveEvent += (peer, reader, channel, method) => {
                 try {
                     if (peer == discoveryPeer) ReceiveDiscovery(reader.GetRemainingBytes());
-                    else if (peers.Contains(peer)) ReceiveMessage(peer, reader);
+                    else if (peers.Contains(peer)) ReceiveMessage(peer, reader, method);
                 } catch (Exception exception) {
                     Debug.LogException(exception);
                     if (peer == discoveryPeer) Fail(exception);
@@ -83,10 +83,10 @@ namespace Arterra.Core.Network {
                 IsRunning = true;
             }
             peers.Add(peer);
+            RegisterPeer(peer);
             if (IsServer) return;
 
             ReportIntroduction(true);
-            foreach (var referenceId in listeners.Keys) SendSubscription(referenceId, Subscribe);
             connected.TrySetResult(true);
         }
 

@@ -13,6 +13,7 @@ namespace Arterra.Core.Network {
     /// <summary>Full-replacement state. Setters publish through the transport's outgoing queue.</summary>
     [JsonObject(MemberSerialization.OptIn)]
     public class NetworkVariableBase<T> : IDisposable, ITransportEventListener {
+        bool ITransportEventListener.LatestOnly => true;
         private const ushort Read = 1, Write = 2, Update = 3, Rejected = 4;
         private readonly TransportManager transport = TransportManager.Instance;
         [JsonProperty("value")] private T value;
