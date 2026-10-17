@@ -69,12 +69,13 @@ namespace Arterra.Data.Material
                 //Overrides the default inventory close window
                 InputPoller.AddContextFence("MAT::Container", "3.5::Window", ActionBind.Exclusion.None);
                 InputPoller.AddBinding(new ActionBind("Open Inventory",
-                _ => DeactivateWindow(), ActionBind.Exclusion.ExcludeLayer), "MAT::Mortar:CL", "3.5::Window");
+                    _ => DeactivateWindow(), ActionBind.Exclusion.ExcludeLayer, ActionBind.Policy.Down),
+                    "MAT::Mortar:CL", "3.5::Window");
                 //Naturally propogate to inventory handles unless suspended manually
                 InputPoller.AddBinding(new ActionBind("Deselect", DeselectDrag, ActionBind.Exclusion.None), "MAT::Mortar:DS", "3.5::Window");
-                InputPoller.AddBinding(new ActionBind("Select", SelectDrag, ActionBind.Exclusion.None), "MAT::Mortar:SL", "3.5::Window");
-                InputPoller.AddBinding(new ActionBind("SelectPartial", SelectPartial),  "MAT::Mortar:SELP", "3.5::Window");
-                InputPoller.AddBinding(new ActionBind("SelectAll", SelectAll), "MAT::Mortar:SELA", "3.0::AllWindow");
+                InputPoller.AddBinding(new ActionBind("Select", SelectDrag, ActionBind.Exclusion.None, ActionBind.Policy.Down), "MAT::Mortar:SL", "3.5::Window");
+                InputPoller.AddBinding(new ActionBind("SelectPartial", SelectPartial, policy: ActionBind.Policy.Down),  "MAT::Mortar:SELP", "3.5::Window");
+                InputPoller.AddBinding(new ActionBind("SelectAll", SelectAll, policy: ActionBind.Policy.Down), "MAT::Mortar:SELA", "3.0::AllWindow");
 
             
             PanelNavbarManager.Add(OpenedInventory, name);

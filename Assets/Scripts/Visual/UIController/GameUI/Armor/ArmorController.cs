@@ -108,7 +108,8 @@ namespace Arterra.GamePlay.UI {
             
                 InputPoller.AddContextFence("PlayerArmor", "3.5::Window", ActionBind.Exclusion.None);
                 InputPoller.AddBinding(new ActionBind("Select",
-                    _ => Select(), ActionBind.Exclusion.None), "PlayerArmor:SEL", "3.5::Window");
+                    _ => Select(), ActionBind.Exclusion.None, ActionBind.Policy.Down),
+                    "PlayerArmor:SEL", "3.5::Window");
                 InputPoller.AddBinding(new ActionBind("Drag Subscene Perspective",
                     _ => RotateCamera(), ActionBind.Exclusion.None), "PlayerArmor:DSL", "3.5::Window");
                 InputPoller.AddBinding(new ActionBind("Look Horizontal", CamMovement.LookX), "PlayerArmor:LH", "3.5::Window");

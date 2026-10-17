@@ -15,9 +15,7 @@ using Arterra.Configuration.Gameplay;
 public class PageKeybindSerializer : IConverter{
     private readonly Dictionary<KeyBind.BindPoll, Color> ConditionColors = new (){
         {KeyBind.BindPoll.Axis, Color.blue},
-        {KeyBind.BindPoll.Down, Color.green},
         {KeyBind.BindPoll.Hold, Color.gray},
-        {KeyBind.BindPoll.Up, Color.red},
         {KeyBind.BindPoll.Exclude, Color.black}
     };
 

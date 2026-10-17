@@ -6,6 +6,7 @@ using Arterra.Utils;
 using Arterra.Configuration;
 using Arterra.Configuration.Gameplay;
 using Arterra.Core;
+using Arterra.GamePlay.Interaction;
 
 /*
 1.0::Menu
@@ -34,15 +35,8 @@ namespace Arterra.Configuration.Gameplay {
         /// <summary> Accessor to unwrap the binding from the option  </summary>
         [JsonIgnore]
         public List<Binding> Bindings => bindings.value;
-        /// <summary> An additional number of times the keybind must be triggered to activate. (Ex. double click) </summary>
+        /// <summary>Additional presses required for Down handlers (e.g. 1 for double-click). Hold and Up handlers ignore this.</summary>
         public uint AdditionalTriggerCount = 0;
-        private static readonly Func<KeyCode, bool>[] PollTypes = {
-            null,
-            Input.GetKey,
-            Input.GetKey,
-            Input.GetKeyDown,
-            Input.GetKeyUp,
-        };
         /// <summary> If <see cref="BindPoll"/> is <see cref="BindPoll.Axis"/>, the 
         /// translation of <see cref="KeyCode"/> to the axis name that is being polled. </summary>
         private static readonly Dictionary<KeyCode, string> AxisMappings = new Dictionary<KeyCode, string>{
@@ -77,43 +71,55 @@ namespace Arterra.Configuration.Gameplay {
             Exclude = 1,
             /// <summary> If the poll type is hold, the binding will only evaluate as true if the input is being held. </summary>
             Hold = 2,
-            /// <summary> If the poll type is down, the binding will only evaluate as true on the frame the input is pressed. 
-            /// That is the frame where the input is held where it wasn't held in the previous frame. </summary>
-            Down = 3,
-            /// <summary> If the poll type is up, the binding will only evaluate as true on the frame the input is released.
-            /// That is the frame where the input is not held where it was held in the previous frame. </summary>
-            Up = 4,
         }
 
-        /// <summary>
-        /// Determines whether or not the KeyBind is triggered. Evaluates all conditions
-        /// in <see cref="bindings"/> to determine whether the associated action should be triggered.
-        /// </summary>
-        /// <param name="axis">If the <see cref="bindings"/> contains an <see cref="BindPoll.Axis">axis</see>, the axis
-        /// value of the last axis poll in the list. </param>
-        /// <returns>Whether or not the KeyBind has been triggered. </returns>
-        public bool IsTriggered(Func<KeyCode, bool> IsBlocked, out float axis) {
+        // Each state holds the expression's previous-frame truth in bit 0 and current truth in bit 1.
+        private const byte Previous = 0b01, Current = 0b10, Both = Previous | Current;
+        private delegate byte PollType(KeyCode code, ref float axis);
+        private static readonly PollType[] PollTypes = {
+            (KeyCode key, ref float axis) => {
+                axis = AxisMappings.TryGetValue(key, out string name) ? Input.GetAxis(name) : 0;
+                return Both; // An axis supplies a value, not a Boolean condition.
+            },
+            (KeyCode key, ref float _) => (byte)(PollKey(key) ^ Both), //this is so elegant
+            (KeyCode key, ref float _) => PollKey(key),
+        };
+
+        // Columns: inactive, released, pressed, held. Rows follow ActionBind.Policy.
+        private static readonly bool[,] PolicyResults = {
+            { false, false, true,  true  }, // Default: held
+            { false, false, true,  false }, // Down
+            { false, true,  false, false }, // Up
+        };
+
+        private static byte PollKey(KeyCode key) {
+            bool current = Input.GetKey(key);
+            bool previous = (current && !Input.GetKeyDown(key)) || Input.GetKeyUp(key);
+            return (byte)((previous ? Previous : 0) | (current ? Current : 0));
+        }
+
+        /// <summary>Evaluate AND-of-OR groups for both frames, then apply the handler's policy.</summary>
+        public bool IsTriggered(Func<KeyCode, bool> IsBlocked, ActionBind.Policy policy, out float axis) {
             axis = 0;
-            bool Pressed = false;
-            Truthy ConsumedBind = Truthy.Unset;
             if (Bindings == null || Bindings.Count == 0) return false;
-            for (int i = Bindings.Count - 1; i >= 0; i--) {
+
+            byte result = Both, group = 0;
+            bool hasHeldKey = false, hasUnblockedKey = false;
+            for (int i = Bindings.Count - 1; i >= 0; i--) { //back to front because cond precedes bool
                 Binding bind = Bindings[i];
-                if (bind.PollType == BindPoll.Exclude) {
-                    Pressed |= !PollTypes[(int)bind.PollType](bind.Key);
-                } else if (bind.PollType == BindPoll.Axis) {
-                    if (AxisMappings.ContainsKey(bind.Key))
-                        axis = Input.GetAxis(AxisMappings[bind.Key]);
-                    Pressed = true;
-                } else {
-                    if (ConsumedBind == Truthy.Unset) ConsumedBind = Truthy.False;
-                    if (!IsBlocked(bind.Key)) ConsumedBind = Truthy.True;
-                    Pressed |= PollTypes[(int)bind.PollType](bind.Key);
+                if (bind.PollType == BindPoll.Hold) {
+                    hasHeldKey = true;
+                    hasUnblockedKey |= !IsBlocked(bind.Key);
                 }
-                if (!bind.IsAlias && !Pressed) return false;
-                if (!bind.IsAlias) Pressed = false;
+
+                group |= PollTypes[(int)bind.PollType](bind.Key, ref axis);
+                if (bind.IsAlias) continue;
+
+                result &= group;
+                group = 0;
             }
-            return ConsumedBind != Truthy.False;
+
+            return (!hasHeldKey || hasUnblockedKey) && PolicyResults[(int)policy, result];
         }
 
         /// <summary> Consumes all pressed keys by adding them to the exclusion set. </summary>
@@ -123,17 +129,12 @@ namespace Arterra.Configuration.Gameplay {
             if (BlockedExclusion == null) return;
             for (int i = Bindings.Count - 1; i >= 0; i--) {
                 Binding bind = Bindings[i];
-                if (bind.PollType != BindPoll.Down && bind.PollType != BindPoll.Hold)
+                if (bind.PollType != BindPoll.Hold)
                     continue;
                 BlockedExclusion.Add(bind.Key);
             }
         }
 
-        private enum Truthy {
-            True = 2,
-            Unset = 1,
-            False = 0,
-        }
     }
 }
 
@@ -261,15 +262,17 @@ namespace Arterra.GamePlay.Interaction {
                         continue;
 
                     KeyBind KeyBind = Binder.Retrieve(BoundAction.Binding);
-                    if (KeyBind.IsTriggered(IsKeyBlocked, out float axis)) {
-                        if (LastTrigger.TryGetValue(BoundAction.Binding, out var t)) {
-                            if (Time.time - t.trigTime > TriggerResetTime) t.trigCount = 0;
-                            //Avoid inc if binding multiple times on same frame
-                            else if (Time.time - t.trigTime > 0) t.trigCount += 1;
-                            t.trigTime = Time.time;
-                        } else t = (Time.time, 0);
-                        LastTrigger[BoundAction.Binding] = t;
-                        if (t.trigCount < KeyBind.AdditionalTriggerCount) continue;
+                    if (KeyBind.IsTriggered(IsKeyBlocked, BoundAction.policy, out float axis)) {
+                        if (BoundAction.policy == ActionBind.Policy.Down) {
+                            if (LastTrigger.TryGetValue(BoundAction.Binding, out var t)) {
+                                if (Time.time - t.trigTime > TriggerResetTime) t.trigCount = 0;
+                                //Avoid inc if binding multiple times on same frame
+                                else if (Time.time - t.trigTime > 0) t.trigCount += 1;
+                                t.trigTime = Time.time;
+                            } else t = (Time.time, 0);
+                            LastTrigger[BoundAction.Binding] = t;
+                            if (t.trigCount < KeyBind.AdditionalTriggerCount) continue;
+                        }
 
                         BoundAction.action.Invoke(axis);
                         if (BoundAction.exclusion == ActionBind.Exclusion.ExcludeLayer)
@@ -463,10 +466,12 @@ namespace Arterra.GamePlay.Interaction {
         public string Binding;
         public Action<float> action;
         public Exclusion exclusion;
-        public ActionBind(string Binding, Action<float> action, Exclusion exclusion = Exclusion.None) {
+        public Policy policy;
+        public ActionBind(string Binding, Action<float> action, Exclusion exclusion = Exclusion.None, Policy policy = Policy.Default) {
             this.Binding = Binding;
             this.action = action;
             this.exclusion = exclusion;
+            this.policy = policy;
         }
         public enum Exclusion {
             None = 0,
@@ -474,6 +479,12 @@ namespace Arterra.GamePlay.Interaction {
             ExcludeAll = 2,
             ExcludeLayerByName = 3,
             ExcludeAllByName = 4,
+        }
+
+        public enum Policy {
+            Default = 0, 
+            Down = 1, 
+            Up = 2
         }
     }
 }

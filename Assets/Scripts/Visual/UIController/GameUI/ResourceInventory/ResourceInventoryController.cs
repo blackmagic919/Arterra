@@ -75,10 +75,9 @@ namespace Arterra.GamePlay.UI {
         }
 
         public void Activate() {
-            
-                InputPoller.AddBinding(new ActionBind("Select",
-                    ResourceInputSelect, ActionBind.Exclusion.None),
-                    "ResourceInventory:SEL", "3.5::Window");
+            InputPoller.AddBinding(new ActionBind("Select", ResourceInputSelect,
+                ActionBind.Exclusion.None, ActionBind.Policy.Down),
+                "ResourceInventory:SEL", "3.5::Window");
             
             InventoryRoot.SetActive(true);
             ItemSearch.Activate();

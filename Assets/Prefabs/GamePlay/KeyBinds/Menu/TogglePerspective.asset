@@ -19,8 +19,9 @@ MonoBehaviour:
   bindings:
     value:
     - Key: 284
-      PollType: 3
+      PollType: 2
       IsAlias: 0
+  AdditionalTriggerCount: 0
   references:
     version: 2
     RefIds: []

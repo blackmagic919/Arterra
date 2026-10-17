@@ -64,13 +64,15 @@ namespace Arterra.GamePlay.UI {
             PlayerHandler.data.eventCtrl.RaiseEvent(Core.Events.GameEvent.Action_OpenCrafting, PlayerHandler.data.info.rtEntityId, null);
 
                 InputPoller.AddContextFence("PlayerCraft", "3.5::Window", ActionBind.Exclusion.None);
-                InputPoller.AddBinding(new ActionBind("Craft", CraftEntry), "PlayerCraft:CFT", "3.5::Window");
+                InputPoller.AddBinding(new ActionBind("Craft", CraftEntry, policy: ActionBind.Policy.Down),
+                    "PlayerCraft:CFT", "3.5::Window");
                 InputPoller.AddBinding(new ActionBind("Deselect",
                     DeselectDrag, ActionBind.Exclusion.None), "PlayerCraft:DS", "3.5::Window");
                 InputPoller.AddBinding(new ActionBind("Select",
-                    Select, ActionBind.Exclusion.None), "PlayerCraft:SEL", "3.5::Window");
-                InputPoller.AddBinding(new ActionBind("SelectPartial", SelectPartial),  "PlayerCraft:SELP", "3.5::Window");
-                InputPoller.AddBinding(new ActionBind("SelectAll", SelectAll), "PlayerCraft:SELA", "3.0::AllWindow");
+                    Select, ActionBind.Exclusion.None, ActionBind.Policy.Down),
+                    "PlayerCraft:SEL", "3.5::Window");
+                InputPoller.AddBinding(new ActionBind("SelectPartial", SelectPartial, policy: ActionBind.Policy.Down),  "PlayerCraft:SELP", "3.5::Window");
+                InputPoller.AddBinding(new ActionBind("SelectAll", SelectAll, policy: ActionBind.Policy.Down), "PlayerCraft:SELA", "3.0::AllWindow");
 
 
             Clear();

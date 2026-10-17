@@ -25,22 +25,25 @@ namespace Arterra.Core.Network {
         private bool hasCachedValue, disposed;
         [JsonProperty] private readonly bool retainValueOnDisconnect;
         [JsonProperty] private readonly NetworkPermission readPerm, writePerm;
+        /// <summary>Keep one outstanding update and the latest pending value; false merges only queued updates and releases the slot at submission.</summary>
+        [JsonProperty] public bool WaitForDelivery { get; private set; } = true;
         [JsonIgnore] public Guid ReferenceId { get; private set; }
         [JsonIgnore] public bool HasValue { get { CheckSession(); return NetworkManager.IsActingServer || (CanAccess(readPerm, default) && hasCachedValue); } }
         [JsonIgnore] public bool IsActivelyReading { get => pendingRead != null && !pendingRead.IsCompleted; } 
 
         public NetworkVariableBase(Guid referenceId, bool retainValueOnDisconnect = false,
-            NetworkPermission writePerm = NetworkPermission.Server, NetworkPermission readPerm = NetworkPermission.All)
-            : this(retainValueOnDisconnect, writePerm, readPerm) {
+            NetworkPermission writePerm = NetworkPermission.Server, NetworkPermission readPerm = NetworkPermission.All, bool waitForDelivery = true)
+            : this(retainValueOnDisconnect, writePerm, readPerm, waitForDelivery) {
             RegisterReference(referenceId);
         }
 
         protected NetworkVariableBase(bool retainValueOnDisconnect,
-            NetworkPermission writePerm, NetworkPermission readPerm) {
+            NetworkPermission writePerm, NetworkPermission readPerm, bool waitForDelivery = true) {
             if (writePerm < NetworkPermission.Server || writePerm > NetworkPermission.Owner)
                 throw new ArgumentOutOfRangeException(nameof(writePerm));
             if (readPerm < NetworkPermission.Server || readPerm > NetworkPermission.Owner)
                 throw new ArgumentOutOfRangeException(nameof(readPerm));
+            WaitForDelivery = waitForDelivery;
             this.writePerm = writePerm;
             this.readPerm = readPerm;
             this.retainValueOnDisconnect = retainValueOnDisconnect;
@@ -78,7 +81,7 @@ namespace Arterra.Core.Network {
                         throw new UnauthorizedAccessException("Write permission denied for this variable.");
                     RequireConnection();
                     if (!HasValue) throw new InvalidOperationException("Read the authoritative value/version before writing.");
-                    transport.SendEvent(transport.Server, ReferenceId, Write, Encode(value), replacePending: true);
+                    transport.SendEvent(transport.Server, ReferenceId, Write, Encode(value), waitForDelivery: WaitForDelivery, coalescePending: true);
                     Apply(value, writerVersion);
                 }
             }
@@ -141,7 +144,7 @@ namespace Arterra.Core.Network {
             if (disposed) return;
             CheckSession();
             if (CanAccess(readPerm, peer))
-                transport.SendEvent(peer, ReferenceId, Update, Encode(value), replacePending: true);
+                transport.SendEvent(peer, ReferenceId, Update, Encode(value), waitForDelivery: WaitForDelivery, coalescePending: true);
         }
 
         void ITransportEventListener.OnEvent(TransportEvent message) {
@@ -195,10 +198,10 @@ namespace Arterra.Core.Network {
             hasCachedValue = false;
             if (transport.IsRunning && readPerm != NetworkPermission.Server) {
                 byte[] payload = Encode(next);
-                if (readPerm == NetworkPermission.All) transport.Broadcast(ReferenceId, Update, payload, replacePending: true);
+                if (readPerm == NetworkPermission.All) transport.Broadcast(ReferenceId, Update, payload, waitForDelivery: WaitForDelivery, coalescePending: true);
                 else foreach (var peer in transport.Peers) {
                     if (transport.IsSubscribed(peer, ReferenceId) && CanAccess(readPerm, peer))
-                        transport.SendEvent(peer, ReferenceId, Update, payload, replacePending: true);
+                        transport.SendEvent(peer, ReferenceId, Update, payload, waitForDelivery: WaitForDelivery, coalescePending: true);
                 }
             }
         }

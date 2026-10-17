@@ -597,7 +597,7 @@ namespace Arterra.GamePlay.Interaction {
             [JsonIgnore] public float3 velocity { get => netVelocity.Value; set => netVelocity.Value = value; }
             public float3 size;
             public Transform(double3 position, float3 velocity, float3 size, Quaternion rotation) {
-                netPosition = new("Position", writePerm: NetworkPermission.Owner, initialValue: position);
+                netPosition = new("Position", writePerm: NetworkPermission.Owner, initialValue: position, waitForDelivery: false);
                 netRotation = new("Rotation", writePerm: NetworkPermission.Owner, initialValue: rotation);
                 netVelocity = new("Velocity", writePerm: NetworkPermission.Owner, initialValue: velocity);
                 this.size = size;

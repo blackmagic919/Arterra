@@ -24,6 +24,11 @@ namespace Arterra.Data.Entity.Behavior {
         public void OnValidate(BehaviorEntity.AnimalSetting setting) {}
     }
 
+    /// <summary>Restores references between serialized behaviors without starting gameplay or presentation.</summary>
+    public interface IBindAfterDeserialize {
+        void BindAfterDeserialize(BehaviorEntity.Animal self);
+    }
+
     public abstract class Behavior {
         public virtual void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord){}
         public virtual void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord){}
@@ -487,20 +492,31 @@ namespace Arterra.Data.Entity.Behavior {
                 controller.DisposeVisual();
             }
 
-            public override void Deserialize(EntitySetting setting, GameObject Controller, out int3 GCoord) {
-                settings = (AnimalSetting)setting;
-                eventCtrl.Register(this);
+            [System.Runtime.Serialization.OnDeserialized]
+            private void OnDeserialized(System.Runtime.Serialization.StreamingContext _) => BindDeserializedBehaviors();
+
+            private void BindDeserializedBehaviors() {
                 DynamicTypes = new Dictionary<Type, object>();
                 BehaviorIndex = new Dictionary<Guid, Behavior>();
-                this.controller = new AnimalController(Controller, this);
-                GCoord = default;
-
                 Behaviors ??= new List<Behavior>();
+                colliderInfo = null;
 
-                foreach(Behavior behavior in Behaviors) {
+                foreach (Behavior behavior in Behaviors) {
                     Register(behavior.GetType(), behavior);
                     BehaviorIndex[behavior.Id] = behavior;
                 }
+
+                // Preserve the same provider/decorator order used during initialization.
+                foreach (Behavior behavior in Behaviors)
+                    if (behavior is IBindAfterDeserialize binding) binding.BindAfterDeserialize(this);
+            }
+
+            public override void Deserialize(EntitySetting setting, GameObject Controller, out int3 GCoord) {
+                settings = (AnimalSetting)setting;
+                eventCtrl.Register(this);
+                if (DynamicTypes == null) BindDeserializedBehaviors();
+                this.controller = new AnimalController(Controller, this);
+                GCoord = default;
 
                 foreach(Behavior behavior in Behaviors) 
                     behavior.Deserialize(this, settings, ref GCoord);
@@ -532,7 +548,8 @@ namespace Arterra.Data.Entity.Behavior {
 
             public void UpdateSynchronous() {
                 if (!active) return;
-                if (IsAuthority || VisualActive) controller?.Update();
+                if (IsAuthority || VisualActive)
+                    controller?.Update();
                 Update(UpdateContext.Sync);
                 Update(UpdateContext.Visual);
             }

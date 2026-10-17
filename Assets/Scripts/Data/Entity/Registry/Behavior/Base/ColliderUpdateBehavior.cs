@@ -31,7 +31,7 @@ namespace Arterra.Data.Entity.Behavior {
             };
         }
     }
-    public class ColliderUpdateBehavior : SpeciesBehavior, IMultiCollider {
+    public class ColliderUpdateBehavior : SpeciesBehavior, IMultiCollider, IBindAfterDeserialize {
         private const string GravityStateName = "ColliderUpdateBehavior::Base";
 
         [JsonIgnore] public ColliderUpdateSettings settings;
@@ -85,7 +85,7 @@ namespace Arterra.Data.Entity.Behavior {
                 throw new System.Exception("Entity: MapInteractBehavior Requires AnimalSettings to have MapInteractorSettings");
             this.collider = new TerrainCollider(setting.collider, GCoord);
             this.collider.SetGravityState(GravityStateName, TerrainCollider.GravityPriority.Default, settings.UseGravity);
-            self.Register<IMultiCollider>(this);
+            BindAfterDeserialize(self);
             ResetInteractionType();
         }
 
@@ -95,9 +95,10 @@ namespace Arterra.Data.Entity.Behavior {
             
             GCoord = (int3)math.floor(Collider.transform.position);
             this.collider.SetGravityState(GravityStateName, TerrainCollider.GravityPriority.Default, settings.UseGravity);
-            self.Register<IMultiCollider>(this);
             ResetInteractionType();
         }
+
+        public void BindAfterDeserialize(BehaviorEntity.Animal self) => self.Register<IMultiCollider>(this);
 
         public static float GetColliderDist(Entity a, Entity b) {
             if (a == null || b == null) return float.PositiveInfinity;

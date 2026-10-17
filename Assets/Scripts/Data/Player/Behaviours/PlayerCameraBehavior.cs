@@ -49,7 +49,7 @@ namespace Arterra.Data.Entity.Behavior {
     /// Also implements <see cref="IMultiCollider"/> to expose the camera's full facing
     /// direction and eye position to the base entity, overriding the default body collider bindings.
     /// </summary>
-    public class PlayerCameraBehavior : SpeciesBehavior, IMultiCollider {
+    public class PlayerCameraBehavior : SpeciesBehavior, IMultiCollider, IBindAfterDeserialize {
         [JsonIgnore] public PlayerCameraSettings settings;
         [JsonIgnore] private IMultiCollider baseCollider;
         private Modifier mod;
@@ -74,7 +74,6 @@ namespace Arterra.Data.Entity.Behavior {
         private bool hasBindings;
         internal bool moved;
         private BehaviorEntity.Animal self;
-        private VitalityBehavior vit;
 
         internal float2 lookDelta;
         internal Quaternion cameraLocalRotation = Quaternion.identity;
@@ -96,12 +95,9 @@ namespace Arterra.Data.Entity.Behavior {
         public override void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
             if (!setting.Is(out settings))
                 throw new Exception("Entity: PlayerCameraBehavior requires PlayerCameraSettings");
-            if (!self.Is(out vit)) vit = null;
             if (!self.Is(out mod)) mod = null;
-            if (!self.Is(out baseCollider))
-                throw new Exception("Entity: PlayerCameraBehavior requires ColliderUpdateBehavior");
 
-            self.Register<IMultiCollider>(this);
+            BindAfterDeserialize(self);
             self.Register(this);
             this.self = self;
 
@@ -110,15 +106,17 @@ namespace Arterra.Data.Entity.Behavior {
         public override void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
             if (!setting.Is(out settings))
                 throw new Exception("Entity: PlayerCameraBehavior requires PlayerCameraSettings");
-            if (!self.Is(out vit)) vit = null;
             if (!self.Is(out mod)) mod = null;
-            if (!self.Is(out baseCollider))
-                throw new Exception("Entity: PlayerCameraBehavior requires ColliderUpdateBehavior");
-            
-            self.Register<IMultiCollider>(this);
+
             self.Register(this);
             this.self = self;
 
+        }
+
+        public void BindAfterDeserialize(BehaviorEntity.Animal self) {
+            if (!self.Is(out baseCollider))
+                throw new Exception("Entity: PlayerCameraBehavior requires ColliderUpdateBehavior");
+            self.Register<IMultiCollider>(this);
         }
 
         public override void InitializeVisual(BehaviorEntity.Animal self) {
@@ -155,7 +153,7 @@ namespace Arterra.Data.Entity.Behavior {
 
         private void DeserializeCameraState() {
             if (PlayerHandler.Camera == null || PlayerHandler.Camera.childCount == 0) return;
-            Camera camera = PlayerHandler.Camera.GetChild(0).GetComponent<UnityEngine.Camera>();
+            Camera camera = PlayerHandler.Camera.GetChild(0).GetComponent<Camera>();
             cullingMask = camera != null ? camera.cullingMask : -1;
 
             moved = true;
@@ -228,7 +226,8 @@ namespace Arterra.Data.Entity.Behavior {
             self.eventCtrl.AddContextlessEventHandler(GameEvent.Entity_Death, (_, _) => self.RemoveBehavior(Id));
             InputPoller.AddBinding(new ActionBind("Look Horizontal", LookX), LookHorizontalName, "4.5::Movement");
             InputPoller.AddBinding(new ActionBind("Look Vertical", LookY), LookVerticalName, "4.5::Movement");
-            InputPoller.AddBinding(new ActionBind("Toggle Perspective", TogglePerspective), TPerspectiveName, "2.5::Subscene");
+            InputPoller.AddBinding(new ActionBind("Toggle Perspective", TogglePerspective,
+                policy: ActionBind.Policy.Down), TPerspectiveName, "2.5::Subscene");
         }
 
         private void UnbindInput() {

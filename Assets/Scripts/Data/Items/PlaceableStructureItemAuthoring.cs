@@ -113,7 +113,8 @@ namespace Arterra.Data.Item {
                 
                     InputPoller.AddBinding(new ActionBind("Place", h.PlaceStructure, ActionBind.Exclusion.ExcludeLayer),
                     "ITEM::PlaceableStct:PL", "5.0::GamePlay");
-                    InputPoller.AddBinding(new ActionBind("GetPlaceFocus", (_) => h.IsLocked = false, ActionBind.Exclusion.ExcludeLayer),
+                    InputPoller.AddBinding(new ActionBind("Place", (_) => h.IsLocked = false,
+                        ActionBind.Exclusion.ExcludeLayer, ActionBind.Policy.Up),
                     "ITEM::PlaceableStct:FP", "5.0::GamePlay");
                 
                 return h;

@@ -181,8 +181,8 @@ namespace Arterra.Data.Intrinsic.Furnace {
             animator.SetBool("IsOpen", true);
             ToggleSearch.Lock();
             
-                InputPoller.AddBinding(new ActionBind("Select",
-                    FormulaMenuSelect, ActionBind.Exclusion.None),
+                InputPoller.AddBinding(new ActionBind("Select", FormulaMenuSelect,
+                    ActionBind.Exclusion.None, ActionBind.Policy.Down),
                     "MAT::FurnaceSearch:SEL", "3.5::Window");
             
         }

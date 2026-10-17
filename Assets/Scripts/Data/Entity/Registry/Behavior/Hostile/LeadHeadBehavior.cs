@@ -61,7 +61,7 @@ namespace Arterra.Data.Entity.Behavior {
         }
     }
 
-    public class LeadHeadBehavior : SpeciesBehavior, IMultiCollider {
+    public class LeadHeadBehavior : SpeciesBehavior, IMultiCollider, IBindAfterDeserialize {
         private const string BodyGravitySyncStateName = "LeadHeadBehavior::BodySync";
         private const string HeadGravityStateName = "LeadHeadBehavior::Head";
 
@@ -136,22 +136,23 @@ namespace Arterra.Data.Entity.Behavior {
         public override void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
             if (!setting.Is(out settings))
                 throw new System.Exception("Entity: LeadHead Behavior Requires AnimalSettings to have LeadHeadSettings");
-            if (!self.Is(out BodyCUpdate)) 
-                throw new Exception("Entity: LeadHead Behavior Requires AnimalSettings to have ColliderUpdateBehavior");
             this.HeadCollider = new TerrainCollider(settings.Collider, GCoord + settings.Offset);
-            this.BodyCollider = BodyCUpdate.collider;
-            self.Register<IMultiCollider>(this);
+            BindAfterDeserialize(self);
             HeadCollider.SetGravityState(HeadGravityStateName, TerrainCollider.GravityPriority.Override, false);
         }
 
         public override void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
             if (!setting.Is(out settings))
                 throw new System.Exception("Entity: LeadHead Behavior Requires AnimalSettings to have LeadHeadSettings");
-            if (!self.Is(out BodyCUpdate)) 
-                throw new Exception("Entity: LeadHead Behavior Requires AnimalSettings to have ColliderUpdateBehavior");
-            this.BodyCollider = BodyCUpdate.collider;
-            self.Register<IMultiCollider>(this);
+
             HeadCollider.SetGravityState(HeadGravityStateName, TerrainCollider.GravityPriority.Override, false);
+        }
+
+        public void BindAfterDeserialize(BehaviorEntity.Animal self) {
+            if (!self.Is(out BodyCUpdate))
+                throw new Exception("Entity: LeadHead Behavior Requires AnimalSettings to have ColliderUpdateBehavior");
+            BodyCollider = BodyCUpdate.collider;
+            self.Register<IMultiCollider>(this);
         }
 
         public abstract class Appendage : Entity {

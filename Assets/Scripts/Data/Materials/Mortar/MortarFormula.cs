@@ -200,8 +200,8 @@ namespace Arterra.Data.Intrinsic.Mortar {
             animator.SetBool("IsOpen", true);
             ToggleSearch.Lock();
             
-                InputPoller.AddBinding(new ActionBind("Select",
-                    FormulaMenuSelect, ActionBind.Exclusion.None),
+                InputPoller.AddBinding(new ActionBind("Select", FormulaMenuSelect, 
+                    ActionBind.Exclusion.None, ActionBind.Policy.Down),
                     "MAT::MortarSearch:SEL", "3.5::Window");
             
         }

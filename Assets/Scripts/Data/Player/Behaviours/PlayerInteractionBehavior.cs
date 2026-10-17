@@ -179,7 +179,8 @@ namespace Arterra.Data.Entity.Behavior {
             hasBindings = true;
 
             self.eventCtrl.AddEventHandler(GameEvent.Entity_Death, OnDeath);
-            InputPoller.AddBinding(new ActionBind("Attack", AttackEntity), AttackEntityName, "5.0::GamePlay");
+            InputPoller.AddBinding(new ActionBind("Attack", AttackEntity, policy: ActionBind.Policy.Down),
+                AttackEntityName, "5.0::GamePlay");
             InputPoller.AddBinding(new ActionBind("Place", PlaceTerrain), PlaceTerrainName, "5.0::GamePlay");
             InputPoller.AddBinding(new ActionBind("Remove", RemoveTerrain), RemoveTerrainName, "5.0::GamePlay");
         }

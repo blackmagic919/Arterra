@@ -63,8 +63,11 @@ namespace Arterra.Data.Item{
                 "BowDraw", _ => StartDrawingBow(cxt),
                 ActionBind.Exclusion.ExcludeLayer), "ITEM:Bow:DRW", "5.0::GamePlay");
             InputPoller.AddBinding(new ActionBind(
-                "BowRelease", _ => ReleaseBow(cxt),
-                ActionBind.Exclusion.ExcludeLayer), "ITEM:Bow:RLS", "5.0::GamePlay");
+                "BowDraw", _ => ReleaseBow(cxt),
+                ActionBind.Exclusion.ExcludeLayer,
+                ActionBind.Policy.Up),
+                "ITEM:Bow:RLS", "5.0::GamePlay"
+            );
             
             drawTime = 0;
         }

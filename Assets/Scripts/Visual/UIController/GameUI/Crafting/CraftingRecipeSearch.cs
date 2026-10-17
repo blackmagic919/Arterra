@@ -92,8 +92,8 @@ namespace Arterra.GamePlay.UI {
             animator.SetBool("IsOpen", true);
             ToggleSearch.Lock();
             
-                InputPoller.AddBinding(new ActionBind("Select",
-                    CraftingMenuSelect, ActionBind.Exclusion.None),
+                InputPoller.AddBinding(new ActionBind("Select", CraftingMenuSelect,
+                    ActionBind.Exclusion.None, ActionBind.Policy.Down),
                     "PlayerCraftSearch:SEL", "3.5::Window");
             
         }

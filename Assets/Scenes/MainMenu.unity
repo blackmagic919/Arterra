@@ -3338,7 +3338,7 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 1467958669}
   m_HandleRect: {fileID: 1844626531}
   m_Direction: 2
-  m_Value: 1
+  m_Value: 0
   m_Size: 1
   m_NumberOfSteps: 0
   m_OnValueChanged:
@@ -5842,7 +5842,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 5fa491a70cc7241d0a1a51086c51f15f, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Arterra.Core.Network.NetworkManager
 --- !u!1660057539 &9223372036854775807
 SceneRoots:

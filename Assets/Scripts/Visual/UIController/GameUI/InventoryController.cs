@@ -54,7 +54,8 @@ namespace Arterra.GamePlay.UI {
 
             if (!Config.CURRENT.GamePlay.PlayerSettings.value.value.Is(out settings))
                 throw new Exception("Player Entity must have Inventory Settings");
-            InputPoller.AddBinding(new ActionBind("Open Inventory", Activate), "PlayerInventory:OPN", "3.5::Window");
+            InputPoller.AddBinding(new ActionBind("Open Inventory", Activate, policy: ActionBind.Policy.Down),
+                "PlayerInventory:OPN", "3.5::Window");
             AddHotbarKeybinds();
         }
 
@@ -122,12 +123,12 @@ namespace Arterra.GamePlay.UI {
         
             InputPoller.AddContextFence("PlayerInventory:AllFrame", "3.0::AllWindow", ActionBind.Exclusion.None);
             InputPoller.AddContextFence("PlayerInventory:WndFrame", "3.5::Window", ActionBind.Exclusion.ExcludeAll);
-            InputPoller.AddBinding(new ActionBind("Open Inventory", Deactivate), "PlayerInventory:CLS", "3.5::Window");
+            InputPoller.AddBinding(new ActionBind("Open Inventory", Deactivate, policy: ActionBind.Policy.Down), "PlayerInventory:CLS", "3.5::Window");
             InputPoller.AddBinding(new ActionBind("Deselect", _ => DeselectDrag(GetMouseTarget, true)), "PlayerInventory:DSL", "3.5::Window");
-            InputPoller.AddBinding(new ActionBind("Select", _ => Select(GetMouseTarget, true)),  "PlayerInventory:SEL", "3.5::Window");
-            InputPoller.AddBinding(new ActionBind("SelectPartial", _ => SelectPartial(GetMouseTarget, true)),  "PlayerInventory:SELP", "3.5::Window");
+            InputPoller.AddBinding(new ActionBind("Select", _ => Select(GetMouseTarget, true), policy: ActionBind.Policy.Down),  "PlayerInventory:SEL", "3.5::Window");
+            InputPoller.AddBinding(new ActionBind("SelectPartial", _ => SelectPartial(GetMouseTarget, true), policy: ActionBind.Policy.Down),  "PlayerInventory:SELP", "3.5::Window");
             InputPoller.AddBinding(new ActionBind("SelectAll", _ => { SelectAll(Primary); SelectAll(Secondary); },
-                ActionBind.Exclusion.ExcludeLayer),"PlayerInventory:SELA", "3.0::AllWindow");
+                ActionBind.Exclusion.ExcludeLayer,  ActionBind.Policy.Down),"PlayerInventory:SELA", "3.0::AllWindow");
         
         Cursor.ClearCursor(AddEntry);
         Secondary.Display.parent.SetActive(true);
@@ -153,15 +154,24 @@ namespace Arterra.GamePlay.UI {
                 Primary.Display.Slots[SelectedIndex].GetComponent<Image>().color = settings.SelectedColor;
                 itemInfo.SwitchItem(Selected);
             }
-            InputPoller.AddBinding(new ActionBind("Hotbar1", _ => ChangeSelected(0)), "PlayerInventory:HB1", "2.0::Subscene");
-            InputPoller.AddBinding(new ActionBind("Hotbar2", _ => ChangeSelected(1)), "PlayerInventory:HB2", "2.0::Subscene");
-            InputPoller.AddBinding(new ActionBind("Hotbar3", _ => ChangeSelected(2)), "PlayerInventory:HB3", "2.0::Subscene");
-            InputPoller.AddBinding(new ActionBind("Hotbar4", _ => ChangeSelected(3)), "PlayerInventory:HB4", "2.0::Subscene");
-            InputPoller.AddBinding(new ActionBind("Hotbar5", _ => ChangeSelected(4)), "PlayerInventory:HB5", "2.0::Subscene");
-            InputPoller.AddBinding(new ActionBind("Hotbar6", _ => ChangeSelected(5)), "PlayerInventory:HB6", "2.0::Subscene");
-            InputPoller.AddBinding(new ActionBind("Hotbar7", _ => ChangeSelected(6)), "PlayerInventory:HB7", "2.0::Subscene");
-            InputPoller.AddBinding(new ActionBind("Hotbar8", _ => ChangeSelected(7)), "PlayerInventory:HB8", "2.0::Subscene");
-            InputPoller.AddBinding(new ActionBind("Hotbar9", _ => ChangeSelected(8)), "PlayerInventory:HB9", "2.0::Subscene");
+            InputPoller.AddBinding(new ActionBind("Hotbar1", _ => ChangeSelected(0), policy: ActionBind.Policy.Down),
+                 "PlayerInventory:HB1", "2.0::Subscene");
+            InputPoller.AddBinding(new ActionBind("Hotbar2", _ => ChangeSelected(1), policy: ActionBind.Policy.Down),
+                 "PlayerInventory:HB2", "2.0::Subscene");
+            InputPoller.AddBinding(new ActionBind("Hotbar3", _ => ChangeSelected(2), policy: ActionBind.Policy.Down),
+                "PlayerInventory:HB3", "2.0::Subscene");
+            InputPoller.AddBinding(new ActionBind("Hotbar4", _ => ChangeSelected(3), policy: ActionBind.Policy.Down),
+                "PlayerInventory:HB4", "2.0::Subscene");
+            InputPoller.AddBinding(new ActionBind("Hotbar5", _ => ChangeSelected(4), policy: ActionBind.Policy.Down),
+                "PlayerInventory:HB5", "2.0::Subscene");
+            InputPoller.AddBinding(new ActionBind("Hotbar6", _ => ChangeSelected(5), policy: ActionBind.Policy.Down),
+                "PlayerInventory:HB6", "2.0::Subscene");
+            InputPoller.AddBinding(new ActionBind("Hotbar7", _ => ChangeSelected(6), policy: ActionBind.Policy.Down),
+                "PlayerInventory:HB7", "2.0::Subscene");
+            InputPoller.AddBinding(new ActionBind("Hotbar8", _ => ChangeSelected(7), policy: ActionBind.Policy.Down),
+                "PlayerInventory:HB8", "2.0::Subscene");
+            InputPoller.AddBinding(new ActionBind("Hotbar9", _ => ChangeSelected(8), policy: ActionBind.Policy.Down),
+                "PlayerInventory:HB9", "2.0::Subscene");
             Primary.Display.Slots[SelectedIndex].GetComponent<Image>().color = settings.SelectedColor; //Set the inital selected color
         }
 

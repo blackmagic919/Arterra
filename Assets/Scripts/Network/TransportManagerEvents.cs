@@ -103,14 +103,14 @@ namespace Arterra.Core.Network {
 
         /// <summary>Queue a complete event. LiteNetLib owns fragmentation and packet delivery.</summary>
         public uint SendEvent(NetPeer peer, Guid referenceId, ushort eventId,
-            byte[] payload, uint replyTo = 0, bool replacePending = false) {
-            return QueueEvent(peer, referenceId, eventId, payload, replyTo, replacePending: replacePending).Id;
+            byte[] payload, uint replyTo = 0, bool waitForDelivery = false, bool coalescePending = false) {
+            return QueueEvent(peer, referenceId, eventId, payload, replyTo, waitForDelivery: waitForDelivery, coalescePending: coalescePending).Id;
         }
 
         public void Broadcast(Guid referenceId, ushort eventId, byte[] payload,
-            NetPeer replyPeer = default, uint replyTo = 0, bool replacePending = false) {
+            NetPeer replyPeer = default, uint replyTo = 0, bool waitForDelivery = false, bool coalescePending = false) {
             if (!IsServer) throw new InvalidOperationException("Only the server can broadcast to its peers.");
-            QueueEvent(replyPeer, referenceId, eventId, payload, replyTo, broadcast: true, replacePending: replacePending);
+            QueueEvent(replyPeer, referenceId, eventId, payload, replyTo, broadcast: true, waitForDelivery: waitForDelivery, coalescePending: coalescePending);
         }
 
         /// <summary>Await a correlated reply. Cancellation stops waiting; it does not undo remote execution.</summary>
@@ -146,9 +146,9 @@ namespace Arterra.Core.Network {
 
         // Validate and copy once at the shared entry point for sends, broadcasts, and requests.
         private OutgoingEvent QueueEvent(NetPeer peer, Guid referenceId, ushort eventId,
-            byte[] payload, uint replyTo, bool broadcast = false, bool replacePending = false) {
-            if (replacePending && replyTo != 0)
-                throw new ArgumentException("Correlated replies cannot be replaced.", nameof(replacePending));
+            byte[] payload, uint replyTo, bool broadcast = false, bool waitForDelivery = false, bool coalescePending = false) {
+            if ((waitForDelivery || coalescePending) && replyTo != 0)
+                throw new ArgumentException("Correlated replies cannot be replaced.", nameof(waitForDelivery));
             var pending = Volatile.Read(ref pendingEvents);
             if (!IsRunning) throw new InvalidOperationException("Peer is not connected.");
             if (eventId == 0) throw new ArgumentOutOfRangeException(nameof(eventId), "Event ID zero is reserved.");
@@ -157,7 +157,7 @@ namespace Arterra.Core.Network {
             do { id = unchecked((uint)Interlocked.Increment(ref nextMessageId)); } while (id == 0);
             var message = new OutgoingEvent {
                 ReferenceId = referenceId, EventId = eventId, Id = id, ReplyTo = replyTo,
-                Bytes = (byte[])payload.Clone(), Replaceable = replacePending, Broadcast = broadcast,
+                Bytes = (byte[])payload.Clone(), WaitForDelivery = waitForDelivery, Coalesce = waitForDelivery || coalescePending, Broadcast = broadcast,
                 Deadline = Stopwatch.GetTimestamp() + (long)(DefaultEventTimeout.TotalSeconds * Stopwatch.Frequency)
             };
             pending.Enqueue((peer, message));
@@ -170,7 +170,7 @@ namespace Arterra.Core.Network {
             int count = pendingEvents.Count;
             while (count-- > 0 && pendingEvents.TryDequeue(out var pending)) {
                 var message = pending.message;
-                if (message.Canceled || (message.Replaceable && !listeners.ContainsKey(message.ReferenceId))) continue;
+                if (message.Canceled || (message.Coalesce && !listeners.ContainsKey(message.ReferenceId))) continue;
                 if (message.Broadcast) {
                     if (!IsServer) continue;
                     foreach (var peer in peers) {
@@ -179,24 +179,28 @@ namespace Arterra.Core.Network {
                         EnqueueEvent(peer, new OutgoingEvent {
                             ReferenceId = message.ReferenceId, EventId = message.EventId, Id = message.Id,
                             ReplyTo = peer == pending.peer ? message.ReplyTo : 0,
-                            Bytes = message.Bytes, Deadline = message.Deadline, Replaceable = message.Replaceable, Broadcast = true
+                            Bytes = message.Bytes, Deadline = message.Deadline, WaitForDelivery = message.WaitForDelivery, Coalesce = message.Coalesce, Broadcast = true
                         });
                     }
                 } else if (peers.Contains(pending.peer)
-                    && (!message.Replaceable || !IsServer || IsSubscribed(pending.peer, message.ReferenceId))) {
+                    && (!message.Coalesce || !IsServer || IsSubscribed(pending.peer, message.ReferenceId))) {
                     EnqueueEvent(pending.peer, message);
                 }
             }
         }
 
         private void EnqueueEvent(NetPeer peer, OutgoingEvent message) {
-            if (message.Replaceable) {
+            if (message.Coalesce) {
                 var key = (peer, message.ReferenceId);
                 if (variableUpdates.TryGetValue(key, out var first)) {
-                    // Keep only the latest value while the first awaits delivery acknowledgment.
-                    first.Pending = message;
-                    return;
-                } else variableUpdates.Add(key, message);
+                    if (message.WaitForDelivery) {
+                        // Keep only the latest value while the first awaits delivery acknowledgment.
+                        first.Pending = message;
+                        return;
+                    }
+                    // This value is still in our batch, so replace it before driver submission.
+                    first.Canceled = true;
+                } variableUpdates[key] = message;
             }
             outgoing.Add((peer, message));
         }
@@ -234,9 +238,12 @@ namespace Arterra.Core.Network {
                     messageWriter.Put(message.EventId);
                     messageWriter.Put(message.ReplyTo);
                     messageWriter.Put(message.Bytes);
-                    if (message.Replaceable)
+                    if (message.WaitForDelivery)
                         peer.SendWithDeliveryEvent(messageWriter, DeliveryMethod.ReliableOrdered, message);
-                    else peer.Send(messageWriter, DeliveryMethod.ReliableOrdered);
+                    else {
+                        peer.Send(messageWriter, DeliveryMethod.ReliableOrdered);
+                        if (message.Coalesce) variableUpdates.Remove((peer, message.ReferenceId));
+                    }
                     listeners.TryGetValue(message.ReferenceId, out var listener);
                     var gameEvent = listener?.GameEventTypeGetter?.Invoke(message.Bytes);
                     sendTiming.Count(listener?.GetType(), message.EventId, gameEvent, messageWriter.Length);
@@ -364,7 +371,7 @@ namespace Arterra.Core.Network {
             public uint Id, ReplyTo;
             public ushort EventId;
             public byte[] Bytes;
-            public bool Canceled, Replaceable, Broadcast;
+            public bool Canceled, WaitForDelivery, Coalesce, Broadcast;
             public OutgoingEvent Pending;
             public long Deadline;
         }

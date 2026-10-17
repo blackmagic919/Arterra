@@ -93,6 +93,8 @@ namespace Arterra.Core.Events {
         Apply_Damage = GameEventBases.Apply_Base + 0,
         Apply_Collect = GameEventBases.Apply_Base + 1,
         Apply_EntityMate = GameEventBases.Apply_Base + 2,
+        Apply_Jump = GameEventBases.Apply_Base + 3,
+        Apply_ToggleFly = GameEventBases.Apply_Base + 4,
     }
 
     public enum EventHandlePriority {

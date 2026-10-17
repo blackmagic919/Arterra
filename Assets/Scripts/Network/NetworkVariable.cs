@@ -13,8 +13,8 @@ namespace Arterra.Core.Network {
         private Entity entity;
 
         public NetworkVariable(string name, NetworkPermission writePerm = NetworkPermission.Owner,
-            NetworkPermission readPerm = NetworkPermission.All, bool retainValueOnDisconnect = true, T initialValue = default)
-            : base(retainValueOnDisconnect, writePerm, readPerm) {
+            NetworkPermission readPerm = NetworkPermission.All, bool retainValueOnDisconnect = true, T initialValue = default, bool waitForDelivery = true)
+            : base(retainValueOnDisconnect, writePerm, readPerm, waitForDelivery) {
             offsetId = NetworkReferenceId.FromName(name);
             SetInitialValue(initialValue);
         }
