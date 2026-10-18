@@ -99,19 +99,20 @@ namespace Arterra.Core.Network {
                 Fail(new IOException("Discovery connection ended: " + detail));
                 return;
             }
-            peer.Tag = null;
-            if (!peers.Remove(peer)) return; // An unsuccessful NAT candidate isn't a game connection.
-            if (!IsServer) { Fail(new IOException("Host disconnected.")); return; }
-            ForgetPeer(peer, new IOException("Peer disconnected."));
-            PeerDisconnected?.Invoke(peer);
+            RemovePeer(peer, "Host disconnected.");
         }
 
         public void Disconnect(NetPeer peer) {
             if (!IsStarted || !peers.Contains(peer)) return;
-            if (!IsServer) { Fail(new IOException("Disconnected from host.")); return; }
-            peer.Disconnect();
-            peers.Remove(peer);
+            if (IsServer) peer.Disconnect();
+            RemovePeer(peer, "Disconnected from host.");
+        }
+
+        private void RemovePeer(NetPeer peer, string clientReason) {
             peer.Tag = null;
+            if (!peers.Remove(peer)) return; // An unsuccessful NAT candidate isn't a game connection.
+            if (!IsServer) { Fail(new IOException(clientReason)); return; }
+
             ForgetPeer(peer, new IOException("Peer disconnected."));
             PeerDisconnected?.Invoke(peer);
         }

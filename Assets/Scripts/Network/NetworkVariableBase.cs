@@ -1,6 +1,5 @@
 using System;
 using System.IO;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
@@ -210,23 +209,32 @@ namespace Arterra.Core.Network {
             }
         }
 
-        // Complete snapshots and replies share the reliable per-peer FIFO transport. No client sequence.
+        // The transport handles ordering; the writer version still controls ownership changes.
         private void Apply(T next, uint version, bool localWrite = false) {
             value = next;
             writerVersion = version;
             hasLocalWrite = localWrite;
             hasCachedValue = !NetworkManager.IsActingServer;
         }
-        private byte[] Encode(T data) => Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(
-            new Snapshot { Version = writerVersion, Value = data }));
-        private static Snapshot Decode(byte[] bytes) =>
-            JsonConvert.DeserializeObject<Snapshot>(Encoding.UTF8.GetString(bytes))
-            ?? throw new InvalidDataException("Missing variable snapshot.");
+        private byte[] Encode(T data) {
+            using var stream = new MemoryStream();
+            using var writer = new BinaryWriter(stream);
+            writer.Write(writerVersion);
+            NetworkValueCodec<T>.Write(writer, data);
+            return stream.ToArray();
+        }
 
-        [JsonObject(MemberSerialization.OptIn)]
-        private sealed class Snapshot {
-            [JsonProperty] public uint Version;
-            [JsonProperty] public T Value;
+        private static Snapshot Decode(byte[] bytes) {
+            using var stream = new MemoryStream(bytes, writable: false);
+            using var reader = new BinaryReader(stream);
+            var snapshot = new Snapshot { Version = reader.ReadUInt32(), Value = NetworkValueCodec<T>.Read(reader) };
+            if (stream.Position != stream.Length) throw new InvalidDataException("Trailing variable snapshot data.");
+            return snapshot;
+        }
+
+        private struct Snapshot {
+            public uint Version;
+            public T Value;
         }
 
         private void CheckSession() {

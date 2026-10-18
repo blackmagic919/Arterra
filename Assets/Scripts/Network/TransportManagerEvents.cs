@@ -15,6 +15,7 @@ namespace Arterra.Core.Network {
     public readonly struct TransportEvent {
         public readonly NetPeer Peer;
         public readonly Guid ReferenceId;
+        // Only requests carry MessageId; only replies carry ReplyTo. Ordinary events use zero.
         public readonly uint MessageId, ReplyTo;
         public readonly ushort EventId;
         public readonly byte[] Payload;
@@ -39,8 +40,12 @@ namespace Arterra.Core.Network {
         private const ushort Subscribe = 1, Unsubscribe = 2;
         private readonly Dictionary<NetPeer, ConnectionControl> connections = new();
         private const int ReferenceIdBytes = 16;
-        private const int MessageHeaderBytes = ReferenceIdBytes + sizeof(ushort) + 2 * sizeof(uint);
-        private const int DataHeaderBytes = sizeof(ulong) + sizeof(uint) + sizeof(byte);
+        private const int ControlHeaderBytes = sizeof(uint) + sizeof(ushort);
+        private const int DataHeaderBytes = ControlHeaderBytes + sizeof(uint) + sizeof(byte);
+        private enum MessageKind : byte { Event, Request, Reply }
+        // Keep overflow here, where variable updates can still be replaced. A fragmented
+        // message is submitted whole, so it may temporarily exceed this soft queue limit.
+        private const int MaxQueuedPackets = 1024;
         public static readonly TimeSpan DefaultEventTimeout = TimeSpan.FromSeconds(60);
         private readonly Dictionary<Guid, ReferenceCommunication> references = new();
         private readonly Dictionary<(NetPeer, uint), EventRequest> requests = new();
@@ -73,91 +78,89 @@ namespace Arterra.Core.Network {
             var connection = connections[peer];
             var reference = references[referenceId];
             var state = reference.GetPipeline(peer);
-            if (state.RemoteGeneration != 0 && state.RemoteLatestOnly != reference.Listener.LatestOnly)
+            if (state.RemoteStreamId != 0 && state.RemoteLatestOnly != reference.Listener.LatestOnly)
                 throw new InvalidDataException("Reference ordering policies disagree.");
-            if (state.ReceiveGeneration == 0) state.ReceiveGeneration = checked(++connection.NextGeneration);
-            SendSubscription(peer, referenceId, Subscribe, state.ReceiveGeneration, reference.Listener.LatestOnly, state.RemoteGeneration);
+            if (state.ReceiveStreamId == 0) {
+                // Never reuse a stream ID within a connection, even after unregistering.
+                state.ReceiveStreamId = checked(++connection.NextStreamId);
+                connection.Receivers.Add(state.ReceiveStreamId, referenceId);
+            }
+            SendSubscription(peer, referenceId, Subscribe, state.ReceiveStreamId, reference.Listener.LatestOnly, state.RemoteStreamId);
         }
 
-        private void SendSubscription(NetPeer peer, Guid referenceId, ushort operation, ulong receiveGeneration, bool latestOnly = false, ulong acknowledgedGeneration = 0) {
+        private void SendSubscription(NetPeer peer, Guid referenceId, ushort operation, uint receiveStreamId, bool latestOnly = false, uint acknowledgedStreamId = 0) {
             var writer = new NetDataWriter();
             writer.Put(referenceId);
-            writer.Put(receiveGeneration);
+            writer.Put(receiveStreamId);
             writer.Put(latestOnly);
-            writer.Put(acknowledgedGeneration);
+            writer.Put(acknowledgedStreamId);
             SendEvent(peer, Guid.Empty, operation, writer.CopyData());
         }
 
         public bool IsSubscribed(NetPeer peer, Guid referenceId) =>
             references.TryGetValue(referenceId, out var reference)
-            && reference.Peers.TryGetValue(peer, out var pipeline) && pipeline.RemoteGeneration != 0;
+            && reference.Peers.TryGetValue(peer, out var pipeline) && pipeline.RemoteStreamId != 0;
 
         private void ReceiveSubscription(TransportEvent message) {
-            if (message.ReplyTo != 0 || message.Payload.Length != ReferenceIdBytes + 2 * sizeof(ulong) + sizeof(byte)
+            if (message.ReplyTo != 0 || message.Payload.Length != ReferenceIdBytes + 2 * sizeof(uint) + sizeof(byte)
                 || (message.EventId != Subscribe && message.EventId != Unsubscribe))
                 throw new InvalidDataException("Invalid subscription control message.");
             var reader = new NetDataReader(message.Payload);
             var referenceId = reader.GetGuid();
-            ulong receiveGeneration = reader.GetULong();
+            uint receiveStreamId = reader.GetUInt();
             bool latestOnly = reader.GetBool();
-            ulong acknowledgedGeneration = reader.GetULong();
-            if (referenceId == Guid.Empty || receiveGeneration == 0)
+            uint acknowledgedStreamId = reader.GetUInt();
+            if (referenceId == Guid.Empty || receiveStreamId == 0)
                 throw new InvalidDataException("Invalid reference registration.");
 
             references.TryGetValue(referenceId, out var reference);
             PeerPipeline state = null;
             reference?.Peers.TryGetValue(message.Peer, out state);
             if (message.EventId == Unsubscribe) {
-                if (state == null || state.RemoteGeneration != receiveGeneration) return;
-                if (state.ReceiveGeneration != 0 && acknowledgedGeneration != state.ReceiveGeneration) {
-                    state.RemoteGeneration = 0;
+                if (state == null || state.RemoteStreamId != receiveStreamId) return;
+                if (state.ReceiveStreamId != 0 && acknowledgedStreamId != state.ReceiveStreamId) {
+                    state.RemoteStreamId = 0;
                     state.RemoteReady = false;
                     return;
                 }
-                if (state.ReceiveGeneration != 0)
-                    SendSubscription(message.Peer, referenceId, Unsubscribe, state.ReceiveGeneration, acknowledgedGeneration: state.RemoteGeneration);
+                if (state.ReceiveStreamId != 0)
+                    SendSubscription(message.Peer, referenceId, Unsubscribe, state.ReceiveStreamId, acknowledgedStreamId: state.RemoteStreamId);
                 ForgetReference(message.Peer, referenceId);
                 return;
             }
 
             // A reply to a registration already removed locally must not recreate its state.
-            if (reference?.Listener == null && acknowledgedGeneration != 0) return;
+            if (reference?.Listener == null && acknowledgedStreamId != 0) return;
             if (reference == null) references.Add(referenceId, reference = new ReferenceCommunication());
             state ??= reference.GetPipeline(message.Peer);
-            bool ready = state.ReceiveGeneration != 0 && acknowledgedGeneration == state.ReceiveGeneration;
-            if (state.RemoteGeneration == receiveGeneration) {
+            bool ready = state.ReceiveStreamId != 0 && acknowledgedStreamId == state.ReceiveStreamId;
+            if (state.RemoteStreamId == receiveStreamId) {
                 state.RemoteReady |= ready;
                 return;
             }
             // A new destination lifetime cannot inherit previously queued sends or sequence numbers.
             if (state.RemoteReady) {
-                CancelReferenceSends(message.Peer, referenceId);
+                state.CancelOutgoing();
+                CancelReferenceRequests(message.Peer, referenceId);
                 state.NextSendSequence = 0;
             }
-            state.RemoteGeneration = receiveGeneration;
+            state.RemoteStreamId = receiveStreamId;
             state.RemoteReady = ready;
             state.RemoteLatestOnly = latestOnly;
             if (reference.Listener == null) return;
-            if (reference.Listener.LatestOnly != latestOnly) throw new InvalidDataException("Reference ordering policies disagree.");
             AnnounceReference(message.Peer, referenceId);
             if (IsServer) reference.Listener.OnSubscribed(message.Peer);
         }
 
         public void Unregister(Guid referenceId, ITransportEventListener listener) {
             if (!references.TryGetValue(referenceId, out var reference) || !ReferenceEquals(reference.Listener, listener)) return;
-            foreach (var pair in reference.Peers) {
+            foreach (var pair in new List<KeyValuePair<NetPeer, PeerPipeline>>(reference.Peers)) {
                 var pipeline = pair.Value;
-                if (IsRunning && pipeline.ReceiveGeneration != 0)
-                    SendSubscription(pair.Key, referenceId, Unsubscribe, pipeline.ReceiveGeneration, acknowledgedGeneration: pipeline.RemoteGeneration);
-                pipeline.Clear();
-                CancelReferenceRequests(pair.Key, referenceId);
+                if (IsRunning && pipeline.ReceiveStreamId != 0)
+                    SendSubscription(pair.Key, referenceId, Unsubscribe, pipeline.ReceiveStreamId, acknowledgedStreamId: pipeline.RemoteStreamId);
+                ForgetReference(pair.Key, referenceId);
             }
             references.Remove(referenceId);
-        }
-
-        private void CancelReferenceSends(NetPeer peer, Guid referenceId) {
-            references[referenceId].Peers[peer].CancelOutgoing();
-            CancelReferenceRequests(peer, referenceId);
         }
 
         private void CancelReferenceRequests(NetPeer peer, Guid referenceId) {
@@ -170,7 +173,10 @@ namespace Arterra.Core.Network {
 
         private void ForgetReference(NetPeer peer, Guid referenceId) {
             var reference = references[referenceId];
-            if (reference.Peers.Remove(peer, out var pipeline)) pipeline.Clear();
+            if (reference.Peers.Remove(peer, out var pipeline)) {
+                connections[peer].Receivers.Remove(pipeline.ReceiveStreamId);
+                pipeline.Clear();
+            }
             CancelReferenceRequests(peer, referenceId);
             if (reference.Listener == null && reference.Peers.Count == 0) references.Remove(referenceId);
         }
@@ -197,16 +203,16 @@ namespace Arterra.Core.Network {
             var request = new EventRequest(referenceId);
             var key = (peer, queued.Id);
             requests.Add(key, request);
+            using var timer = new CancellationTokenSource();
             try {
-                using var timer = new CancellationTokenSource();
                 using var cancellation = token.Register(() => request.Response.TrySetCanceled());
                 var delay = Task.Delay(duration, timer.Token);
-                try {
-                    if (await Task.WhenAny(request.Response.Task, delay) != request.Response.Task)
-                        throw new TimeoutException($"Event request for reference {referenceId} timed out.");
-                    return await request.Response.Task;
-                } finally { timer.Cancel(); }
+
+                if (await Task.WhenAny(request.Response.Task, delay) != request.Response.Task)
+                    throw new TimeoutException($"Event request for reference {referenceId} timed out.");
+                return await request.Response.Task;
             } finally {
+                timer.Cancel();
                 requests.Remove(key);
                 // Cancel an unsent request; a submitted message already belongs to LiteNetLib.
                 queued.Canceled = true;
@@ -250,12 +256,7 @@ namespace Arterra.Core.Network {
                     if (!IsServer) continue;
                     foreach (var peer in peers) {
                         if (!IsSubscribed(peer, message.ReferenceId) && !(peer == pending.peer && message.ReplyTo != 0)) continue;
-                        // Replacement/cancellation belongs to each recipient; payload bytes are shared.
-                        EnqueueEvent(peer, new OutgoingEvent {
-                            ReferenceId = message.ReferenceId, EventId = message.EventId, Id = message.Id,
-                            ReplyTo = peer == pending.peer ? message.ReplyTo : 0,
-                            Bytes = message.Bytes, Sender = message.Sender, Deadline = message.Deadline, WaitForDelivery = message.WaitForDelivery, Coalesce = message.Coalesce, Broadcast = true
-                        });
+                        EnqueueEvent(peer, message.ForRecipient(peer == pending.peer));
                     }
                 } else if (peers.Contains(pending.peer)) {
                     EnqueueEvent(pending.peer, message);
@@ -291,14 +292,28 @@ namespace Arterra.Core.Network {
             try {
                 foreach (var pair in connections) {
                     sendingPeer = pair.Key;
-                    while (pair.Value.Control.TryDequeue(out var message))
-                        SendMessage(sendingPeer, message);
-                }
-                foreach (var reference in references.Values) {
-                    foreach (var pair in reference.Peers) {
-                        sendingPeer = pair.Key;
-                        pair.Value.Drain(this, sendingPeer);
+                    while (pair.Value.Control.TryPeek(out var message)) {
+                        if (!SendMessage(sendingPeer, message)) break;
+                        pair.Value.Control.Dequeue();
                     }
+                }
+                var registered = new List<ReferenceCommunication>(references.Values);
+                foreach (var pair in connections) {
+                    sendingPeer = pair.Key;
+                    bool progressed;
+                    do {
+                        progressed = false;
+                        int start = pair.Value.NextReference;
+                        for (int i = 0; i < registered.Count; i++) {
+                            int index = (start + i) % registered.Count;
+                            if (!registered[index].Peers.TryGetValue(sendingPeer, out var pipeline)) continue;
+                            if (!pipeline.TrySendNext(this, sendingPeer)) continue;
+
+                            // Resume after the last successful submission when capacity returns.
+                            pair.Value.NextReference = (index + 1) % registered.Count;
+                            progressed = true;
+                        }
+                    } while (progressed && sendingPeer.GetPacketsCountInReliableQueue(false) < MaxQueuedPackets);
                 }
             } catch (IOException exception) {
                 UnityEngine.Debug.LogException(exception);
@@ -313,21 +328,24 @@ namespace Arterra.Core.Network {
                 throw new IOException($"Outgoing event {message.EventId}, message {message.Id} to {peer} expired before submission.");
             if (pipeline != null && !pipeline.RemoteReady) return false;
 
+            bool ordered = pipeline == null;
+            var delivery = ordered ? DeliveryMethod.ReliableOrdered : DeliveryMethod.ReliableUnordered;
+            var kind = message.IsRequest ? MessageKind.Request : message.ReplyTo != 0 ? MessageKind.Reply : MessageKind.Event;
+            if (peer.GetPacketsCountInReliableQueue(ordered) >= MaxQueuedPackets) return false;
+
             messageWriter.Reset();
-            messageWriter.Put(message.Id);
-            messageWriter.Put(message.ReferenceId);
+            messageWriter.Put(pipeline?.RemoteStreamId ?? 0);
+            if (pipeline != null) messageWriter.Put(pipeline.NextSendSequence);
             messageWriter.Put(message.EventId);
-            messageWriter.Put(message.ReplyTo);
-            var delivery = DeliveryMethod.ReliableOrdered;
             if (pipeline != null) {
-                delivery = DeliveryMethod.ReliableUnordered;
-                messageWriter.Put(pipeline.RemoteGeneration);
-                messageWriter.Put(pipeline.NextSendSequence);
-                messageWriter.Put(message.IsRequest);
+                messageWriter.Put((byte)kind);
+                if (kind != MessageKind.Event)
+                    messageWriter.Put(kind == MessageKind.Request ? message.Id : message.ReplyTo);
             }
             messageWriter.Put(message.Bytes);
             if (message.WaitForDelivery) peer.SendWithDeliveryEvent(messageWriter, delivery, message);
             else peer.Send(messageWriter, delivery);
+            message.Submitted = true;
             if (pipeline != null) pipeline.NextSendSequence = unchecked(pipeline.NextSendSequence + 1);
 
             var listener = message.Sender?.Listener;
@@ -337,31 +355,36 @@ namespace Arterra.Core.Network {
         }
 
         private void ReceiveMessage(NetPeer peer, NetDataReader reader, DeliveryMethod delivery) {
-            if (reader.AvailableBytes < MessageHeaderBytes)
+            if (reader.AvailableBytes < ControlHeaderBytes)
                 throw new InvalidDataException("Incomplete event header.");
-            uint messageId = reader.GetUInt();
-            Guid referenceId = reader.GetGuid();
-            ushort eventId = reader.GetUShort();
-            uint replyTo = reader.GetUInt();
-            if (messageId == 0 || eventId == 0)
-                throw new InvalidDataException("Message and event ID zero are reserved.");
-
-            if (referenceId == Guid.Empty) {
+            uint streamId = reader.GetUInt();
+            if (streamId == 0) {
                 if (delivery != DeliveryMethod.ReliableOrdered) throw new InvalidDataException("Control must be ordered.");
-                DispatchEvent(new TransportEvent(peer, referenceId, eventId, messageId, replyTo, reader.GetRemainingBytes()));
+                ushort operation = reader.GetUShort();
+                DispatchEvent(new TransportEvent(peer, Guid.Empty, operation, 0, 0, reader.GetRemainingBytes()));
                 return;
             }
-            if (delivery != DeliveryMethod.ReliableUnordered || reader.AvailableBytes < DataHeaderBytes)
+            if (delivery != DeliveryMethod.ReliableUnordered || reader.AvailableBytes < DataHeaderBytes - sizeof(uint))
                 throw new InvalidDataException("Invalid reference data header.");
-            ulong receiveGeneration = reader.GetULong();
             uint sequence = reader.GetUInt();
-            bool isRequest = reader.GetBool();
-            if (!references.TryGetValue(referenceId, out var reference) || reference.Listener == null
-                || !reference.Peers.TryGetValue(peer, out var pipeline)
-                || pipeline.ReceiveGeneration == 0 || pipeline.ReceiveGeneration != receiveGeneration) return;
+            ushort eventId = reader.GetUShort();
+            var kind = (MessageKind)reader.GetByte();
+            if (eventId == 0 || kind > MessageKind.Reply)
+                throw new InvalidDataException("Invalid event ID or message kind.");
+            uint correlationId = 0;
+            if (kind != MessageKind.Event) {
+                if (reader.AvailableBytes < sizeof(uint) || (correlationId = reader.GetUInt()) == 0)
+                    throw new InvalidDataException("Missing request/reply correlation ID.");
+            }
+            if (!connections.TryGetValue(peer, out var connection)
+                || !connection.Receivers.TryGetValue(streamId, out var referenceId)
+                || !references.TryGetValue(referenceId, out var reference) || reference.Listener == null
+                || !reference.Peers.TryGetValue(peer, out var pipeline) || pipeline.ReceiveStreamId != streamId) return;
 
-            var message = new TransportEvent(peer, referenceId, eventId, messageId, replyTo, reader.GetRemainingBytes());
-            pipeline.Receive(this, reference.Listener.LatestOnly, sequence, isRequest, message);
+            bool isRequest = kind == MessageKind.Request;
+            var message = new TransportEvent(peer, referenceId, eventId,
+                isRequest ? correlationId : 0, kind == MessageKind.Reply ? correlationId : 0, reader.GetRemainingBytes());
+            pipeline.Receive(this, reference.Listener.LatestOnly, sequence, message);
         }
 
         private void DispatchEvent(TransportEvent message, bool apply = true) {
@@ -371,9 +394,9 @@ namespace Arterra.Core.Network {
             }
             var peer = message.Peer;
             requests.TryGetValue((peer, message.ReplyTo), out var request);
-            // Variables also use ReplyTo for rejection of ordinary writes, without a request waiter.
-            if (message.ReplyTo != 0 && request == null
-                && (!references.TryGetValue(message.ReferenceId, out var recipient) || recipient.Listener == null || !recipient.Listener.LatestOnly)) return;
+            // Ordinary writes/rejections have no correlation ID. Late replies to canceled
+            // requests must not update a reference or revive the abandoned operation.
+            if (message.ReplyTo != 0 && request == null) return;
             if (request != null && request.ReferenceId != message.ReferenceId)
                 throw new InvalidDataException("Reply targets the wrong reference.");
             // Apply state before waking a caller awaiting this response.
@@ -513,12 +536,14 @@ namespace Arterra.Core.Network {
         }
 
         private sealed class ConnectionControl {
-            public ulong NextGeneration;
+            public uint NextStreamId;
+            public readonly Dictionary<uint, Guid> Receivers = new();
+            public int NextReference;
             public readonly Queue<OutgoingEvent> Control = new();
         }
 
         private sealed class PeerPipeline {
-            public ulong ReceiveGeneration, RemoteGeneration;
+            public uint ReceiveStreamId, RemoteStreamId;
             public uint NextSendSequence;
             private uint nextReceiveSequence;
             // The peer must confirm our current registration before queued data can leave.
@@ -531,7 +556,7 @@ namespace Arterra.Core.Network {
                 message.Pipeline = this;
                 if (message.Coalesce) {
                     if (currentVariable != null) {
-                        if (message.WaitForDelivery) {
+                        if (message.WaitForDelivery && currentVariable.Submitted) {
                             pendingVariable = message;
                             return;
                         }
@@ -550,22 +575,25 @@ namespace Arterra.Core.Network {
                 if (pending != null) Enqueue(pending);
             }
 
-            public void Drain(TransportManager transport, NetPeer peer) {
+            public bool TrySendNext(TransportManager transport, NetPeer peer) {
                 while (outgoing.TryPeek(out var message)) {
                     if (message.Canceled || !transport.IsCurrentSender(message)) {
                         outgoing.Dequeue();
                         continue;
                     }
-                    if (!transport.SendMessage(peer, message, this)) return;
+                    if (!transport.SendMessage(peer, message, this)) return false;
                     outgoing.Dequeue();
                     if (message.Coalesce && !message.WaitForDelivery && currentVariable == message)
                         currentVariable = null;
+                    return true;
                 }
+                return false;
             }
 
-            public void Receive(TransportManager transport, bool latestOnly, uint sequence, bool isRequest, TransportEvent message) {
+            public void Receive(TransportManager transport, bool latestOnly, uint sequence, TransportEvent message) {
                 bool fresh = unchecked((int)(sequence - nextReceiveSequence)) >= 0;
                 if (latestOnly) {
+                    bool isRequest = message.MessageId != 0;
                     if (fresh && !isRequest) nextReceiveSequence = unchecked(sequence + 1);
                     // Reads must be answered; stale replies resolve waiters without rolling back state.
                     transport.DispatchEvent(message, apply: fresh || isRequest);
@@ -605,10 +633,17 @@ namespace Arterra.Core.Network {
             public uint Id, ReplyTo;
             public ushort EventId;
             public byte[] Bytes;
-            public bool Canceled, WaitForDelivery, Coalesce, Broadcast, IsRequest;
+            public bool Canceled, Submitted, WaitForDelivery, Coalesce, Broadcast, IsRequest;
             public ReferenceCommunication Sender;
             public PeerPipeline Pipeline;
             public long Deadline;
+
+            // Copy before enqueueing: each recipient owns its delivery state, but shares payload bytes.
+            public OutgoingEvent ForRecipient(bool replyRecipient) {
+                var copy = (OutgoingEvent)MemberwiseClone();
+                if (!replyRecipient) copy.ReplyTo = 0;
+                return copy;
+            }
         }
     }
 }
