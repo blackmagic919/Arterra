@@ -127,6 +127,8 @@ public class ArterraRuntime : MonoBehaviour {
         var generation = GraphicsGeneration;
         var rendering = GraphicsRendering;
         if (generation == null || rendering == null) return;
+        generation.Memory.DrainReadbacks();
+        rendering.Memory.DrainReadbacks();
         do {
             var fence = generation.Commands.CreateGraphicsFence(
                 UnityEngine.Rendering.GraphicsFenceType.AsyncQueueSynchronisation,
@@ -142,7 +144,10 @@ public class ArterraRuntime : MonoBehaviour {
             } finally { UnityEngine.Rendering.CommandBufferPool.Release(drain); }
             SubmitGraphics();
             UnityEngine.Rendering.AsyncGPUReadback.WaitAllRequests();
-        } while (generation.HasPendingPolls || rendering.HasPendingPolls);
+        } while (generation.HasPendingPolls
+            || rendering.HasPendingPolls
+            || generation.Commands.sizeInBytes != 0
+            || rendering.Commands.sizeInBytes != 0);
     }
 
     private void FixedUpdate() {

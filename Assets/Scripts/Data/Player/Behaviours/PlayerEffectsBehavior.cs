@@ -128,7 +128,7 @@ namespace Arterra.Data.Entity.Behavior {
             Bind(GameEvent.System_Deserialize, PlayDeserialize);
             Bind(GameEvent.Entity_Death, (_, _, __) => SetBool("IsDead", true));
             Bind(GameEvent.Entity_Damaged, PlayDamaged);
-            Bind(GameEvent.Entity_HitGround, PlayTouchdown);
+            Bind(GameEvent.Entity_TouchMatSolid, PlayTouchdown);
             Bind(GameEvent.Entity_InLiquid, PlayStartSwim);
             Bind(GameEvent.Entity_InGas, PlayStopSwim);
             Bind(GameEvent.Action_MountRideable, (_, _, __) => {

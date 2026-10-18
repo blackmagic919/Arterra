@@ -24,6 +24,7 @@ namespace Arterra.Configuration.Quality {
         private ComputeBuffer allocationShiftBuffer;
         private readonly int journalCapacity;
         private int currentOperation;
+        private bool drainingReadbacks;
 
         public MemoryOccupancyBalancer(BalancedMemory settings, GraphicsResourceContext graphicsContext = null)
             : base(settings, graphicsContext) {
@@ -81,9 +82,13 @@ namespace Arterra.Configuration.Quality {
             base.Release();
         }
 
+        // Finish outstanding allocations during shutdown without restarting idle polling.
+        internal void DrainReadbacks() => drainingReadbacks = true;
+
         private void ReadbackLoopDeferredAddress() {
             if (!initialized) return;
             int count = currentOperation;
+            if (drainingReadbacks && count == 0) return;
             // Keep the loop alive while idle; a zero-byte readback is invalid.
             int readCount = Math.Max(1, count);
             GraphicsContext.RequestAsyncReadback(allocationSizes, readCount * sizeof(uint) * 2, 0,

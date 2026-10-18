@@ -22,10 +22,29 @@ namespace Arterra.Data.Entity.Behavior {
 
         [Serializable]
         public struct Modifier {
-            public AnimationCurve modify;
+            public float baseValue;
+            public Threshold[] thresholds;
             public SettingModifier.MType policy;
             public MSettings setting;
-            
+
+            public float Evaluate(float hunger) {
+                float value = baseValue;
+                float minimum = float.NegativeInfinity;
+                if (thresholds == null) return value;
+                foreach (var threshold in thresholds) {
+                    if (hunger < threshold.minimumHunger || threshold.minimumHunger < minimum) continue;
+                    minimum = threshold.minimumHunger;
+                    value = threshold.value;
+                }
+                return value;
+            }
+        }
+
+        [Serializable]
+        public struct Threshold {
+            [Tooltip("Inclusive minimum hunger (0 = empty, 1 = normal, 2 = full). The highest matching threshold wins.")]
+            public float minimumHunger;
+            public float value;
         }
         
         [Serializable]
@@ -144,7 +163,7 @@ namespace Arterra.Data.Entity.Behavior {
                     continue;
 
                 HungerSettings.Modifier m = settings.Modifiers.value[i];
-                SettingModifier modifier = new () { type = m.policy, value = 1f };
+                SettingModifier modifier = new () { type = m.policy, value = m.Evaluate(HungerPercent) };
                 mod.ApplyModifier(m.setting, modifier);
                 modifiers[i] = modifier.Id;
             }
@@ -204,7 +223,7 @@ namespace Arterra.Data.Entity.Behavior {
             for(int i = 0; i < modifierCount; i++) {
                 HungerSettings.Modifier m = settings.Modifiers.value[i];
                 if(!mod.TryGetModifier(modifiers[i], out SettingModifier s)) continue;
-                float value = m.modify.Evaluate(HungerPercent);
+                float value = m.Evaluate(HungerPercent);
                 if (s.value == value) continue;
                 s.value = value;
                 mod.SetDirty(m.setting, s.Id);
