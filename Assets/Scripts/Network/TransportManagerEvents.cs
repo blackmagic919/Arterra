@@ -291,7 +291,8 @@ namespace Arterra.Core.Network {
             try {
                 foreach (var pair in connections) {
                     sendingPeer = pair.Key;
-                    while (pair.Value.Control.TryDequeue(out var message)) SendMessage(sendingPeer, message);
+                    while (pair.Value.Control.TryDequeue(out var message))
+                        SendMessage(sendingPeer, message);
                 }
                 foreach (var reference in references.Values) {
                     foreach (var pair in reference.Peers) {
@@ -303,7 +304,7 @@ namespace Arterra.Core.Network {
                 UnityEngine.Debug.LogException(exception);
                 Disconnect(sendingPeer);
             } finally {
-                sendTiming.Record(started);
+                sendTiming.Record(started, peers);
             }
         }
 
@@ -421,7 +422,19 @@ namespace Arterra.Core.Network {
             private long bytes;
             private int messages;
             private long windowStart, totalTicks, peakTicks;
+            private long lastPollStart, pollTicks, peakPollTicks, peakPollGap;
+            private int polls;
+            private Dictionary<NetPeer, (int Queue, long Sent, long Received, long BytesSent, long BytesReceived, long Loss)> peerSamples;
             private Dictionary<(Type Type, ushort Event, GameEvent? GameEvent), (long Bytes, int Messages)> composition;
+
+            public void RecordPoll(long started) {
+                long elapsed = Stopwatch.GetTimestamp() - started;
+                if (lastPollStart != 0) peakPollGap = Math.Max(peakPollGap, started - lastPollStart);
+                lastPollStart = started;
+                pollTicks += elapsed;
+                peakPollTicks = Math.Max(peakPollTicks, elapsed);
+                polls++;
+            }
 
             public void Count(Type type, ushort eventId, GameEvent? gameEvent, int length) {
                 bytes += length;
@@ -432,7 +445,7 @@ namespace Arterra.Core.Network {
                 composition[key] = (count.Bytes + length, count.Messages + 1);
             }
 
-            public void Record(long started) {
+            public void Record(long started, List<NetPeer> peers) {
                 long now = Stopwatch.GetTimestamp();
                 long elapsed = now - started;
                 if (windowStart == 0) windowStart = started;
@@ -440,10 +453,29 @@ namespace Arterra.Core.Network {
                 peakTicks = Math.Max(peakTicks, elapsed);
                 if (now - windowStart < Stopwatch.Frequency) return;
 
-                if (messages > 0) {
+                if (messages > 0 || peers.Count > 0) {
                     double milliseconds = 1000.0 / Stopwatch.Frequency;
                     var breakdown = new StringBuilder();
-                    var entries = new List<KeyValuePair<(Type Type, ushort Event, GameEvent? GameEvent), (long Bytes, int Messages)>>(composition);
+                    breakdown.Append($"\n  PollEvents: {polls} calls, {pollTicks * milliseconds:F2} ms total, {peakPollTicks * milliseconds:F2} ms peak/call, {peakPollGap * milliseconds:F2} ms maximum start-to-start gap.");
+                    peerSamples ??= new();
+                    foreach (var peer in new List<NetPeer>(peerSamples.Keys))
+                        if (!peers.Contains(peer)) peerSamples.Remove(peer);
+
+                    foreach (var peer in peers) {
+                        var stats = peer.Statistics;
+                        var current = (Queue: peer.GetPacketsCountInReliableQueue(false),
+                            Sent: stats.PacketsSent, Received: stats.PacketsReceived,
+                            BytesSent: stats.BytesSent, BytesReceived: stats.BytesReceived, Loss: stats.PacketLoss);
+                        bool sampled = peerSamples.TryGetValue(peer, out var previous);
+                        string interval = sampled ? "since previous log" : "since connection (first sample)";
+                        breakdown.Append($"\n  Peer {peer}: {current.Queue} packets waiting in LiteNetLib's ReliableUnordered queue (change {current.Queue - previous.Queue:+0;-0;0}); RTT {peer.RoundTripTime} ms.");
+                        breakdown.Append($"\n    LiteNetLib {interval}: sent {current.Sent - previous.Sent} packets / {(current.BytesSent - previous.BytesSent) / 1048576.0:F3} MiB; received {current.Received - previous.Received} packets / {(current.BytesReceived - previous.BytesReceived) / 1048576.0:F3} MiB; loss counter +{current.Loss - previous.Loss}.");
+                        peerSamples[peer] = current;
+                    }
+
+                    var entries = composition == null
+                        ? new List<KeyValuePair<(Type Type, ushort Event, GameEvent? GameEvent), (long Bytes, int Messages)>>()
+                        : new List<KeyValuePair<(Type Type, ushort Event, GameEvent? GameEvent), (long Bytes, int Messages)>>(composition);
                     entries.Sort((a, b) => b.Value.Bytes.CompareTo(a.Value.Bytes));
                     foreach (var entry in entries) {
                         var count = entry.Value;
@@ -453,7 +485,7 @@ namespace Arterra.Core.Network {
                     UnityEngine.Debug.Log($"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Network Transport] Outgoing work over {(now - windowStart) * milliseconds:F0} ms: {totalTicks * milliseconds:F2} ms total, {peakTicks * milliseconds:F2} ms peak/update; {messages} messages, {bytes / 1048576.0:F2} MiB submitted.{breakdown}");
                 }
                 composition?.Clear();
-                this = new SendTiming { composition = composition };
+                this = new SendTiming { composition = composition, peerSamples = peerSamples, lastPollStart = lastPollStart };
             }
 
             private static string TypeLabel(Type type) {

@@ -39,7 +39,7 @@ namespace Arterra.Core.Network {
 
             var listener = new EventBasedNetListener();
             driver = new NetManager(listener) {
-                IPv6Enabled = false, NatPunchEnabled = true, AutoRecycle = true,
+                IPv6Enabled = false, NatPunchEnabled = true, AutoRecycle = true, EnableStatistics = true,
                 DisconnectTimeout = 10000
             };
             listener.PeerConnectedEvent += OnPeerConnected;
@@ -139,8 +139,10 @@ namespace Arterra.Core.Network {
         internal void Update() {
             if (!IsStarted) return;
             try {
+                long pollStarted = System.Diagnostics.Stopwatch.GetTimestamp();
                 driver.PollEvents();
                 if (!IsStarted) return;
+                sendTiming.RecordPoll(pollStarted);
                 driver.NatPunchModule.PollEvents();
                 ExpireIntroductions();
                 if (IsRunning) UpdateEvents();
