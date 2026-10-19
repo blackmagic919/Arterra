@@ -15,6 +15,10 @@ using Unity.Mathematics;
 namespace Arterra.Core.Storage {
     /// <summary>Requests authoritative chunks; canceled replies have no effect on local generation.</summary>
     public sealed class ClientSource : ChunkSource, ITransportEventListener {
+        public override void ReflectChunk(Func<byte[]> GetEncodedChanges = null) {
+            GetEncodedChanges?.Invoke();
+        }
+
         private readonly Guid referenceId;
         private readonly CancellationTokenSource lifetime = new();
         private readonly Dictionary<int3, PendingEntities> pending = new();

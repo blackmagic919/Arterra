@@ -7,7 +7,6 @@ using UnityEngine;
 using Arterra.Utils;
 using Arterra.Configuration;
 using Unity.Mathematics;
-using UnityEditor;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 using Arterra.Core;
@@ -41,127 +40,27 @@ namespace Arterra.GamePlay.UI.ToolTips {
         }
     }
 
-    public enum TooltipPriority {
-        Low = 0,
-        Medium = 1,
-        High = 2,
-        Critical = 3
+
+    public class TooltipData : PopupHandler.PopupData<TooltipConfig> {
+        public TooltipData(TooltipConfig config) : base((TooltipConfig)config.Clone()) { }
     }
 
+    class TooltipSlot : PopupHandler.PopupSlot<TooltipConfig> {
+        public TooltipData? ActiveTooltip => (TooltipData?)ActivePopup;
 
-    public class TooltipData {
-        public TooltipConfig Config; // Tooltip config data
-        public int VirtualRunTime; // Simulated virtual runtime value for scheduling.
-
-        public DateTime EnqueuedTime; // Time when the tooltip was enqueued.
-        public int SlotIndex = -1;
-
-        public bool IsAcknowledged => (DateTime.Now - EnqueuedTime).TotalSeconds >= Config.AcknowledgeTime;
-
-        public void Acknowlege() {
-            EnqueuedTime = DateTime.Now.AddSeconds(-Config.AcknowledgeTime - 1); // Manipulate enqueued time to mark as acknowledged.
+        public TooltipSlot(GameObject slot, float minDisplayTime, int index, bool history = false)
+            : base(slot, minDisplayTime, index,
+                popup => TooltipPipeline.Instance?.DismissTooltip(popup.Config.PrefabPath), trackSlotIndex: !history) {
+            var ignore = slot.transform.Find("Ignore")?.GetComponent<Button>();
+            if (ignore == null) return;
+            ignore.gameObject.SetActive(true);
+            ignore.onClick.AddListener(() => TooltipPipeline.Instance?.IgnoreToolTip(ActiveTooltip?.Config.PrefabPath));
         }
 
-        public TooltipData(TooltipConfig config) {
-            Config = config;
-            EnqueuedTime = DateTime.Now;
-            VirtualRunTime = 0;
-            SlotIndex = -1;
-        }        
-    }
+        public void ShowToolTipImmediate(TooltipData tooltip) => Show(tooltip, immediate: true);
 
-    class TooltipSlot {
-        public TooltipData? ActiveTooltip;
-        public DateTime DisplayStartTime;
-        private AnimatorAwaitTask transitionTask;
-        private Animator SlotAnimator;
-        private GameObject Slot;
-        private GameObject Content;
-        private Button? Acknowledge;
-        private Button? Ignore;
-
-        public int Index; //TEST only
-
-        private float MinDisplayTimeInSeconds;
-        public TooltipSlot(GameObject SlotTransform, float minDisplayTimeInSeconds, int index) {
-            ActiveTooltip = null;
-            MinDisplayTimeInSeconds = minDisplayTimeInSeconds;
-            Index = index;
-            Slot = SlotTransform;
-            Acknowledge = Slot.transform.Find("Close")?.GetComponent<Button>();
-            Ignore = Slot.transform.Find("Ignore")?.GetComponent<Button>();
-            Content = Slot.transform.Find("Content").gameObject;
-
-            Acknowledge?.onClick.AddListener(() => TooltipPipeline.Instance?.DismissTooltip(ActiveTooltip?.Config.PrefabPath));
-            Ignore?.onClick.AddListener(() => TooltipPipeline.Instance?.IgnoreToolTip(ActiveTooltip?.Config.PrefabPath));
-            SlotAnimator = Slot.GetComponent<Animator>();
-        }
-
-        public void Release() => GameObject.Destroy(Slot);
-
-        public bool IsAvailable() {
-            return ActiveTooltip == null;
-        }
-
-        public bool CanClear() {
-            if (ActiveTooltip == null) return true;
-
-            // Check if minimum display time has passed
-            var elapsed = (DateTime.Now - DisplayStartTime).TotalSeconds;
-            return elapsed >= MinDisplayTimeInSeconds;
-        }
-
-        public void Clear() {
-            if (ActiveTooltip == null) return;
-            ActiveTooltip.SlotIndex = -1;
-            ActiveTooltip = null;
-            ADebug.LogInfo($"TooltipPipeline: Cleared tooltip in slot {Index}");
-            transitionTask?.Disable();
-            SlotAnimator.SetBool("IsOpen", false);
-            transitionTask = new AnimatorAwaitTask(SlotAnimator, "Closed", ClearDisplay);
-            transitionTask.Invoke();
-        }
-
-
-        public void ShowTooltip(TooltipData? tooltip) {
-            if (tooltip == null) return;
-            tooltip.SlotIndex = Index;
-            ActiveTooltip = tooltip;
-            DisplayStartTime = DateTime.Now;
-
-            ADebug.LogInfo($"TooltipPipeline: Showing tooltip {tooltip.Config.PrefabPath} in slot {Index}");
-            transitionTask?.Disable();
-            SlotAnimator.SetBool("IsOpen", false);
-            transitionTask = new AnimatorAwaitTask(SlotAnimator, "Closed", SwitchToolTipDisplay);
-            transitionTask.Invoke();
-        }
-
-        public void ShowToolTipImmediate(TooltipData? tooltip) {
-            if (tooltip == null) return;
-            tooltip.SlotIndex = Index;
-            ActiveTooltip = tooltip;
-            DisplayStartTime = DateTime.Now;
-            ADebug.LogInfo($"TooltipPipeline: Showing tooltip {tooltip.Config.PrefabPath} in slot {Index}");
-            transitionTask?.Disable();
-            SwitchToolTipDisplay();
-        }
-
-        private void SwitchToolTipDisplay() {
-            if (ActiveTooltip == null) return;
-            foreach(Transform child in Content.transform) {
-                GameObject.Destroy(child.gameObject);
-            }
-            GameObject.Instantiate(Resources.Load<GameObject>(ActiveTooltip.Config.PrefabPath), Content.transform);
-            SegmentedUIEditor.ForceLayoutRefresh(Slot.transform);
-            SlotAnimator.SetBool("IsOpen", true);
-        }
-
-        private void ClearDisplay() {
-            foreach(Transform child in Content.transform) {
-                GameObject.Destroy(child.gameObject);
-            }
-            SegmentedUIEditor.ForceLayoutRefresh(Slot.transform);
-        }
+        protected override void CreateContent(TooltipConfig config) =>
+            GameObject.Instantiate(Resources.Load<GameObject>(config.PrefabPath), content);
     }
 
     /// <summary>
@@ -170,25 +69,13 @@ namespace Arterra.GamePlay.UI.ToolTips {
     public class TooltipPipeline {
 
         // Simulate CFS weights for tooltip priority handling.
-        const int WEIGHT_LOW = 335;
-        const int WEIGHT_MEDIUM = 1024;
-        const int WEIGHT_HIGH = 3121;
-        const int WEIGHT_CRITICAL = 88761;
-
-        Dictionary<TooltipPriority, int> priorityWeights = new Dictionary<TooltipPriority, int>() {
-            { TooltipPriority.Low, WEIGHT_LOW },
-            { TooltipPriority.Medium, WEIGHT_MEDIUM },
-            { TooltipPriority.High, WEIGHT_HIGH },
-            { TooltipPriority.Critical, WEIGHT_CRITICAL }
-        };
-
         private float MinDisplayTimeInSeconds = 2.0f;
 
         private List<TooltipSlot>? slots;
         private List<TooltipSlot> slotsPast;
 
         public ToolTipSystemState State => WorldDataHandler.WorldData.ToolTips;
-        private PriorityQueue<TooltipData, int> tooltipQueue;
+        private PopupHandler.PopupScheduler<TooltipConfig> scheduler;
 
         // To support delayed tooltips. The tooltip will be delayed to be enqueued until the TriggerTime is reached.
         private List<TooltipData> delayedTooltips;
@@ -218,9 +105,9 @@ namespace Arterra.GamePlay.UI.ToolTips {
         // Initialize the tooltip pipeline with settings.
         public void Initialize(float minDisplayTimeInSeconds, int slotCount) {
             MinDisplayTimeInSeconds = minDisplayTimeInSeconds;
-            ToolTipRoot = UnityEngine.Object.Instantiate(Resources.Load<GameObject>("Prefabs/GameUI/ToolTips/Menu"), GameUIManager.UIHandle.transform);
+            ToolTipRoot = UnityEngine.Object.Instantiate(Resources.Load<GameObject>("Prefabs/GameUI/Popups/Popups/Menu"), GameUIManager.UIHandle.transform);
 
-            tooltipQueue = new PriorityQueue<TooltipData, int>();
+            scheduler = new PopupHandler.PopupScheduler<TooltipConfig>();
             delayedTooltips = new List<TooltipData>();
             InitializeButtons();
 
@@ -230,13 +117,12 @@ namespace Arterra.GamePlay.UI.ToolTips {
             slotsPast = new List<TooltipSlot>();
             slots = new List<TooltipSlot>(slotCount);
             for (int i = 0; i < slotCount; i++) {
-                GameObject slot = GameObject.Instantiate(Resources.Load<GameObject>("Prefabs/GameUI/ToolTips/Slot/Slot"), Content);
+                GameObject slot = GameObject.Instantiate(Resources.Load<GameObject>("Prefabs/GameUI/Popups/Slot/IgnorableSlot"), Content);
                 slots.Add(new TooltipSlot(slot, MinDisplayTimeInSeconds, i));
             }
             
 
-            // Set timer to check tooltipQueue and display tooltips.
-            // Need slot count timers, staggered by MinDisplayTimeInSeconds / SlotCount.
+            // Rotate eligible slots through the shared scheduler.
             ArterraRuntime.MainCoroutines.Enqueue(ProcessTooltipQueue());
         }
 
@@ -256,22 +142,22 @@ namespace Arterra.GamePlay.UI.ToolTips {
                 ActiveMenuAnimator.SetBool("IsOpen", active);
                 PastMenuAnimator.SetBool("IsOpen", active);
                 MinimizeButton.image.sprite = Resources.Load<Sprite>(active
-                    ? "Prefabs/GameUI/ToolTips/Icons/Minimize"
-                    : "Prefabs/GameUI/ToolTips/Icons/Maximize"
+                    ? "Prefabs/GameUI/Popups/Icons/Minimize"
+                    : "Prefabs/GameUI/Popups/Icons/Maximize"
                 );
 
                 EventSystem.current.SetSelectedGameObject(null);
             });
             
             SeeHidden.onClick.AddListener(() => {
-                MinimizeButton.image.sprite = Resources.Load<Sprite>("Prefabs/GameUI/ToolTips/Icons/Minimize");
+                MinimizeButton.image.sprite = Resources.Load<Sprite>("Prefabs/GameUI/Popups/Icons/Minimize");
                 ActiveMenuAnimator.SetBool("IsOpen", true);
                 PastMenuAnimator.SetBool("IsOpen", true);
                 ActiveMenu.SetActive(!ActiveMenu.activeSelf);
                 PastMenu.SetActive(!PastMenu.activeSelf);
                 SeeHidden.image.sprite = Resources.Load<Sprite>(PastMenu.activeSelf
-                    ? "Prefabs/GameUI/ToolTips/Icons/Unhide"
-                    : "Prefabs/GameUI/ToolTips/Icons/Hide"
+                    ? "Prefabs/GameUI/Popups/Icons/Unhide"
+                    : "Prefabs/GameUI/Popups/Icons/Hide"
                 );
                 
                 if(PastMenu.activeSelf) RefreshPastToolTips();
@@ -294,8 +180,8 @@ namespace Arterra.GamePlay.UI.ToolTips {
                 slotsPast[i].Release();
             }  slotsPast = slotsPast.Take(shared).ToList();
             for (int i = shared; i < toolTips.Count(); i++) {
-                GameObject slot = GameObject.Instantiate(Resources.Load<GameObject>("Prefabs/GameUI/ToolTips/Slot/DisabledSlot"), Content);
-                TooltipSlot newToolTip = new (slot, float.MaxValue, i);
+                GameObject slot = GameObject.Instantiate(Resources.Load<GameObject>("Prefabs/GameUI/Popups/Slot/DisabledSlot"), Content);
+                TooltipSlot newToolTip = new (slot, float.MaxValue, i, history: true);
                 newToolTip.ShowToolTipImmediate(toolTips[i]);
                 slotsPast.Add(newToolTip);
             } 
@@ -313,11 +199,12 @@ namespace Arterra.GamePlay.UI.ToolTips {
 
             if (State.activeToolTips.TryGetValue(tooltip.Config.PrefabPath, out TooltipData entry)) {
                 ADebug.LogInfo($"TooltipPipeline: Tooltip {tooltip.Config.PrefabPath} is already present, not enqueuing.");
-                entry.Config.Priority = (TooltipPriority)math.max((int)tooltip.Config.Priority, (int)entry.Config.Priority);
+                entry.Config.Priority = (PopupPriority)math.max((int)tooltip.Config.Priority, (int)entry.Config.Priority);
                 entry.Config.TriggerTime = math.min(tooltip.Config.TriggerTime, entry.Config.TriggerTime);
                 return false;
             } else State.activeToolTips.Add(tooltip.Config.PrefabPath, tooltip);
 
+            tooltip.SlotIndex = -1;
             // If TriggerTime is set, put into delayed tooltips.
             delayedTooltips.Add(tooltip);
             ADebug.LogInfo($"TooltipPipeline: Tooltip {tooltip.Config.PrefabPath} will be enqueued after delay of {tooltip.Config.TriggerTime} seconds.");
@@ -329,17 +216,16 @@ namespace Arterra.GamePlay.UI.ToolTips {
             foreach (var delayedTooltip in delayedTooltips.ToArray()) {
                 var elapsed = (DateTime.Now - delayedTooltip.EnqueuedTime).TotalSeconds;
                 if (elapsed >= delayedTooltip.Config.TriggerTime) {
-                    int weight = priorityWeights[delayedTooltip.Config.Priority];
                     delayedTooltip.EnqueuedTime = DateTime.Now; // Reset enqueued time
                     State.toolTipHistory[delayedTooltip.Config.PrefabPath] = delayedTooltip;
-                    tooltipQueue.Enqueue(delayedTooltip, weight);
+                    scheduler.Enqueue(delayedTooltip);
                     delayedTooltips.Remove(delayedTooltip);
                     ADebug.LogInfo($"TooltipPipeline: Delayed tooltip {delayedTooltip.Config.PrefabPath} enqueued after delay.");
                 }
             }
 
-            while (tooltipQueue.Count > 0) {
-                TooltipData nextTooltip = tooltipQueue.Dequeue();
+            while (scheduler.TryDequeue(out var next)) {
+                var nextTooltip = (TooltipData)next;
                 if (nextTooltip.IsAcknowledged) {//
                     ADebug.LogDebug($"TooltipPipeline: Tooltip {nextTooltip.Config.PrefabPath} is acknowledged upon dequeue.");
                     State.activeToolTips.Remove(nextTooltip.Config.PrefabPath); //Remove from process list
@@ -383,60 +269,11 @@ namespace Arterra.GamePlay.UI.ToolTips {
             State.activeToolTips.Remove(prefabPath); 
         }
 
-        private void UpdateVirtualRuntime(TooltipData? tooltip) {
-            // Update virtual runtimes of all tooltips in the queue.
-            if (tooltip == null) return;
-            int weight = priorityWeights[tooltip.Config.Priority];
-            tooltip.VirtualRunTime += (int)(MinDisplayTimeInSeconds * (WEIGHT_MEDIUM / weight));
-        }
-        
-
-        // Prepare clear tooltip in the given slot.
-        // If the tootip not acknowledged, re-enqueue it, but do not clear the slot. 
-        //   This is to ensure the tooltip remains in the slot if it's on its turn next.
-        // If acknowledged, clear the slot.
-        // Returns the to be cleared tooltip data if any.
-        private TooltipData? PrepareClearTooltip(TooltipSlot slot) {
-            if (!slot.IsAvailable()) {
-                // Re-enqueue the current tooltip
-                TooltipData? currentTooltip = slot.ActiveTooltip;
-                UpdateVirtualRuntime(currentTooltip);
-                // TODO: Check aknowlege time
-                if (currentTooltip != null) {
-                    tooltipQueue.Enqueue(currentTooltip, currentTooltip.VirtualRunTime);
-                } else {
-                    slot.Clear();
-                }
-
-                return currentTooltip;
-            } else {
-                return null;
-            }
-        }
-
-        private void ClearAndShowTooltip(TooltipData? tooltip, TooltipSlot slot) {
-            slot.Clear();
-            slot.ShowTooltip(tooltip);
-        }
-
-
         private IEnumerator ProcessTooltipQueue() {
             while (true) {
-                if (slots != null) {
-                    foreach (var slot in slots) {
-                        // Process each slot
-                        // If the slot can be cleared
-                        if (slot.CanClear()) {
-                            TooltipData? oldTooltip = PrepareClearTooltip(slot);
-                            
-                            // Dequeue next tooltip to the slot
-                            TooltipData? nextTooltip = DequeueTooltip();
-
-                            if (oldTooltip != nextTooltip)
-                                ClearAndShowTooltip(nextTooltip, slot);
-                        }
-                    }
-                }
+                if (ToolTipRoot == null) yield break;
+                if (slots != null)
+                    scheduler.ProcessSlots(slots, MinDisplayTimeInSeconds, DequeueTooltip);
                 yield return new WaitForSeconds(1.0f); // Check every second
             }
         }

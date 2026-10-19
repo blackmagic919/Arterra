@@ -73,6 +73,11 @@ namespace Arterra.Core.Storage {
             // Map edit delivery is deferred to the separate map-update design.
         }
 
+        public override void ReflectChunk(Func<byte[]> GetEncodedChanges = null) {
+            // Remote map-update transmission is not wired up yet.
+            GetEncodedChanges?.Invoke();
+        }
+
         public override void Dispose() {
             if (disposed) return;
 

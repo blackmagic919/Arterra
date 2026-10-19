@@ -23,13 +23,15 @@ namespace Arterra.GamePlay.UI {
         public static void Initialize() {
             PlayerCrosshair.Initialize();
             LoadingHandler.Initialize();
+            PauseHandler.Initialize();
+            GameOverHandler.Initialize();
+        }
+
+        public static void InitializePlayerUI() {
             ToolTips.TooltipSystem.Initialize();
             PanelNavbarManager.Initialize();
             InventoryController.Initialize();
             ResourceInventoryController.Initialize();
-
-            PauseHandler.Initialize();
-            GameOverHandler.Initialize();
         }
     }
 

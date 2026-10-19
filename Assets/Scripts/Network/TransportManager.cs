@@ -53,11 +53,13 @@ namespace Arterra.Core.Network {
                 } catch (Exception exception) {
                     Debug.LogException(exception);
                     if (peer == discoveryPeer) Fail(exception);
-                    else Disconnect(peer);
+                    else Disconnect(peer, exception);
                 }
             };
-            listener.NetworkErrorEvent += (endpoint, error) =>
+            listener.NetworkErrorEvent += (endpoint, error) => {
                 Debug.LogWarning($"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Network Transport] Socket error: {error}.");
+                if (!IsServer && IsRunning) Fail(new System.Net.Sockets.SocketException((int)error));
+            };
 
             try {
                 if (!driver.Start()) throw new IOException("Could not bind the game UDP socket.");
@@ -99,19 +101,22 @@ namespace Arterra.Core.Network {
                 Fail(new IOException("Discovery connection ended: " + detail));
                 return;
             }
-            RemovePeer(peer, "Host disconnected.");
+            Exception reason = info.Reason == DisconnectReason.Timeout
+                ? new TimeoutException("Connection to host timed out.")
+                : new IOException($"Host disconnected: {info.Reason}.");
+            RemovePeer(peer, reason);
         }
 
-        public void Disconnect(NetPeer peer) {
+        public void Disconnect(NetPeer peer, Exception reason = null) {
             if (!IsStarted || !peers.Contains(peer)) return;
             if (IsServer) peer.Disconnect();
-            RemovePeer(peer, "Disconnected from host.");
+            RemovePeer(peer, reason ?? new IOException("Disconnected from host."));
         }
 
-        private void RemovePeer(NetPeer peer, string clientReason) {
+        private void RemovePeer(NetPeer peer, Exception reason) {
             peer.Tag = null;
             if (!peers.Remove(peer)) return; // An unsuccessful NAT candidate isn't a game connection.
-            if (!IsServer) { Fail(new IOException(clientReason)); return; }
+            if (!IsServer) { Fail(reason); return; }
 
             ForgetPeer(peer, new IOException("Peer disconnected."));
             PeerDisconnected?.Invoke(peer);

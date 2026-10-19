@@ -42,6 +42,11 @@ namespace Arterra.Core.Storage {
         //Default values for local chunk
         public override void EnterEntity(Entity entity) => entity.InitializeVisual();
 
+        public override void ReflectChunk(Func<byte[]> GetEncodedChanges = null) {
+            // Local map updates already share the authoritative map.
+            GetEncodedChanges?.Invoke();
+        }
+
         public override void LeaveEntity(Guid entityId) {
             if (EntityManager.TryGetEntity(entityId, out var entity)) entity.DisposeVisual();
         }

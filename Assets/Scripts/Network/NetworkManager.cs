@@ -12,6 +12,7 @@ using Arterra.GamePlay.UI;
 using System.IO;
 using Arterra.Engine.Terrain;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace Arterra.Core.Network {
     /// <summary>Session advertisement and discovery. Invoke on Unity's main thread.</summary>
@@ -70,10 +71,32 @@ namespace Arterra.Core.Network {
 
             Config.CURRENT.System.AddHook(MultiplayerHook, ToggleMultiplayer);
             initialized = true;
+            if (!IsActingServer) TransportManager.Instance.Stopped += OnClientTransportStopped;
             if (MultiplayerEnabled && World.GALAXY_TYPE == World.GalaxyType.Local) Observe(EnableMultiplayer());
         }
 
+        private static void OnClientTransportStopped(Exception reason) {
+            if (reason == null) return;
+            TransportManager.Instance.Stopped -= OnClientTransportStopped;
+            string message = reason is TimeoutException
+                ? "Connection To Host Interrupted"
+                : "Network Connection Encountered Unknown Error";
+
+            SceneManager.sceneLoaded += ShowDisconnectPopup;
+            PauseHandler.Exit();
+
+            void ShowDisconnectPopup(Scene scene, LoadSceneMode mode) {
+                if (scene.name != "MainMenu") return;
+                SceneManager.sceneLoaded -= ShowDisconnectPopup;
+                PopupHandler.Instance.CreatePopup(new PopupHandler.PopupConfig {
+                    Text = message,
+                    Priority = PopupPriority.High
+                });
+            }
+        }
+
         public static async Task ReleaseAsync() {
+            TransportManager.Instance.Stopped -= OnClientTransportStopped;
             if (initialized)
                 Config.CURRENT.System.RemoveHook(MultiplayerHook, ToggleMultiplayer);
 

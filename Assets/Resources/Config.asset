@@ -378,40 +378,40 @@ MonoBehaviour:
               Priority: 0
               TriggerEvent: -1
               TriggerTime: 5
-              PrefabPath: Prefabs/GameUI/ToolTips/ToolTip1/Display
+              PrefabPath: Prefabs/GameUI/Popups/ToolTips/ToolTip1/Display
               BlockingTooltips: 1
             - AcknowledgeTime: 30
               AcknowledgeEvent: -1
               Priority: 0
               TriggerEvent: -1
               TriggerTime: 40
-              PrefabPath: Prefabs/GameUI/ToolTips/ToolTip5/Display
+              PrefabPath: Prefabs/GameUI/Popups/ToolTips/ToolTip5/Display
               BlockingTooltips: 1
             - AcknowledgeTime: 30
               AcknowledgeEvent: -1
               Priority: 0
               TriggerEvent: -1
               TriggerTime: 120
-              PrefabPath: Prefabs/GameUI/ToolTips/ToolTip4/Display
+              PrefabPath: Prefabs/GameUI/Popups/ToolTips/ToolTip4/Display
               BlockingTooltips: 1
             - AcknowledgeTime: 30
               AcknowledgeEvent: -1
               Priority: 0
               TriggerEvent: 3009
               TriggerTime: 15
-              PrefabPath: Prefabs/GameUI/ToolTips/ToolTip6/Display
+              PrefabPath: Prefabs/GameUI/Popups/ToolTips/ToolTip6/Display
               BlockingTooltips: 1
             - AcknowledgeTime: 30
               AcknowledgeEvent: -1
               Priority: 0
               TriggerEvent: 3009
               TriggerTime: 2.5
-              PrefabPath: Prefabs/GameUI/ToolTips/ToolTip7/Display
+              PrefabPath: Prefabs/GameUI/Popups/ToolTips/ToolTip7/Display
               BlockingTooltips: 1
           GenericTooltipDismissorEvents:
             value:
             - DismissEvent: 3008
-              PrefabPath: Prefabs/GameUI/ToolTips/ToolTip5/Display
+              PrefabPath: Prefabs/GameUI/Popups/ToolTips/ToolTip5/Display
               DismissType: 1
   _Generation:
     value:

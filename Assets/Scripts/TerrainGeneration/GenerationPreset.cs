@@ -66,33 +66,36 @@ public static class SystemProtocol{
         //We need to make sure keybinds are rebound in the same order
         //as the state they were saved at
         InputPoller.Initialize();
-        PlayerHandler.Initialize(FinishStartup);
+        GameUIManager.Initialize();
 
-        void FinishStartup() {
-            GameUIManager.Initialize();
+        AtmospherePass.Initialize();
+        NauseaPass.Initialize();
+        DizzinessPass.Initialize();
+        BlindnessPass.Initialize();
+        Chunk.Initialize();
+        OptionsHandler.RefreshDisplayMap();
+        NetworkManager.Initialize();
 
-            AtmospherePass.Initialize();
-            NauseaPass.Initialize();
-            DizzinessPass.Initialize();
-            BlindnessPass.Initialize();
-            Chunk.Initialize();
-            OptionsHandler.RefreshDisplayMap();
-            NetworkManager.Initialize();
+        Structure.Creator.PresetData();
+        Surface.Creator.PresetData();
+        Map.Creator.PresetData();
+        EntityGenerator.Initialize();
+        MeshGenerator.PresetData();
+        SubChunkShaderGraph.PresetData();
+        RegionReconstructor.PresetData();
+        SpriteExtruder.PresetData();
 
-            Structure.Creator.PresetData();
-            Surface.Creator.PresetData();
-            Map.Creator.PresetData();
-            EntityGenerator.Initialize();
-            MeshGenerator.PresetData();
-            SubChunkShaderGraph.PresetData();
-            RegionReconstructor.PresetData();
-            SpriteExtruder.PresetData();
+        Readback.AsyncGenInfoReadback.PresetData();
+        Readback.AsyncMeshReadback.PresetData();
 
-            Readback.AsyncGenInfoReadback.PresetData();
-            Readback.AsyncMeshReadback.PresetData();
+        PlayerHandler.Initialize(InitializePlayerWorld);
+
+        void InitializePlayerWorld() {
+            GameUIManager.InitializePlayerUI();
             ChunkGenerationDriver.Initialize(NetworkManager.IsActingServer
                 ? new LocalChunkSource() : new ClientSource(PlayerHandler.GetPlayerId()));
             OctreeTerrain.Initialize();
+            LoadingHandler.Activate();
         }
     }
 

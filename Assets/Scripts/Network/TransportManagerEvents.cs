@@ -187,6 +187,14 @@ namespace Arterra.Core.Network {
             return QueueEvent(peer, referenceId, eventId, payload, replyTo, waitForDelivery: waitForDelivery, coalescePending: coalescePending).Id;
         }
 
+        /// <summary>Encode on submission, after coalescing and delivery gates. Capture values safe to read then.</summary>
+        public uint SendEvent(NetPeer peer, Guid referenceId, ushort eventId,
+            Func<byte[]> getMessage, uint replyTo = 0, bool waitForDelivery = false, bool coalescePending = false) {
+            if (getMessage == null) throw new ArgumentNullException(nameof(getMessage));
+            return QueueEvent(peer, referenceId, eventId, null, replyTo, waitForDelivery: waitForDelivery,
+                coalescePending: coalescePending, getMessage: getMessage).Id;
+        }
+
         public void Broadcast(Guid referenceId, ushort eventId, byte[] payload,
             NetPeer replyPeer = default, uint replyTo = 0, bool waitForDelivery = false, bool coalescePending = false) {
             if (!IsServer) throw new InvalidOperationException("Only the server can broadcast to its peers.");
@@ -224,21 +232,23 @@ namespace Arterra.Core.Network {
                 throw new ArgumentOutOfRangeException(nameof(duration));
         }
 
-        // Validate and copy once at the shared entry point for sends, broadcasts, and requests.
+        // Copy eager payloads now; deferred payloads are encoded only when submitted.
         private OutgoingEvent QueueEvent(NetPeer peer, Guid referenceId, ushort eventId,
-            byte[] payload, uint replyTo, bool broadcast = false, bool waitForDelivery = false, bool coalescePending = false, bool isRequest = false) {
+            byte[] payload, uint replyTo, bool broadcast = false, bool waitForDelivery = false, bool coalescePending = false,
+            bool isRequest = false, Func<byte[]> getMessage = null) {
             if ((waitForDelivery || coalescePending) && replyTo != 0)
                 throw new ArgumentException("Correlated replies cannot be replaced.", nameof(waitForDelivery));
             var pending = Volatile.Read(ref pendingEvents);
             if (!IsRunning) throw new InvalidOperationException("Peer is not connected.");
             if (eventId == 0) throw new ArgumentOutOfRangeException(nameof(eventId), "Event ID zero is reserved.");
-            if (payload == null) throw new ArgumentNullException(nameof(payload));
+            if (payload == null && getMessage == null) throw new ArgumentNullException(nameof(payload));
             uint id;
             do { id = unchecked((uint)Interlocked.Increment(ref nextMessageId)); } while (id == 0);
             references.TryGetValue(referenceId, out var sender);
             var message = new OutgoingEvent {
                 ReferenceId = referenceId, EventId = eventId, Id = id, ReplyTo = replyTo, Sender = sender, IsRequest = isRequest,
-                Bytes = (byte[])payload.Clone(), WaitForDelivery = waitForDelivery, Coalesce = waitForDelivery || coalescePending, Broadcast = broadcast,
+                Bytes = (byte[])payload?.Clone(), GetMessage = getMessage,
+                WaitForDelivery = waitForDelivery, Coalesce = waitForDelivery || coalescePending, Broadcast = broadcast,
                 Deadline = Stopwatch.GetTimestamp() + (long)(DefaultEventTimeout.TotalSeconds * Stopwatch.Frequency)
             };
             pending.Enqueue((peer, message));
@@ -317,7 +327,7 @@ namespace Arterra.Core.Network {
                 }
             } catch (IOException exception) {
                 UnityEngine.Debug.LogException(exception);
-                Disconnect(sendingPeer);
+                Disconnect(sendingPeer, exception);
             } finally {
                 sendTiming.Record(started, peers);
             }
@@ -332,6 +342,11 @@ namespace Arterra.Core.Network {
             var delivery = ordered ? DeliveryMethod.ReliableOrdered : DeliveryMethod.ReliableUnordered;
             var kind = message.IsRequest ? MessageKind.Request : message.ReplyTo != 0 ? MessageKind.Reply : MessageKind.Event;
             if (peer.GetPacketsCountInReliableQueue(ordered) >= MaxQueuedPackets) return false;
+
+            if (message.GetMessage != null) {
+                message.Bytes = message.GetMessage() ?? throw new InvalidDataException("Deferred event payload cannot be null.");
+                message.GetMessage = null;
+            }
 
             messageWriter.Reset();
             messageWriter.Put(pipeline?.RemoteStreamId ?? 0);
@@ -633,6 +648,7 @@ namespace Arterra.Core.Network {
             public uint Id, ReplyTo;
             public ushort EventId;
             public byte[] Bytes;
+            public Func<byte[]> GetMessage;
             public bool Canceled, Submitted, WaitForDelivery, Coalesce, Broadcast, IsRequest;
             public ReferenceCommunication Sender;
             public PeerPipeline Pipeline;
