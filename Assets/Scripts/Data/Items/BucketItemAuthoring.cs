@@ -1,3 +1,4 @@
+using Arterra.Core.Events;
 using Arterra.Utils;
 using Newtonsoft.Json;
 using Unity.Mathematics;
@@ -54,14 +55,20 @@ public class BucketItem : IItem{
     }
     public void UpdateEItem(){} 
     public void OnEnter(ItemContext cxt) {
-        if (cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
+        cxt.RegisterEvent(this, GameEvent.Apply_EmptyBucket, PlaceLiquid);
+        cxt.RegisterEvent(this, GameEvent.Apply_FillBucket, RemoveLiquid);
+
+        if (!cxt.IsOwner || cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
         
-            InputPoller.AddBinding(new ActionBind("Place", _ => PlaceLiquid(cxt), ActionBind.Exclusion.ExcludeLayer), "ITEM:Bucket:PL", "5.0::GamePlay");
-            InputPoller.AddBinding(new ActionBind("Remove", _ => RemoveLiquid(cxt), ActionBind.Exclusion.ExcludeLayer), "ITEM:Bucket:RM", "5.0::GamePlay");
+        InputPoller.AddBinding(new ActionBind("Place", _ => cxt.RaiseEvent(GameEvent.Apply_EmptyBucket), ActionBind.Exclusion.ExcludeLayer), "ITEM:Bucket:PL", "5.0::GamePlay");
+        InputPoller.AddBinding(new ActionBind("Remove", _ => cxt.RaiseEvent(GameEvent.Apply_FillBucket), ActionBind.Exclusion.ExcludeLayer), "ITEM:Bucket:RM", "5.0::GamePlay");
          
     } 
     public void OnLeave(ItemContext cxt) {
-        if (cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
+        cxt.UnregisterEvent(GameEvent.Apply_EmptyBucket);
+        cxt.UnregisterEvent(GameEvent.Apply_FillBucket);
+
+        if (!cxt.IsOwner || cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
         
             InputPoller.RemoveBinding("ITEM:Bucket:PL", "5.0::GamePlay");
             InputPoller.RemoveBinding("ITEM:Bucket:RM", "5.0::GamePlay");
@@ -97,10 +104,14 @@ public class BucketItem : IItem{
         Authoring authoring = ItemInfo.Retrieve(content.Index);
         if (authoring is not PlaceableItem mat) return;
         if (mat.MaterialName == null || !matInfo.Contains(mat.MaterialName)) return;
+        int previousAmount = content.AmountRaw;
         Terraforming.Terraform(hitPt, settings.TerraformRadius, AddFromBucket, interact.CallOnMapPlacing);
-        if(content.AmountRaw != 0) return;
-        content.ClearDisplay(display.transform);
-        content = null;
+        if (content.AmountRaw == previousAmount) return;
+        if (content.AmountRaw == 0) {
+            if (display != null) content.ClearDisplay(display.transform);
+            content = null;
+        }
+        cxt.SetDirty();
     }
 
     private bool AddFromBucket(int3 GCoord, float brushStrength){
@@ -136,7 +147,9 @@ public class BucketItem : IItem{
         if (!cxt.TryGetHolder(out BehaviorEntity.Animal player)) return;
         if (!player.Is(out PlayerInteractionBehavior interact)) interact = null;
         if (!interact.RayTestLiquid(out float3 hitPt)) return;
+        int previousAmount = content?.AmountRaw ?? 0;
         Terraforming.Terraform(hitPt, settings.TerraformRadius, RemoveToBucket, interact.CallOnMapRemoving);
+        if ((content?.AmountRaw ?? 0) != previousAmount) cxt.SetDirty();
     }
 
     private bool RemoveToBucket(int3 GCoord, float brushStrength){

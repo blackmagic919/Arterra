@@ -105,7 +105,7 @@ namespace Arterra.GamePlay.UI.ToolTips {
         // Initialize the tooltip pipeline with settings.
         public void Initialize(float minDisplayTimeInSeconds, int slotCount) {
             MinDisplayTimeInSeconds = minDisplayTimeInSeconds;
-            ToolTipRoot = UnityEngine.Object.Instantiate(Resources.Load<GameObject>("Prefabs/GameUI/Popups/Popups/Menu"), GameUIManager.UIHandle.transform);
+            ToolTipRoot = UnityEngine.Object.Instantiate(Resources.Load<GameObject>("Prefabs/GameUI/Popups/ToolTips/Menu"), GameUIManager.UIHandle.transform);
 
             scheduler = new PopupHandler.PopupScheduler<TooltipConfig>();
             delayedTooltips = new List<TooltipData>();

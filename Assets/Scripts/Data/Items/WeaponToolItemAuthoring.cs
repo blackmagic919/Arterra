@@ -35,14 +35,15 @@ namespace Arterra.Data.Item
         private WeaponToolItemAuthoring settings => ItemInfo.Retrieve(Index) as WeaponToolItemAuthoring;
         public override object Clone() => new WeaponToolItem { data = data, durability = durability };
         public override void OnEnter(ItemContext cxt) {
-            if (cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
+            cxt.RegisterEvent(this, GameEvent.Apply_WeaponAttack, PlayerAttack);
+            if (!cxt.IsOwner || cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
             if (cxt.TryGetHolder(out IEventControlled effect) && settings.Model.Enabled) 
                 effect.RaiseEvent(GameEvent.Item_HoldTool, effect is Entity.Entity ? ((Entity.Entity)effect).info.rtEntityId : effect, this, ref settings.Model.Value);
             Core.ArterraRuntime.MainLoopUpdateTasks.Enqueue(this);
             this.active = true; this.cxt = cxt;
             
                 InputPoller.AddBinding(new ActionBind(
-                    "Remove", PlayerAttack,
+                    "Remove", _ => RequestAttack(cxt),
                     ActionBind.Exclusion.ExcludeLayer),
                     "ITEM::WeaponTool:RM", "5.0::GamePlay"
                 );
@@ -50,7 +51,8 @@ namespace Arterra.Data.Item
         }
 
         public override void OnLeave(ItemContext cxt) {
-            if (cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
+            cxt.UnregisterEvent(GameEvent.Apply_WeaponAttack);
+            if (!cxt.IsOwner || cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
             if (cxt.TryGetHolder(out IEventControlled effect) && settings.Model.Enabled) 
                 effect.RaiseEvent(GameEvent.Item_UnholdTool, effect is Entity.Entity ? ((Entity.Entity)effect).info.rtEntityId : effect, this, ref settings.Model.Value);
             this.active = false;
@@ -85,7 +87,14 @@ namespace Arterra.Data.Item
             display.GetComponent<UnityEngine.UI.Image>().fillAmount = 1 - progress;
         }
 
-        private void PlayerAttack(float _) {
+        private void RequestAttack(ItemContext context) {
+            if (!context.TryGetHolder(out BehaviorEntity.Animal player)) return;
+            if (!player.Is(out PlayerInteractionBehavior interact)) return;
+            interact.AttackCooldown = settings.AttackCooldown;
+            context.RaiseEvent(GameEvent.Apply_WeaponAttack);
+        }
+
+        private void PlayerAttack(ItemContext cxt) {
             if (!cxt.TryGetHolder(out BehaviorEntity.Animal player)) return;
             if (!player.Is(out PlayerInteractionBehavior interact)) return;
             interact.AttackCooldown = settings.AttackCooldown;
@@ -113,7 +122,7 @@ namespace Arterra.Data.Item
                     target.info.rtEntityId, player.info.rtEntityId, (atkDmg, knockback));
                 durability--;
             
-                if (durability > 0) return;
+                if (durability > 0) { cxt.SetDirty(); return; }
                 cxt.TryRemove();
             }
             EntityManager.AddHandlerEvent(() => PlayerDamageEntity(entity));

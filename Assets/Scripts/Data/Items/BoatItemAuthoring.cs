@@ -1,3 +1,4 @@
+using Arterra.Core.Events;
 using Newtonsoft.Json;
 using Unity.Mathematics;
 using UnityEngine;
@@ -41,18 +42,21 @@ public class BoatItem : IItem{
     }
     public void UpdateEItem(){} 
     public void OnEnter(ItemContext cxt) {
-        if (cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
-        
-            InputPoller.AddBinding(new ActionBind(
-                "Place Entity",
-                _ => PlaceBoat(cxt),
-                ActionBind.Exclusion.ExcludeLayer),
-                "ITEM:Boat:PL", "5.0::GamePlay"
-            );
+        cxt.RegisterEvent(this, GameEvent.Apply_PlaceBoat, PlaceBoat);
+
+        if (!cxt.IsOwner || cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
+        InputPoller.AddBinding(new ActionBind(
+            "Place Entity",
+            _ => cxt.RaiseEvent(GameEvent.Apply_PlaceBoat),
+            ActionBind.Exclusion.ExcludeLayer),
+            "ITEM:Boat:PL", "5.0::GamePlay"
+        );
          
     } 
     public void OnLeave(ItemContext cxt) {
-        if (cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
+        cxt.UnregisterEvent(GameEvent.Apply_PlaceBoat);
+
+        if (!cxt.IsOwner || cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
         
             InputPoller.RemoveBinding("ITEM:Boat:PL", "5.0::GamePlay");
         

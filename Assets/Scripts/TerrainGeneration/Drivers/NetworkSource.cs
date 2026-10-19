@@ -13,7 +13,8 @@ using UnityEngine;
 namespace Arterra.Core.Storage {
     /// <summary>One remote player's server-side driver. Requests allocate server-local shared chunks.</summary>
     public sealed class NetworkSource : LocalChunkSource, ITransportEventListener, IChunkConsumer {
-        internal const ushort Generate = 1, Content = 2, Enter = 3, Leave = 4, Failed = 5;
+        internal const ushort Generate = 1, Content = 2, Enter = 3, Leave = 4, Failed = 5, MapChanges = 6;
+        public override bool DefersMapChanges => true;
 
         private readonly NetPeer peer;
         private readonly Guid referenceId;
@@ -69,13 +70,15 @@ namespace Arterra.Core.Storage {
             TransportManager.Instance.SendEvent(peer, referenceId, Leave, entityId.ToByteArray());
         }
 
-        public void ReflectChunk(Dictionary<int, MapData> updatedValues) {
-            // Map edit delivery is deferred to the separate map-update design.
-        }
+        void IChunkConsumer.ReflectChunk() { }
 
-        public override void ReflectChunk(Func<byte[]> GetEncodedChanges = null) {
-            // Remote map-update transmission is not wired up yet.
-            GetEncodedChanges?.Invoke();
+        public override void ReflectChunk(int3 coordinate, IReadOnlyDictionary<uint, MapData> changes,
+            Func<byte[]> getEncodedChanges = null, Action abandoned = null) {
+            if (disposed) { abandoned?.Invoke(); return; }
+
+            // The accumulator already keeps one pending encoder per chunk/source.
+            // Transport-level coalescing would incorrectly combine different chunks on this reference.
+            TransportManager.Instance.SendEvent(peer, referenceId, MapChanges, getEncodedChanges, abandoned: abandoned);
         }
 
         public override void Dispose() {

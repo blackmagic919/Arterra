@@ -81,7 +81,7 @@ namespace Arterra.Data.Entity.Behavior {
         private Catalogue<MaterialData> matInfo => Config.CURRENT.Generation.Materials.value.MaterialDictionary;
         private Catalogue<ItemAuthoring> itemInfo => Config.CURRENT.Generation.Items;
         private int TerraformRadius => Modifier.GetInt(mod, MSettings.TerraformRadius, settings.TerraformRadius);
-        private int ReachDistance => Modifier.GetInt(mod, MSettings.ReachDistance, settings.ReachDistance);
+        private int ReachDistance => Modifier.GetInt(mod, MSettings.ReachDistance, settings?.ReachDistance ?? 8f);
         private int CylinderRadius => Modifier.GetInt(mod, MSettings.CylinderRadius, settings.CylinderRadius);
         private float PickupRate => Modifier.GetInt(mod, MSettings.PickupRate, settings.PickupRate);
         private float AttackDamage => Modifier.GetInt(mod, MSettings.AttackDamage, settings.AttackDamage);
@@ -107,7 +107,7 @@ namespace Arterra.Data.Entity.Behavior {
             self.Register(this);
             attackCooldown = 0;
             this.self = self;
-
+            BindServerEvents();
         }
 
         public override void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
@@ -117,7 +117,7 @@ namespace Arterra.Data.Entity.Behavior {
             if (!self.Is(out vit)) vit = null;
             self.Register(this);
             this.self = self;
-
+            BindServerEvents();
         }
 
         public override void InitializeVisual(BehaviorEntity.Animal self) {
@@ -126,12 +126,22 @@ namespace Arterra.Data.Entity.Behavior {
         public override void DisposeVisual(BehaviorEntity.Animal self) => UnbindInput();
 
         public override void Disable(BehaviorEntity.Animal self) {
+            self.eventCtrl.RemoveEventHandler(GameEvent.Apply_Attack, AttackEntity);
+            self.eventCtrl.RemoveEventHandler(GameEvent.Apply_PlaceTerrain, PlaceTerrain);
+            self.eventCtrl.RemoveEventHandler(GameEvent.Apply_RemoveTerrain, RemoveTerrain);
             this.self = null;
         }
 
         public override void Update(BehaviorEntity.Animal self) {
-            if (!self.IsOwner || self.context != BehaviorEntity.UpdateContext.Visual) return;
+            if (self.context != (self.IsAuthority ? BehaviorEntity.UpdateContext.Sync : BehaviorEntity.UpdateContext.Visual)) return;
             attackCooldown = math.max(attackCooldown - self.DeltaTime, 0);
+        }
+
+        private void BindServerEvents() {
+            if (!self.IsAuthority) return;
+            self.eventCtrl.AddEventHandler(GameEvent.Apply_Attack, AttackEntity);
+            self.eventCtrl.AddEventHandler(GameEvent.Apply_PlaceTerrain, PlaceTerrain);
+            self.eventCtrl.AddEventHandler(GameEvent.Apply_RemoveTerrain, RemoveTerrain);
         }
 
         public bool RayTestSolid<T>(T entity, float reach, out float3 hitPt) where T : Entity {
@@ -179,10 +189,13 @@ namespace Arterra.Data.Entity.Behavior {
             hasBindings = true;
 
             self.eventCtrl.AddEventHandler(GameEvent.Entity_Death, OnDeath);
-            InputPoller.AddBinding(new ActionBind("Attack", AttackEntity, policy: ActionBind.Policy.Down),
+            InputPoller.AddBinding(new ActionBind("Attack", _ =>
+                self.eventCtrl.RaiseEvent(GameEvent.Apply_Attack, self.info.rtEntityId, null), policy: ActionBind.Policy.Down),
                 AttackEntityName, "5.0::GamePlay");
-            InputPoller.AddBinding(new ActionBind("Place", PlaceTerrain), PlaceTerrainName, "5.0::GamePlay");
-            InputPoller.AddBinding(new ActionBind("Remove", RemoveTerrain), RemoveTerrainName, "5.0::GamePlay");
+            InputPoller.AddBinding(new ActionBind("Place", _ => self.eventCtrl.RaiseEvent(
+                GameEvent.Apply_PlaceTerrain, self.info.rtEntityId, null, InventoryController.SelectedIndex)), PlaceTerrainName, "5.0::GamePlay");
+            InputPoller.AddBinding(new ActionBind("Remove", _ => self.eventCtrl.RaiseEvent(
+                GameEvent.Apply_RemoveTerrain, self.info.rtEntityId, null)), RemoveTerrainName, "5.0::GamePlay");
         }
 
         private void UnbindInput() {
@@ -197,7 +210,7 @@ namespace Arterra.Data.Entity.Behavior {
 
         private void OnDeath(object source, object target, object context) => self.RemoveBehavior(Id);
 
-        private void AttackEntity(float _) {
+        private void AttackEntity(object source, object target, object context) {
             if (self == null || !self.active || !PlayerHandler.active) return;
             if (attackCooldown > 0) return;
             attackCooldown = AttackFrequency;
@@ -238,8 +251,10 @@ namespace Arterra.Data.Entity.Behavior {
             return HandleRemoveSolid(ref mapData, GCoord, speed * tag.TerraformSpeed, tag.GivesItem);
         }
 
-        private void PlaceTerrain(float _) {
-            if (!PlayerHandler.active) return;
+        private void PlaceTerrain(object source, object target, object context) {
+            if (!PlayerHandler.active || !self.Is(out PlayerInventoriesBehavior inventories)) return;
+            if (context is not int slot || (uint)slot >= inventories.PrimaryI.Capacity) return;
+            inventories.SelectedIndex = slot;
 
             bool rayHit = false;
             float3 hitPt = self.head + self.Forward * ReachDistance;
@@ -249,21 +264,21 @@ namespace Arterra.Data.Entity.Behavior {
             }
 
             if (EntityManager.ESTree.FindClosestAlongRay(self.head, hitPt, self.info.rtEntityId, out var entity, out _)) {
-                EntityInteract(entity, InventoryController.Selected);
-                InventoryController.TryClearSelected();
+                EntityInteract(entity, inventories.Selected);
+                if (inventories.Selected?.AmountRaw == 0) inventories.PrimaryI.RemoveEntry(slot);
                 return;
             }
 
             if (!rayHit) return;
-            if (InventoryController.Selected == null) return;
-            ItemAuthoring selMat = InventoryController.SelectedSetting;
+            if (inventories.Selected == null) return;
+            ItemAuthoring selMat = itemInfo.Retrieve(inventories.Selected.Index);
             if (selMat is not PlaceableItem setting) return;
             if (!setting.IsSolid || !matInfo.Contains(setting.MaterialName)) return;
 
             self.eventCtrl.RaiseEvent(GameEvent.Action_PlaceTerrain, self.info.rtEntityId, null, hitPt);
             Terraforming.Terraform(hitPt, TerraformRadius,
                 (GCoord, speed) => HandleAddSolidInternal(
-                    InventoryController.Selected,
+                    inventories.Selected,
                     GCoord,
                     speed * settings.DefaultTerraform.value.TerraformSpeed,
                     out MapData _
@@ -272,7 +287,7 @@ namespace Arterra.Data.Entity.Behavior {
             );
         }
 
-        private void RemoveTerrain(float _) {
+        private void RemoveTerrain(object source, object target, object context) {
             if (!PlayerHandler.active) return;
             if (!CylinderTestSolidCurrent(out float3 hitPt)) return;
 
@@ -325,7 +340,8 @@ namespace Arterra.Data.Entity.Behavior {
             int solidDensity = pointInfo.SolidDensity;
             // If adding solid density, overflow into/replace existing liquid density.
             int solidDelta = CustomUtility.GetStaggeredDelta(solidDensity, brushStrength);
-            solidDelta = InventoryController.RemoveStackable(solidDelta, matItem.Index);
+            if (!self.Is(out PlayerInventoriesBehavior inventories)) return false;
+            solidDelta = inventories.RemoveStackable(solidDelta, matItem.Index);
             solidDelta = math.min(pointInfo.viscosity + solidDelta, 255) - pointInfo.viscosity;
 
             // Remove previous liquid contribution before applying new solid delta.
@@ -367,7 +383,8 @@ namespace Arterra.Data.Entity.Behavior {
             MapData delta = pointInfo;
             delta.viscosity = 0;
             delta.density = CustomUtility.GetStaggeredDelta(pointInfo.density, brushStrength);
-            delta.density = InventoryController.RemoveStackable(delta.density, matItem.Index);
+            if (!self.Is(out PlayerInventoriesBehavior inventories)) return false;
+            delta.density = inventories.RemoveStackable(delta.density, matItem.Index);
 
             MaterialInstance authoring = new(GCoord, pointInfo.material);
             self.eventCtrl.RaiseEvent(GameEvent.Entity_PlaceMaterial, self.info.rtEntityId, authoring, delta);
@@ -389,15 +406,14 @@ namespace Arterra.Data.Entity.Behavior {
             delta.density = CustomUtility.GetStaggeredDelta(solidDensity, -brushStrength);
             delta.viscosity = delta.density;
             MaterialInstance authoring = new(GCoord, pointInfo.material);
-            self.eventCtrl.RaiseEvent(Arterra.Core.Events.GameEvent.Entity_RemoveMaterial, self.info.rtEntityId, authoring, delta);
+            self.eventCtrl.RaiseEvent(GameEvent.Entity_RemoveMaterial, self.info.rtEntityId, authoring, delta);
 
             pointInfo.viscosity -= delta.viscosity;
             pointInfo.density -= delta.density;
             IItem matItem = authoring.Authoring.OnRemoved(GCoord, delta);
             if (solidDensity >= CPUMapManager.IsoValue && obtainMat) {
                 if (matItem == null) return false;
-                InventoryController.AddEntry(matItem);
-                if (matItem.AmountRaw != 0) InventoryController.DropItem(matItem);
+                if (self.Is(out PlayerInventoriesBehavior inventories)) inventories.AddItem(matItem);
             }
 
             CPUMapManager.SetMap(pointInfo, GCoord);
@@ -420,8 +436,7 @@ namespace Arterra.Data.Entity.Behavior {
             IItem matItem = authoring.Authoring.OnRemoved(GCoord, delta);
             if (liquidDensity >= CPUMapManager.IsoValue && obtainMat) {
                 if (matItem == null) return false;
-                InventoryController.AddEntry(matItem);
-                if (matItem.AmountRaw != 0) InventoryController.DropItem(matItem);
+                if (self.Is(out PlayerInventoriesBehavior inventories)) inventories.AddItem(matItem);
             }
 
             CPUMapManager.SetMap(pointInfo, GCoord);

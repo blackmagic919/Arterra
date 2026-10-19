@@ -15,6 +15,7 @@ using Arterra.Configuration;
 using Arterra.Engine.Terrain;
 using Arterra.Utils;
 using Arterra.Data.Entity;
+using Arterra.Core.Network;
 
 namespace Arterra.Core.Storage {
     /// <summary>A static centralized location for managing and storing all CPU-side map information,
@@ -46,6 +47,8 @@ namespace Arterra.Core.Storage {
         private static int mapChunkSize;
         private static float lerpScale;
         private static bool initialized = false;
+        public static MapChangeAccumulator MapChanges { get; private set; }
+        private static ArterraRuntime.IndirectUpdate mapChangeUpdate;
         private static readonly HashSet<Task> pendingReleases = new();
         private static event Action<int3> OnCreateChunk;
         private static event Action<int3> OnReleaseChunk;
@@ -65,6 +68,9 @@ namespace Arterra.Core.Storage {
             numChunksAxis = OctreeTerrain.BalancedOctree.GetAxisChunksDepth(0, rSettings.Balance, (uint)rSettings.MinChunkRadius);
             
             ChunkFlags = new SharedLinkedList<ChunkMapInfo.Flags>(numChunks);
+            MapChanges = new MapChangeAccumulator();
+            mapChangeUpdate = new ArterraRuntime.IndirectUpdate(_ => MapChanges.FlushChangesTick());
+            ArterraRuntime.MainLateUpdateTasks.Enqueue(mapChangeUpdate);
             initialized = true;
         }
 
@@ -81,6 +87,7 @@ namespace Arterra.Core.Storage {
         /// <summary>Stop accepting chunks and cancel every pending load before releasing GPU pipelines.</summary>
         public static void StopGeneration() {
             initialized = false;
+            if (mapChangeUpdate != null) mapChangeUpdate.Active = false;
             foreach (var chunk in ChunkData.Values) chunk.Generation.Cancel();
         }
 
@@ -92,6 +99,7 @@ namespace Arterra.Core.Storage {
             TerrainUpdate.CompleteJobs();
             Debug.Log($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Shutdown] CPU map: completing entity jobs.");
             EntityManager.CompleteJobs();
+            MapChanges?.Clear();
             Debug.Log($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Shutdown] CPU map: jobs complete; releasing chunk records.");
             var records = ChunkData.Values.ToArray();
             foreach (ChunkMapInfo info in records) 
@@ -119,6 +127,7 @@ namespace Arterra.Core.Storage {
             uint flagIndex = ChunkFlags.Enqueue(ChunkMapInfo.Flags.Clean);
             var chunk = new ChunkMapInfo(CCoord, (int)flagIndex, numPoints);
             if (ChunkData.TryAdd(CCoord, chunk)) {
+                MapChanges.AddChunk(CCoord);
                 OnCreateChunk?.Invoke(CCoord);
                 return chunk;
             }
@@ -166,6 +175,7 @@ namespace Arterra.Core.Storage {
             chunk.Generation.Entities?.Release(coordinate);
             chunk.Generation.Pipeline?.Release();
             ChunkData.TryRemove(coordinate, out _);
+            MapChanges?.RemoveChunk(coordinate);
             OnReleaseChunk?.Invoke(coordinate);
             var flags = ChunkFlags[(uint)chunk.FlagIndex];
             ChunkFlags.Remove((uint)chunk.FlagIndex);
@@ -226,6 +236,14 @@ namespace Arterra.Core.Storage {
         /// <param name="PropogateUpdates">Whether or not to notify entries in the map of updation. 
         /// This should always be true unless it can cause infinite cascading updates </param>
         public static bool SetMap(MapData data, int3 GCoord, bool PropogateUpdates = true) {
+            if (!NetworkManager.IsActingServer) return false;
+            return WriteMap(data, GCoord, PropogateUpdates);
+        }
+
+        // ClientSource has already verified that these updates came from the connected server.
+        internal static bool ApplyMapUpdate(MapData data, int3 GCoord) => WriteMap(data, GCoord, false);
+
+        private static bool WriteMap(MapData data, int3 GCoord, bool PropogateUpdates) {
             int3 MCoord = ((GCoord % mapChunkSize) + mapChunkSize) % mapChunkSize;
             int3 CCoord = (GCoord - MCoord) / mapChunkSize;
             int PIndex = MCoord.x * mapChunkSize * mapChunkSize + MCoord.y * mapChunkSize + MCoord.z;
@@ -238,23 +256,12 @@ namespace Arterra.Core.Storage {
             //and cannot be internally corrupted by any write operation
             mapInfo.ChunkData[mapInfo.Offset + PIndex] = data;
             ChunkFlags[(uint)mapInfo.FlagIndex] = ChunkMapInfo.Flags.Dirty;
-            ReflectNeighbors(CCoord, MCoord == 0);
+            MapChanges.TrackChange(CCoord, (uint)PIndex, data);
             if (!PropogateUpdates) return true;
             TerrainUpdate.AddUpdate(GCoord);
             for (int i = 0; i < 6; i++) {
                 TerrainUpdate.AddUpdate(GCoord + Utils.CustomUtility.dP[i]);
             } return true;
-        }
-
-        private static void ReflectNeighbors(int3 CCoord, bool3 IsBordering) {
-            for (int x = IsBordering.x ? -1 : 0; x <= 0; x++) {
-            for (int y = IsBordering.y ? -1 : 0; y <= 0; y++) {
-            for (int z = IsBordering.z ? -1 : 0; z <= 0; z++) {
-                int3 NeighborCC = CCoord + new int3(x, y, z);
-                if (!ChunkData.TryGetValue(NeighborCC, out ChunkMapInfo mapInfo)) continue;
-                if (!mapInfo.HasMap) continue;
-                mapInfo.ReflectChunk();
-            }}}
         }
 
         /// <summary> Retrieves the <see cref="MapData"/> associated with a grid coordinate if
@@ -464,8 +471,6 @@ namespace Arterra.Core.Storage {
                 this.PendingWrites = new HashSet<Task>();
                 this.ownsMemory = false;
             }
-
-            public readonly void ReflectChunk(Dictionary<int, MapData> updatedValues = null) => Generation.ReflectChunk(updatedValues);
 
             internal readonly void CheckUnused() {
                 if (Generation != null && (Generation.Subscribers.Count != 0 || (Ready != null && !Ready.IsCompleted)))

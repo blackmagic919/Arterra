@@ -360,7 +360,7 @@ namespace Arterra.Engine.Terrain{
                 status.ReadSaveState = Status.State.Finished;
             }
 
-            void IChunkConsumer.ReflectChunk(System.Collections.Generic.Dictionary<int, MapData> changes) => ReflectChunk();
+            void IChunkConsumer.ReflectChunk() => ReflectChunk();
 
             public override void ReleaseChunk() {
                 subscription?.Release();

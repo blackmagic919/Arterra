@@ -25,8 +25,12 @@ namespace Arterra.Core.Storage {
         public abstract void EnterEntity(Entity entity);
 
         public abstract void LeaveEntity(Guid entityId);
-        //tightly encoded CCoord + list of (uint MCoord, uint MapData)
-        public abstract void ReflectChunk(Func<byte[]> GetEncodedChanges = null);
+        public virtual bool DefersMapChanges => false;
+
+        // Local sources consume changes immediately; remote sources retain only the encoder.
+        // Encoded layout: int3 coordinate followed by (uint cellIndex, uint packedMapData).
+        public abstract void ReflectChunk(int3 coordinate, IReadOnlyDictionary<uint, MapData> changes,
+            Func<byte[]> getEncodedChanges = null, Action abandoned = null);
     }
 
 }

@@ -93,6 +93,26 @@ namespace Arterra.Core.Storage {
             subscription.Release();
         }
 
+        public void ReflectChunk(int3 coordinate, IReadOnlyDictionary<uint, MapData> changes) {
+            int size = Config.CURRENT.Quality.Terrain.value.mapChunkSize;
+            var affected = new HashSet<int3> { coordinate };
+            foreach (uint index in changes.Keys) {
+                int3 cell = new((int)index / (size * size), (int)index / size % size, (int)index % size);
+                for (int x = cell.x == 0 ? -1 : 0; x <= 0; x++) {
+                for (int y = cell.y == 0 ? -1 : 0; y <= 0; y++) {
+                for (int z = cell.z == 0 ? -1 : 0; z <= 0; z++) {
+                    affected.Add(coordinate + new int3(x, y, z));
+                }}}
+            }
+
+            foreach (int3 neighbor in affected) {
+                var subscription = region[HashCoord(neighbor)];
+                if (subscription == null || !subscription.Active || !subscription.Chunk.HasMap
+                    || math.any(subscription.Chunk.CCoord != neighbor)) continue;
+                subscription.Owner.ReflectChunk();
+            }
+        }
+
         /// <summary>Disconnect this player without canceling another player's generation.</summary>
         public void Release() {
             for (int i = 0; i < region.Length; i++) {
@@ -268,12 +288,6 @@ namespace Arterra.Core.Storage {
                 await entities;
             }
 
-            internal void ReflectChunk(Dictionary<int, MapData> updatedValues) {
-                var snapshot = new List<Subscription>(Subscribers);
-                foreach (Subscription subscriber in snapshot)
-                    if (subscriber.Active) subscriber.Owner.ReflectChunk(updatedValues);
-            }
-
             public HashSet<ChunkGenerationDriver> GetDriverSet() {
                 if (Subscribers == null) return null;
                 return Subscribers.Select(s => s.Driver).ToHashSet();
@@ -283,7 +297,7 @@ namespace Arterra.Core.Storage {
 
     /// <summary>A local renderer or a server-side peer subscriber; neither owns shared map resources.</summary>
     public interface IChunkConsumer {
-        void ReflectChunk(Dictionary<int, MapData> updatedValues);
+        void ReflectChunk();
     }
 
 }

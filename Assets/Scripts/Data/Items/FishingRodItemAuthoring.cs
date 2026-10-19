@@ -53,6 +53,7 @@ namespace Arterra.Data.Item
         public uint data;
         public float durability;
         private FishingLine line;
+        private bool castPending;
         protected static Catalogue<Authoring> ItemInfo => Config.CURRENT.Generation.Items;
         protected static Catalogue<MaterialData> MatInfo => Config.CURRENT.Generation.Materials.value.MaterialDictionary;
         protected static Catalogue<TextureContainer> TextureAtlas => Config.CURRENT.Generation.Textures;
@@ -83,30 +84,40 @@ namespace Arterra.Data.Item
         }
         public void UpdateEItem() { }
         public virtual void OnEnter(ItemContext cxt) {
-            durability = 100;
-            if (cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
+            cxt.RegisterEvent(this, GameEvent.Apply_DrawRod, StartDrawingRod);
+            cxt.RegisterEvent(this, GameEvent.Apply_CastRod, CastLine);
+            cxt.RegisterEvent(this, GameEvent.Apply_ReelRod, ReelLine);
+            cxt.RegisterEvent(this, GameEvent.Apply_ReleaseRod, ReleaseLine);
+            cxt.RegisterEvent(this, GameEvent.Apply_CancelRod, CancelLine);
+            cxt.RegisterEvent(this, GameEvent.Item_FishingLine, ReceiveLine, authority: false);
+            if (!cxt.IsOwner || cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
             if (cxt.TryGetHolder(out IEventControlled effect) && settings.Model.Enabled) 
                 effect.RaiseEvent(GameEvent.Item_HoldTool, effect is Entity.Entity ? ((Entity.Entity)effect).info.rtEntityId : effect, this, ref settings.Model.Value);
             
                 InputPoller.AddBinding(new ActionBind(
-                    "BowDraw", _ => StartDrawingRod(cxt),
+                    "BowDraw", _ => cxt.RaiseEvent(GameEvent.Apply_DrawRod),
                     ActionBind.Exclusion.ExcludeLayer), "ITEM:FishingRod:DRW", "5.0::GamePlay");
                 InputPoller.AddBinding(new ActionBind(
-                    "BowRelease", _ => CastLine(cxt),
+                    "BowRelease", _ => cxt.RaiseEvent(GameEvent.Apply_CastRod),
                     ActionBind.Exclusion.ExcludeLayer), "ITEM:FishingRod:FIRE", "5.0::GamePlay");
-                InputPoller.AddBinding(new ActionBind("ReelLine", _ => ReelLine(cxt)), "ITEM:FishingRod:REEL", "5.0::GamePlay");
-                InputPoller.AddBinding(new ActionBind("ReleaseLine", _ => ReleaseLine(cxt)), "ITEM:FishingRod:RLS", "5.0::GamePlay");
+                InputPoller.AddBinding(new ActionBind("ReelLine", _ => RequestLineChange(cxt, GameEvent.Apply_ReelRod, "ReelLine")), "ITEM:FishingRod:REEL", "5.0::GamePlay");
+                InputPoller.AddBinding(new ActionBind("ReleaseLine", _ => RequestLineChange(cxt, GameEvent.Apply_ReleaseRod, "ReleaseLine")), "ITEM:FishingRod:RLS", "5.0::GamePlay");
             
         }
         public virtual void OnLeave(ItemContext cxt) {
-            if (cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
+            if (cxt.IsOwner && cxt.scenario == ItemContext.Scenario.ActivePlayerSelected)
+                cxt.RaiseEvent(GameEvent.Apply_CancelRod);
+            CancelLine(cxt);
+            cxt.UnregisterEvent(GameEvent.Apply_DrawRod);
+            cxt.UnregisterEvent(GameEvent.Apply_CastRod);
+            cxt.UnregisterEvent(GameEvent.Apply_ReelRod);
+            cxt.UnregisterEvent(GameEvent.Apply_ReleaseRod);
+            cxt.UnregisterEvent(GameEvent.Apply_CancelRod);
+            cxt.UnregisterEvent(GameEvent.Item_FishingLine);
+
+            if (!cxt.IsOwner || cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
             if (cxt.TryGetHolder(out IEventControlled effect) && settings.Model.Enabled)
                 effect.RaiseEvent(GameEvent.Item_UnholdTool, effect is Entity.Entity ? ((Entity.Entity)effect).info.rtEntityId : effect, this, ref settings.Model.Value);
-            
-            if(line != null){
-                if(line.Active) TryRecollectBait(cxt, line);
-                line?.Release();
-            }
             
             InputPoller.RemoveBinding("ITEM:FishingRod:DRW", "5.0::GamePlay");
             InputPoller.RemoveBinding("ITEM:FishingRod:FIRE", "5.0::GamePlay");
@@ -141,7 +152,7 @@ namespace Arterra.Data.Item
 
         private float drawTime;
         void StartDrawingRod(ItemContext cxt) {
-            if (line != null && line.Active) return;
+            if (castPending || line != null && line.Active) return;
 
             if (cxt.TryGetHolder(out IEventControlled effect))
                 effect.RaiseEvent(GameEvent.Item_DrawRod, effect is Entity.Entity ? ((Entity.Entity)effect).info.rtEntityId : effect, this);
@@ -149,7 +160,7 @@ namespace Arterra.Data.Item
         }
 
         private void CastLine(ItemContext cxt) {
-            if (line != null && line.Active) return;
+            if (castPending || line != null && line.Active) return;
 
             float timeDraw = drawTime; drawTime = 0;
             if(timeDraw < settings.MinDrawTime) return;
@@ -161,7 +172,7 @@ namespace Arterra.Data.Item
             }
 
             durability -= 1.0f;
-            if (durability > 0) return;
+            if (durability > 0) { cxt.SetDirty(); return; }
             cxt.TryRemove();
         }
 
@@ -180,11 +191,19 @@ namespace Arterra.Data.Item
                 Bait.Index = entInd;
             }
 
+            castPending = true;
             settings.HookProjectile.LaunchProjectile(Bait, h, h.Forward * launchSpeed, (hook) => {
+                if (!castPending || !cxt.TryGetInventory(out IInventory inventory)
+                    || !ReferenceEquals(inventory.PeekItem(cxt.InvId), this)) {
+                    EntityManager.ReleaseEntity(hook.info.rtEntityId);
+                    return;
+                }
+                castPending = false;
                 line = new FishingLine(h, hook,
                     settings.HookEntityEvent, settings.LineLength,
-                    settings.LineDetail, settings.LineDamping
+                    settings.LineDetail, settings.LineDamping, changed => PublishLine(cxt, changed)
                 );
+                PublishLine(cxt, line);
             });
             return true;
         }
@@ -192,15 +211,46 @@ namespace Arterra.Data.Item
         private void ReelLine(ItemContext cxt) {
             if (line == null || !line.Active) return;
             line.ReelLine(settings.ReelSpeed, Time.deltaTime);
-            InputPoller.SuspendKeybindPropogation("ReelLine");
+            PublishLine(cxt, line);
         }
 
         private void ReleaseLine(ItemContext cxt) {
             if (line == null || !line.Active) return;
             line.ReleaseLine(settings.ReelSpeed, Time.deltaTime);
-            InputPoller.SuspendKeybindPropogation("ReleaseLine");
+            PublishLine(cxt, line);
         }
 
+
+        private void RequestLineChange(ItemContext context, GameEvent type, string binding) {
+            if (line == null || !line.Active) return;
+            InputPoller.SuspendKeybindPropogation(binding);
+            context.RaiseEvent(type);
+        }
+
+        private void CancelLine(ItemContext context) {
+            castPending = false;
+            drawTime = 0;
+            if (line == null) return;
+            if (line.Authority && line.Active) TryRecollectBait(context, line);
+            line.Release();
+            line = null;
+        }
+
+        private void PublishLine(ItemContext context, FishingLine value) {
+            context.RaiseEvent(GameEvent.Item_FishingLine,
+                (value.Active ? value.HookingEntity.info.rtEntityId : Guid.Empty,
+                 value.LineSegments, value.hookedOffset));
+        }
+
+        private void ReceiveLine(ItemContext context, object argument) {
+            if (argument is not ValueTuple<Guid, float, float3> state) return;
+            if (state.Item1 == Guid.Empty) { line?.Release(); line = null; return; }
+            if (!context.TryGetHolder(out Entity.Entity holder)) return;
+            if (line?.Active == false) line = null;
+            line ??= new FishingLine(holder, null, settings.HookEntityEvent,
+                settings.LineLength, settings.LineDetail, settings.LineDamping);
+            line.ApplyRemoteState(state.Item1, state.Item2, state.Item3);
+        }
 
         protected virtual void UpdateDisplay() {
             if (display == null) return;
@@ -254,15 +304,21 @@ namespace Arterra.Data.Item
             private GameObject LineObject;
             private LineRenderer renderer;
 
+            public bool Authority => changed != null;
+            private readonly Action<FishingLine> changed;
+            private Guid remoteHook;
+            private readonly Entity.Entity eventSource;
+            private readonly GameEvent hookEvent;
+            private bool initialized;
             private readonly int MaxLineSegs;
             private readonly float MaxLineLength;
 
             private int HookEntityType;
             public int RealSegments => Mathf.CeilToInt(LineSegments);
-            private float LineSegments;
+            public float LineSegments;
             private float LineSegLength;
             private float damping;
-            private float3 hookedOffset;
+            public float3 hookedOffset;
             private const int SolveIters = 5;
             private const float tensionThreshold = 0.35f;
             private struct LinePoint {
@@ -270,13 +326,14 @@ namespace Arterra.Data.Item
                 public float3 prevPos;
             }
             private List<LinePoint> points = new();
-            public FishingLine(Entity.Entity holder, Entity.Entity hook, GameEvent HookEvent, float LineLength, float lineDetail, float damping) {
+            public FishingLine(Entity.Entity holder, Entity.Entity hook, GameEvent HookEvent, float LineLength, float lineDetail, float damping, Action<FishingLine> changed = null) {
+                this.changed = changed;
                 Holder = holder;
                 HookingEntity = hook;
                 LineSegLength = lineDetail;
                 MaxLineSegs = math.max(2, (int)(LineLength / LineSegLength));
                 MaxLineLength = LineSegLength;
-                HookEntityType = (int)hook.info.entityType;
+                HookEntityType = hook == null ? 0 : (int)hook.info.entityType;
 
                 this.hookedOffset = 0;
                 this.LineSegments = MaxLineSegs;
@@ -287,22 +344,28 @@ namespace Arterra.Data.Item
                 renderer = LineObject.GetComponent<LineRenderer>();
                 ArterraRuntime.MainLoopUpdateTasks.Enqueue(this);
 
-                HookingEntity.eventCtrl.AddContextlessEventHandler(HookEvent, OnHookedEntity);
-                HookingEntity.eventCtrl.AddContextlessEventHandler(GameEvent.Entity_InLiquid, SinkEntity);
-                InitializePoints();
+                if (Authority) {
+                    eventSource = hook;
+                    hookEvent = HookEvent;
+                    eventSource.eventCtrl.AddEventHandler(hookEvent, OnHookedEntity);
+                    eventSource.eventCtrl.AddEventHandler(GameEvent.Entity_InLiquid, SinkEntity);
+                    InitializePoints();
+                    initialized = true;
+                }
             }
 
-            private void SinkEntity(object srcId, object _) {
+            private void SinkEntity(object srcId, object target, object context) {
                 if (srcId is not Guid sourceId) return;
                 if (!EntityManager.TryGetEntity(sourceId, out Entity.Entity hook)) return;
                 //x1 to counteract upwards float force, x1 to add gravity back since it's cancelled
                 hook.velocity += 2 * EntityJob.cxt.deltaTime * EntityJob.cxt.gravity;
             }
-            private void OnHookedEntity(object source, object target) {
+            private void OnHookedEntity(object source, object target, object context) {
                 if (target is not Guid targetId) return;
                 if (!EntityManager.TryGetEntity(targetId, out Entity.Entity entity)) return;
                 hookedOffset = HookingEntity.position - entity.position;
                 HookingEntity = entity;
+                changed?.Invoke(this);
             }
 
             private void InitializePoints() {
@@ -324,15 +387,20 @@ namespace Arterra.Data.Item
             private float3 holderTension;
             private float3 hookTension;
             public void Update(MonoBehaviour _) {
-                if (HookingEntity == null || !HookingEntity.active) Release();
-                if (Holder == null || !Holder.active) Release();
+                if (Holder == null || !Holder.active) { Release(); return; }
+                if (!Authority && (HookingEntity == null || HookingEntity.info.rtEntityId != remoteHook)) {
+                    if (!EntityManager.TryGetEntity(remoteHook, out HookingEntity)) return;
+                }
+                if (HookingEntity == null || !HookingEntity.active) { Release(); return; }
+                if (!initialized) { InitializePoints(); initialized = true; }
                 holderTension = float3.zero;
                 hookTension = float3.zero;
 
-                PreventProjectileDecay();
+                if (Authority) PreventProjectileDecay();
                 Integrate(Time.deltaTime);
                 SolveConstraints();
-                ApplyTensionAndExtendLine();
+                if (Authority) ApplyTension();
+                ExtendLine();
                 MatchLineRenderer();
             }
 
@@ -387,7 +455,7 @@ namespace Arterra.Data.Item
                         float3 dir = delta / dist;
 
                         // Break line if overstretched
-                        if (stretch > LineSegLength * 3f && iter >= SolveIters - 1) {
+                        if (Authority && stretch > LineSegLength * 3f && iter >= SolveIters - 1) {
                             BreakLine();
                             return;
                         }
@@ -419,14 +487,15 @@ namespace Arterra.Data.Item
                 if (HookingEntity.Is(out IDecaying decay)) decay.ResetDecay();
             }
 
-            private void ApplyTensionAndExtendLine() {
+            private void ApplyTension() {
                 ApplyTensionToEntity(HookingEntity, hookTension);
 
-                if (points.Count >= RealSegments) {
+                if (points.Count >= RealSegments)
                     ApplyTensionToEntity(Holder, holderTension);
-                    return;
-                }
-                
+            }
+
+            private void ExtendLine() {
+                if (points.Count >= RealSegments) return;
                 float tension = math.length(holderTension);
                 if (tension < tensionThreshold)
                     return;
@@ -475,9 +544,20 @@ namespace Arterra.Data.Item
                 LineSegments = math.clamp(LineSegments, 2f, MaxLineSegs);
             }
 
+            public void ApplyRemoteState(Guid hook, float segments, float3 offset) {
+                remoteHook = hook;
+                LineSegments = math.clamp(segments, 2, MaxLineSegs);
+                hookedOffset = offset;
+                while (points.Count > RealSegments) points.RemoveAt(points.Count - 2);
+            }
+
             public void Release() {
-                GameObject.Destroy(LineObject);
+                if (!active) return;
                 active = false;
+                eventSource?.eventCtrl.RemoveEventHandler(hookEvent, OnHookedEntity);
+                eventSource?.eventCtrl.RemoveEventHandler(GameEvent.Entity_InLiquid, SinkEntity);
+                GameObject.Destroy(LineObject);
+                changed?.Invoke(this);
             }
 
 

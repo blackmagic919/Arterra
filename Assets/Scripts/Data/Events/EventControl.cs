@@ -55,6 +55,7 @@ namespace Arterra.Core.Events {
         Entity_CanMount = GameEventBases.Entity_Base + 33,
         Entity_AddModifier = GameEventBases.Entity_Base + 34,
         Entity_RemoveModifier = GameEventBases.Entity_Base + 35,
+        Entity_SetInventorySlot = GameEventBases.Entity_Base + 36,
 
         
         Item_ConsumeFood = GameEventBases.Item_Base + 0,
@@ -65,6 +66,8 @@ namespace Arterra.Core.Events {
         Item_ReleaseBow = GameEventBases.Item_Base + 5,
         Item_DrawRod = GameEventBases.Item_Base + 6,
         Item_ReleaseRod = GameEventBases.Item_Base + 7,
+        Item_MutateItem = GameEventBases.Item_Base + 8,
+        Item_FishingLine = GameEventBases.Item_Base + 9,
 
 
         Action_Jump = GameEventBases.Action_Base + 0,
@@ -95,6 +98,30 @@ namespace Arterra.Core.Events {
         Apply_EntityMate = GameEventBases.Apply_Base + 2,
         Apply_Jump = GameEventBases.Apply_Base + 3,
         Apply_ToggleFly = GameEventBases.Apply_Base + 4,
+        Apply_Attack = GameEventBases.Apply_Base + 5,
+        Apply_PlaceTerrain = GameEventBases.Apply_Base + 6,
+        Apply_RemoveTerrain = GameEventBases.Apply_Base + 7,
+        Apply_ConsumeItem = GameEventBases.Apply_Base + 8,
+        Apply_PlaceBoat = GameEventBases.Apply_Base + 9,
+        Apply_EmptyBucket = GameEventBases.Apply_Base + 10,
+        Apply_FillBucket = GameEventBases.Apply_Base + 11,
+        Apply_ToolRemove = GameEventBases.Apply_Base + 12,
+        Apply_ConvertMaterial = GameEventBases.Apply_Base + 13,
+        Apply_ConvertToolMaterial = GameEventBases.Apply_Base + 14,
+        Apply_WeaponAttack = GameEventBases.Apply_Base + 15,
+        Apply_DrawBow = GameEventBases.Apply_Base + 16,
+        Apply_ReleaseBow = GameEventBases.Apply_Base + 17,
+        Apply_CancelBow = GameEventBases.Apply_Base + 18,
+        Apply_PenAdd = GameEventBases.Apply_Base + 19,
+        Apply_PenRemove = GameEventBases.Apply_Base + 20,
+        Apply_PlaceStructure = GameEventBases.Apply_Base + 21,
+        Apply_DrawRod = GameEventBases.Apply_Base + 22,
+        Apply_CastRod = GameEventBases.Apply_Base + 23,
+        Apply_ReelRod = GameEventBases.Apply_Base + 24,
+        Apply_ReleaseRod = GameEventBases.Apply_Base + 25,
+        Apply_CancelRod = GameEventBases.Apply_Base + 26,
+
+
     }
 
     public enum EventHandlePriority {

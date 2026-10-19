@@ -189,10 +189,11 @@ namespace Arterra.Core.Network {
 
         /// <summary>Encode on submission, after coalescing and delivery gates. Capture values safe to read then.</summary>
         public uint SendEvent(NetPeer peer, Guid referenceId, ushort eventId,
-            Func<byte[]> getMessage, uint replyTo = 0, bool waitForDelivery = false, bool coalescePending = false) {
+            Func<byte[]> getMessage, uint replyTo = 0, bool waitForDelivery = false, bool coalescePending = false,
+            Action abandoned = null) {
             if (getMessage == null) throw new ArgumentNullException(nameof(getMessage));
             return QueueEvent(peer, referenceId, eventId, null, replyTo, waitForDelivery: waitForDelivery,
-                coalescePending: coalescePending, getMessage: getMessage).Id;
+                coalescePending: coalescePending, getMessage: getMessage, abandoned: abandoned).Id;
         }
 
         public void Broadcast(Guid referenceId, ushort eventId, byte[] payload,
@@ -203,12 +204,13 @@ namespace Arterra.Core.Network {
 
         /// <summary>Await a correlated reply. Cancellation stops waiting; it does not undo remote execution.</summary>
         public async Task<TransportEvent> RequestEventAsync(NetPeer peer, Guid referenceId,
-            ushort eventId, byte[] payload, CancellationToken token = default, TimeSpan? timeout = null) {
+            ushort eventId, byte[] payload, CancellationToken token = default, TimeSpan? timeout = null,
+            Action<TransportEvent> responseReceived = null) {
             token.ThrowIfCancellationRequested();
             var duration = timeout ?? DefaultEventTimeout;
             ValidateTimeout(duration);
             var queued = QueueEvent(peer, referenceId, eventId, payload, 0, isRequest: true);
-            var request = new EventRequest(referenceId);
+            var request = new EventRequest(referenceId, responseReceived);
             var key = (peer, queued.Id);
             requests.Add(key, request);
             using var timer = new CancellationTokenSource();
@@ -223,7 +225,7 @@ namespace Arterra.Core.Network {
                 timer.Cancel();
                 requests.Remove(key);
                 // Cancel an unsent request; a submitted message already belongs to LiteNetLib.
-                queued.Canceled = true;
+                queued.Cancel();
             }
         }
 
@@ -235,7 +237,7 @@ namespace Arterra.Core.Network {
         // Copy eager payloads now; deferred payloads are encoded only when submitted.
         private OutgoingEvent QueueEvent(NetPeer peer, Guid referenceId, ushort eventId,
             byte[] payload, uint replyTo, bool broadcast = false, bool waitForDelivery = false, bool coalescePending = false,
-            bool isRequest = false, Func<byte[]> getMessage = null) {
+            bool isRequest = false, Func<byte[]> getMessage = null, Action abandoned = null) {
             if ((waitForDelivery || coalescePending) && replyTo != 0)
                 throw new ArgumentException("Correlated replies cannot be replaced.", nameof(waitForDelivery));
             var pending = Volatile.Read(ref pendingEvents);
@@ -247,7 +249,7 @@ namespace Arterra.Core.Network {
             references.TryGetValue(referenceId, out var sender);
             var message = new OutgoingEvent {
                 ReferenceId = referenceId, EventId = eventId, Id = id, ReplyTo = replyTo, Sender = sender, IsRequest = isRequest,
-                Bytes = (byte[])payload?.Clone(), GetMessage = getMessage,
+                Bytes = (byte[])payload?.Clone(), GetMessage = getMessage, Abandoned = abandoned,
                 WaitForDelivery = waitForDelivery, Coalesce = waitForDelivery || coalescePending, Broadcast = broadcast,
                 Deadline = Stopwatch.GetTimestamp() + (long)(DefaultEventTimeout.TotalSeconds * Stopwatch.Frequency)
             };
@@ -261,7 +263,7 @@ namespace Arterra.Core.Network {
             int count = pendingEvents.Count;
             while (count-- > 0 && pendingEvents.TryDequeue(out var pending)) {
                 var message = pending.message;
-                if (message.Canceled || !IsCurrentSender(message)) continue;
+                if (message.Canceled || !IsCurrentSender(message)) { message.Cancel(); continue; }
                 if (message.Broadcast) {
                     if (!IsServer) continue;
                     foreach (var peer in peers) {
@@ -270,7 +272,7 @@ namespace Arterra.Core.Network {
                     }
                 } else if (peers.Contains(pending.peer)) {
                     EnqueueEvent(pending.peer, message);
-                }
+                } else message.Cancel();
             }
         }
 
@@ -346,6 +348,7 @@ namespace Arterra.Core.Network {
             if (message.GetMessage != null) {
                 message.Bytes = message.GetMessage() ?? throw new InvalidDataException("Deferred event payload cannot be null.");
                 message.GetMessage = null;
+                message.Abandoned = null;
             }
 
             messageWriter.Reset();
@@ -416,6 +419,7 @@ namespace Arterra.Core.Network {
                 throw new InvalidDataException("Reply targets the wrong reference.");
             // Apply state before waking a caller awaiting this response.
             try {
+                request?.ResponseReceived?.Invoke(message);
                 if (apply && references.TryGetValue(message.ReferenceId, out var listener)) listener.Listener?.OnEvent(message);
                 request?.Response.TrySetResult(message);
             } catch (Exception exception) {
@@ -439,7 +443,8 @@ namespace Arterra.Core.Network {
 
         private void ResetEvents(Exception reason) {
             // Late producers keep the old queue, so their sends cannot enter a new session.
-            Interlocked.Exchange(ref pendingEvents, new());
+            var discarded = Interlocked.Exchange(ref pendingEvents, new());
+            while (discarded.TryDequeue(out var pending)) pending.message.Cancel();
             foreach (var request in requests.Values) {
                 if (reason == null) request.Response.TrySetCanceled();
                 else request.Response.TrySetException(reason);
@@ -572,10 +577,11 @@ namespace Arterra.Core.Network {
                 if (message.Coalesce) {
                     if (currentVariable != null) {
                         if (message.WaitForDelivery && currentVariable.Submitted) {
+                            pendingVariable?.Cancel();
                             pendingVariable = message;
                             return;
                         }
-                        currentVariable.Canceled = true;
+                        currentVariable.Cancel();
                     }
                     currentVariable = message;
                 }
@@ -594,6 +600,7 @@ namespace Arterra.Core.Network {
                 while (outgoing.TryPeek(out var message)) {
                     if (message.Canceled || !transport.IsCurrentSender(message)) {
                         outgoing.Dequeue();
+                        message.Cancel();
                         continue;
                     }
                     if (!transport.SendMessage(peer, message, this)) return false;
@@ -626,8 +633,9 @@ namespace Arterra.Core.Network {
             }
 
             public void CancelOutgoing() {
-                outgoing.Clear();
-                if (currentVariable != null) currentVariable.Canceled = true;
+                while (outgoing.TryDequeue(out var message)) message.Cancel();
+                currentVariable?.Cancel();
+                pendingVariable?.Cancel();
                 currentVariable = null;
                 pendingVariable = null;
             }
@@ -640,8 +648,12 @@ namespace Arterra.Core.Network {
 
         private sealed class EventRequest {
             public readonly Guid ReferenceId;
+            public readonly Action<TransportEvent> ResponseReceived;
             public readonly TaskCompletionSource<TransportEvent> Response = new(TaskCreationOptions.RunContinuationsAsynchronously);
-            public EventRequest(Guid referenceId) => ReferenceId = referenceId;
+            public EventRequest(Guid referenceId, Action<TransportEvent> responseReceived) {
+                ReferenceId = referenceId;
+                ResponseReceived = responseReceived;
+            }
         }
         private sealed class OutgoingEvent {
             public Guid ReferenceId;
@@ -649,10 +661,19 @@ namespace Arterra.Core.Network {
             public ushort EventId;
             public byte[] Bytes;
             public Func<byte[]> GetMessage;
+            public Action Abandoned;
             public bool Canceled, Submitted, WaitForDelivery, Coalesce, Broadcast, IsRequest;
             public ReferenceCommunication Sender;
             public PeerPipeline Pipeline;
             public long Deadline;
+
+            public void Cancel() {
+                Canceled = true;
+                GetMessage = null;
+                var abandoned = Abandoned;
+                Abandoned = null;
+                abandoned?.Invoke();
+            }
 
             // Copy before enqueueing: each recipient owns its delivery state, but shares payload bytes.
             public OutgoingEvent ForRecipient(bool replyRecipient) {

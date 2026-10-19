@@ -1,3 +1,5 @@
+using Arterra.Core.Events;
+using System;
 using UnityEngine;
 using Newtonsoft.Json;
 using Unity.Mathematics;
@@ -52,13 +54,16 @@ namespace Arterra.Data.Item {
         }
 
         public void OnEnter(ItemContext cxt) {
-            if (cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
+            cxt.RegisterEvent(this, GameEvent.Apply_PlaceStructure,
+                (context, argument) => InteractionHandler.Apply(this, context, argument));
+            if (!cxt.IsOwner || cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
             handler?.Release();
             handler = InteractionHandler.Create(this, cxt);
         }
         public void OnLeave(ItemContext cxt) {
-            if (cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
-            handler.Release();
+            cxt.UnregisterEvent(GameEvent.Apply_PlaceStructure);
+            if (!cxt.IsOwner || cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
+            handler?.Release();
             handler = null;
         }
         public void UpdateEItem() { }
@@ -152,12 +157,19 @@ namespace Arterra.Data.Item {
                     IsLocked = true;
                 }
 
-                MaterialData placeMat = MatInfo.Retrieve(item.settings.MaterialName);
-                if (!placeMat.Is(out PlaceableStructureMat stctMat)) return;
-                int3 rot = GetRotation(player.head - Location);
-                List<MapSamplePoint> edit = DeserializeStruct();
-                if (RemoveConflictMats(player, edit, Location, rot)) return;
-                PlaceNewMats(player, edit, Location, rot);
+                cxt.RaiseEvent(GameEvent.Apply_PlaceStructure, (Location, GetRotation(player.head - Location)));
+            }
+
+            public static void Apply(PlaceableStructureItem item, ItemContext context, object argument) {
+                if (argument is not ValueTuple<int3, int3> placement) return;
+                if (!context.TryGetHolder(out BehaviorEntity.Animal player)) return;
+                int3 rotation = placement.Item2;
+                if (math.any(rotation < 0) || math.any(rotation > 3)) return;
+                var operation = new InteractionHandler { item = item, cxt = context };
+                List<MapSamplePoint> edit = operation.DeserializeStruct();
+                if (edit == null) return;
+                if (operation.RemoveConflictMats(player, edit, placement.Item1, rotation)) return;
+                operation.PlaceNewMats(player, edit, placement.Item1, rotation);
             }
 
             private int3 GetRotation(float3 direction) {

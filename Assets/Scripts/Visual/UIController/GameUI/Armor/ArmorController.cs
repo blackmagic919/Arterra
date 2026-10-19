@@ -74,15 +74,6 @@ namespace Arterra.GamePlay.UI {
             playerArmor.ReapplyHandles();
 
             cxt.cur.eventCtrl.AddEventHandler(
-                GameEvent.Entity_Damaged,
-                delegate (object actor, object target, object args) {
-                    Entity attacker = null;
-                    if (target is Guid attackerId) EntityManager.TryGetEntity(attackerId, out attacker);
-                    playerArmor.OnDamaged(attacker, (RefTuple<(float, float3)>)args);
-                }
-            );
-
-            cxt.cur.eventCtrl.AddEventHandler(
                 GameEvent.Entity_Respawn,
                 delegate (object actor, object target, object ctx) {
                     if (actor is not Guid actorId || target is not Guid targetId) return;

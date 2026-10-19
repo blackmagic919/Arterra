@@ -120,15 +120,15 @@ namespace Arterra.GamePlay.UI {
     public static void Activate() {
         PlayerHandler.data.eventCtrl.RaiseEvent(GameEvent.Action_OpenInventory, PlayerHandler.data.info.rtEntityId, null);
         InputPoller.AddStackPoll(new ActionBind("Frame:Inventory", _ => InputPoller.SetCursorLock(false)), "CursorLock");
-        
-            InputPoller.AddContextFence("PlayerInventory:AllFrame", "3.0::AllWindow", ActionBind.Exclusion.None);
-            InputPoller.AddContextFence("PlayerInventory:WndFrame", "3.5::Window", ActionBind.Exclusion.ExcludeAll);
-            InputPoller.AddBinding(new ActionBind("Open Inventory", Deactivate, policy: ActionBind.Policy.Down), "PlayerInventory:CLS", "3.5::Window");
-            InputPoller.AddBinding(new ActionBind("Deselect", _ => DeselectDrag(GetMouseTarget, true)), "PlayerInventory:DSL", "3.5::Window");
-            InputPoller.AddBinding(new ActionBind("Select", _ => Select(GetMouseTarget, true), policy: ActionBind.Policy.Down),  "PlayerInventory:SEL", "3.5::Window");
-            InputPoller.AddBinding(new ActionBind("SelectPartial", _ => SelectPartial(GetMouseTarget, true), policy: ActionBind.Policy.Down),  "PlayerInventory:SELP", "3.5::Window");
-            InputPoller.AddBinding(new ActionBind("SelectAll", _ => { SelectAll(Primary); SelectAll(Secondary); },
-                ActionBind.Exclusion.ExcludeLayer,  ActionBind.Policy.Down),"PlayerInventory:SELA", "3.0::AllWindow");
+
+        InputPoller.AddContextFence("PlayerInventory:AllFrame", "3.0::AllWindow", ActionBind.Exclusion.None);
+        InputPoller.AddContextFence("PlayerInventory:WndFrame", "3.5::Window", ActionBind.Exclusion.ExcludeAll);
+        InputPoller.AddBinding(new ActionBind("Open Inventory", Deactivate, policy: ActionBind.Policy.Down), "PlayerInventory:CLS", "3.5::Window");
+        InputPoller.AddBinding(new ActionBind("Deselect", _ => DeselectDrag(GetMouseTarget, true)), "PlayerInventory:DSL", "3.5::Window");
+        InputPoller.AddBinding(new ActionBind("Select", _ => Select(GetMouseTarget, true), policy: ActionBind.Policy.Down),  "PlayerInventory:SEL", "3.5::Window");
+        InputPoller.AddBinding(new ActionBind("SelectPartial", _ => SelectPartial(GetMouseTarget, true), policy: ActionBind.Policy.Down),  "PlayerInventory:SELP", "3.5::Window");
+        InputPoller.AddBinding(new ActionBind("SelectAll", _ => { SelectAll(Primary); SelectAll(Secondary); },
+            ActionBind.Exclusion.ExcludeLayer,  ActionBind.Policy.Down),"PlayerInventory:SELA", "3.0::AllWindow");
         
         Cursor.ClearCursor(AddEntry);
         Secondary.Display.parent.SetActive(true);
@@ -365,7 +365,25 @@ namespace Arterra.GamePlay.UI {
 
 
         public class Inventory : IInventory {
+            [JsonIgnore]
             public IItem[] Info;
+
+            [JsonProperty("Info", ObjectCreationHandling = ObjectCreationHandling.Replace)]
+            private IItem[] SerializedInfo {
+                get {
+                    IItem[] items = new IItem[Info.Length];
+                    for (int i = 0; i < Info.Length; i++) {
+                        if (Info[i] == null) continue;
+                        IItem item = (IItem)Info[i].Clone();
+                        item.Index = SerializedNames.IndexOf(
+                            item.GetRegistry().RetrieveName(item.Index));
+                        items[i] = item;
+                    }
+                    return items;
+                }
+                set => Info = value;
+            }
+
             public LLNode[] EntryLL;
             public List<string> SerializedNames;
             [JsonIgnore]
@@ -555,6 +573,18 @@ namespace Arterra.GamePlay.UI {
                 OnRemoveElement = OnRemoveItem;
             }
 
+            public void RefreshSlot(int slot, Action update) {
+                ClearDisplay(slot);
+                update();
+                DictUpdate(slot);
+                AttachDisplay(slot);
+            }
+
+            private void NotifyChange(int slot) {
+                ItemContext context = new(this, slot);
+                (OnAddElement?.Invoke(context) ?? context).SetDirty();
+            }
+
             public IItem LootInventory(float collectRate) {
                 if (EntryDict.Count <= 0) return null;
                 int firstSlot = EntryDict.First().Value;
@@ -580,6 +610,7 @@ namespace Arterra.GamePlay.UI {
                     sMat.AmountRaw += delta;
                     mat.AmountRaw -= delta;
                     DictUpdate(SlotIndex);
+                    if (delta != 0) NotifyChange(SlotIndex);
                 }
 
                 if (mat.AmountRaw <= 0) return;
@@ -600,6 +631,7 @@ namespace Arterra.GamePlay.UI {
                     sMat.AmountRaw += delta;
                     mat.AmountRaw -= delta;
                     DictUpdate(SlotIndex);
+                    if (delta != 0) NotifyChange(SlotIndex);
                 }
                 if (mat.AmountRaw <= 0) return;
                 AddEntry(mat, out int ind);
@@ -612,7 +644,10 @@ namespace Arterra.GamePlay.UI {
                 delta = mat.AmountRaw - math.max(mat.AmountRaw - delta, 0);
                 Info[SlotIndex].AmountRaw -= delta;
 
-                if (mat.AmountRaw != 0) DictUpdate(SlotIndex);
+                if (mat.AmountRaw != 0) {
+                    DictUpdate(SlotIndex);
+                    if (delta != 0) NotifyChange(SlotIndex);
+                }
                 else RemoveEntry(SlotIndex);
 
                 return delta;
@@ -635,7 +670,10 @@ namespace Arterra.GamePlay.UI {
                         removed.AmountRaw = delta;
                         OnRemove(removed);
                     }
-                    if (mat.AmountRaw != 0) DictUpdate(SlotIndex);
+                    if (mat.AmountRaw != 0) {
+                        DictUpdate(SlotIndex);
+                        if (delta != 0) NotifyChange(SlotIndex);
+                    }
                     else RemoveEntry(SlotIndex);
                 }
                 return start - remainder;
@@ -662,6 +700,7 @@ namespace Arterra.GamePlay.UI {
                 Info[SlotIndex] = null;
                 tail = math.min(tail, SlotIndex);
                 length--;
+                cxt.SetDirty();
             }
 
             public virtual bool AddEntry(IItem entry, out int head) {
@@ -679,6 +718,7 @@ namespace Arterra.GamePlay.UI {
                 ItemContext cxt = new(this, head);
                 cxt = OnAddElement?.Invoke(cxt) ?? cxt;
                 Info[head].OnEnter(cxt);
+                cxt.SetDirty();
 
                 return true;
             }
@@ -697,6 +737,7 @@ namespace Arterra.GamePlay.UI {
                 ItemContext cxt = new(this, index);
                 cxt = OnAddElement?.Invoke(cxt) ?? cxt;
                 Info[index].OnEnter(cxt);
+                cxt.SetDirty();
 
                 return true;
             }
@@ -765,8 +806,7 @@ namespace Arterra.GamePlay.UI {
 
             [OnSerializing]
             public void OnSerializing(StreamingContext cxt) {
-                //Marks updated slots dirty so they are rendered properlly when deserialized
-                // (Register Name, Index) -> Name Index
+                // Build the name table without changing live inventory IDs.
                 Dictionary<string, int> lookup = new Dictionary<string, int>();
 
                 void Serialize(ref IItem item) {
@@ -774,7 +814,6 @@ namespace Arterra.GamePlay.UI {
                     IRegister registry = item.GetRegistry();
                     string name = registry.RetrieveName(item.Index);
                     lookup.TryAdd(name, lookup.Count);
-                    item.Index = lookup[name];
                 }
 
                 for (int i = 0; i < Info.Length; i++) {

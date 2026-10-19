@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Threading;
 using Arterra.Core.Network;
@@ -42,10 +43,9 @@ namespace Arterra.Core.Storage {
         //Default values for local chunk
         public override void EnterEntity(Entity entity) => entity.InitializeVisual();
 
-        public override void ReflectChunk(Func<byte[]> GetEncodedChanges = null) {
-            // Local map updates already share the authoritative map.
-            GetEncodedChanges?.Invoke();
-        }
+        public override void ReflectChunk(int3 coordinate, IReadOnlyDictionary<uint, MapData> changes,
+            Func<byte[]> getEncodedChanges = null, Action abandoned = null) =>
+            ChunkGenerationDriver.Local?.ReflectChunk(coordinate, changes);
 
         public override void LeaveEntity(Guid entityId) {
             if (EntityManager.TryGetEntity(entityId, out var entity)) entity.DisposeVisual();

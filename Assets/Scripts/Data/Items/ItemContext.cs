@@ -1,4 +1,6 @@
 using System;
+using Arterra.Core.Events;
+using Arterra.Data.Entity.Behavior;
 using Unity.Mathematics;
 
 namespace Arterra.Data.Item {
@@ -35,6 +37,34 @@ namespace Arterra.Data.Item {
             this.scenario = scenario;
             return this;
         }
+        public bool IsOwner => TryGetHolder(out BehaviorEntity.Animal holder) && holder.IsOwner;
+
+        public void RegisterEvent(IItem item, GameEvent type, Action<ItemContext> callback) =>
+            RegisterEvent(item, type, (context, _) => callback(context));
+
+        public void RegisterEvent(IItem item, GameEvent type, Action<ItemContext, object> callback, bool authority = true) {
+            if (TryGetHolder(out BehaviorEntity.Animal holder) && holder.Is(out PlayerInventoriesBehavior inventories))
+                inventories.RegisterEvent(item, this, type, callback, authority);
+        }
+
+        public void UnregisterEvent(GameEvent type) {
+            if (TryGetHolder(out BehaviorEntity.Animal holder) && holder.Is(out PlayerInventoriesBehavior inventories))
+                inventories.UnregisterEvent(this, type);
+        }
+
+        public void RaiseEvent(GameEvent type, object argument = null) {
+            if (!TryGetHolder(out BehaviorEntity.Animal holder) || !holder.Is(out PlayerInventoriesBehavior inventories)) return;
+            if (!Inv.TryGetTarget(out IInventory inventory) || !inventories.TryGetInventoryKind(inventory, out var kind)) return;
+            holder.eventCtrl.RaiseEvent(type, holder.info.rtEntityId, (kind, InvId), argument);
+        }
+
+        public void SetDirty() {
+            if (!TryGetHolder(out BehaviorEntity.Animal holder)) return;
+            if (!Inv.TryGetTarget(out IInventory inventory)) return;
+            holder.eventCtrl.RaiseEvent(GameEvent.Item_MutateItem,
+                holder.info.rtEntityId, inventory, InvId, local: true);
+        }
+
         public bool TryRemove() {
             if (!Inv.TryGetTarget(out IInventory target))
                 return false;
@@ -54,7 +84,7 @@ namespace Arterra.Data.Item {
 
         public bool TryGetHolder<THolder>(out THolder owner) where THolder : class {
             owner = null;
-            if (!Holder.TryGetTarget(out object holder))
+            if (Holder == null || !Holder.TryGetTarget(out object holder))
                 return false;
             if (holder is not THolder hold)
                 return false;
@@ -83,6 +113,8 @@ namespace Arterra.Data.Item {
         /// <summary> Gets the capacity of the inventory </summary>
         /// <returns>The capacity of the inventory</returns>
         public int Capacity {get;}
+        /// <summary>Refreshes indexes and presentation after an in-place item update.</summary>
+        public void RefreshSlot(int slot, Action update) => update();
         /// <summary> Removes the entry at a given index, does nothing
         /// if nothing is there. </summary>
         /// <param name="slot">The index of the item being removed</param>

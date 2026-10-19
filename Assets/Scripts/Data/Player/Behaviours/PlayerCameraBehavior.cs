@@ -60,7 +60,9 @@ namespace Arterra.Data.Entity.Behavior {
         [JsonIgnore] public GamePlay.Interaction.TerrainCollider Collider => baseCollider.Collider;
         [JsonIgnore] public GamePlay.Interaction.TerrainCollider PathCollider => baseCollider.PathCollider;
         [JsonIgnore] public Quaternion Rotation {
-            get => perspectives?[activePersp].Facing ?? baseCollider.Rotation;
+            get => perspectives?[activePersp].Facing ?? math.mul(
+                Quaternion.Euler(0, baseCollider.Collider.transform.rotation.eulerAngles.y, 0),
+                Quaternion.Euler(cameraLocalRotation.eulerAngles.x, 0, 0));
             set => baseCollider.Rotation = value;
         }
 
@@ -77,13 +79,17 @@ namespace Arterra.Data.Entity.Behavior {
         private BehaviorEntity.Animal self;
 
         internal float2 lookDelta;
-        internal Quaternion cameraLocalRotation = Quaternion.identity;
+        [JsonIgnore] internal Quaternion cameraLocalRotation {
+            get => netCameraLocalRotation.Value;
+            set => netCameraLocalRotation.Value = value;
+        }
         internal float3 cameraLocalPosition;
         internal int cullingMask;
 
         private ICameraPerspective[] perspectives;
         private int activePersp;
-        [JsonProperty] private NetworkVariable<float> lookPitch = new("LookPitch", NetworkPermission.Owner, waitForDelivery: false);
+        [JsonProperty] private NetworkVariable<Quaternion> netCameraLocalRotation = new(
+            "CameraLocalRotation", NetworkPermission.Owner, initialValue: Quaternion.identity, waitForDelivery: false);
         private float previousBodyYaw;
 
         public override void AddBehaviorDependencies(Dictionary<Behaviors, int> hierarchy) {
@@ -103,7 +109,7 @@ namespace Arterra.Data.Entity.Behavior {
             BindAfterDeserialize(self);
             self.Register(this);
             this.self = self;
-            lookPitch.Register(self);
+            netCameraLocalRotation.Register(self);
         }
 
         public override void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
@@ -113,7 +119,7 @@ namespace Arterra.Data.Entity.Behavior {
 
             self.Register(this);
             this.self = self;
-            lookPitch.Register(self);
+            netCameraLocalRotation.Register(self);
         }
 
         public void BindAfterDeserialize(BehaviorEntity.Animal self) {
@@ -136,7 +142,7 @@ namespace Arterra.Data.Entity.Behavior {
         }
 
         public override void Disable(BehaviorEntity.Animal self) {
-            lookPitch.Dispose();
+            netCameraLocalRotation.Dispose();
             this.self = null;
         }
 
@@ -150,15 +156,13 @@ namespace Arterra.Data.Entity.Behavior {
             }
 
             perspectives[activePersp].Update();
-            float pitch = GetAngleX(cameraLocalRotation);
-            if (lookPitch.Value != pitch) lookPitch.Value = pitch;
             perspectives[activePersp].UpdateLookEvent(this);
             ApplyCameraTransform();
             lookDelta = float2.zero;
         }
 
         private void RaiseLookEvent(float turn) {
-            RefTuple<(float, float)> context = (lookPitch.Value, turn);
+            RefTuple<(float, float)> context = (GetAngleX(cameraLocalRotation), turn);
             self.eventCtrl.RaiseEvent(GameEvent.Action_LookGradual, self.info.rtEntityId, null, context, local: true);
         }
 
@@ -295,7 +299,7 @@ namespace Arterra.Data.Entity.Behavior {
 
             public void Activate() {
                 camera.cameraLocalPosition = new float3(0, heightReal, 0);
-                camera.cameraLocalRotation.eulerAngles = new(camera.cameraLocalRotation.eulerAngles.x, 0, 0);
+                camera.cameraLocalRotation = Quaternion.Euler(camera.cameraLocalRotation.eulerAngles.x, 0, 0);
                 camera.cullingMask &= ~(1 << LayerMask.NameToLayer("Self"));
                 smoothCharacterRot = camera.baseCollider.Collider.transform.rotation;
                 smoothCameraRot = camera.cameraLocalRotation;
@@ -342,7 +346,7 @@ namespace Arterra.Data.Entity.Behavior {
 
             public void Activate() {
                 camera.cameraLocalPosition = new float3(0, 2.5f, 0);
-                camera.cameraLocalRotation.eulerAngles = new(camera.cameraLocalRotation.eulerAngles.x, 0, 0);
+                camera.cameraLocalRotation = Quaternion.Euler(camera.cameraLocalRotation.eulerAngles.x, 0, 0);
                 camera.cullingMask |= 1 << LayerMask.NameToLayer("Self");
                 smoothCharacterRot = camera.baseCollider.Collider.transform.rotation;
                 smoothCameraRot = camera.cameraLocalRotation;

@@ -57,11 +57,15 @@ namespace Arterra.Data.Item
         public void OnLeave(ItemContext cxt){ this.cxt = null; }
         public ArmorInventory.EquipInfo GetEquipInfo() { return settings.EquipInfo; }
         public void OnDamaged(ref float dmg, ref float3 knockback, ref Entity.Entity attacker) {
+            float previousDurability = durability;
             durability -= dmg;
             dmg *= 1 - settings.DamageReduction;
             knockback *= 1 - settings.KnockbackReduction;
 
-            if (durability > 0) return;
+            if (durability > 0) {
+                if (durability != previousDurability) cxt?.SetDirty();
+                return;
+            }
             cxt.TryRemove();
         }
         public void OnEquipped(string armorName) {}

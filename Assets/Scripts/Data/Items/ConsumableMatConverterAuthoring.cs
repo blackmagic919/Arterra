@@ -1,3 +1,4 @@
+using Arterra.Core.Events;
 using Arterra.Utils;
 using Newtonsoft.Json;
 using Unity.Mathematics;
@@ -25,11 +26,15 @@ namespace Arterra.Data.Item {
         public override object Clone() => new ConsumableMatConverterItem { data = data };
 
         public override void OnEnter(ItemContext cxt) {
-            if (cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
+            cxt.RegisterEvent(this, GameEvent.Apply_ConsumeItem, ConsumeFood);
+            if (!cxt.IsOwner || cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) {
+                base.OnEnter(cxt);
+                return;
+            }
 
             InputPoller.AddBinding(new ActionBind(
                 "Consume",
-                _ => ConsumeFood(cxt),
+                _ => cxt.RaiseEvent(GameEvent.Apply_ConsumeItem),
                 ActionBind.Exclusion.ExcludeLayer),
                 "ITEM::Consumable:EAT", "5.0::GamePlay"
             );
@@ -39,7 +44,11 @@ namespace Arterra.Data.Item {
         }
 
         public override void OnLeave(ItemContext cxt) {
-            if (cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
+            cxt.UnregisterEvent(GameEvent.Apply_ConsumeItem);
+            if (!cxt.IsOwner || cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) {
+                base.OnLeave(cxt);
+                return;
+            }
 
             InputPoller.RemoveBinding("ITEM::Consumable:EAT", "5.0::GamePlay");
             base.OnLeave(cxt);
@@ -61,6 +70,7 @@ namespace Arterra.Data.Item {
             int deltaInt = CustomUtility.GetStaggeredDelta(nutrition * UnitSize / settings.NutritionValue);
             AmountRaw -= deltaInt;
             if (AmountRaw == 0) cxt.TryRemove();
+            else if (deltaInt != 0) cxt.SetDirty();
         }
     }
 }
