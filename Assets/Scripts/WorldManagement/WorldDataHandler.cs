@@ -9,6 +9,7 @@ using Arterra.Engine.Rendering;
 using Arterra.Engine.Terrain;
 using Arterra.GamePlay;
 using Arterra.Core;
+using Arterra.Core.Network;
 
 namespace Arterra.Configuration.Gameplay{
     /// <summary> Settings controlling environment constants of the world. Or aspects of 
@@ -17,6 +18,7 @@ namespace Arterra.Configuration.Gameplay{
     /// game as immersive and open as possible. </summary>
     [Serializable]
     public struct Environment{
+        [UIModifiable(CallbackName = "Environment:TimeMultiplier")]
         /// <summary> How fast time progresses in the game world relative to real time. </summary>
         public float timeMultiplier;
         /// <summary> The time of day that the world starts at. The time in hours since midnight that
@@ -47,11 +49,11 @@ namespace Arterra.Configuration.Gameplay{
 }
 
 public class WorldData {
-    public DateTime currentTime;
+    public TimeSpan timeOffset;
     public Arterra.GamePlay.UI.ToolTips.ToolTipSystemState ToolTips;
     public static WorldData Build() {
         WorldData d = new WorldData();
-        d.currentTime = DateTime.Now.Date + TimeSpan.FromHours(Config.CURRENT.GamePlay.Environment.value.startHour);
+        d.timeOffset = TimeSpan.Zero;
         d.ToolTips = Arterra.GamePlay.UI.ToolTips.ToolTipSystemState.Build();
         return d;
     }
@@ -62,6 +64,35 @@ public class WorldData {
 public static class WorldDataHandler
 { 
     public static WorldData WorldData;
+    private static NetworkVariableBase<TimeAnchor> clock;
+    private static DateTime gameStartTime;
+
+    private struct TimeAnchor {
+        public TimeSpan Offset;
+        public DateTime StartTime;
+        public float Multiplier;
+
+        public TimeSpan At(DateTime now) => Offset + (now - StartTime) * Multiplier;
+    }
+
+    public static DateTime CurrentTime => gameStartTime + clock.Value.At(DateTime.UtcNow);
+
+    private static void OnTimeMultiplierChanged(ref object value) {
+        if (!NetworkManager.IsActingServer) {
+            value = clock.HasValue ? clock.Value.Multiplier : settings.timeMultiplier;
+            return;
+        }
+
+        float multiplier = (float)value;
+        if (multiplier == clock.Value.Multiplier) return;
+        DateTime now = DateTime.UtcNow;
+        clock.Value = new TimeAnchor {
+            Offset = clock.Value.At(now),
+            StartTime = now,
+            Multiplier = multiplier
+        };
+    }
+
     private static Arterra.Configuration.Gameplay.Environment settings =>  Config.CURRENT.GamePlay.Environment;
     private static LensFlareComponentSRP sunFlare;
     private static LensFlareComponentSRP moonFlare;
@@ -78,6 +109,18 @@ public static class WorldDataHandler
         Moon = GameObject.Instantiate(Resources.Load<GameObject>("Prefabs/GameUI/Moon")).GetComponent<Light>();
         LoadWorldData();
 
+        gameStartTime = DateTime.UnixEpoch + TimeSpan.FromHours(settings.startHour);
+        clock = new NetworkVariableBase<TimeAnchor>(
+            NetworkReferenceId.FromName("WorldData:Time"), retainValueOnDisconnect: true);
+        if (NetworkManager.IsActingServer) {
+            clock.Value = new TimeAnchor {
+                Offset = WorldData.timeOffset,
+                StartTime = DateTime.UtcNow,
+                Multiplier = settings.timeMultiplier
+            };
+        }
+        Config.CURRENT.System.AddHook("Environment:TimeMultiplier", OnTimeMultiplierChanged);
+
         var constraintSource = new ConstraintSource { sourceTransform = OctreeTerrain.viewer, weight = 1 };
         Sun.GetComponent<PositionConstraint>().SetSource(0, constraintSource);
         Moon.GetComponent<PositionConstraint>().SetSource(0, constraintSource);
@@ -89,7 +132,16 @@ public static class WorldDataHandler
         ArterraRuntime.MainLoopUpdateTasks.Enqueue(eventTask);
     }
 
-    public static void Release() => SaveWorldData();
+    public static void Release() {
+        if (eventTask != null) eventTask.Active = false;
+        Config.CURRENT.System.RemoveHook("Environment:TimeMultiplier", OnTimeMultiplierChanged);
+        if (clock != null) {
+            if (clock.HasValue) WorldData.timeOffset = clock.Value.At(DateTime.UtcNow);
+            clock.Dispose();
+            clock = null;
+        }
+        SaveWorldData();
+    }
 
     static void LoadWorldData(){
         string path = World.WORLD_SELECTION.First.Value.Path + "/WorldData.json";
@@ -114,8 +166,8 @@ public static class WorldDataHandler
     // Update is called once per frame
     public static void Update(MonoBehaviour mono)
     {
-        WorldData.currentTime = WorldData.currentTime.AddSeconds(Time.deltaTime * settings.timeMultiplier);
-        float progress = GetDayProgress(WorldData.currentTime.TimeOfDay);
+        if (!clock.HasValue) return;
+        float progress = GetDayProgress(CurrentTime.TimeOfDay);
 
         float rotation = Mathf.Lerp(0, 360, progress);
         Sun.transform.rotation = Quaternion.AngleAxis(rotation, Vector3.right);
