@@ -727,7 +727,7 @@ public class EntityJob : Arterra.Core.ArterraRuntime.IUpdateSubscriber{
         accumulatedTime = 0;
 
         EntityManager.FlushUpdateCycle();
-        if (!NetworkManager.IsActingServer) return;
+        // Non-authority animals route this job update through ClientSimulation.
         if (EntityManager.CurUpdateEntities == null || EntityManager.CurUpdateEntities.Length == 0) return;
         handle = cxt.Schedule(EntityManager.CurUpdateEntities.Length, 16);
         dispatched = true;

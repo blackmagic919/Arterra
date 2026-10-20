@@ -19,7 +19,7 @@ namespace Arterra.Configuration {
         [Serializable]
         public class BoneBinding {
             public string BonePath;
-            [UISetting(Ignore = true)]
+            [UIHidden]
             [JsonIgnore]
             [NonSerialized]
             public Transform Transform;

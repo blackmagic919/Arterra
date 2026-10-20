@@ -75,7 +75,7 @@ public class Terrain : ScriptableObject
     /// The size in grid space of the smallest node, a <see cref="Core.Terrain.TerrainChunk.RealChunk">Real Chunk</see>, in the terrain octree. 
     /// This is synonymous to the axis-amount of map entries sampled by any chunk regardless of depth.
     /// </summary>
-    [UISetting(Ignore = true)]
+    [UIHidden]
     [Range(0, 64)]
     public int mapChunkSize = 64; //Number of cubes; Please don't change
 

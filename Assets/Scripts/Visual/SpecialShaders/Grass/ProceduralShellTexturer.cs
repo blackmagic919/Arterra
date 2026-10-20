@@ -16,7 +16,7 @@ namespace Arterra.Engine.Rendering
         public Catalogue<ShellSetting> settings = default;
         public Option<List<ShellLevel>> detailLevels = default;
         [JsonIgnore]
-        [UISetting(Ignore = true)]
+        [UIHidden]
         public Option<Material> material;
         [JsonIgnore] private ComputeShader shellCompute;
         [JsonIgnore] private ComputeBuffer variantTable;

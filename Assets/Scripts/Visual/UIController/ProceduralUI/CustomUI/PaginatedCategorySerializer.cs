@@ -1,3 +1,5 @@
+using Rule = UIConditional.Rule;
+using System.Collections.Generic;
 using System;
 using System.Reflection;
 using TMPro;
@@ -16,7 +18,7 @@ public class PaginatedCategorySerializer : IConverter
         return iType.BaseType.GetGenericArguments().First() != iType;
     }
 
-    public void Serialize(GameObject page, GameObject parent, FieldInfo field, object value, ParentUpdate OnUpdate)
+    public void Serialize(GameObject page, GameObject parent, FieldInfo field, object value, ParentUpdate OnUpdate, Rule rule, HashSet<string> displayFlags)
     {
         object cValue = value;
         Type type = cValue.GetType();
@@ -43,6 +45,6 @@ public class PaginatedCategorySerializer : IConverter
             OnUpdate(ParentReceive);
         }
 
-        new PageListSerializer().Serialize(page, parent, listField, listObj, ChildRequest);
+        new PageListSerializer().Serialize(page, parent, listField, listObj, ChildRequest, rule, displayFlags);
     }
 }

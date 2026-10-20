@@ -1,3 +1,5 @@
+using Rule = UIConditional.Rule;
+using System.Collections.Generic;
 using System;
 using System.Reflection;
 using UnityEngine;
@@ -15,7 +17,7 @@ public class SegmentCategorySerializer : IConverter
         return iType.BaseType.GetGenericArguments().First() != iType;
     }
 
-    public void Serialize(GameObject parent, FieldInfo field, object value, ParentUpdate OnUpdate)
+    public void Serialize(GameObject parent, FieldInfo field, object value, ParentUpdate OnUpdate, Rule rule, HashSet<string> displayFlags)
     {
         object cValue = value;
         Type type = cValue.GetType();
@@ -42,7 +44,7 @@ public class SegmentCategorySerializer : IConverter
             OnUpdate(ParentReceive);
         }
 
-        new SegmentListSerializer().Serialize(parent, listField, listObj, ChildRequest);
+        new SegmentListSerializer().Serialize(parent, listField, listObj, ChildRequest, rule, displayFlags);
     }
 
     public void Deserialize(ref object destination, ref object source)

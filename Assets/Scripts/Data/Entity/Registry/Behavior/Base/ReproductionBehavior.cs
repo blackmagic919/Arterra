@@ -32,7 +32,7 @@ namespace Arterra.Data.Entity.Behavior {
         }
 
         [JsonIgnore]
-        [UISetting(Ignore = true)]
+        [UIHidden]
         [HideInInspector]
         internal Dictionary<int, int> AwarenessTable;
 

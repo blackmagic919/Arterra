@@ -34,7 +34,7 @@ namespace Arterra.Data.Entity.Behavior {
             }
         };
 
-        [UISetting(Ignore = true)][HideInInspector][JsonIgnore]
+        [UIHidden][HideInInspector][JsonIgnore]
         public Dictionary<EntitySMTasks, string> _stateAnims;
 
         public object Clone() {

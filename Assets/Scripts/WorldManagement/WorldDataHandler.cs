@@ -36,11 +36,11 @@ namespace Arterra.Configuration.Gameplay{
         public float maxMoonIntensity;
         /// <summary> How the intensity of the sun's light changes over the course of the day. The x axis is the percentage through the day, with 0 and 1
         /// being <see cref="sunriseHour"/> exactly a day apart. The y axis is the intensity of the sun's light as a percentage of <see cref="maxSunIntensity"/>.</summary>
-        [UISetting(Ignore = true)]
+        [UIHidden]
         public Option<AnimationCurve> sunIntensityCurve;
         /// <summary> How the intensity of the moon's light changes over the course of the day. The x axis is the percentage through the day, with 0 and 1
         /// being <see cref="sunriseHour"/> exactly a day apart. The y axis is the intensity of the moon's light as a percentage of <see cref="maxMoonIntensity"/>.</summary>
-        [UISetting(Ignore = true)]
+        [UIHidden]
         public Option<AnimationCurve> moonIntensityCurve;
         /// <summary> Whether or not entity collision is resolved using soft collision instead of hard collision. 
         /// Soft collision is more akin to minecraft style entity collision. </summary>

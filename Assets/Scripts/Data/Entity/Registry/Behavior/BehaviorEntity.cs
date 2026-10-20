@@ -543,7 +543,8 @@ namespace Arterra.Data.Entity.Behavior {
 
             // PlayerHandler owns player fixed/frame scheduling on the main thread.
             public override void Update() {
-                if (!PlayerHandler.IsPlayer(this)) Update(UpdateContext.Simulation);
+                if (!PlayerHandler.IsPlayer(this))
+                    Update(UpdateContext.Simulation);
             }
 
             public void UpdateSynchronous() {
@@ -555,7 +556,8 @@ namespace Arterra.Data.Entity.Behavior {
             }
 
             public override void UpdateJobSync() {
-                if (!PlayerHandler.IsPlayer(this)) UpdateSynchronous();
+                if (!PlayerHandler.IsPlayer(this)) 
+                    UpdateSynchronous();
             }
 
             public override void OnDrawGizmos() {

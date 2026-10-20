@@ -3,6 +3,8 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using Arterra.Configuration;
 using Arterra.GamePlay.Interaction;
+using Arterra.Core.Network;
+using System.Collections.Generic;
 
 namespace Arterra.GamePlay.UI {
     public class PauseHandler {
@@ -24,14 +26,18 @@ namespace Arterra.GamePlay.UI {
             
 
             DirtyOption<Config.GamePlaySettings> settings = Config.CURRENT._GamePlay;
+            var displayFlags = new HashSet<string>(PaginatedUIEditor.flags);
+            if (!NetworkManager.IsActingServer) displayFlags.Add("RemoteClient");
+            else displayFlags.Remove("RemoteClient");
+
             PaginatedUIEditor.CreateProceduralPagination(settings.Value, PauseContent, (ChildUpdate cb) => {
                 settings.Clone(); object obj = settings.Value;
                 cb.Invoke(ref obj);
                 settings.Value = (Config.GamePlaySettings)obj;
-                Config.CURRENT._GamePlay = settings;
-                Config.Broadcast();
+                //Change locally only during gameplay
+                Config.CURRENT._GamePlay = settings; 
                 Arterra.Core.Storage.World.SaveOptionsSync();
-            }, () => { Exit(); });
+            }, () => { Exit(); }, displayFlags: displayFlags);
 
             GameObject ExitButton = PauseContent.transform.GetChild(0).Find("TopPanel").Find("Return").GetChild(0).gameObject;
             TextMeshProUGUI ExitText = ExitButton.GetComponent<TextMeshProUGUI>();

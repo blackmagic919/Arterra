@@ -8,11 +8,11 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 using Arterra.Configuration;
+using Rule = UIConditional.Rule;
 
 [AttributeUsage(AttributeTargets.Field)]
 public sealed class UISetting : Attribute {
     public bool Defaulting { get; set; }
-    public bool Ignore { get; set; }
     public string Message { get; set; }
     public string Warning { get; set; }
     public string Alias { get; set; }
@@ -25,6 +25,55 @@ public sealed class UIModifiable : Attribute {
     public string CallbackName{get; set;}
 }
 
+//Attribute allowing param to be disabled or enabled via the flags provided when procedurally generating UI
+//Flags should not be mutated during a generated UI's lifecycle, only can be mutated upon a fresh generation
+[AttributeUsage(AttributeTargets.Field)]
+public class UIConditional : Attribute {
+    public Rule BaseRule { get; set; } = Rule.NoChange;
+    public Policy[] DisplayPolicies { get; }
+
+    public UIConditional(Rule rule) : this() {
+        BaseRule = rule;
+    }
+
+    // Use params string[] to accept a variable number of inline arguments
+    public UIConditional(params string[] policies) {
+        DisplayPolicies = new Policy[policies.Length];
+        for (int i = 0; i < policies.Length; i++) {
+            var policy = policies[i];
+            var parts = policy.Split(':');
+            string flag = parts[0];
+            Rule rule = parts.Length >= 2 ? Enum.Parse<Rule>(parts[1]) : Rule.NoChange;
+            DisplayPolicies[i] = new Policy { flag = flag, rule = rule };
+        }
+    }
+
+    public Rule GetPolicy(HashSet<string> flags) {
+        if (DisplayPolicies == null) return BaseRule;
+        for (int i = DisplayPolicies.Length - 1; i >= 0; i--) {
+            if (!flags.Contains(DisplayPolicies[i].flag)) continue;
+            return DisplayPolicies[i].rule;
+        } return BaseRule;
+    }
+
+    public static Rule Resolve(FieldInfo field, HashSet<string> flags, Rule inherited) {
+        if (inherited == Rule.Hide) return Rule.Hide;
+        Rule rule = field.GetCustomAttribute<UIConditional>()?.GetPolicy(flags) ?? Rule.NoChange;
+        return rule == Rule.NoChange ? inherited : rule;
+    }
+
+    public struct Policy {
+        public string flag;
+        public Rule rule;
+    }
+    public enum Rule { Show, Hide, Disable, NoChange }
+}
+
+
+public sealed class UIHidden : UIConditional {
+    public UIHidden() : base(Rule.Hide) { }
+}
+
 public delegate void ChildUpdate(ref object obj);
 public delegate void ParentUpdate(ChildUpdate cb);
 
@@ -35,10 +84,11 @@ public static class SegmentedUIEditor
     public interface IConverter{
         //Instance Type is concrete, fieldType can be more abstract
         public abstract bool CanConvert(Type instanceType, Type fieldType);
-        public abstract void Serialize(GameObject parent, FieldInfo field, object value, ParentUpdate OnUpdate);
+        public abstract void Serialize(GameObject parent, FieldInfo field, object value, ParentUpdate OnUpdate, Rule rule, HashSet<string> displayFlags);
         public abstract void Deserialize(ref object destination, ref object source);
     }
     public static List<IConverter> UIConverterSettings;
+    public static HashSet<string> flags = new();
 
     public static void Initialize(){
         UIConverterSettings = new List<IConverter>
@@ -154,18 +204,21 @@ public static class SegmentedUIEditor
     public static Transform GetSegmentContent(GameObject option) { return option.transform.Find("Content"); }
     public static TextMeshProUGUI GetSegmentName(GameObject option) { return GetSegmentContent(option).Find("Name").GetComponent<TextMeshProUGUI>(); }
     
-    public static void CreateOptionDisplay(object setting, GameObject content, ParentUpdate OnUpdate = null){
+    public static void CreateOptionDisplay(object setting, GameObject content, ParentUpdate OnUpdate = null, Rule rule = Rule.Show, HashSet<string> displayFlags = null){
+        displayFlags ??= flags;
+        if (rule == Rule.Hide) return;
         FieldInfo[] fields = setting.GetType().GetFields();
         SetUpLayout(content);
 
         for(int i = 0; i < fields.Length; i++){
             if(fields[i].IsStatic) continue;
+            Rule fieldRule = UIConditional.Resolve(fields[i], displayFlags, rule);
+            if (fieldRule == Rule.Hide) continue;
             string name = fields[i].Name;
 
             UISetting UITag = null;
             if(Attribute.IsDefined(fields[i], typeof(UISetting))){
                 UITag = Attribute.GetCustomAttribute(fields[i], typeof(UISetting)) as UISetting;
-                if(UITag.Ignore) continue;
                 if(UITag.Warning != null) {
                     GameObject message = UnityEngine.Object.Instantiate(Resources.Load<GameObject>("Prefabs/SegmentedUI/Option_Warning"), content.transform);
                     message.GetComponent<TextMeshProUGUI>().text = UITag.Warning;
@@ -193,11 +246,11 @@ public static class SegmentedUIEditor
 
             if (UITag != null && UITag.Collapse != null) {
                 string[] path = UITag.Collapse.Split('/');
-                if(CollapseMembers(path, field, value, newOption, nUpdate))
+                if(CollapseMembers(path, field, value, newOption, nUpdate, fieldRule, displayFlags))
                     continue;
             }
 
-            CreateInputField(field, newOption, value, nUpdate);
+            CreateInputField(field, newOption, value, nUpdate, fieldRule, displayFlags);
         }  
     }
 
@@ -231,7 +284,8 @@ public static class SegmentedUIEditor
         }
     }
 
-    public static bool CollapseMembers(IEnumerable<string> path, FieldInfo baseField, object setting, GameObject content, ParentUpdate OnUpdate = null) {
+    public static bool CollapseMembers(IEnumerable<string> path, FieldInfo baseField, object setting, GameObject content, ParentUpdate OnUpdate = null, Rule rule = Rule.Show, HashSet<string> displayFlags = null) {
+        displayFlags ??= flags;
         if (path == null || path.Count() == 0) {
             Debug.LogError($"UISetting path {String.Join("/", path)} on object does not exist");
             return false;
@@ -243,6 +297,12 @@ public static class SegmentedUIEditor
         if (field == null || value == null) {
             Debug.LogError($"UISetting path {String.Join("/", path)} on object does not exist");
             return false;
+        }
+
+        rule = UIConditional.Resolve(field, displayFlags, rule);
+        if (rule == Rule.Hide) {
+            UnityEngine.Object.Destroy(content);
+            return true;
         }
 
         void ChildRequest(ChildUpdate childCallback) { 
@@ -262,19 +322,21 @@ public static class SegmentedUIEditor
         
         path = path.Skip(1);
         if (path == null || path.Count() == 0) {
-            CreateInputField(field, content, value, nUpdate);
+            CreateInputField(field, content, value, nUpdate, rule, displayFlags);
             return true;
-        } else return CollapseMembers(path, field, value, content, nUpdate);
+        } else return CollapseMembers(path, field, value, content, nUpdate, rule, displayFlags);
     }
 
     //Field -> The fieldInfo of the input field, 
     //Value -> The raw value of the field, 
     //Parent -> UI Parent of the field
     //OnUpdate -> Callback to parent to obtain new parent path when editing
-    public static void CreateInputField(FieldInfo field, GameObject parent, object value, ParentUpdate OnUpdate = null){
+    public static void CreateInputField(FieldInfo field, GameObject parent, object value, ParentUpdate OnUpdate = null, Rule rule = Rule.Show, HashSet<string> displayFlags = null){
+        displayFlags ??= flags;
+        if (rule == Rule.Hide) return;
         IConverter CustomConverter = GetCustomSerializerSetting(value.GetType(), field.FieldType); //Don't use FieldType because it could be more generic than the value type
         if(CustomConverter != null){
-            CustomConverter.Serialize(parent, field, value, OnUpdate);
+            CustomConverter.Serialize(parent, field, value, OnUpdate, rule, displayFlags);
             return;
         }
 
@@ -292,22 +354,27 @@ public static class SegmentedUIEditor
         switch (field.FieldType){
             case Type t when t == typeof(int):
                 TMP_InputField inputField = UnityEngine.Object.Instantiate(Resources.Load<GameObject>("Prefabs/SegmentedUI/Text_Input"), parent.transform).GetComponent<TMP_InputField>(); inputField.text = value.ToString();
+                inputField.interactable = rule != Rule.Disable;
                 inputField.onEndEdit.AddListener((string value) => { OnUpdate((ref object parent) => {field.SetValue(parent, int.Parse(value));}); });
                 break;
             case Type t when t == typeof(uint):
                 inputField = UnityEngine.Object.Instantiate(Resources.Load<GameObject>("Prefabs/SegmentedUI/Text_Input"), parent.transform).GetComponent<TMP_InputField>(); inputField.text = value.ToString();
+                inputField.interactable = rule != Rule.Disable;
                 inputField.onEndEdit.AddListener((string value) => { OnUpdate((ref object parent) => {field.SetValue(parent, uint.Parse(value));}); });
                 break;
             case Type t when t == typeof(float):
                 inputField = UnityEngine.Object.Instantiate(Resources.Load<GameObject>("Prefabs/SegmentedUI/Text_Input"), parent.transform).GetComponent<TMP_InputField>(); inputField.text = value.ToString();
+                inputField.interactable = rule != Rule.Disable;
                 inputField.onEndEdit.AddListener((string value) => { OnUpdate((ref object parent) => {field.SetValue(parent, float.Parse(value));}); });
                 break;
             case Type t when t == typeof(string):
                 inputField = UnityEngine.Object.Instantiate(Resources.Load<GameObject>("Prefabs/SegmentedUI/Text_Input"), parent.transform).GetComponent<TMP_InputField>(); inputField.text = value == null ? "New Entry" : value.ToString();
+                inputField.interactable = rule != Rule.Disable;
                 inputField.onEndEdit.AddListener((string value) => { OnUpdate((ref object parent) => {field.SetValue(parent, value);}); });
                 break;
             case Type t when t == typeof(bool):
                 Toggle toggleField = UnityEngine.Object.Instantiate(Resources.Load<GameObject>("Prefabs/SegmentedUI/Bool_Input"), parent.transform).GetComponent<Toggle>(); toggleField.isOn = (bool)value;
+                toggleField.interactable = rule != Rule.Disable;
                 toggleField.onValueChanged.AddListener((bool value) => { OnUpdate((ref object parent) => {field.SetValue(parent, value);}); });
                 break;
             case Type t when t.IsEnum:
@@ -317,13 +384,14 @@ public static class SegmentedUIEditor
 
                 Array enumValues = Enum.GetValues(t);
                 dropdownField.value = Array.IndexOf(enumValues, value);
+                dropdownField.interactable = rule != Rule.Disable;
                 dropdownField.onValueChanged.AddListener((int value) => { OnUpdate((ref object parent) => { field.SetValue(parent, enumValues.GetValue(value)); }); });
                 break;
             default:
                 Button buttonField = UnityEngine.Object.Instantiate(Resources.Load<GameObject>("Prefabs/SegmentedUI/Drop_Arrow"), GetSegmentContent(parent)).GetComponent<Button>(); bool isOpen = false;
                 buttonField.onClick.AddListener(() => {
                     isOpen = !isOpen;
-                    if(isOpen) CreateOptionDisplay(cValue, parent, ChildRequest);
+                    if(isOpen) CreateOptionDisplay(cValue, parent, ChildRequest, rule, displayFlags);
                     else ReleaseDisplay(parent);
                     ForceLayoutRefresh(parent.transform);
                 });

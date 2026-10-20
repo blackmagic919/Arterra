@@ -9,6 +9,7 @@ using Unity.Mathematics;
 using Arterra.Engine.Terrain;
 using Arterra.Core.Storage;
 using System.Collections;
+using System.Collections.Generic;
 using static Arterra.Core.Storage.World;
 using Arterra.Utils;
 using Arterra.Editor;
@@ -120,11 +121,15 @@ namespace Arterra.GamePlay.UI {
 
             spinChunk.InitializeDisplay();
             ReleaseDisplay(infoContent);
+            var displayFlags = new HashSet<string>(SegmentedUIEditor.flags);
+            if (cWorld.Type != GalaxyType.Local) displayFlags.Add("RemoteClient");
+            else displayFlags.Remove("RemoteClient");
+
             CreateOptionDisplay(Config.CURRENT, infoContent, (ChildUpdate cb) => {
                 object wo = Config.CURRENT;
                 cb.Invoke(ref wo);
                 Config.Broadcast();
-            });
+            }, displayFlags: displayFlags);
             infoContent.GetComponent<VerticalLayoutGroup>().padding.left = 0;
         }
 

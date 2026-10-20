@@ -408,7 +408,7 @@ namespace Arterra.Configuration {
 
         public Option<List<Pair>> Reg;
         [HideInInspector]
-        [UISetting(Ignore = true)]
+        [UIHidden]
         [JsonIgnore]
         private Dictionary<Tags, int> Index;
 

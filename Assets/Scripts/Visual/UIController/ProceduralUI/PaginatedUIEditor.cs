@@ -7,15 +7,17 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 using Arterra.Configuration;
+using Rule = UIConditional.Rule;
 
 public static class PaginatedUIEditor 
 {
     public interface IConverter{
         public abstract bool CanConvert(Type obj);
-        public abstract void Serialize(GameObject page, GameObject parent, FieldInfo field, object value, ParentUpdate OnUpdate);
+        public abstract void Serialize(GameObject page, GameObject parent, FieldInfo field, object value, ParentUpdate OnUpdate, Rule rule, HashSet<string> displayFlags);
     }
 
     public static List<IConverter> UIConverterSettings;
+    public static HashSet<string> flags = new();
 
     public static void Initialize(){
         UIConverterSettings = new List<IConverter>{
@@ -58,7 +60,8 @@ public static class PaginatedUIEditor
         }
     }
 
-    public static void CreateProceduralPagination(object setting, GameObject content, ParentUpdate OnUpdate, Action OnReturn = null){
+    public static void CreateProceduralPagination(object setting, GameObject content, ParentUpdate OnUpdate, Action OnReturn = null, HashSet<string> displayFlags = null){
+        displayFlags ??= flags;
         GameObject page = UnityEngine.Object.Instantiate(Resources.Load<GameObject>("Prefabs/PaginatedUI/Page"), content.transform);
         GameObject ret = page.transform.Find("TopPanel").Find("Return").gameObject;
         if(OnReturn == null) ret.transform.parent.gameObject.SetActive(false);
@@ -67,22 +70,25 @@ public static class PaginatedUIEditor
             OnReturn(); 
         });
 
-        CreatePageDisplay(setting, page, OnUpdate);
+        CreatePageDisplay(setting, page, OnUpdate, Rule.Show, displayFlags);
     }
 
     public static Transform GetPageContent(GameObject page){ return page.transform.Find("ScrollView").GetChild(0).GetChild(0); }
     public static Transform GetPageReturn(GameObject page){ return page.transform.Find("TopPanel").Find("Return"); }
     public static Transform GetOptionContent(GameObject option){ return option.transform.Find("Viewport").GetChild(0); }
     public static Transform GetPageHeader(GameObject page){ return page.transform.Find("TopPanel"); }
-    public static void CreatePageDisplay(object setting, GameObject page, ParentUpdate OnUpdate = null){
+    public static void CreatePageDisplay(object setting, GameObject page, ParentUpdate OnUpdate = null, Rule rule = Rule.Show, HashSet<string> displayFlags = null){
+        displayFlags ??= flags;
+        if (rule == Rule.Hide) return;
         FieldInfo[] fields = setting.GetType().GetFields();
         for(int i = 0; i < fields.Length; i++){
             if(fields[i].IsStatic) continue;
+            Rule fieldRule = UIConditional.Resolve(fields[i], displayFlags, rule);
+            if (fieldRule == Rule.Hide) continue;
             string name = fields[i].Name;
             UISetting UITag = null;
             if(Attribute.IsDefined(fields[i], typeof(UISetting))){
                 UITag = Attribute.GetCustomAttribute(fields[i], typeof(UISetting)) as UISetting;
-                if(UITag.Ignore) continue;
                 if(UITag.Alias != null){
                     name = UITag.Alias;
                 }
@@ -102,10 +108,10 @@ public static class PaginatedUIEditor
             
             if (UITag != null && UITag.Collapse != null) {
                 string[] path = UITag.Collapse.Split('/');
-                CollapseMembers(path, field, value, newOption, page, nUpdate);
+                CollapseMembers(path, field, value, newOption, page, nUpdate, fieldRule, displayFlags);
                 continue;
             }
-            CreateInputField(field, value, newOption, page, nUpdate);
+            CreateInputField(field, value, newOption, page, nUpdate, fieldRule, displayFlags);
         }
         ForceLayoutRefresh(GetPageContent(page));
     }
@@ -140,7 +146,8 @@ public static class PaginatedUIEditor
         }
     }
 
-    private static bool CollapseMembers(IEnumerable<string> path, FieldInfo baseField, object setting, GameObject parent, GameObject page, ParentUpdate OnUpdate = null) {
+    private static bool CollapseMembers(IEnumerable<string> path, FieldInfo baseField, object setting, GameObject parent, GameObject page, ParentUpdate OnUpdate = null, Rule rule = Rule.Show, HashSet<string> displayFlags = null) {
+        displayFlags ??= flags;
         if (path == null || path.Count() == 0) {
             Debug.LogError($"UISetting path {String.Join("/", path)} on object does not exist");
             return false;
@@ -152,6 +159,12 @@ public static class PaginatedUIEditor
         if (field == null || value == null) {
             Debug.LogError($"UISetting path {String.Join("/", path)} on object does not exist");
             return false;
+        }
+
+        rule = UIConditional.Resolve(field, displayFlags, rule);
+        if (rule == Rule.Hide) {
+            UnityEngine.Object.Destroy(parent.transform.parent.parent.gameObject);
+            return true;
         }
 
         void ChildRequest(ChildUpdate childCallback) { 
@@ -171,9 +184,9 @@ public static class PaginatedUIEditor
         
         path = path.Skip(1);
         if (path == null || path.Count() == 0) {
-            CreateInputField(field, value, parent, page, nUpdate);
+            CreateInputField(field, value, parent, page, nUpdate, rule, displayFlags);
             return true;
-        } else return CollapseMembers(path, field, value, parent, page, nUpdate);
+        } else return CollapseMembers(path, field, value, parent, page, nUpdate, rule, displayFlags);
     }
 
     
@@ -182,10 +195,12 @@ public static class PaginatedUIEditor
     //Value -> The raw value of the field, 
     //Parent -> UI Parent of the field
     //OnUpdate -> Callback to parent to obtain new parent path when editing
-    public static void CreateInputField(FieldInfo field, object value, GameObject parent, GameObject page, ParentUpdate OnUpdate = null){
+    public static void CreateInputField(FieldInfo field, object value, GameObject parent, GameObject page, ParentUpdate OnUpdate = null, Rule rule = Rule.Show, HashSet<string> displayFlags = null){
+        displayFlags ??= flags;
+        if (rule == Rule.Hide) return;
         IConverter CustomConverter = GetCustomSerializerSetting(value.GetType()); 
         if(CustomConverter != null){
-            CustomConverter.Serialize(page, parent, field, value, OnUpdate);
+            CustomConverter.Serialize(page, parent, field, value, OnUpdate, rule, displayFlags);
             return;
         }
 
@@ -204,6 +219,7 @@ public static class PaginatedUIEditor
             case Type t when t == typeof(int):
                 TMP_InputField inputField = UnityEngine.Object.Instantiate(Resources.Load<GameObject>("Prefabs/PaginatedUI/Text_Input"), parent.transform).GetComponent<TMP_InputField>(); 
                 inputField.text = value.ToString();
+                inputField.interactable = rule != Rule.Disable;
                 inputField.onEndEdit.AddListener((string value) => { 
                     object obj = int.Parse(value);
                     VerifyUpdateHooks(field, ref obj);
@@ -213,6 +229,7 @@ public static class PaginatedUIEditor
             case Type t when t == typeof(uint):
                 inputField = UnityEngine.Object.Instantiate(Resources.Load<GameObject>("Prefabs/PaginatedUI/Text_Input"), parent.transform).GetComponent<TMP_InputField>(); 
                 inputField.text = value.ToString();
+                inputField.interactable = rule != Rule.Disable;
                 inputField.onEndEdit.AddListener((string value) => { 
                     object obj = uint.Parse(value);
                     VerifyUpdateHooks(field, ref obj);
@@ -222,6 +239,7 @@ public static class PaginatedUIEditor
             case Type t when t == typeof(float):
                 inputField = UnityEngine.Object.Instantiate(Resources.Load<GameObject>("Prefabs/PaginatedUI/Text_Input"), parent.transform).GetComponent<TMP_InputField>(); 
                 inputField.text = value.ToString();
+                inputField.interactable = rule != Rule.Disable;
                 inputField.onEndEdit.AddListener((string value) => { 
                     object obj = float.Parse(value);
                     VerifyUpdateHooks(field, ref obj);
@@ -231,6 +249,7 @@ public static class PaginatedUIEditor
             case Type t when t == typeof(string):
                 inputField = UnityEngine.Object.Instantiate(Resources.Load<GameObject>("Prefabs/PaginatedUI/Text_Input"), parent.transform).GetComponent<TMP_InputField>(); 
                 inputField.text = value == null ? "New Entry" : value.ToString();
+                inputField.interactable = rule != Rule.Disable;
                 inputField.onEndEdit.AddListener((string value) => {
                     object obj = value;
                     VerifyUpdateHooks(field, ref obj);
@@ -240,6 +259,7 @@ public static class PaginatedUIEditor
             case Type t when t == typeof(bool):
                 Toggle toggleField = UnityEngine.Object.Instantiate(Resources.Load<GameObject>("Prefabs/PaginatedUI/Bool_Input"), parent.transform).GetComponent<Toggle>(); 
                 toggleField.isOn = (bool)value;
+                toggleField.interactable = rule != Rule.Disable;
                 toggleField.onValueChanged.AddListener((bool value) => { 
                     object obj = value;
                     VerifyUpdateHooks(field, ref obj);
@@ -253,6 +273,7 @@ public static class PaginatedUIEditor
 
                 Array enumValues = Enum.GetValues(t);
                 dropdownField.value = Array.IndexOf(enumValues, value);
+                dropdownField.interactable = rule != Rule.Disable;
                 dropdownField.onValueChanged.AddListener((int value) => { 
                     object obj = enumValues.GetValue(value);
                     VerifyUpdateHooks(field, ref obj);
@@ -271,7 +292,7 @@ public static class PaginatedUIEditor
                         page.SetActive(true);
                     });
                     
-                    CreatePageDisplay(cValue, newPage, ChildRequest);
+                    CreatePageDisplay(cValue, newPage, ChildRequest, rule, displayFlags);
                 });
                 break;
         }

@@ -32,7 +32,7 @@ public class BaseEnemy : Authoring {
         public MinimalRecognition Recognition => recognition;
         public MediumVitality.Stats Physicality => physicality;
 
-        [UISetting(Ignore = true)][JsonIgnore]
+        [UIHidden][JsonIgnore]
         public Dictionary<int, uint> AnimToggle;
         [Serializable]
         public struct RangedAttack {

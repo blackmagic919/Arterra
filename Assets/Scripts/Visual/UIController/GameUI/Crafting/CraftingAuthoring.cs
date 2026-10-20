@@ -118,7 +118,7 @@ namespace Arterra.Data.Intrinsic{
             public float Amount;
             /// <exclude />
             [NonSerialized][HideInInspector]
-            [JsonIgnore][UISetting(Ignore = true)]
+            [JsonIgnore][UIHidden]
             public uint flags;
         }
 

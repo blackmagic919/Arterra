@@ -13,7 +13,7 @@ using Arterra.GamePlay.Interaction;
 [CreateAssetMenu(menuName = "Generation/Entity/AquaticAnimal")]
 public class AquaticAnimal : Arterra.Data.Entity.Authoring
 {
-    [UISetting(Ignore = true)][JsonIgnore]
+    [UIHidden][JsonIgnore]
     public Option<Animal> _Entity;
     public Option<AnimalSetting> _Setting;
 

@@ -17,7 +17,7 @@ namespace Arterra.Engine.Rendering
         [SerializeField] public Catalogue<QuadSetting> settings = default;
         public Option<List<QuadLevel>> detailLevels = default;
         [JsonIgnore]
-        [UISetting(Ignore = true)]
+        [UIHidden]
         public Option<Material> material;
         [JsonIgnore] private ComputeShader quadCompute;
         [JsonIgnore] private ComputeBuffer variantTable;

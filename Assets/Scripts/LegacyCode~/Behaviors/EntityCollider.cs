@@ -14,7 +14,7 @@ namespace Arterra.Experimental {
     public class EntityCollider : EntityBehavior, IEntityTransform {
 
         [HideInInspector]
-        [UISetting(Ignore = true)]
+        [UIHidden]
         public TerrainCollider collider;
         public ref TerrainCollider.Transform transform => ref collider.transform;
 

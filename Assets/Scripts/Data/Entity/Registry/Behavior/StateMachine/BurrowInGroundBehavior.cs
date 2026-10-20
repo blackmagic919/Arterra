@@ -26,11 +26,11 @@ namespace Arterra.Data.Entity.Behavior{
         public Option<List<EntitySMTasks>> EscapingTargetStates = new () {value = new () {
             EntitySMTasks.RunFromTarget, EntitySMTasks.RunFromPredator
         }};
-        [JsonIgnore][UISetting(Ignore = true)][HideInInspector]
+        [JsonIgnore][UIHidden][HideInInspector]
         public HashSet<EntitySMTasks> _EscapeTargetStates;
         public float GroundStickDist = 0.05f;
 
-        [HideInInspector][UISetting(Ignore = true)][JsonIgnore]
+        [HideInInspector][UIHidden][JsonIgnore]
         public Profiles paths;
         
         public struct Profiles {

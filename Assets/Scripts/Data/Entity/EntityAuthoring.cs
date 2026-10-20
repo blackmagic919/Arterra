@@ -20,7 +20,7 @@ public abstract class Authoring : Category<Authoring>{
     public virtual EntitySetting Setting{get; set;}
     /// <summary> A reference to the controller responsible for displaying the entity. The controller is the visual gameobject
     /// representing the entity whose display is managed by Unity. </summary>
-    [UISetting(Ignore = true)][JsonIgnore]
+    [UIHidden][JsonIgnore]
     public Option<GameObject> Controller;
     /// <summary> A list of points defining the profile of the entity, the list is linearly encoded through the dimensions
     /// specified in <see cref="EntitySetting.ProfileInfo"/>. See <see cref="ProfileE"/> for more information </summary>
@@ -275,7 +275,7 @@ public abstract class EntitySetting{
         /// that contains the profiles for all entities. This should not be modified and will be assigned in runtime by the configuration of the entity registry.
         /// The size of the information read at this location is determined by <see cref="bounds"/>.
         /// </summary>
-        [NonSerialized][HideInInspector][UISetting(Ignore = true)][JsonIgnore]
+        [NonSerialized][HideInInspector][UIHidden][JsonIgnore]
         public uint profileStart;
     }
 }

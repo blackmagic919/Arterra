@@ -9,6 +9,7 @@ using Newtonsoft.Json;
 using Unity.Mathematics;
 using UnityEngine;
 using Arterra.Engine.Audio;
+using Arterra.Core.Network;
 
 namespace Arterra.Data.Entity.Behavior {
     /// <summary>
@@ -114,8 +115,15 @@ namespace Arterra.Data.Entity.Behavior {
         }
 
         private void Bind(GameEvent type, RefEventHandler handler) {
-            visualHandlers[type] = handler;
-            self.eventCtrl.AddEventHandler(type, handler);
+            RefEventHandler bound = handler;
+            if (!self.IsAuthority && !self.IsOwner) {
+                bound = (a, b, c) => EntityManager.AddHandlerEvent(() => {
+                    if (this.self != null) handler(a, b, c);
+                });
+            }
+
+            visualHandlers[type] = bound;
+            self.eventCtrl.AddEventHandler(type, bound);
         }
 
         private void BindEvents(BehaviorEntity.Animal self) {

@@ -39,7 +39,7 @@ namespace Arterra.Data.Entity.Behavior {
                 EntitySMTasks.RunFromTarget
             }
         };
-        [HideInInspector][UISetting(Ignore = true)][JsonIgnore]
+        [HideInInspector][UIHidden][JsonIgnore]
         public HashSet<EntitySMTasks> EscapeStatesSet;
 
         public object Clone() {

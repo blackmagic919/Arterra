@@ -11,7 +11,7 @@ namespace Arterra.Data.Entity.Behavior{
         public EntitySMTasks TaskName = EntitySMTasks.ApproachSurface;
         public EntitySMTasks OnReachSurface = EntitySMTasks.Idle;
         public MMove.SubProfiles SurfaceProfile;
-        [JsonIgnore][UISetting(Ignore = true)][HideInInspector]
+        [JsonIgnore][UIHidden][HideInInspector]
         public EntitySetting.ProfileInfo _Profile;
 
         //Proxy Test is not a real state and cannot be transitioned to, instead, it is used to 

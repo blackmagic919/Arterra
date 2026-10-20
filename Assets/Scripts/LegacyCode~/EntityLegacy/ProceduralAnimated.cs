@@ -42,9 +42,9 @@ public class ProceduralAnimated {
         public virtual List<AppendageSettings> Appendages{get;}
         public Option<HeadInfo> Head;
         public float RubberbandStrength = 1.0f;
-        [UISetting(Ignore = true)]
+        [UIHidden]
         public List<AnimOverride> AnimControl;
-        [UISetting(Ignore = true)][JsonIgnore]
+        [UIHidden][JsonIgnore]
         public Dictionary<int, uint> AnimToggle;
         public bool OverrideAnimByDefault = false;
         public bool BodyUseGravity = true;

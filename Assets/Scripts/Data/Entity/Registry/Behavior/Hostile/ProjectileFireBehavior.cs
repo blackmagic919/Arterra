@@ -17,7 +17,7 @@ namespace Arterra.Data.Entity.Behavior {
         public Stats Projectile;
         public float BlindDist = 3;
         [JsonIgnore]
-        [UISetting(Ignore = true)]
+        [UIHidden]
         [HideInInspector]
         public HashSet<EntitySMTasks> AttackStates;
 

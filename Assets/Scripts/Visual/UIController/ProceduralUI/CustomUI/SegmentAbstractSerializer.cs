@@ -1,3 +1,4 @@
+using Rule = UIConditional.Rule;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -15,7 +16,7 @@ public class SegmentAbstractSerializer : IConverter
     }
 
     //Type is the abstract type's type, value is the object, OnUpdate is the callback to parent
-    public void Serialize(GameObject parent, FieldInfo field, object value, ParentUpdate OnUpdate)
+    public void Serialize(GameObject parent, FieldInfo field, object value, ParentUpdate OnUpdate, Rule rule, HashSet<string> displayFlags)
     {
         object cValue = value; 
         void ChildRequest(ChildUpdate childCallback) { 
@@ -47,7 +48,7 @@ public class SegmentAbstractSerializer : IConverter
                 isFieldOpen = true;
                 ReleaseDisplay(parent);
             } 
-            if(isFieldOpen) CreateOptionDisplay(cValue, parent, ChildRequest);
+            if(isFieldOpen) CreateOptionDisplay(cValue, parent, ChildRequest, rule, displayFlags);
             else ReleaseDisplay(parent);
             ForceLayoutRefresh(parent.transform);
         });
@@ -55,7 +56,8 @@ public class SegmentAbstractSerializer : IConverter
         GameObject typeUI = UnityEngine.Object.Instantiate(Resources.Load<GameObject>("Prefabs/SegmentedUI/ExtendedType"), optionContent);
         Button tButton = typeUI.GetComponent<Button>();
         TextMeshProUGUI tText = typeUI.GetComponentInChildren<TextMeshProUGUI>();
-        tText.text = cValue.GetType().Name;  
+        tText.text = cValue.GetType().Name;
+        tButton.interactable = rule != Rule.Disable;
         
         tButton.onClick.AddListener(() => {
             isTypeOpen = !isTypeOpen;

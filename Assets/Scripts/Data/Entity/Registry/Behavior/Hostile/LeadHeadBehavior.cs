@@ -40,9 +40,9 @@ namespace Arterra.Data.Entity.Behavior {
     }
 
     public class PASettings {
-        [UISetting(Ignore = true)]
+        [UIHidden]
         public List<AnimOverride> AnimControl;
-        [UISetting(Ignore = true)][JsonIgnore]
+        [UIHidden][JsonIgnore]
         public Dictionary<int, uint> AnimToggle;
         public bool OverrideAnimByDefault = false;
 

@@ -15,10 +15,10 @@ namespace Arterra.Data.Entity.Behavior {
         public Option<List<StateSound>> StateSounds;
         public TriggerMode triggerMode = TriggerMode.CutOff;
 
-        [JsonIgnore] [HideInInspector] [UISetting(Ignore = true)]
+        [JsonIgnore] [HideInInspector] [UIHidden]
         private Dictionary<GameEvent, LinkedList<SoundEffect>> _eventSounds;
 
-        [JsonIgnore] [HideInInspector] [UISetting(Ignore = true)]
+        [JsonIgnore] [HideInInspector] [UIHidden]
         private Dictionary<EntitySMTasks, LinkedList<StateSound>> _stateSounds;
         
         [Serializable]

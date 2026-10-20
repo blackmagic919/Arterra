@@ -36,9 +36,9 @@ namespace Arterra.Data.Entity.Behavior {
             EntitySMTasks.RunFromPredator, EntitySMTasks.RandomPath
         }};
 
-        [JsonIgnore][UISetting(Ignore = true)][HideInInspector]
+        [JsonIgnore][UIHidden][HideInInspector]
         public HashSet<EntitySMTasks> _LeadTargetStates;
-        [JsonIgnore][UISetting(Ignore = true)][HideInInspector]
+        [JsonIgnore][UIHidden][HideInInspector]
         public HashSet<EntitySMTasks> _LeadBoidStates;
         public int MaxSwarmSize = 8; //8
         public int PathDist = 3; //3

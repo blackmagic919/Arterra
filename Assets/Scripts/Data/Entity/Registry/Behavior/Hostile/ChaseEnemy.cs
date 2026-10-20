@@ -28,12 +28,12 @@ namespace Arterra.Data.Entity.Behavior {
         
 
         [JsonIgnore]
-        [UISetting(Ignore = true)]
+        [UIHidden]
         [HideInInspector]
         internal Dictionary<EntitySMTasks, float> _SearchChances;
 
         [JsonIgnore]
-        [UISetting(Ignore = true)]
+        [UIHidden]
         [HideInInspector]
         internal Dictionary<int, int> AwarenessTable;
         public Option<List<EntityWrapper>> Enemy;
