@@ -47,12 +47,8 @@ namespace Arterra.Core.Storage {
 
                 // Capture anew for every request, including requests for an already loaded chunk.
                 var transfer = ChunkTransfer.Capture(subscription.Chunk);
-                foreach (var entry in transfer.EntityData)
-                    EntityNetworkTrace.Record(entry.Value.info.rtEntityId, $"Host captured chunk={coordinate}, request={request.MessageId}, peer={peer}");
                 byte[] bytes = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(transfer));
-                uint sent = TransportManager.Instance.SendEvent(peer, referenceId, Content, bytes, request.MessageId);
-                foreach (var entry in transfer.EntityData)
-                    EntityNetworkTrace.Record(entry.Value.info.rtEntityId, $"Host queued chunk reply message={sent}, request={request.MessageId}, chunk={coordinate}, peer={peer}");
+                TransportManager.Instance.SendEvent(peer, referenceId, Content, bytes, request.MessageId);
             } catch (Exception exception) {
                 if (disposed) return;
 
@@ -65,16 +61,14 @@ namespace Arterra.Core.Storage {
         public override void EnterEntity(Entity entity) {
             if (disposed) return;
 
-            EntityNetworkTrace.Record(entity.info.rtEntityId, $"Host queues EnterEntity, peer={peer}");
-            TransportManager.Instance.SendEvent(peer, referenceId, Enter,
+            TransportManager.Instance.SendToSubscriber(peer, referenceId, Enter,
                 Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(new Registerable<Entity>(entity))));
         }
 
         public override void LeaveEntity(Guid entityId) {
             if (disposed) return;
 
-            EntityNetworkTrace.Record(entityId, $"Host queues LeaveEntity, peer={peer}");
-            TransportManager.Instance.SendEvent(peer, referenceId, Leave, entityId.ToByteArray());
+            TransportManager.Instance.SendToSubscriber(peer, referenceId, Leave, entityId.ToByteArray());
         }
 
         void IChunkConsumer.ReflectChunk() { }
@@ -85,7 +79,7 @@ namespace Arterra.Core.Storage {
 
             // The accumulator already keeps one pending encoder per chunk/source.
             // Transport-level coalescing would incorrectly combine different chunks on this reference.
-            TransportManager.Instance.SendEvent(peer, referenceId, MapChanges, getEncodedChanges, abandoned: abandoned);
+            TransportManager.Instance.SendToSubscriber(peer, referenceId, MapChanges, getEncodedChanges, abandoned: abandoned);
         }
 
         public override void Dispose() {

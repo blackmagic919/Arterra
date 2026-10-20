@@ -40,13 +40,10 @@ namespace Arterra.Core.Storage {
                 var response = await transport.RequestEventAsync(transport.Server, referenceId, NetworkSource.Generate,
                     Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(coordinate)), cancellation.Token,
                     responseReceived: reply => {
-                        EntityNetworkTrace.Record(Guid.Empty, $"Client chunk reply received: chunk={coordinate}, replyTo={reply.ReplyTo}, event={reply.EventId}, canceled={cancellation.IsCancellationRequested}");
                         if (reply.EventId != NetworkSource.Content || cancellation.IsCancellationRequested) return;
                         // The full reply supersedes preceding deltas. Later deltas stay buffered until installation.
                         changes.MapChanges.Clear();
                         var transfer = JsonConvert.DeserializeObject<ChunkTransfer>(Encoding.UTF8.GetString(reply.Payload));
-                        foreach (var entry in transfer.EntityData)
-                            EntityNetworkTrace.Record(entry.Value.info.rtEntityId, $"Client decoded chunk={coordinate}, replyTo={reply.ReplyTo}");
                         content = transfer.Read();
                     });
 
@@ -71,8 +68,6 @@ namespace Arterra.Core.Storage {
 
             EntityManager.AddHandlerEvent(() => {
                 try {
-                    foreach (var entity in entities)
-                        EntityNetworkTrace.Record(entity.info.rtEntityId, $"Client chunk initialization handler: chunk={coordinate}, canceled={token.IsCancellationRequested}, disposed={disposed}");
                     token.ThrowIfCancellationRequested();
                     if (disposed) throw new OperationCanceledException();
 
@@ -81,7 +76,6 @@ namespace Arterra.Core.Storage {
 
                     var merged = entities.ToDictionary(entity => entity.info.rtEntityId);
                     if (changes != null) foreach (var change in changes.Entities) {
-                        EntityNetworkTrace.Record(change.Key, $"Client merges buffered {(change.Value == null ? "leave" : "enter")}, chunk={coordinate}");
                         if (change.Value == null) merged.Remove(change.Key);
                         else merged[change.Key] = change.Value;
                     }
@@ -106,19 +100,15 @@ namespace Arterra.Core.Storage {
                     foreach (var update in updates) loading.MapChanges[update.Key] = update.Value;
                 } else ApplyMapChanges(coordinate, updates);
             } else if (message.EventId == NetworkSource.Enter) {
-                EntityNetworkTrace.Record(Guid.Empty, $"Client received EnterEntity: sourceReference={message.ReferenceId}, payloadBytes={message.Payload.Length}; beginning deserialization");
                 var entity = JsonConvert.DeserializeObject<Registerable<Entity>>(Encoding.UTF8.GetString(message.Payload)).Value;
 
-                EntityNetworkTrace.Record(entity.info.rtEntityId, "Client EnterEntity deserialized");
                 int3 coordinate = EntityManager.GetChunkCoordinate(entity.position);
 
                 if (pending.TryGetValue(coordinate, out var changes)) {
-                    EntityNetworkTrace.Record(entity.info.rtEntityId, $"Client EnterEntity pending chunk={coordinate}, canceled={changes.Token.IsCancellationRequested}");
                     if (!changes.Token.IsCancellationRequested) changes.Entities[entity.info.rtEntityId] = entity;
                 } else EnterEntity(entity);
             } else if (message.EventId == NetworkSource.Leave) {
                 Guid entityId = new(message.Payload);
-                EntityNetworkTrace.Record(entityId, "Client received LeaveEntity");
                 foreach (var changes in pending.Values)
                     if (!changes.Token.IsCancellationRequested) changes.Entities[entityId] = null;
 
@@ -142,26 +132,21 @@ namespace Arterra.Core.Storage {
         }
 
         public override void EnterEntity(Entity entity) {
-            EntityNetworkTrace.Record(entity.info.rtEntityId, "Client EnterEntity queued handler");
             EntityManager.AddHandlerEvent(() => {
-                EntityNetworkTrace.Record(entity.info.rtEntityId, $"Client EnterEntity handler executing; disposed={disposed}");
                 if (disposed) return;
 
                 int3 coordinate = EntityManager.GetChunkCoordinate(entity.position);
                 if (CPUMapManager.TryGetChunkInfo(coordinate, out var chunk) && chunk.Generation.Subscribers.Count != 0)
                     EntityManager.DeserializeEntity(entity);
-                else EntityNetworkTrace.Record(entity.info.rtEntityId, $"Client discarded EnterEntity: chunk={coordinate} missing or has no subscribers");
             });
         }
 
         public override void LeaveEntity(Guid entityId) {
             EntityManager.AddHandlerEvent(() => {
-                EntityNetworkTrace.Record(entityId, $"Client LeaveEntity handler executing; disposed={disposed}");
                 if (disposed) return;
 
                 if (EntityManager.TryGetEntity(entityId, out var entity) && !entity.IsOwner)
                     EntityManager.ReleaseE(entityId);
-                else EntityNetworkTrace.Record(entityId, "Client LeaveEntity skipped: entity missing or locally owned");
             });
         }
 

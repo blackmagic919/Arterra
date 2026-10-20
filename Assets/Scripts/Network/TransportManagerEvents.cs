@@ -61,23 +61,11 @@ namespace Arterra.Core.Network {
             references.TryGetValue(referenceId, out var previous);
             if (previous?.Listener != null) throw new InvalidOperationException($"Reference {referenceId} is already registered.");
             references[referenceId] = new ReferenceCommunication(listener, previous?.Peers);
-            TraceReference(null, referenceId, "Local register");
             if (!IsRunning) return;
             foreach (var peer in peers) {
                 AnnounceReference(peer, referenceId);
                 if (IsServer && IsSubscribed(peer, referenceId)) listener.OnSubscribed(peer);
             }
-        }
-
-        // Lifecycle diagnostics stay with the pipeline and are printed only on error.
-        private void TraceReference(NetPeer peer, Guid referenceId, string action) {
-            if (!references.TryGetValue(referenceId, out var reference)) return;
-            string prefix = $"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] {action}; reference={referenceId}, listener={reference.Listener?.GetType()}";
-            if (peer == null) {
-                foreach (var pair in reference.Peers)
-                    pair.Value.Trace($"{prefix}; peer={pair.Key}; {pair.Value.Describe(Stopwatch.GetTimestamp())}");
-            } else if (reference.Peers.TryGetValue(peer, out var pipeline))
-                pipeline.Trace($"{prefix}; peer={peer}; {pipeline.Describe(Stopwatch.GetTimestamp())}");
         }
 
         private void RegisterPeer(NetPeer peer) {
@@ -89,7 +77,7 @@ namespace Arterra.Core.Network {
         private void AnnounceReference(NetPeer peer, Guid referenceId) {
             var connection = connections[peer];
             var reference = references[referenceId];
-            var state = reference.GetPipeline(peer, "Local announcement: registered listener or outgoing send requires a pipeline");
+            var state = reference.GetPipeline(peer);
             if (state.RemoteStreamId != 0 && state.RemoteLatestOnly != reference.Listener.LatestOnly)
                 throw new InvalidDataException("Reference ordering policies disagree.");
             if (state.ReceiveStreamId == 0) {
@@ -106,8 +94,7 @@ namespace Arterra.Core.Network {
             writer.Put(receiveStreamId);
             writer.Put(latestOnly);
             writer.Put(acknowledgedStreamId);
-            uint messageId = SendEvent(peer, Guid.Empty, operation, writer.CopyData());
-            TraceReference(peer, referenceId, $"Queued {(operation == Subscribe ? "subscribe" : "unsubscribe")} control message={messageId}, advertisedStream={receiveStreamId}, acknowledgedStream={acknowledgedStreamId}");
+            SendEvent(peer, Guid.Empty, operation, writer.CopyData());
         }
 
         public bool IsSubscribed(NetPeer peer, Guid referenceId) =>
@@ -129,16 +116,12 @@ namespace Arterra.Core.Network {
             references.TryGetValue(referenceId, out var reference);
             PeerPipeline state = null;
             reference?.Peers.TryGetValue(message.Peer, out state);
-            TraceReference(message.Peer, referenceId, $"Received {(message.EventId == Subscribe ? "subscribe" : "unsubscribe")}, advertisedStream={receiveStreamId}, acknowledgedStream={acknowledgedStreamId}");
             if (message.EventId == Unsubscribe) {
-                if (state == null || state.RemoteStreamId != receiveStreamId) {
-                    TraceReference(message.Peer, referenceId, "Ignored unsubscribe: no matching remote stream");
-                    return;
-                }
+                if (state == null || state.RemoteStreamId != receiveStreamId) return;
+                state.CancelSubscriptionDeliveries();
                 if (state.ReceiveStreamId != 0 && acknowledgedStreamId != state.ReceiveStreamId) {
                     state.RemoteStreamId = 0;
                     state.RemoteReady = false;
-                    TraceReference(message.Peer, referenceId, "Unsubscribe cleared destination but kept pipeline: acknowledgment does not match local lifetime");
                     return;
                 }
                 if (state.ReceiveStreamId != 0)
@@ -148,16 +131,12 @@ namespace Arterra.Core.Network {
             }
 
             // A reply to a registration already removed locally must not recreate its state.
-            if (reference?.Listener == null && acknowledgedStreamId != 0) {
-                TraceReference(message.Peer, referenceId, "Ignored subscribe reply: no local listener");
-                return;
-            }
+            if (reference?.Listener == null && acknowledgedStreamId != 0) return;
             if (reference == null) references.Add(referenceId, reference = new ReferenceCommunication());
-            state ??= reference.GetPipeline(message.Peer, $"Incoming subscribe: advertisedStream={receiveStreamId}, acknowledgedStream={acknowledgedStreamId}, localListener={reference.Listener?.GetType()}");
+            state ??= reference.GetPipeline(message.Peer);
             bool ready = state.ReceiveStreamId != 0 && acknowledgedStreamId == state.ReceiveStreamId;
             if (state.RemoteStreamId == receiveStreamId) {
                 state.RemoteReady |= ready;
-                TraceReference(message.Peer, referenceId, "Existing remote stream acknowledgment applied");
                 return;
             }
             // A new destination lifetime cannot inherit previously queued sends or sequence numbers.
@@ -169,9 +148,6 @@ namespace Arterra.Core.Network {
             state.RemoteStreamId = receiveStreamId;
             state.RemoteReady = ready;
             state.RemoteLatestOnly = latestOnly;
-            TraceReference(message.Peer, referenceId, reference.Listener == null
-                ? "Stored remote registration; waiting for local listener"
-                : "Remote registration applied");
             if (reference.Listener == null) return;
             AnnounceReference(message.Peer, referenceId);
             if (IsServer) reference.Listener.OnSubscribed(message.Peer);
@@ -179,7 +155,6 @@ namespace Arterra.Core.Network {
 
         public void Unregister(Guid referenceId, ITransportEventListener listener) {
             if (!references.TryGetValue(referenceId, out var reference) || !ReferenceEquals(reference.Listener, listener)) return;
-            TraceReference(null, referenceId, "Local unregister");
             foreach (var pair in new List<KeyValuePair<NetPeer, PeerPipeline>>(reference.Peers)) {
                 var pipeline = pair.Value;
                 if (IsRunning && pipeline.ReceiveStreamId != 0)
@@ -198,7 +173,6 @@ namespace Arterra.Core.Network {
         }
 
         private void ForgetReference(NetPeer peer, Guid referenceId) {
-            TraceReference(peer, referenceId, "Forget pipeline and cancel queued sends/requests");
             var reference = references[referenceId];
             if (reference.Peers.Remove(peer, out var pipeline)) {
                 connections[peer].Receivers.Remove(pipeline.ReceiveStreamId);
@@ -211,7 +185,24 @@ namespace Arterra.Core.Network {
         /// <summary>Queue a complete event. LiteNetLib owns fragmentation and packet delivery.</summary>
         public uint SendEvent(NetPeer peer, Guid referenceId, ushort eventId,
             byte[] payload, uint replyTo = 0, bool waitForDelivery = false, bool coalescePending = false) {
-            return QueueEvent(peer, referenceId, eventId, payload, replyTo, waitForDelivery: waitForDelivery, coalescePending: coalescePending).Id;
+            return QueueEvent(peer, referenceId, eventId, payload, replyTo, waitForDelivery: waitForDelivery,
+                coalescePending: coalescePending).Id;
+        }
+
+        /// <summary>Queue a transient delivery, discarded if the peer is no longer subscribed when drained.</summary>
+        public uint SendToSubscriber(NetPeer peer, Guid referenceId, ushort eventId, byte[] payload,
+            bool waitForDelivery = false, bool coalescePending = false) {
+            return QueueEvent(peer, referenceId, eventId, payload, 0, waitForDelivery: waitForDelivery,
+                coalescePending: coalescePending, requireSubscription: true).Id;
+        }
+
+        /// <summary>Encode a subscriber delivery only on submission; invoke abandoned if discarded before encoding.</summary>
+        public uint SendToSubscriber(NetPeer peer, Guid referenceId, ushort eventId, Func<byte[]> getMessage,
+            bool waitForDelivery = false, bool coalescePending = false, Action abandoned = null) {
+            if (getMessage == null) throw new ArgumentNullException(nameof(getMessage));
+            return QueueEvent(peer, referenceId, eventId, null, 0, waitForDelivery: waitForDelivery,
+                coalescePending: coalescePending, getMessage: getMessage, abandoned: abandoned,
+                requireSubscription: true).Id;
         }
 
         /// <summary>Encode on submission, after coalescing and delivery gates. Capture values safe to read then.</summary>
@@ -264,7 +255,7 @@ namespace Arterra.Core.Network {
         // Copy eager payloads now; deferred payloads are encoded only when submitted.
         private OutgoingEvent QueueEvent(NetPeer peer, Guid referenceId, ushort eventId,
             byte[] payload, uint replyTo, bool broadcast = false, bool waitForDelivery = false, bool coalescePending = false,
-            bool isRequest = false, Func<byte[]> getMessage = null, Action abandoned = null) {
+            bool isRequest = false, Func<byte[]> getMessage = null, Action abandoned = null, bool requireSubscription = false) {
             if ((waitForDelivery || coalescePending) && replyTo != 0)
                 throw new ArgumentException("Correlated replies cannot be replaced.", nameof(waitForDelivery));
             var pending = Volatile.Read(ref pendingEvents);
@@ -278,6 +269,7 @@ namespace Arterra.Core.Network {
                 ReferenceId = referenceId, EventId = eventId, Id = id, ReplyTo = replyTo, Sender = sender, IsRequest = isRequest,
                 Bytes = (byte[])payload?.Clone(), GetMessage = getMessage, Abandoned = abandoned,
                 WaitForDelivery = waitForDelivery, Coalesce = waitForDelivery || coalescePending, Broadcast = broadcast,
+                RequireSubscription = requireSubscription,
                 Deadline = Stopwatch.GetTimestamp() + (long)(DefaultEventTimeout.TotalSeconds * Stopwatch.Frequency)
             };
             pending.Enqueue((peer, message));
@@ -313,10 +305,15 @@ namespace Arterra.Core.Network {
                 return;
             }
             var reference = references[message.ReferenceId];
-            if (!reference.Peers.TryGetValue(peer, out var pipeline)) {
+            reference.Peers.TryGetValue(peer, out var pipeline);
+            // Recheck on the transport tick: unsubscribe may have arrived after the producer queued this delivery.
+            if (message.SubscriptionDelivery && (pipeline == null || pipeline.RemoteStreamId == 0)) {
+                message.Cancel();
+                return;
+            }
+            if (pipeline == null) {
                 AnnounceReference(peer, message.ReferenceId);
                 pipeline = reference.Peers[peer];
-                TraceReference(peer, message.ReferenceId, $"Send recreated missing pipeline: message={message.Id}, event={message.EventId}, broadcast={message.Broadcast}, request={message.IsRequest}, replyTo={message.ReplyTo}");
             }
             pipeline.Enqueue(message);
         }
@@ -364,28 +361,10 @@ namespace Arterra.Core.Network {
         }
 
         private bool SendMessage(NetPeer peer, OutgoingEvent message, PeerPipeline pipeline = null) {
-            long now = Stopwatch.GetTimestamp();
-            if (message.FirstAttempt == 0) message.FirstAttempt = now;
-            if (now >= message.Deadline) {
-                double ms = 1000.0 / Stopwatch.Frequency;
-                connections.TryGetValue(peer, out var connection);
-                throw new IOException($"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] Outgoing event {message.EventId}, message {message.Id} to {peer} expired before submission."
-                    + $"\n  Reference={message.ReferenceId}, listener={message.Sender?.Listener?.GetType()}, request={message.IsRequest}, replyTo={message.ReplyTo}, coalesce={message.Coalesce}, waitForDelivery={message.WaitForDelivery}."
-                    + $"\n  Payload={(message.GetMessage != null ? "deferred (not encoded)" : message.Bytes?.Length.ToString())} bytes; age={(now - message.Created) * ms:F0} ms, first attempt after={(message.FirstAttempt - message.Created) * ms:F0} ms, deadline exceeded by={(now - message.Deadline) * ms:F0} ms."
-                    + $"\n  Blocked attempts: registration={message.RegistrationBlocks}, queue capacity={message.CapacityBlocks}, peak observed queue={message.PeakQueue}/{MaxQueuedPackets}."
-                    + $"\n  Peer state={peer.ConnectionState}, RTT={peer.RoundTripTime} ms; reliable queues: ordered={peer.GetPacketsCountInReliableQueue(true)}, unordered={peer.GetPacketsCountInReliableQueue(false)}; pending producer events={pendingEvents.Count}, control events={connection?.Control.Count}."
-                    + $"\n  Pipeline: {pipeline?.Describe(now) ?? "control"}"
-                    + (pipeline?.DescribeHistory() ?? "\n  Registration history: control message (no reference pipeline).")
-                    + EntityNetworkTrace.Describe(message.ReferenceId));
-            }
+            if (Stopwatch.GetTimestamp() >= message.Deadline)
+                throw new IOException($"Outgoing event {message.EventId}, message {message.Id}, reference {message.ReferenceId} to {peer} expired before submission (remoteReady={pipeline?.RemoteReady}).");
             if (pipeline != null && !pipeline.RemoteReady) {
-                message.RegistrationBlocks++;
                 sendTiming.registrationBlocks++;
-                if (!pipeline.RegistrationStallRecorded && now - message.FirstAttempt >= 5 * Stopwatch.Frequency) {
-                    pipeline.RegistrationStallRecorded = true;
-                    var stalledGameEvent = message.Bytes == null ? null : message.Sender?.Listener?.GameEventTypeGetter?.Invoke(message.Bytes);
-                    TraceReference(peer, message.ReferenceId, $"Registration stalled for 5 seconds: message={message.Id}, event={message.EventId}, gameEvent={stalledGameEvent}, broadcast={message.Broadcast}, ageMs={(now - message.Created) * 1000.0 / Stopwatch.Frequency:F0}");
-                }
                 return false;
             }
 
@@ -393,9 +372,7 @@ namespace Arterra.Core.Network {
             var delivery = ordered ? DeliveryMethod.ReliableOrdered : DeliveryMethod.ReliableUnordered;
             var kind = message.IsRequest ? MessageKind.Request : message.ReplyTo != 0 ? MessageKind.Reply : MessageKind.Event;
             int queued = peer.GetPacketsCountInReliableQueue(ordered);
-            message.PeakQueue = Math.Max(message.PeakQueue, queued);
             if (queued >= MaxQueuedPackets) {
-                message.CapacityBlocks++;
                 sendTiming.capacityBlocks++;
                 return false;
             }
@@ -419,18 +396,6 @@ namespace Arterra.Core.Network {
             if (message.WaitForDelivery) peer.SendWithDeliveryEvent(messageWriter, delivery, message);
             else peer.Send(messageWriter, delivery);
             message.Submitted = true;
-            if (pipeline == null && (message.EventId == Subscribe || message.EventId == Unsubscribe)) {
-                var control = new NetDataReader(message.Bytes);
-                Guid referenceId = control.GetGuid();
-                TraceReference(peer, referenceId, $"Submitted control to LiteNetLib: message={message.Id}, operation={message.EventId}, advertisedStream={control.GetUInt()}, ageMs={(now - message.Created) * 1000.0 / Stopwatch.Frequency:F0}");
-            }
-            if (pipeline != null) {
-                if (pipeline.RegistrationStallRecorded) {
-                    TraceReference(peer, message.ReferenceId, $"Registration stall resolved; submitted message={message.Id}");
-                    pipeline.RegistrationStallRecorded = false;
-                }
-                pipeline.LastSubmission = now;
-            }
             if (pipeline != null) pipeline.NextSendSequence = unchecked(pipeline.NextSendSequence + 1);
 
             var listener = message.Sender?.Listener;
@@ -524,7 +489,6 @@ namespace Arterra.Core.Network {
                 if (pair.Value.Listener == null) references.Remove(pair.Key);
             }
             sendTiming = default;
-            EntityNetworkTrace.Clear();
         }
 
         // Aggregate once per second; this measures queue draining, packing and submission,
@@ -619,8 +583,8 @@ namespace Arterra.Core.Network {
                 Peers = peers ?? new();
             }
 
-            public PeerPipeline GetPipeline(NetPeer peer, string reason) {
-                if (!Peers.TryGetValue(peer, out var pipeline)) Peers.Add(peer, pipeline = new PeerPipeline(reason));
+            public PeerPipeline GetPipeline(NetPeer peer) {
+                if (!Peers.TryGetValue(peer, out var pipeline)) Peers.Add(peer, pipeline = new PeerPipeline());
                 return pipeline;
             }
         }
@@ -641,38 +605,6 @@ namespace Arterra.Core.Network {
             private Dictionary<uint, TransportEvent> buffered;
             private readonly Queue<OutgoingEvent> outgoing = new();
             private OutgoingEvent currentVariable, pendingVariable;
-            public long LastSubmission;
-            public bool RegistrationStallRecorded;
-            private long lastDelivery;
-            private readonly string creation;
-            private readonly Queue<string> history = new();
-            private int evictedHistory;
-
-            public PeerPipeline(string reason) {
-                creation = $"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] Pipeline created: {reason}";
-            }
-
-            public void Trace(string entry) {
-                if (history.Count == 24) {
-                    history.Dequeue();
-                    evictedHistory++;
-                }
-                history.Enqueue(entry);
-            }
-
-            public string DescribeHistory() {
-                var text = new StringBuilder("\n  Pipeline registration history:");
-                text.Append("\n    ").Append(creation);
-                if (evictedHistory != 0) text.Append($"\n    {evictedHistory} older transitions omitted from this pipeline.");
-                foreach (string entry in history) text.Append("\n    ").Append(entry);
-                return text.ToString();
-            }
-
-            public string Describe(long now) {
-                string Age(long timestamp) => timestamp == 0 ? "never" : $"{(now - timestamp) * 1000.0 / Stopwatch.Frequency:F0} ms ago";
-                return $"remoteReady={RemoteReady}, remoteStream={RemoteStreamId}, receiveStream={ReceiveStreamId}, nextSend={NextSendSequence}, nextReceive={nextReceiveSequence}, bufferedIncoming={buffered?.Count ?? 0}, queuedEntries={outgoing.Count} (includes canceled), awaitingVariableDelivery={currentVariable?.Submitted == true}, pendingVariable={pendingVariable != null}, lastSubmission={Age(LastSubmission)}, lastVariableDelivery={Age(lastDelivery)}";
-            }
-
             public void Enqueue(OutgoingEvent message) {
                 message.Pipeline = this;
                 if (message.Coalesce) {
@@ -690,7 +622,6 @@ namespace Arterra.Core.Network {
             }
 
             public void Delivered(OutgoingEvent message) {
-                lastDelivery = Stopwatch.GetTimestamp();
                 if (currentVariable != message) return;
                 currentVariable = null;
                 var pending = pendingVariable;
@@ -734,6 +665,19 @@ namespace Arterra.Core.Network {
                 }
             }
 
+            public void CancelSubscriptionDeliveries() {
+                foreach (var message in outgoing)
+                    if (message.SubscriptionDelivery) message.Cancel();
+                if (pendingVariable?.SubscriptionDelivery == true) {
+                    pendingVariable.Cancel();
+                    pendingVariable = null;
+                }
+                if (currentVariable?.SubscriptionDelivery == true) {
+                    currentVariable.Cancel();
+                    currentVariable = null;
+                }
+            }
+
             public void CancelOutgoing() {
                 while (outgoing.TryDequeue(out var message)) message.Cancel();
                 currentVariable?.Cancel();
@@ -764,13 +708,11 @@ namespace Arterra.Core.Network {
             public byte[] Bytes;
             public Func<byte[]> GetMessage;
             public Action Abandoned;
-            public bool Canceled, Submitted, WaitForDelivery, Coalesce, Broadcast, IsRequest;
+            public bool Canceled, Submitted, WaitForDelivery, Coalesce, Broadcast, IsRequest, RequireSubscription;
+            public bool SubscriptionDelivery => RequireSubscription || (Broadcast && ReplyTo == 0);
             public ReferenceCommunication Sender;
             public PeerPipeline Pipeline;
             public long Deadline;
-            public readonly long Created = Stopwatch.GetTimestamp();
-            public long FirstAttempt, RegistrationBlocks, CapacityBlocks;
-            public int PeakQueue;
 
             public void Cancel() {
                 Canceled = true;
@@ -788,43 +730,4 @@ namespace Arterra.Core.Network {
             }
         }
     }
-    // Temporary, bounded lifecycle evidence; no output until transport failure.
-    internal static class EntityNetworkTrace {
-        private const int EntityLimit = 2048, EntriesPerEntity = 20;
-        private static readonly object gate = new();
-        private static readonly Dictionary<Guid, Queue<string>> histories = new();
-        private static readonly Queue<Guid> order = new();
-        private static readonly Guid eventOffset = NetworkReferenceId.FromName("EventControl:Events");
-        private static int evicted;
-
-        public static void Record(Guid entityId, string action) {
-            lock (gate) {
-                if (!histories.TryGetValue(entityId, out var history)) {
-                    if (histories.Count == EntityLimit) { histories.Remove(order.Dequeue()); evicted++; }
-                    histories.Add(entityId, history = new());
-                    order.Enqueue(entityId);
-                }
-                if (history.Count == EntriesPerEntity) history.Dequeue();
-                history.Enqueue($"[{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] {action}");
-            }
-        }
-
-        public static string Describe(Guid? referenceId = null) {
-            lock (gate) {
-                var text = new StringBuilder($"\n[Entity Network History] Up to {EntriesPerEntity} recent entries per entity; {evicted} entity histories evicted. Entity zero contains chunk/receipt diagnostics.");
-                foreach (var id in order) {
-                    Guid reference = NetworkReferenceId.ForEntity(id, eventOffset);
-                    if (referenceId.HasValue && id != Guid.Empty && reference != referenceId.Value) continue;
-                    text.Append($"\n  Entity={id}, eventReference={reference}");
-                    foreach (var entry in histories[id]) text.Append("\n    ").Append(entry);
-                }
-                return text.ToString();
-            }
-        }
-
-        public static void Clear() {
-            lock (gate) { histories.Clear(); order.Clear(); evicted = 0; }
-        }
-    }
-
 }

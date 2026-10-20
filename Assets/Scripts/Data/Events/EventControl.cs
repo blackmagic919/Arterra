@@ -120,6 +120,7 @@ namespace Arterra.Core.Events {
         Apply_ReelRod = GameEventBases.Apply_Base + 24,
         Apply_ReleaseRod = GameEventBases.Apply_Base + 25,
         Apply_CancelRod = GameEventBases.Apply_Base + 26,
+        Apply_DropItem = GameEventBases.Apply_Base + 27,
 
 
     }

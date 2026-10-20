@@ -185,8 +185,9 @@ namespace Arterra.GamePlay.UI {
             return true;
         }
         public static void DropItem(IItem item) {
-            DropItem(item, PlayerHandler.data.position,
-            PlayerHandler.data.Collider.transform.rotation);
+            if (item == null) return;
+            var player = PlayerHandler.data;
+            player.eventCtrl.RaiseEvent(GameEvent.Apply_DropItem, player.info.rtEntityId, null, item.Clone());
         }
 
         public static void DropItem(IItem item, float3 location, Quaternion rotation = default) {

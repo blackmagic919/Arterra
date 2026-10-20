@@ -13,6 +13,7 @@ using Arterra.GamePlay;
 using System.Threading;
 using System;
 using Arterra.Core;
+using Arterra.Core.Network;
 
 namespace Arterra.Data.Intrinsic{
     /// <summary>
@@ -204,6 +205,7 @@ namespace Arterra.Engine.Terrain{
             /// The map entries are updated in the order they were added.
             /// </summary> <param name="mono"><see cref="IUpdateSubscriber.Update"/> </param>
             public void Update(MonoBehaviour mono) {
+                if (!NetworkManager.IsActingServer) return;
                 if (!PlayerHandler.active) return;
                 UpdateTick = (UpdateTick + 1) % settings.UpdateTickDelay;
                 if (UpdateTick != 0) return;

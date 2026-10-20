@@ -145,7 +145,7 @@ namespace Arterra.Core.Network {
             if (disposed) return;
             CheckSession();
             if (CanAccess(readPerm, peer))
-                transport.SendEvent(peer, ReferenceId, Update, Encode(value), waitForDelivery: WaitForDelivery, coalescePending: true);
+                transport.SendToSubscriber(peer, ReferenceId, Update, Encode(value), waitForDelivery: WaitForDelivery, coalescePending: true);
         }
 
         void ITransportEventListener.OnEvent(TransportEvent message) {
@@ -204,7 +204,7 @@ namespace Arterra.Core.Network {
                 if (readPerm == NetworkPermission.All) transport.Broadcast(ReferenceId, Update, payload, waitForDelivery: WaitForDelivery, coalescePending: true);
                 else foreach (var peer in transport.Peers) {
                     if (transport.IsSubscribed(peer, ReferenceId) && CanAccess(readPerm, peer))
-                        transport.SendEvent(peer, ReferenceId, Update, payload, waitForDelivery: WaitForDelivery, coalescePending: true);
+                        transport.SendToSubscriber(peer, ReferenceId, Update, payload, waitForDelivery: WaitForDelivery, coalescePending: true);
                 }
             }
         }

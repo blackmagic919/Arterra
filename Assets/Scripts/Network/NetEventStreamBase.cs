@@ -102,8 +102,8 @@ namespace Arterra.Core.Network {
                 else if (readPerm != NetworkPermission.Server) {
                     byte[] payload = null;
                     foreach (var peer in recipients ?? transport.Peers) {
-                        if (peer != null && CanAccess(readPerm, peer))
-                            transport.SendEvent(peer, ReferenceId, Delivery, payload ??= Encode(data));
+                        if (peer != null && CanAccess(readPerm, peer) && transport.IsSubscribed(peer, ReferenceId))
+                            transport.SendToSubscriber(peer, ReferenceId, Delivery, payload ??= Encode(data));
                     }
                 }
             }

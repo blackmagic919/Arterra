@@ -53,6 +53,9 @@ public static class EntityManager
 
     public static Entity CreateEntity(float3 GCoord, uint entityIndex, Entity sEntity = null, Action cb = null,
         Action<Exception> onError = null, CancellationToken token = default) {
+        if (!NetworkManager.IsActingServer)
+            throw new UnauthorizedAccessException($"Only the authority can create entities (type={entityIndex}, position={GCoord}).");
+
         if (sEntity == null) {
             Authoring authoring = Config.CURRENT.Generation.Entities.Reg[(int)entityIndex];
             sEntity = authoring.Entity;
@@ -72,16 +75,12 @@ public static class EntityManager
     }
     public static Entity DeserializeEntity(Entity sEntity, Action cb = null,
         Action<Exception> onError = null, CancellationToken token = default){
-        EntityNetworkTrace.Record(sEntity.info.rtEntityId, "DeserializeEntity queued for deferred initialization");
         AddHandlerEvent(() => {
             try {
-                EntityNetworkTrace.Record(sEntity.info.rtEntityId, $"Deferred initialization executing; canceled={token.IsCancellationRequested}");
                 token.ThrowIfCancellationRequested();
                 DeserializeE(sEntity);
-                EntityNetworkTrace.Record(sEntity.info.rtEntityId, "Deferred initialization completed");
                 cb?.Invoke();
             } catch (Exception exception) {
-                EntityNetworkTrace.Record(sEntity.info.rtEntityId, $"Deferred initialization failed: {exception}");
                 if (onError == null) throw;
                 onError(exception);
             }
@@ -147,7 +146,6 @@ public static class EntityManager
         if (save) await Chunk.SaveEntitiesToJsonAsync(entities, coordinate);
     }
     public static void ReleaseE(Guid entityId){
-        EntityNetworkTrace.Record(entityId, $"ReleaseE invoked; exists={EntityIndex.ContainsKey(entityId)}");
         if(!EntityIndex.TryGetValue(entityId, out Entity entity))
             return;
 
@@ -158,17 +156,14 @@ public static class EntityManager
         }
         EntityReg.Remove(entity);
         EntityIndex.Remove(entityId);
-        EntityNetworkTrace.Record(entityId, "ReleaseE removed entity");
         ESTree.Delete(entityId);
         EntitySubCCoord.Remove(entityId);
         entity.Disable();
-        EntityNetworkTrace.Record(entityId, "Entity Disable completed");
     }
 
     private static void InitializeE(Entity nEntity, float3 GCoord, uint entityIndex) {
         Authoring authoring = Config.CURRENT.Generation.Entities.Reg[(int)entityIndex];
         nEntity.info.rtEntityId = Guid.NewGuid();
-        EntityNetworkTrace.Record(nEntity.info.rtEntityId, $"Create entity initialization starts; type={entityIndex}, position={GCoord}");
         nEntity.info.entityType = entityIndex;
         nEntity.active = true;
 
@@ -178,7 +173,6 @@ public static class EntityManager
         nEntity.transform.Register(nEntity);
         ESTree.Insert(nEntity);
         InitializeLocalVisual(nEntity);
-        EntityNetworkTrace.Record(nEntity.info.rtEntityId, "Create entity initialization completed");
     }
 
     private static void DeserializeE(Entity sEntity){
@@ -186,10 +180,7 @@ public static class EntityManager
         if (sEntity.info.rtEntityId == Guid.Empty)
             throw new ArgumentException("A loaded entity must have its shared runtime ID.", nameof(sEntity));
         // Initial snapshots may overlap incremental enters. Never initialize a live ID twice.
-        if (EntityIndex.ContainsKey(sEntity.info.rtEntityId)) {
-            EntityNetworkTrace.Record(sEntity.info.rtEntityId, "Initialization skipped: entity ID already exists");
-            return;
-        }
+        if (EntityIndex.ContainsKey(sEntity.info.rtEntityId)) return;
         var reg = Config.CURRENT.Generation.Entities;
         Authoring authoring = reg.Retrieve((int)sEntity.info.entityType);
         sEntity.active = true;

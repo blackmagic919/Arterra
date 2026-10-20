@@ -113,6 +113,7 @@ namespace Arterra.Data.Entity.Behavior {
             self.eventCtrl.RemoveEventHandler(GameEvent.Entity_Damaged, DamageArmor);
             self.eventCtrl.RemoveEventHandler(GameEvent.Item_MutateItem, MutateItem);
             self.eventCtrl.RemoveEventHandler(GameEvent.Entity_SetInventorySlot, ApplySlot);
+            self.eventCtrl.RemoveEventHandler(GameEvent.Apply_DropItem, DropItem);
             foreach (var pair in itemHandlers)
                 self.eventCtrl.RemoveEventHandler(pair.Key.Item1, pair.Value);
             itemHandlers.Clear();
@@ -135,6 +136,7 @@ namespace Arterra.Data.Entity.Behavior {
             ArmorI.ReapplyHandles();
 
             if (self.IsAuthority) {
+                self.eventCtrl.AddEventHandler(GameEvent.Apply_DropItem, DropItem);
                 self.eventCtrl.AddEventHandler(GameEvent.Item_MutateItem, MutateItem);
                 self.eventCtrl.AddEventHandler(GameEvent.Entity_Damaged, DamageArmor);
             } else
@@ -145,6 +147,11 @@ namespace Arterra.Data.Entity.Behavior {
             Entity attacker = null;
             if (target is Guid id) EntityManager.TryGetEntity(id, out attacker);
             ArmorI.OnDamaged(attacker, (RefTuple<(float, float3)>)context);
+        }
+
+        private void DropItem(object source, object target, object context) {
+            if (context is not IItem item || item.AmountRaw <= 0) return;
+            InventoryController.DropItem(item, self.position);
         }
 
         private ItemContext SetupContext(ItemContext context) =>

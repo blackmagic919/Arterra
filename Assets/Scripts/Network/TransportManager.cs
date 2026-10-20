@@ -158,7 +158,6 @@ namespace Arterra.Core.Network {
         private void Fail(Exception exception) {
             connected?.TrySetException(exception);
             Debug.LogException(exception);
-            Debug.LogError(EntityNetworkTrace.Describe());
             _ = Stop(exception);
         }
 
