@@ -46,8 +46,13 @@ namespace Arterra.Core.Storage {
                 if (disposed || !subscription.Active) return;
 
                 // Capture anew for every request, including requests for an already loaded chunk.
-                byte[] bytes = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(ChunkTransfer.Capture(subscription.Chunk)));
-                TransportManager.Instance.SendEvent(peer, referenceId, Content, bytes, request.MessageId);
+                var transfer = ChunkTransfer.Capture(subscription.Chunk);
+                foreach (var entry in transfer.EntityData)
+                    EntityNetworkTrace.Record(entry.Value.info.rtEntityId, $"Host captured chunk={coordinate}, request={request.MessageId}, peer={peer}");
+                byte[] bytes = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(transfer));
+                uint sent = TransportManager.Instance.SendEvent(peer, referenceId, Content, bytes, request.MessageId);
+                foreach (var entry in transfer.EntityData)
+                    EntityNetworkTrace.Record(entry.Value.info.rtEntityId, $"Host queued chunk reply message={sent}, request={request.MessageId}, chunk={coordinate}, peer={peer}");
             } catch (Exception exception) {
                 if (disposed) return;
 
@@ -60,6 +65,7 @@ namespace Arterra.Core.Storage {
         public override void EnterEntity(Entity entity) {
             if (disposed) return;
 
+            EntityNetworkTrace.Record(entity.info.rtEntityId, $"Host queues EnterEntity, peer={peer}");
             TransportManager.Instance.SendEvent(peer, referenceId, Enter,
                 Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(new Registerable<Entity>(entity))));
         }
@@ -67,6 +73,7 @@ namespace Arterra.Core.Storage {
         public override void LeaveEntity(Guid entityId) {
             if (disposed) return;
 
+            EntityNetworkTrace.Record(entityId, $"Host queues LeaveEntity, peer={peer}");
             TransportManager.Instance.SendEvent(peer, referenceId, Leave, entityId.ToByteArray());
         }
 

@@ -23,6 +23,7 @@ namespace Arterra.Core.Network {
                 throw new InvalidOperationException("This stream already belongs to another entity.");
             RegisterReference(NetworkReferenceId.ForEntity(entity.info.rtEntityId, offsetId));
             this.entity = entity;
+            EntityNetworkTrace.Record(entity.info.rtEntityId, $"Event stream registered: reference={ReferenceId}, valueType={typeof(T)}");
         }
 
         protected override bool CanAccess(NetworkPermission permission, NetPeer peer) {
