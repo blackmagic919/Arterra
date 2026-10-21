@@ -36,10 +36,10 @@ namespace Arterra.Data.Entity.Behavior {
         private readonly Dictionary<GameEvent, RefEventHandler> visualHandlers = new();
 
         private PhysicalitySetting physicality;
+        private PlayerMovementBehavior movement;
         private BehaviorEntity.Animal self;
         private Animator animator;
         private GameObject heldItem;
-        private float3 movement;
         private bool isSwimming;
         private bool isShaking;
         private FMOD.Studio.EventInstance SubmergedSound;
@@ -53,6 +53,7 @@ namespace Arterra.Data.Entity.Behavior {
             if (!setting.Is(out settings))
                 throw new Exception("Entity: PlayerEffectsBehavior requires PlayerEffectsSettings");
             if (!setting.Is(out physicality)) physicality = null;
+            if (!self.Is(out movement)) movement = null;
 
             this.self = self;
             self.Register(this);
@@ -84,7 +85,7 @@ namespace Arterra.Data.Entity.Behavior {
             if (self.context != BehaviorEntity.UpdateContext.Visual) return;
             if (animator == null) return;
 
-            float3 velocity = self.IsOwner ? movement : self.velocity;
+            float3 velocity = movement.NormalizedMoveVel;
             float speed = Mathf.Lerp(animator.GetFloat("Speed"), math.length(velocity), 0.35f);
             animator.SetFloat("Speed", speed);
             if (self.IsOwner) {
@@ -93,8 +94,6 @@ namespace Arterra.Data.Entity.Behavior {
             }
         }
 
-        // Movement captures the presentation value; Animator writes happen in Visual.
-        public void PlayAnimatorMove(float3 normVel) => movement = normVel;
 
         private void ResolveAnimator(BehaviorEntity.Animal self) {
             if (self.controller == null || self.controller.transform == null) {

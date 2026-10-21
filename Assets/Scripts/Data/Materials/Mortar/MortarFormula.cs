@@ -1,3 +1,4 @@
+using Arterra.GamePlay;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -277,7 +278,7 @@ namespace Arterra.Data.Intrinsic.Mortar {
             uint offset = 0;
             float normalization = DisplayNormalizationFactor(recipe);
             bool alreadyMatch = true; float maxBatchPossible = float.MaxValue;
-            InventoryController.Inventory tempInv = new InventoryController.Inventory(2 * (int)MortarInv.capacity);
+            Inventory tempInv = new Inventory(2 * (int)MortarInv.capacity);
             MortarInv.CopyTo(tempInv, 0, 0); offset += MortarInv.capacity;
             
             AccumulateRequiredIngredients(MortarInv, recipe.Inputs.value);
@@ -291,7 +292,7 @@ namespace Arterra.Data.Intrinsic.Mortar {
                 int required = Deficit[item];
                 if (alreadyMatch) required = Mathf.FloorToInt(required * maxBatchPossible);
                 if (surplus > required) continue;
-                surplus += InventoryController.RemoveStackable(required - surplus, item,
+                surplus += PlayerHandler.Inventory.RemoveStackable(required - surplus, item,
                     OnRemoved: item => tempInv.AddStackable(item));
                 Surplus[item] = surplus;
             }
@@ -303,11 +304,11 @@ namespace Arterra.Data.Intrinsic.Mortar {
                 IItem item = tempInv.Info[i];
                 if (item == null) continue;
                 item = item.Clone() as IItem;
-                InventoryController.AddEntry(item);
+                PlayerHandler.Inventory.AddItem(item);
                 tempInv.RemoveEntry(i);
             }
 
-            void AccumulateInvSurplus(InventoryController.Inventory inv) {
+            void AccumulateInvSurplus(Inventory inv) {
                 for (int i = 0; i < inv.Capacity; i++) {
                     IItem item = inv.PeekItem(i);
 
@@ -319,7 +320,7 @@ namespace Arterra.Data.Intrinsic.Mortar {
                 }
             }
 
-            void AccumulateRequiredIngredients(InventoryController.Inventory inv, List<MortarMaConversion> ingList) {
+            void AccumulateRequiredIngredients(Inventory inv, List<MortarMaConversion> ingList) {
                 AccumulateInvSurplus(inv);
                 for (int i = 0; i < ingList.Count; i++) {
                     MortarMaConversion ing = ingList[i];
@@ -344,7 +345,7 @@ namespace Arterra.Data.Intrinsic.Mortar {
                 }
             }
 
-            void PlaceRequiredIngredients(InventoryController.Inventory dest, List<MortarMaConversion> ingList) {
+            void PlaceRequiredIngredients(Inventory dest, List<MortarMaConversion> ingList) {
                 for (int i = 0; i < ingList.Count; i++) {
                     MortarMaConversion ing = ingList[i];
                     int index = recipe.Index(ing);

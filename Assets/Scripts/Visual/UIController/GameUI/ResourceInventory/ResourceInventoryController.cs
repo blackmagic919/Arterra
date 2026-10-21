@@ -1,3 +1,4 @@
+using Arterra.GamePlay;
 using Arterra.Configuration;
 using Arterra.Data.Intrinsic;
 using Arterra.Data.Item;
@@ -69,8 +70,8 @@ namespace Arterra.GamePlay.UI {
             Authoring author = ItemSearch.SlotEntries[index];
             IItem item = author.Item;
             item.Create(Config.CURRENT.Generation.Items.RetrieveIndex(author.Name), item.StackLimit);
-            InventoryController.Cursor.ClearCursor(InventoryController.AddEntry);
-            InventoryController.Cursor.HoldItem(item);
+            PlayerHandler.Inventory.Cursor.ClearCursor(PlayerHandler.Inventory.AddItem);
+            PlayerHandler.Inventory.Cursor.HoldItem(item);
             InputPoller.SuspendKeybindPropogation("Select");
         }
 

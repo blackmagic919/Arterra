@@ -1,4 +1,8 @@
 using System;
+using Newtonsoft.Json;
+using Arterra.GamePlay;
+using Arterra.Data.Entity.Behavior;
+using Arterra.Data.Player;
 using System.Collections.Generic;
 using System.Linq;
 using Unity.Mathematics;
@@ -14,19 +18,76 @@ using Arterra.Core.Events;
 using Arterra.Core.Storage;
 using static Arterra.Core.Storage.SharedResourceManager;
 
-namespace Arterra.GamePlay.UI {
-    public sealed class CraftingMenuController : PanelNavbarManager.INavPanel {
-        public static CraftingMenuController instance;
-        private Crafting settings;
-        public CraftingRecipeSearch RecipeSearch;
+namespace Arterra.Data.Entity.Behavior {
+    public sealed class PlayerCraftingBehavior : SpeciesBehavior, PanelNavbarManager.INavPanel {
+        public Inventory Materials;
+        public Inventory Items;
         private KTree Recipe;
+
+        public override void AddBehaviorDependencies(System.Collections.Generic.Dictionary<Behaviors, int> hierarchy) {
+            hierarchy.TryAdd(Behaviors.PlayerInventories, hierarchy.Count);
+        }
+
+        public override void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 coordinate) {
+            this.self = self;
+            self.Register(this);
+            self.Is(out inventories);
+
+            settings = Config.CURRENT.System.Crafting;
+            Materials ??= new Inventory(AxisWidth * AxisWidth);
+            Items ??= new Inventory(GridWidth * GridWidth);
+            Recipe.ConstructTree(settings.Recipes.Reg.Select(r => r.SerializeCopy()).ToArray(),
+                AxisWidth * AxisWidth, GridWidth * GridWidth);
+
+            Materials.AddCallbacks(SetupContext, SetupContext);
+            Items.AddCallbacks(SetupContext, SetupContext);
+            Materials.ReapplyHandles();
+            Items.ReapplyHandles();
+            if (!self.IsAuthority) return;
+            self.eventCtrl.AddEventHandler(GameEvent.Apply_Craft, HandleCraft);
+            self.eventCtrl.AddEventHandler(GameEvent.Apply_MatchRecipe, HandleMatchRecipe);
+            self.eventCtrl.AddEventHandler(GameEvent.Apply_ClearCrafting, HandleClear);
+        }
+
+        public override void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 coordinate) =>
+            Initialize(self, setting, coordinate);
+
+        public override void Disable(BehaviorEntity.Animal self) {
+            DisposeVisual(self);
+            Materials?.UnapplyHandles();
+            Items?.UnapplyHandles();
+            self.eventCtrl.RemoveEventHandler(GameEvent.Apply_Craft, HandleCraft);
+            self.eventCtrl.RemoveEventHandler(GameEvent.Apply_MatchRecipe, HandleMatchRecipe);
+            self.eventCtrl.RemoveEventHandler(GameEvent.Apply_ClearCrafting, HandleClear);
+        }
+
+        private ItemContext SetupContext(ItemContext context) =>
+            context.SetupScenario(self, ItemContext.Scenario.ActivePlayerCraftingGrid);
+
+        private void HandleCraft(object source, object target, object context) {
+            CraftRecipe(inventories, self, out int insufficientRecipe);
+            if (insufficientRecipe >= 0) self.eventCtrl.RaiseEvent(GameEvent.Entity_CraftInsufficient,
+                self.info.rtEntityId, null, insufficientRecipe);
+        }
+
+        private void HandleMatchRecipe(object source, object target, object context) {
+            if (context is int recipe) MatchRecipeInternal(recipe, inventories);
+        }
+
+        private void HandleClear(object source, object target, object context) => Clear(inventories.AddItem);
+
+        private BehaviorEntity.Animal self;
+        private PlayerInventoriesBehavior inventories;
+        private Crafting settings;
+        [JsonIgnore] public CraftingRecipeSearch RecipeSearch;
+
         private GameObject craftingMenu;
-        public Display Rendering;
-        private Core.ArterraRuntime.IUpdateSubscriber eventTask;
+        [JsonIgnore] public Display Rendering;
+
         private ComputeBuffer craftingBuffer;
         private int TotalGrids;
 
-        public int GridWidth;
+        [JsonIgnore] public int GridWidth => settings.GridWidth;
         internal int AxisWidth => GridWidth + 1;
         internal int GridCount => AxisWidth * AxisWidth;
         private int2 GridSize => (int2)(float2)(Rendering.crafting.display.Transform.sizeDelta
@@ -34,57 +95,66 @@ namespace Arterra.GamePlay.UI {
         private int FitRecipe = -1;
 
         // Start is called before the first frame update
-        public CraftingMenuController(Crafting settings) {
-            this.settings = settings;
+        public override void InitializeVisual(BehaviorEntity.Animal self) {
+            if (!self.IsOwner || craftingMenu != null) return;
             craftingMenu = GameObject.Instantiate(Resources.Load<GameObject>("Prefabs/GameUI/Crafting/CraftingMenu"), GameUIManager.UIHandle.transform);
-            GridWidth = settings.GridWidth; TotalGrids = 0;
-            instance?.Release();
-            instance = this;
+            TotalGrids = 0;
 
             Rendering = new Display(craftingMenu, settings.NumMaxSelections, GridWidth, ref TotalGrids);
-            RecipeSearch = new CraftingRecipeSearch(craftingMenu.transform, ref TotalGrids);
+            RecipeSearch = new CraftingRecipeSearch(this, craftingMenu.transform, ref TotalGrids);
             craftingBuffer = new ComputeBuffer(TotalGrids * GridCount, sizeof(uint) * 2 + sizeof(float), ComputeBufferType.Structured, ComputeBufferMode.Dynamic);
             Rendering.InitializeSelectionPts(GridWidth, GridSize);
 
-            Recipe.ConstructTree(settings.Recipes.Reg.Select(r => r.SerializeCopy()).ToArray(), matDim: GridCount, itemDim: GridWidth * GridWidth);
+            BindInventories();
             craftingMenu.SetActive(false);
 
-            Material mat = Rendering.crafting.display.Display.materialForRendering;
+            UnityEngine.Material mat = Rendering.crafting.display.Display.materialForRendering;
             mat.SetBuffer("CraftingInfo", craftingBuffer);
             mat.SetFloat("GridWidth", GridWidth);
+            PanelNavbarManager.Add(this, "Crafting");
         }
 
-        public void Release() { craftingBuffer.Release(); }
+        public void Release() => DisposeVisual(self);
+
+        public override void DisposeVisual(BehaviorEntity.Animal self) {
+            if (craftingMenu == null) return;
+            if (craftingMenu.activeSelf) Deactivate();
+            self.eventCtrl.RemoveEventHandler(GameEvent.Entity_CraftInsufficient, FlashIndicator);
+            PanelNavbarManager.Remove("Crafting", release: false);
+            RecipeSearch?.Release();
+            craftingBuffer?.Release();
+            craftingBuffer = null;
+            GameObject.Destroy(craftingMenu);
+            craftingMenu = null;
+        }
+
         public Sprite GetNavIcon() => Config.CURRENT.Generation.Textures.Retrieve(settings.DisplayIcon).self;
         public GameObject GetDispContent() => craftingMenu;
 
         public void Activate() {
-            eventTask = new Core.ArterraRuntime.IndirectUpdate(Update);
-            Core.ArterraRuntime.MainLoopUpdateTasks.Enqueue(eventTask);
-            PlayerHandler.data.eventCtrl.RaiseEvent(Core.Events.GameEvent.Action_OpenCrafting, PlayerHandler.data.info.rtEntityId, null);
+            self.eventCtrl.AddEventHandler(GameEvent.Entity_CraftInsufficient, FlashIndicator);
+            self.eventCtrl.RaiseEvent(Core.Events.GameEvent.Action_OpenCrafting, self.info.rtEntityId, null);
+            InputPoller.AddContextFence("PlayerCraft", "3.5::Window", ActionBind.Exclusion.None);
+            InputPoller.AddBinding(new ActionBind("Craft", CraftEntry, policy: ActionBind.Policy.Down),
+                "PlayerCraft:CFT", "3.5::Window");
+            InputPoller.AddBinding(new ActionBind("Deselect",
+                DeselectDrag, ActionBind.Exclusion.None), "PlayerCraft:DS", "3.5::Window");
+            InputPoller.AddBinding(new ActionBind("Select",
+                Select, ActionBind.Exclusion.None, ActionBind.Policy.Down),
+                "PlayerCraft:SEL", "3.5::Window");
+            InputPoller.AddBinding(new ActionBind("SelectPartial", SelectPartial, policy: ActionBind.Policy.Down),  "PlayerCraft:SELP", "3.5::Window");
+            InputPoller.AddBinding(new ActionBind("SelectAll", SelectAll, policy: ActionBind.Policy.Down), "PlayerCraft:SELA", "3.0::AllWindow");
 
-                InputPoller.AddContextFence("PlayerCraft", "3.5::Window", ActionBind.Exclusion.None);
-                InputPoller.AddBinding(new ActionBind("Craft", CraftEntry, policy: ActionBind.Policy.Down),
-                    "PlayerCraft:CFT", "3.5::Window");
-                InputPoller.AddBinding(new ActionBind("Deselect",
-                    DeselectDrag, ActionBind.Exclusion.None), "PlayerCraft:DS", "3.5::Window");
-                InputPoller.AddBinding(new ActionBind("Select",
-                    Select, ActionBind.Exclusion.None, ActionBind.Policy.Down),
-                    "PlayerCraft:SEL", "3.5::Window");
-                InputPoller.AddBinding(new ActionBind("SelectPartial", SelectPartial, policy: ActionBind.Policy.Down),  "PlayerCraft:SELP", "3.5::Window");
-                InputPoller.AddBinding(new ActionBind("SelectAll", SelectAll, policy: ActionBind.Policy.Down), "PlayerCraft:SELA", "3.0::AllWindow");
-
-
-            Clear();
-            Refresh();
-            UpdateDisplay();
+            BindInventories();
             craftingMenu.SetActive(true);
             Rendering.InitializeDisplay(GridWidth);
+            Refresh();
+            UpdateDisplay();
         }
 
         public void Deactivate() {
-            eventTask.Active = false;
-            Clear(InventoryController.AddEntry);
+            self.eventCtrl.RemoveEventHandler(GameEvent.Entity_CraftInsufficient, FlashIndicator);
+            Request(GameEvent.Apply_ClearCrafting);
 
                 InputPoller.RemoveContextFence("PlayerCraft", "3.5::Window");
                 InputPoller.RemoveBinding("PlayerCraft:SELA", "3.0::AllWindow");
@@ -94,65 +164,54 @@ namespace Arterra.GamePlay.UI {
             RecipeSearch.Deactivate();
         }
 
-        private bool GetMouseSelected(out IInventory inv, out int index) {
-            if (InventoryController.Cursor.IsHolding) {
-                //Check if item is material
-                IItem cursor = InventoryController.Cursor.Item;
-                Authoring setting = Config.CURRENT.Generation.Items.Retrieve(cursor.Index);
-                if (setting is not PlaceableItem mSettings) return GetMouseItemSelect(out inv, out index);
-                IRegister matInfo = Config.CURRENT.Generation.Materials.value.MaterialDictionary;
-                if (!matInfo.Contains(mSettings.MaterialName)) return GetMouseItemSelect(out inv, out index);
-                return GetMouseMatSelect(out inv, out index);
-            } else {
-                if (GetMouseItemSelect(out inv, out index)) {
-                    if (inv.PeekItem(index) != null) return true;
-                }
-                return GetMouseMatSelect(out inv, out index);
+        private bool SendInteraction(PlayerInventoriesBehavior.InventoryAction action) {
+            if (!Rendering.crafting.NonMatInventory.Display.GetMouseSelected(out int itemSlot)) itemSlot = -1;
+            // The server chooses the material corner or item slot using its current cursor.
+            Vector3[] corners = new Vector3[4];
+            Rendering.crafting.display.Transform.GetWorldCorners(corners);
+            int2 origin = new int2((int)corners[0].x, (int)corners[0].y);
+            float2 relative = (((float3)Input.mousePosition).xy - origin) / GridSize;
+            int materialSlot = -1;
+            if (math.all(relative >= 0) && math.all(relative < GridWidth)) {
+                int2 point = (int2)math.round(relative);
+                materialSlot = point.x + point.y * AxisWidth;
             }
+            if (materialSlot < 0 && itemSlot < 0) return false;
 
-            bool GetMouseMatSelect(out IInventory inv, out int index) {
-                inv = Rendering.MainGridMatItems; index = -1;
-                Vector3[] corners = new Vector3[4];
-                Rendering.crafting.display.Transform.GetWorldCorners(corners);
-                int2 origin = new int2((int)corners[0].x, (int)corners[0].y);
-                float2 relativePos = (((float3)Input.mousePosition).xy - origin) / GridSize;
-                if (math.any(relativePos < 0) || math.any(relativePos >= instance.GridWidth))
-                    return false;
-                int2 gridPos = (int2)math.round(relativePos);
-                index = gridPos.x + gridPos.y * AxisWidth;
-                return true;
-            }
-
-            bool GetMouseItemSelect(out IInventory inv, out int index) {
-                inv = Rendering.crafting.NonMatInventory;
-                return Rendering.crafting.NonMatInventory.Display.GetMouseSelected(out index);
-            }
+            var player = self;
+            player.eventCtrl.RaiseEvent(GameEvent.Apply_InventoryInteraction, player.info.rtEntityId,
+                PlayerInventoriesBehavior.InventoryKind.CraftingMaterials,
+                new PlayerInventoriesBehavior.InventoryInteraction {
+                    Action = action, Slot = materialSlot, AlternateSlot = itemSlot, CraftingTarget = true
+                });
+            return true;
         }
+
         private void Select(float _ = 0) {
-            if (!InventoryController.Select(GetMouseSelected)) return;
-            InputPoller.SuspendKeybindPropogation("Select", ActionBind.Exclusion.ExcludeLayer);
-            Refresh();
+            if (SendInteraction(PlayerInventoriesBehavior.InventoryAction.Select))
+                InputPoller.SuspendKeybindPropogation("Select", ActionBind.Exclusion.ExcludeLayer);
         }
 
         private void DeselectDrag(float _ = 0) {
-            if (!InventoryController.DeselectDrag(GetMouseSelected)) return;
-            InputPoller.SuspendKeybindPropogation("Deselect", ActionBind.Exclusion.ExcludeLayer);
-            Refresh();
+            if (SendInteraction(PlayerInventoriesBehavior.InventoryAction.DeselectDrag))
+                InputPoller.SuspendKeybindPropogation("Deselect", ActionBind.Exclusion.ExcludeLayer);
         }
+
         private void SelectPartial(float _ = 0) {
-            if (!InventoryController.SelectPartial(GetMouseSelected)) return;
-            InputPoller.SuspendKeybindPropogation("SelectPartial", ActionBind.Exclusion.ExcludeLayer);
-            Refresh();
+            if (SendInteraction(PlayerInventoriesBehavior.InventoryAction.SelectPartial))
+                InputPoller.SuspendKeybindPropogation("SelectPartial", ActionBind.Exclusion.ExcludeLayer);
         }
+
         private void SelectAll(float _ = 0) {
-            InventoryController.SelectAll(Rendering.MainGridMatItems);
-            InventoryController.SelectAll(Rendering.crafting.NonMatInventory);
+            inventories.SelectAll(Rendering.MainGridMatItems);
+            inventories.SelectAll(Rendering.crafting.NonMatInventory);
             Refresh();
         }
 
         // Update is called once per frame
-        private void Update(MonoBehaviour mono) {
-            if (!eventTask.Active) return;
+        public override void Update(BehaviorEntity.Animal self) {
+            if (self.context != BehaviorEntity.UpdateContext.Visual || !self.IsOwner
+                || craftingMenu == null || !craftingMenu.activeSelf) return;
 
             //Crafting Point Scaling
             EvaluateInfluence((corner, influence) => {
@@ -178,7 +237,7 @@ namespace Arterra.GamePlay.UI {
             Rendering.crafting.display.Transform.GetWorldCorners(corners);
             int2 origin = new int2((int)corners[0].x, (int)corners[0].y);
             float2 relativePos = (((float3)Input.mousePosition).xy - origin) / GridSize;
-            if (math.any(relativePos < 0) || math.any(relativePos >= instance.GridWidth))
+            if (math.any(relativePos < 0) || math.any(relativePos >= GridWidth))
                 return;
             int2 gridPos = (int2)math.floor(relativePos);
             for (int i = 0; i < 4; i++) {
@@ -190,18 +249,19 @@ namespace Arterra.GamePlay.UI {
         }
 
         private void CraftEntry(float _) {
-            CraftRecipe(PlayerHandler.data);
+            Request(GameEvent.Apply_Craft);
             Refresh();
         }
 
-        private void Refresh() {
+        public void Refresh() {
+            Rendering.IsDirty = true;
+            if (craftingMenu == null || !craftingMenu.activeSelf) return;
             Rendering.crafting.RefreshInventoryGrid(Rendering.MainGridMatItems);
-            CraftingRecipe target = Rendering.SerializeToRecipe();
-            List<int> recipes = Recipe.QueryNearestLimit(target, settings.MaxRecipeDistance, settings.NumMaxSelections);
+            List<int> recipes = FindRecipes(settings.NumMaxSelections);
             FitRecipe = recipes.Count > 0 ? recipes[0] : -1;
 
             for (int r = 0; r < recipes.Count; r++) {
-                Rendering.selections[r].RefreshGridWithRecipe(Recipe.Table[recipes[r]], GridWidth);
+                Rendering.selections[r].RefreshGridWithRecipe(GetRecipe(recipes[r]), GridWidth);
             }
 
             for (int i = 0; i < Rendering.selections.Length; i++) {
@@ -217,30 +277,20 @@ namespace Arterra.GamePlay.UI {
             Rendering.IsDirty = true;
         }
 
-        private void Clear(Action<IItem> ReleaseItem = null) {
-            InventoryController.Inventory inv = Rendering.MainGridMatItems;
-            for (int i = 0; i < inv.Info.Length; i++) {
-                ReleaseItem?.Invoke(inv.Info[i]);
-                inv.RemoveEntry(i);
-            }
-            Rendering.IsDirty = true;
-            inv = Rendering.crafting.NonMatInventory;
-            for (int i = 0; i < inv.Info.Length; i++) {
-                ReleaseItem?.Invoke(inv.Info[i]);
-                inv.RemoveEntry(i);
-            }
-            Rendering.IsDirty = true;
-
-            for (int i = 0; i < Rendering.selections.Length; i++) {
-                Rendering.selections[i].display.Object.SetActive(false);
-            }
-            FitRecipe = -1;
+        private void BindInventories() {
+            Rendering.MainGridMatItems = Materials;
+            Rendering.crafting.NonMatInventory = Items;
         }
 
+        private void Request(GameEvent type, object context = null) {
+            var player = self;
+            player.eventCtrl.RaiseEvent(type, player.info.rtEntityId, null, context);
+        }
 
-        private void FlashIndicator() {
-            CraftingRecipe recipe = Recipe.Table[FitRecipe];
-            int2 offset = Rendering.GetNormalizationOffset();
+        private void FlashIndicator(object source, object target, object context) {
+            if (context is not int recipeIndex) return;
+            CraftingRecipe recipe = GetRecipe(recipeIndex);
+            int2 offset = GetNormalizationOffset();
             GetInsufficientEntries(Rendering.MainGridMatItems.Info, recipe.materials.value, AxisWidth,
             index => {
                 Animator anim = Rendering.corners[index].GetComponent<Animator>();
@@ -252,7 +302,6 @@ namespace Arterra.GamePlay.UI {
                 Animator anim = slot.transform.parent.GetComponent<Animator>();
                 anim.SetTrigger("Flash");
             });
-
 
             void GetInsufficientEntries(IItem[] inv, List<CraftingRecipe.Ingredient> recipe, int side, Action<int> OnFindEntry) {
                 for (int x = 0; x < side; x++) {
@@ -270,28 +319,95 @@ namespace Arterra.GamePlay.UI {
             }
         }
 
-        private bool CraftRecipe(IEventControlled ec = null) {
+        public List<int> FindRecipes(int count) =>
+            Recipe.QueryNearestLimit(SerializeToRecipe(), settings.MaxRecipeDistance, count);
+
+        public CraftingRecipe GetRecipe(int index) => Recipe.Table[index];
+
+        public void Clear(Action<IItem> returnItem) {
+            ReturnInventory(Materials);
+            ReturnInventory(Items);
+
+            void ReturnInventory(Inventory inventory) {
+                for (int i = 0; i < inventory.Capacity; i++) {
+                    IItem item = inventory.PeekItem(i);
+                    if (item == null) continue;
+                    item = (IItem)item.Clone();
+                    inventory.RemoveEntry(i);
+                    returnItem(item);
+                }
+            }
+        }
+
+        public int2 GetNormalizationOffset() {
+            int2 minOffset = AxisWidth;
+            for (int x = 0; x < AxisWidth; x++) {
+                for (int y = 0; y < AxisWidth; y++) {
+                    int index = x + y * AxisWidth;
+                    if (Materials.Info[index] == null) continue;
+                    minOffset = math.min(minOffset, new(x, y));
+                }
+            }
+            for (int x = 0; x < GridWidth; x++) {
+                for (int y = 0; y < GridWidth; y++) {
+                    int index = x + y * GridWidth;
+                    if (Items.Info[index] == null) continue;
+                    minOffset = math.min(minOffset, new(x, y));
+                }
+            }
+            return minOffset;
+        }
+
+        public CraftingRecipe SerializeToRecipe() {
+            static CraftingRecipe.Ingredient[] SerializeIngArray(Inventory inv, int2 offset, int side) {
+                CraftingRecipe.Ingredient[] ingArray = new CraftingRecipe.Ingredient[inv.capacity];
+                for (int x = offset.x; x < side; x++) {
+                    for (int y = offset.y; y < side; y++) {
+                        int index = x + y * side;
+                        IItem item = inv.Info[index];
+                        if (item == null) continue;
+                        index = (x - offset.x) + (y - offset.y) * side;
+                        ingArray[index].Amount = PlayerCraftingBehavior.CraftingGrid.SmoothSplitLerp(
+                            item.AmountRaw, item.UnitSize, item.StackLimit);
+                        ingArray[index].Index = item.Index;
+                    }
+                }
+                return ingArray;
+            }
+            int2 offset = GetNormalizationOffset();
+            CraftingRecipe.Ingredient[] matGrid = SerializeIngArray(Materials, offset, AxisWidth);
+            CraftingRecipe.Ingredient[] itemGrid = SerializeIngArray(Items, offset, GridWidth);
+            return new CraftingRecipe {
+                materials = new Option<List<CraftingRecipe.Ingredient>> { value = matGrid.ToList() },
+                items = new Option<List<CraftingRecipe.Ingredient>> { value = itemGrid.ToList() }
+            };
+        }
+
+        private bool CraftRecipe(PlayerInventoriesBehavior owner, IEventControlled ec, out int insufficientRecipe) {
+            insufficientRecipe = -1;
+            var matches = FindRecipes(1);
+            int FitRecipe = matches.Count == 0 ? -1 : matches[0];
             if (FitRecipe == -1) return false;
             CraftingRecipe recipe = Recipe.Table[FitRecipe];
-            int2 offset = Rendering.GetNormalizationOffset();
-            if (!VerifyIngredientList(Rendering.MainGridMatItems.Info,
+            int2 offset = GetNormalizationOffset();
+            if (!VerifyIngredientList(Materials.Info,
                 recipe.materials.value, offset, AxisWidth, out float minMat))
                 return false;
-            if (!VerifyIngredientList(Rendering.crafting.NonMatInventory.Info,
+            if (!VerifyIngredientList(Items.Info,
                 recipe.items.value, offset, GridWidth, out float minItem))
                 return false;
             float minIngred = math.min(minMat, minItem);
 
             if (recipe.NoSubUnitCreation && minIngred < 1) {
-                //Indicate to user which ingredients are insufficient
-                FlashIndicator();
+                insufficientRecipe = FitRecipe;
+
                 return false;
             }
 
             //Clear grid of that amount
-            ConsumeIngredientList(Rendering.MainGridMatItems, recipe.materials.value,
+            ConsumeIngredientList(Materials, recipe.materials.value,
                 offset, AxisWidth, minIngred);
-            ConsumeIngredientList(Rendering.crafting.NonMatInventory, recipe.items.value,
+            ConsumeIngredientList(Items, recipe.items.value,
                 offset, GridWidth, minIngred);
 
             IItem result = recipe.ResultItem;
@@ -304,7 +420,7 @@ namespace Arterra.GamePlay.UI {
             IItem item = (IItem)result.Clone();
             item.Create((int)recipe.result.Index, amount);
             ec?.RaiseEvent(GameEvent.Action_CraftItem, ec is Arterra.Data.Entity.Entity entity ? entity.info.rtEntityId : ec, item);
-            InventoryController.AddEntry(item);
+            owner.AddItem(item);
 
             totalAmount -= amount;
             amount = math.min(totalAmount, result.StackLimit);
@@ -347,20 +463,21 @@ namespace Arterra.GamePlay.UI {
             }
         }
 
-        public void MatchRecipe(CraftingRecipe recipe) {
-            if (recipe == null) return;
+        private void MatchRecipeInternal(int recipeIndex, PlayerInventoriesBehavior owner) {
+            if ((uint)recipeIndex >= Recipe.Table.Length) return;
+            CraftingRecipe recipe = Recipe.Table[recipeIndex];
             Dictionary<int, int> Deficit = new Dictionary<int, int>();
             Dictionary<int, int> Surplus = new Dictionary<int, int>();
-            Catalogue<Authoring> itemInfo = Config.CURRENT.Generation.Items;
+            Catalogue<Arterra.Data.Item.Authoring> itemInfo = Config.CURRENT.Generation.Items;
 
             bool alreadyMatch = true; float maxBatchPossible = float.MaxValue;
             //Twice combined capacity so we don't overflow
-            uint tempCapacity = Rendering.MainGridMatItems.capacity + Rendering.crafting.NonMatInventory.capacity;
-            InventoryController.Inventory tempInv = new InventoryController.Inventory(2 * (int)tempCapacity);
-            int itemOffset = (int)Rendering.MainGridMatItems.capacity;
-            Rendering.MainGridMatItems.CopyTo(tempInv, 0, 0);
-            Rendering.crafting.NonMatInventory.CopyTo(tempInv, 0, itemOffset);
-            Rendering.MainGridMatItems.Clear(); Rendering.crafting.NonMatInventory.Clear();
+            uint tempCapacity = Materials.capacity + Items.capacity;
+            Inventory tempInv = new Inventory(2 * (int)tempCapacity);
+            int itemOffset = (int)Materials.capacity;
+            Materials.CopyTo(tempInv, 0, 0);
+            Items.CopyTo(tempInv, 0, itemOffset);
+            Materials.Clear(); Items.Clear();
             AccumulateRequiredIngredients(recipe.materials.value, 0);
             AccumulateRequiredIngredients(recipe.items.value, itemOffset);
 
@@ -372,21 +489,19 @@ namespace Arterra.GamePlay.UI {
                 int required = Deficit[item];
                 if (alreadyMatch) required = Mathf.FloorToInt(required * maxBatchPossible);
                 if (surplus > required) continue;
-                surplus += InventoryController.RemoveStackable(required - surplus, item,
-                    OnRemoved: item => tempInv.AddStackable(item));
+                surplus += owner.RemoveStackable(required - surplus, item, item => tempInv.AddStackable(item));
                 Surplus[item] = surplus;
             }
 
-            PlaceRequiredIngredients(Rendering.MainGridMatItems, recipe.materials.value);
-            PlaceRequiredIngredients(Rendering.crafting.NonMatInventory, recipe.items.value);
-            Refresh(); UpdateDisplay();
+            PlaceRequiredIngredients(Materials, recipe.materials.value);
+            PlaceRequiredIngredients(Items, recipe.items.value);
 
             //Dispose of temporaryInventory
             for (int i = 0; i < tempInv.capacity; i++) {
                 IItem item = tempInv.Info[i];
                 if (item == null) continue;
                 item = item.Clone() as IItem;
-                InventoryController.AddEntry(item);
+                owner.AddItem(item);
                 tempInv.RemoveEntry(i);
             }
 
@@ -420,7 +535,7 @@ namespace Arterra.GamePlay.UI {
                 }
             }
 
-            void PlaceRequiredIngredients(InventoryController.Inventory dest, List<CraftingRecipe.Ingredient> ingList) {
+            void PlaceRequiredIngredients(Inventory dest, List<CraftingRecipe.Ingredient> ingList) {
                 for (int i = 0; i < ingList.Count; i++) {
                     CraftingRecipe.Ingredient ing = ingList[i];
                     if (ing.Amount <= 0) continue;
@@ -436,16 +551,17 @@ namespace Arterra.GamePlay.UI {
             }
         }
 
+        public void MatchRecipe(int recipeIndex) => Request(GameEvent.Apply_MatchRecipe, recipeIndex);
 
         public struct Display {
             public CraftingGrid crafting;
             public CraftingGrid[] selections;
             public RectTransform[] corners;
-            public InventoryController.Inventory MainGridMatItems;
+            public Inventory MainGridMatItems;
             public bool IsDirty;
             public Display(GameObject menu, int NumMaxSelections, int GridWidth, ref int GridIndex) {
                 int GridCount = (GridWidth + 1) * (GridWidth + 1);
-                MainGridMatItems = new InventoryController.Inventory(GridCount);
+                MainGridMatItems = new Inventory(GridCount);
                 MainGridMatItems.AddCallbacks(CraftingGrid.GetCraftingCxt, CraftingGrid.GetCraftingCxt);
                 crafting = new CraftingGrid(menu.transform.Find("CraftingGrid").gameObject, GridWidth, GridIndex);
                 GridIndex++;
@@ -463,50 +579,6 @@ namespace Arterra.GamePlay.UI {
 
                 corners = new RectTransform[GridCount];
                 IsDirty = false;
-            }
-
-            public int2 GetNormalizationOffset() {
-                int2 minOffset = instance.AxisWidth;
-                for (int x = 0; x < instance.AxisWidth; x++) {
-                    for (int y = 0; y < instance.AxisWidth; y++) {
-                        int index = x + y * instance.AxisWidth;
-                        if (MainGridMatItems.Info[index] == null) continue;
-                        minOffset = math.min(minOffset, new(x, y));
-                    }
-                }
-                for (int x = 0; x < instance.GridWidth; x++) {
-                    for (int y = 0; y < instance.GridWidth; y++) {
-                        int index = x + y * instance.GridWidth;
-                        if (crafting.NonMatInventory.Info[index] == null) continue;
-                        minOffset = math.min(minOffset, new(x, y));
-                    }
-                }
-                return minOffset;
-            }
-
-            public CraftingRecipe SerializeToRecipe() {
-                static CraftingRecipe.Ingredient[] SerializeIngArray(InventoryController.Inventory inv, int2 offset, int side) {
-                    CraftingRecipe.Ingredient[] ingArray = new CraftingRecipe.Ingredient[inv.capacity];
-                    for (int x = offset.x; x < side; x++) {
-                        for (int y = offset.y; y < side; y++) {
-                            int index = x + y * side;
-                            IItem item = inv.Info[index];
-                            if (item == null) continue;
-                            index = (x - offset.x) + (y - offset.y) * side;
-                            ingArray[index].Amount = CraftingGrid.SmoothSplitLerp(
-                                item.AmountRaw, item.UnitSize, item.StackLimit);
-                            ingArray[index].Index = item.Index;
-                        }
-                    }
-                    return ingArray;
-                }
-                int2 offset = GetNormalizationOffset();
-                CraftingRecipe.Ingredient[] matGrid = SerializeIngArray(MainGridMatItems, offset, instance.AxisWidth);
-                CraftingRecipe.Ingredient[] itemGrid = SerializeIngArray(crafting.NonMatInventory, offset, instance.GridWidth);
-                return new CraftingRecipe {
-                    materials = new Option<List<CraftingRecipe.Ingredient>> { value = matGrid.ToList() },
-                    items = new Option<List<CraftingRecipe.Ingredient>> { value = itemGrid.ToList() }
-                };
             }
 
             public void InitializeSelectionPts(int GridWidth, int2 GridSize) {
@@ -538,11 +610,11 @@ namespace Arterra.GamePlay.UI {
             private int gridIndex;
             public Grid display;
             public CraftingRecipe.Ingredient[] GridData;
-            public InventoryController.Inventory NonMatInventory;
-            internal static ItemContext GetCraftingCxt(ItemContext cxt) => cxt.SetupScenario(Arterra.GamePlay.PlayerHandler.data, ItemContext.Scenario.ActivePlayerCraftingGrid);
+            public Inventory NonMatInventory;
+            internal static ItemContext GetCraftingCxt(ItemContext cxt) => cxt.SetupScenario(null, ItemContext.Scenario.ActivePlayerCraftingGrid);
             public CraftingGrid(GameObject parent, int GridWidth, int index) {
                 int AxisWidth = GridWidth + 1;
-                NonMatInventory = new InventoryController.Inventory(GridWidth * GridWidth);
+                NonMatInventory = new Inventory(GridWidth * GridWidth);
                 NonMatInventory.AddCallbacks(GetCraftingCxt, GetCraftingCxt);
                 GridData = new CraftingRecipe.Ingredient[AxisWidth * AxisWidth];
                 display = new Grid(parent, index);
@@ -553,14 +625,14 @@ namespace Arterra.GamePlay.UI {
                 else return 0.5f + 0.5f * Mathf.SmoothStep(0f, 1f, Mathf.Clamp01((x - A) / (B - A)));
             }
 
-            public void RefreshInventoryGrid(InventoryController.Inventory MatInv) {
+            public void RefreshInventoryGrid(Inventory MatInv) {
                 if (MatInv == null) return;
                 for (int i = 0; i < MatInv.capacity; i++) {
                     IItem item = MatInv.Info[i];
                     GridData[i] = new CraftingRecipe.Ingredient { Index = 0, Amount = 0 };
 
                     if (item == null) continue;
-                    Authoring setting = Config.CURRENT.Generation.Items.Retrieve(item.Index);
+                    Arterra.Data.Item.Authoring setting = Config.CURRENT.Generation.Items.Retrieve(item.Index);
                     if (setting is not PlaceableItem mSettings) continue;
                     IRegister matInfo = Config.CURRENT.Generation.Materials.value.MaterialDictionary;
                     if (!matInfo.Contains(mSettings.MaterialName)) continue;
@@ -576,7 +648,7 @@ namespace Arterra.GamePlay.UI {
                     CraftingRecipe.Ingredient ing = ingredients[i];
                     GridData[i] = new CraftingRecipe.Ingredient { Index = 0, Amount = 0 };
 
-                    Authoring setting = Config.CURRENT.Generation.Items.Retrieve(ing.Index);
+                    Arterra.Data.Item.Authoring setting = Config.CURRENT.Generation.Items.Retrieve(ing.Index);
                     IItem item = setting.Item;
                     if (setting is not PlaceableItem mSettings) continue;
                     IRegister matInfo = Config.CURRENT.Generation.Materials.value.MaterialDictionary;
@@ -587,11 +659,11 @@ namespace Arterra.GamePlay.UI {
 
                 ingredients = recipe.items.value;
                 ReleaseDisplay();
-                NonMatInventory = new InventoryController.Inventory(ingredients.Count());
+                NonMatInventory = new Inventory(ingredients.Count());
                 NonMatInventory.AddCallbacks(GetCraftingCxt, GetCraftingCxt);
                 for (int i = 0; i < ingredients.Count(); i++) {
                     CraftingRecipe.Ingredient ing = ingredients[i];
-                    Authoring setting = Config.CURRENT.Generation.Items.Retrieve(ing.Index);
+                    Arterra.Data.Item.Authoring setting = Config.CURRENT.Generation.Items.Retrieve(ing.Index);
                     IItem item = setting.Item;
                     int AmountRaw = Mathf.FloorToInt(ing.Amount * item.UnitSize);
                     if (AmountRaw <= 0) continue;

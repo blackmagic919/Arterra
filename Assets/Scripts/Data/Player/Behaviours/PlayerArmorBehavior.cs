@@ -13,10 +13,57 @@ using Arterra.GamePlay.UI;
 using System;
 using Arterra.Data.Entity.Behavior;
 
+namespace Arterra.Data.Entity.Behavior {
+    public class PlayerArmorBehavior : SpeciesBehavior, PanelNavbarManager.INavPanel {
+        public override void AddBehaviorDependencies(System.Collections.Generic.Dictionary<Behaviors, int> hierarchy) {
+            hierarchy.TryAdd(Behaviors.PlayerInventories, hierarchy.Count);
+        }
 
-namespace Arterra.GamePlay.UI {
-    [RequireComponent(typeof(Camera))]
-    public class ArmorController : PanelNavbarManager.INavPanel {
+        public override void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 coordinate) {
+            this.self = self;
+            self.Register(this);
+            self.Is(out inventories);
+            settings = Config.CURRENT.System.Armor;
+            Inventory ??= new ArmorInventory();
+            Inventory.AddCallbacks(SetupContext, SetupContext);
+            Inventory.ReapplyHandles();
+            if (self.IsAuthority) self.eventCtrl.AddEventHandler(GameEvent.Entity_Damaged, DamageArmor);
+            self.eventCtrl.AddEventHandler(GameEvent.Entity_Respawn, TransferArmor);
+        }
+
+        public override void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 coordinate) =>
+            Initialize(self, setting, coordinate);
+
+        public override void Disable(BehaviorEntity.Animal self) {
+            DisposeVisual(self);
+            Inventory?.UnapplyHandles();
+            self.eventCtrl.RemoveEventHandler(GameEvent.Entity_Damaged, DamageArmor);
+            self.eventCtrl.RemoveEventHandler(GameEvent.Entity_Respawn, TransferArmor);
+        }
+
+        private ItemContext SetupContext(ItemContext context) => context.SetupScenario(self, ItemContext.Scenario.Default);
+
+        private void DamageArmor(object source, object target, object context) {
+            Entity attacker = null;
+            if (target is Guid id) EntityManager.TryGetEntity(id, out attacker);
+            Inventory.OnDamaged(attacker, (RefTuple<(float, float3)>)context);
+        }
+
+        private void TransferArmor(object source, object target, object context) {
+            if (!Config.CURRENT.GamePlay.Gamemodes.value.KeepInventory || target is not Guid id
+                || !EntityManager.TryGetEntity(id, out Entity next) || !next.Is(out PlayerArmorBehavior replacement)) return;
+            bool display = replacement.ArmorPanel != null;
+            if (display) replacement.DisposeVisual(replacement.self);
+            Inventory.UnapplyHandles();
+            replacement.Inventory.UnapplyHandles();
+            (Inventory, replacement.Inventory) = (replacement.Inventory, Inventory);
+            Inventory.AddCallbacks(SetupContext, SetupContext);
+            replacement.Inventory.AddCallbacks(replacement.SetupContext, replacement.SetupContext);
+            Inventory.ReapplyHandles();
+            replacement.Inventory.ReapplyHandles();
+            if (display) replacement.InitializeVisual(replacement.self);
+        }
+
         //UI Objects
         private Armor settings;
         private GameObject ArmorPanel;
@@ -26,15 +73,17 @@ namespace Arterra.GamePlay.UI {
         private Camera Camera;
         private GameObject PlayerCamera;
         private FreeCamera CamMovement;
-        private Core.ArterraRuntime.IUpdateSubscriber eventTask;
-        private ArmorInventory playerArmor;
+
+        public ArmorInventory Inventory;
+        private BehaviorEntity.Animal self;
+        private PlayerInventoriesBehavior inventories;
         private bool IsDragging = false;
         private bool ShowAllSlots = false;
         private int SelectedIndex = -1;
-        private IItem Selected => SelectedIndex < 0 ? null : playerArmor.Info[SelectedIndex];
-        private static ItemContext GetArmorCxt(ItemContext cxt) => cxt.SetupScenario(PlayerHandler.data, ItemContext.Scenario.ActivePlayerArmor);
-        public ArmorController(Armor settings) {
-            this.settings = settings;
+        private IItem Selected => SelectedIndex < 0 ? null : Inventory.Info[SelectedIndex];
+        private ItemContext GetArmorCxt(ItemContext cxt) => cxt.SetupScenario(self, ItemContext.Scenario.ActivePlayerArmor);
+        public override void InitializeVisual(BehaviorEntity.Animal self) {
+            if (!self.IsOwner || ArmorPanel != null) return;
             PlayerCamera = PlayerHandler.Viewer.Find("SelfCamera").gameObject;
             Camera = PlayerCamera.GetComponent<Camera>();
             CamMovement = new FreeCamera(Camera.transform);
@@ -47,43 +96,12 @@ namespace Arterra.GamePlay.UI {
             ArmorPanel.SetActive(false);
 
             settings.Variants.Construct();
-            RebindPlayer(null, PlayerHandler.data);
-        }
-
-        private bool RebindPlayer(Entity old, Entity cur) {
-            var prms = (old, cur);
-            return RebindPlayer(ref prms);
-        }
-        private bool RebindPlayer(ref (Entity old, Entity cur) cxt) {
-            if (!cxt.cur.Is(out BehaviorEntity.Animal cInst)) throw new Exception("Respawn expected new Player to be BehaviorEntity");
-            if (!cxt.cur.Is(out PlayerInventoriesBehavior cInv)) cInv = null;
-            if (cxt.old == null || !cxt.old.Is(out PlayerInventoriesBehavior oInv))
-                oInv = null;
-
-            Transform rig = cInst.controller.transform.Find("Player");
-            settings.BindBones(rig);
-
-            oInv?.ArmorI.ReleaseDisplay();
-            oInv?.ArmorI.UnapplyHandles();
-            if (Config.CURRENT.GamePlay.Gamemodes.value.KeepInventory) {
-                cInv.ArmorI = oInv?.ArmorI ?? cInv.ArmorI;
-            }
-            playerArmor = cInv.ArmorI;
-            playerArmor.AddCallbacks(GetArmorCxt, GetArmorCxt);
-            playerArmor.InitializeDisplay(ArmorPanel);
-            playerArmor.ReapplyHandles();
-
-            cxt.cur.eventCtrl.AddEventHandler(
-                GameEvent.Entity_Respawn,
-                delegate (object actor, object target, object ctx) {
-                    if (actor is not Guid actorId || target is not Guid targetId) return;
-                    EntityManager.TryGetEntity(actorId, out Entity actorEntity);
-                    if (!EntityManager.TryGetEntity(targetId, out Entity targetEntity)) return;
-                    var args = (actorEntity, targetEntity);
-                    RebindPlayer(ref args);
-                }
-            );
-            return false;
+            settings.BindBones(self.controller.transform.Find("Player"));
+            Inventory.UnapplyHandles();
+            Inventory.AddCallbacks(GetArmorCxt, GetArmorCxt);
+            Inventory.InitializeDisplay(ArmorPanel);
+            Inventory.ReapplyHandles();
+            PanelNavbarManager.Add(this, "Armor");
         }
 
     public void Activate() {
@@ -92,11 +110,8 @@ namespace Arterra.GamePlay.UI {
         this.SelectedIndex = -1;
         PlayerCamera.SetActive(true);
         ArmorPanel.SetActive(true);
-        eventTask = new Core.ArterraRuntime.IndirectUpdate(Update);
-        PlayerHandler.data.eventCtrl.RaiseEvent(GameEvent.Action_OpenArmor, PlayerHandler.data.info.rtEntityId, null);
-        Core.ArterraRuntime.MainLoopUpdateTasks.Enqueue(eventTask);
+        self.eventCtrl.RaiseEvent(GameEvent.Action_OpenArmor, self.info.rtEntityId, null);
 
-            
                 InputPoller.AddContextFence("PlayerArmor", "3.5::Window", ActionBind.Exclusion.None);
                 InputPoller.AddBinding(new ActionBind("Select",
                     _ => Select(), ActionBind.Exclusion.None, ActionBind.Policy.Down),
@@ -105,16 +120,14 @@ namespace Arterra.GamePlay.UI {
                     _ => RotateCamera(), ActionBind.Exclusion.None), "PlayerArmor:DSL", "3.5::Window");
                 InputPoller.AddBinding(new ActionBind("Look Horizontal", CamMovement.LookX), "PlayerArmor:LH", "3.5::Window");
                 InputPoller.AddBinding(new ActionBind("Look Vertical", CamMovement.LookY), "PlayerArmor:LV", "3.5::Window");
-            
 
-            for (int i = 0; i < playerArmor.Display.Length; i++) {
+            for (int i = 0; i < Inventory.Display.Length; i++) {
                 float3 originWS = settings.Variants.Retrieve(i).Root.Bone.position;
-                playerArmor.Display[i].SetPosition(PositionWSToSS(originWS));
+                Inventory.Display[i].SetPosition(PositionWSToSS(originWS));
             }
         }
 
         public void Deactivate() {
-            eventTask.Active = false;
             PlayerCamera.SetActive(false);
             ArmorPanel.SetActive(false);
             InputPoller.RemoveContextFence("PlayerArmor", "3.5::Window");
@@ -124,10 +137,24 @@ namespace Arterra.GamePlay.UI {
         public Sprite GetNavIcon() => Config.CURRENT.Generation.Textures.Retrieve(settings.DisplayIcon).self;
         public GameObject GetDispContent() => ArmorPanel;
 
-        public void Release() { }
+        public void Release() => DisposeVisual(self);
+
+        public override void DisposeVisual(BehaviorEntity.Animal self) {
+            if (ArmorPanel == null) return;
+            if (ArmorPanel.activeSelf) Deactivate();
+            PanelNavbarManager.Remove("Armor", release: false);
+            Inventory.UnapplyHandles();
+            Inventory.ReleaseDisplay();
+            Inventory.AddCallbacks(SetupContext, SetupContext);
+            Inventory.ReapplyHandles();
+            GameObject.Destroy(ArmorPanel);
+            ArmorPanel = null;
+        }
 
         // Update is called once per frame
-        void Update(MonoBehaviour mono) {
+        public override void Update(BehaviorEntity.Animal self) {
+            if (self.context != BehaviorEntity.UpdateContext.Visual || !self.IsOwner
+                || ArmorPanel == null || !ArmorPanel.activeSelf) return;
             //Look at mouse position
             float2 mousePos = GetPositionVS(((float3)Input.mousePosition).xy);
             float2 headVS = ((float3)Camera.WorldToViewportPoint(settings.HeadBone.position)).xy;
@@ -141,9 +168,9 @@ namespace Arterra.GamePlay.UI {
             lookDir = math.clamp(lookDir, -1f, 1f);
 
             RefTuple<(float, float)> cxt = (lookDir.y, -lookDir.x);
-            PlayerHandler.data.eventCtrl.RaiseEvent(GameEvent.Action_LookDirect, PlayerHandler.data.info.rtEntityId, null, cxt);
+            self.eventCtrl.RaiseEvent(GameEvent.Action_LookDirect, self.info.rtEntityId, null, cxt);
 
-            ArmorInventory.ArmorSlot[] ArmorSlots = playerArmor.Display;
+            ArmorInventory.ArmorSlot[] ArmorSlots = Inventory.Display;
             int selected = -1;
             float minDist = float.MaxValue;
             for (int i = 0; i < ArmorSlots.Length; i++) {
@@ -210,8 +237,6 @@ namespace Arterra.GamePlay.UI {
             }
         }
 
-        private static InventoryController.CursorManager Cursor => InventoryController.Cursor;
-
         private void Select() {
             if (!IsMouseInMenu()) return;
             if (IsDragging) IsDragging = false;
@@ -220,22 +245,10 @@ namespace Arterra.GamePlay.UI {
                 return;
             }
 
-            if (Cursor.IsSplitUp) return;
             InputPoller.SuspendKeybindPropogation("Select", ActionBind.Exclusion.ExcludeLayerByName);
-
-            if (Cursor.IsHolding) {
-                if (Cursor.Item is not ArmorInventory.IArmorItem armor
-                    || !playerArmor.AddEntry(armor, SelectedIndex)
-                ) {
-                    InventoryController.DropItem(Cursor.Item);
-                }
-                Cursor.ClearCursor();
-            } else {
-                if (Selected == null) return;
-                IItem heldItem = Selected.Clone() as IItem;
-                playerArmor.RemoveEntry(SelectedIndex);
-                Cursor.HoldItem(heldItem);
-            }
+            inventories.RequestInteraction(
+                Arterra.Data.Entity.Behavior.PlayerInventoriesBehavior.InventoryAction.Armor,
+                Arterra.Data.Entity.Behavior.PlayerInventoriesBehavior.InventoryKind.Armor, SelectedIndex);
         }
         private void RotateCamera() {
             if (!IsDragging) return;
@@ -252,10 +265,10 @@ namespace Arterra.GamePlay.UI {
         public void SetSelectedSlot(int index) {
             if (index == SelectedIndex) return;
             if (SelectedIndex != -1)
-                playerArmor.Display[SelectedIndex].SetSelect(false);
+                Inventory.Display[SelectedIndex].SetSelect(false);
             SelectedIndex = index;
             if (index == -1) return;
-            playerArmor.Display[index].SetSelect(true);
+            Inventory.Display[index].SetSelect(true);
         }
         private (float2, float2) GetMenuCorners() {
             Vector3[] corners = new Vector3[4];

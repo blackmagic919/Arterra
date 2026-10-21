@@ -54,6 +54,7 @@ namespace Arterra.Data.Entity.Behavior {
     public class PlayerMovementBehavior : SpeciesBehavior {
         private IRidable activeMount;
         [JsonIgnore] public bool IsMounted => activeMount != null;
+        public float3 NormalizedMoveVel => self != null ? GetSpeed3D(self.velocity) : 0;
         private const string MountedGravity = "PlayerMovement::Mounted";
         /// <summary>Resolved movement settings for this behavior instance.</summary>
         [JsonIgnore] public PlayerMovementSettings settings;
@@ -217,9 +218,6 @@ namespace Arterra.Data.Entity.Behavior {
         /// <summary>Simulates the player's movement on the server and presents replicated movement locally.</summary>
         public override void Update(BehaviorEntity.Animal self) {
             if (self.context == BehaviorEntity.UpdateContext.Visual) {
-                if (self.Is(out PlayerEffectsBehavior effects))
-                    effects.PlayAnimatorMove(GetSpeed3D(self.velocity));
-
                 RideMovementPattern.UpdateVisual(this);
                 return;
             }

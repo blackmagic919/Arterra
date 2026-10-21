@@ -1,3 +1,4 @@
+using Arterra.Data.Entity.Behavior;
 using System.Collections;
 using Arterra.Core.Storage;
 using Newtonsoft.Json;
@@ -64,7 +65,7 @@ namespace Arterra.Data.Material
                 return false;
 
             OpenedInventory.InitializeDisplay(this);
-            InventoryController.Activate();
+            PlayerHandler.Inventory.Activate();
             
                 //Overrides the default inventory close window
                 InputPoller.AddContextFence("MAT::Container", "3.5::Window", ActionBind.Exclusion.None);
@@ -106,7 +107,7 @@ namespace Arterra.Data.Material
             if (!CPUMapManager.TryGetExistingMapMeta(GCoord, out MortarInventory cont))
                 return;
             foreach (IItem item in cont.Inventory.Info)
-                InventoryController.DropItem(item, GCoord);
+                PlayerInventoriesBehavior.SpawnDrop(item, GCoord);
             CPUMapManager.SetExistingMapMeta<object>(GCoord, null);
         }
 
@@ -129,7 +130,7 @@ namespace Arterra.Data.Material
                     OpenedInventory = null;
                 
             }
-            InventoryController.Deactivate();
+            PlayerHandler.Inventory.Deactivate();
         }
 
         // Helper function to find which inventory and index is being selected
@@ -149,7 +150,7 @@ namespace Arterra.Data.Material
             if (!SelectInventorySlot(out IInventory inv, out int slotIndex))
                 return;
 
-            if (!InventoryController.SelectPartial((out IInventory _inv, out int index) => {
+            if (!PlayerHandler.Inventory.SelectPartial((out IInventory _inv, out int index) => {
                 _inv = inv;
                 index = slotIndex;
                 return true;
@@ -165,7 +166,7 @@ namespace Arterra.Data.Material
             if (!SelectInventorySlot(out IInventory inv, out int slotIndex))
                 return;
 
-            if (!InventoryController.Select((out IInventory _inv, out int index) => {
+            if (!PlayerHandler.Inventory.Select((out IInventory _inv, out int index) => {
                 _inv = inv;
                 index = slotIndex;
                 return true;
@@ -182,7 +183,7 @@ namespace Arterra.Data.Material
             if (!SelectInventorySlot(out IInventory inv, out int slotIndex))
                 return;
 
-            if (!InventoryController.DeselectDrag((out IInventory _inv, out int index) => {
+            if (!PlayerHandler.Inventory.DeselectDrag((out IInventory _inv, out int index) => {
                 _inv = inv;
                 index = slotIndex;
                 return true;
@@ -195,7 +196,7 @@ namespace Arterra.Data.Material
         }
 
         private void SelectAll(float _ = 0) {
-            InventoryController.SelectAll(OpenedInventory.Inventory);
+            PlayerHandler.Inventory.SelectAll(OpenedInventory.Inventory);
         }
 
         public enum InvIndex {
@@ -208,7 +209,7 @@ namespace Arterra.Data.Material
         public class MortarInventory : MaterialInstance, PanelNavbarManager.INavPanel {
             private static WaitForSeconds _waitForSeconds1_0 = new WaitForSeconds(1.0f);
 
-            //public InventoryController.Inventory inv;
+            //public Inventory inv;
             public StackInventory Inventory;
 
             [JsonIgnore]

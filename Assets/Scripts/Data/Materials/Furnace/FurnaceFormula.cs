@@ -1,3 +1,4 @@
+using Arterra.GamePlay;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -260,7 +261,7 @@ namespace Arterra.Data.Intrinsic.Furnace {
             float normalization = DisplayNormalizationFactor(recipe);
             bool alreadyMatch = true; float maxBatchPossible = float.MaxValue;
             uint tempCapacity = FurnaceInvs[0].capacity + FurnaceInvs[1].capacity + FurnaceInvs[2].capacity;
-            InventoryController.Inventory tempInv = new InventoryController.Inventory(2 * (int)tempCapacity);
+            Inventory tempInv = new Inventory(2 * (int)tempCapacity);
             FurnaceInvs[0].CopyTo(tempInv, 0, 0); offset += FurnaceInvs[0].capacity;
             FurnaceInvs[1].CopyTo(tempInv, 0, (int)offset); offset += FurnaceInvs[0].capacity;
             
@@ -277,7 +278,7 @@ namespace Arterra.Data.Intrinsic.Furnace {
                 int required = Deficit[item];
                 if (alreadyMatch) required = Mathf.FloorToInt(required * maxBatchPossible);
                 if (surplus > required) continue;
-                surplus += InventoryController.RemoveStackable(required - surplus, item,
+                surplus += PlayerHandler.Inventory.RemoveStackable(required - surplus, item,
                     OnRemoved: item => tempInv.AddStackable(item));
                 Surplus[item] = surplus;
             }
@@ -289,11 +290,11 @@ namespace Arterra.Data.Intrinsic.Furnace {
                 IItem item = tempInv.Info[i];
                 if (item == null) continue;
                 item = item.Clone() as IItem;
-                InventoryController.AddEntry(item);
+                PlayerHandler.Inventory.AddItem(item);
                 tempInv.RemoveEntry(i);
             }
 
-            void AccumulateInvSurplus(InventoryController.Inventory inv) {
+            void AccumulateInvSurplus(Inventory inv) {
                 for (int i = 0; i < inv.Capacity; i++) {
                     IItem item = inv.PeekItem(i);
 
@@ -305,7 +306,7 @@ namespace Arterra.Data.Intrinsic.Furnace {
                 }
             }
 
-            void AccumulateRequiredIngredients(InventoryController.Inventory inv, List<FurnaceMaConversion> ingList) {
+            void AccumulateRequiredIngredients(Inventory inv, List<FurnaceMaConversion> ingList) {
                 AccumulateInvSurplus(inv);
                 for (int i = 0; i < ingList.Count; i++) {
                     FurnaceMaConversion ing = ingList[i];
@@ -330,7 +331,7 @@ namespace Arterra.Data.Intrinsic.Furnace {
                 }
             }
 
-            void PlaceRequiredIngredients(InventoryController.Inventory dest, List<FurnaceMaConversion> ingList) {
+            void PlaceRequiredIngredients(Inventory dest, List<FurnaceMaConversion> ingList) {
                 for (int i = 0; i < ingList.Count; i++) {
                     FurnaceMaConversion ing = ingList[i];
                     int index = recipe.Index(ing);

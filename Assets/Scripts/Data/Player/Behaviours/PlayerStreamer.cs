@@ -31,6 +31,8 @@ namespace Arterra.Data.Entity.Behavior {
                 Behaviors.Indicators,
                 Behaviors.Vitality,
                 Behaviors.PlayerInventories,
+                Behaviors.PlayerCrafting,
+                Behaviors.PlayerArmor,
                 Behaviors.PlayerCamera,
                 Behaviors.PlayerMovement,
                 Behaviors.PlayerInteraction,
@@ -95,6 +97,8 @@ namespace Arterra.Data.Entity.Behavior {
             hierarchy.TryAdd(Behaviors.StepSound, hierarchy.Count);
             hierarchy.TryAdd(Behaviors.Vitality, hierarchy.Count);
             hierarchy.TryAdd(Behaviors.PlayerInventories, hierarchy.Count);
+            hierarchy.TryAdd(Behaviors.PlayerCrafting, hierarchy.Count);
+            hierarchy.TryAdd(Behaviors.PlayerArmor, hierarchy.Count);
             hierarchy.TryAdd(Behaviors.PlayerCamera, hierarchy.Count);
             hierarchy.TryAdd(Behaviors.PlayerMovement, hierarchy.Count);
             hierarchy.TryAdd(Behaviors.PlayerInteraction, hierarchy.Count);

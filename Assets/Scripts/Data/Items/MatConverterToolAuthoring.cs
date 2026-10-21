@@ -89,7 +89,7 @@ namespace Arterra.Data.Item
                     return false;
                 if (!MaterialData.SwapMaterial(GCoord, MatInfo.RetrieveIndex(tag.ConvertTarget), out IItem origItem))
                     return false;
-                if (tag.GivesItem) InventoryController.DropItem(origItem, GCoord);
+                if (tag.GivesItem) PlayerInventoriesBehavior.SpawnDrop(origItem, GCoord);
                 durability -= tag.ToolDamage * (mapData.density / 255.0f);
                 return true;
             }

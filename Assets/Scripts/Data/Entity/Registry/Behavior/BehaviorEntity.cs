@@ -80,6 +80,8 @@ namespace Arterra.Data.Entity.Behavior {
         PlayerInteraction = BehaviorTypes.Base + 104,
         PlayerInventories = BehaviorTypes.Base + 105,
         PlayerBaseLogicHandler = BehaviorTypes.Base + 106,
+        PlayerCrafting = BehaviorTypes.Base + 107,
+        PlayerArmor = BehaviorTypes.Base + 108,
 
         StateMachine = BehaviorTypes.Creature + 0,
         Attack = BehaviorTypes.Creature + 1,
@@ -168,6 +170,8 @@ namespace Arterra.Data.Entity.Behavior {
             { Behaviors.PlayerEffects, () => new PlayerEffectsBehavior() },
             { Behaviors.PlayerInteraction, () => new PlayerInteractionBehavior() },
             { Behaviors.PlayerInventories, () => new PlayerInventoriesBehavior() },
+            { Behaviors.PlayerCrafting, () => new PlayerCraftingBehavior() },
+            { Behaviors.PlayerArmor, () => new PlayerArmorBehavior() },
             { Behaviors.PlayerBaseLogicHandler, () => new PlayerBaseLogicHandler() },
 
             { Behaviors.StateMachine, () => new StateMachineManagerBehavior()},

@@ -77,7 +77,11 @@ namespace Arterra.GamePlay{
         private static AccountId localAccount;
         /// <summary>The current active runtime player entity.</summary>
         public static BehaviorEntity.Animal data;
-        /// <summary> The transform of the Unity gameobject representing the viewer </summary>
+        /// <summary>The inventory behavior of the locally controlled player.</summary>
+        public static PlayerInventoriesBehavior Inventory =>
+            data != null && data.Is(out PlayerInventoriesBehavior inventory) ? inventory : null;
+
+        /// <summary>The transform of the Unity gameobject representing the viewer.</summary>
         public static Transform Viewer;
         /// <summary> The transform of the current Unity MainCamera  </summary>
         public static Transform Camera;
@@ -149,11 +153,11 @@ namespace Arterra.GamePlay{
             active = false;
             LoadingHandler.OnStartupTasksFinished -= OnStartupReady;
             InputPoller.SetCursorLock(false); //Release Cursor Lock
+            data?.DisposeVisual();
             SaveAll();
             Players.Clear();
             playerIds.Clear();
             PlayerStorage.Release();
-            InventoryController.Release();
             PanelNavbarManager.Release();
         }
         
@@ -262,6 +266,13 @@ namespace Arterra.GamePlay{
             BehaviorEntity.Animal nPlayer = Config.CURRENT.Generation.Entities.Reg[(int)entityIndex].Entity as BehaviorEntity.Animal;
 
             var previous = data;
+            if (previous != null) {
+                // Release the old owner’s menus while keeping the corpse’s world presentation.
+                foreach (var behavior in previous.Behaviors) {
+                    if (behavior is PlayerInventoriesBehavior or PlayerCraftingBehavior or PlayerArmorBehavior)
+                        behavior.DisposeVisual(previous);
+                }
+            }
             if (previous != null) playerIds.Remove(previous.info.rtEntityId);
             // Ownership must be visible to behavior initialization, including on respawn.
             data = nPlayer;

@@ -21,6 +21,7 @@ namespace Arterra.GamePlay.UI {
             }
         }
         public static void Initialize() {
+            PanelNavbarManager.Initialize();
             PlayerCrosshair.Initialize();
             LoadingHandler.Initialize();
             PauseHandler.Initialize();
@@ -29,8 +30,6 @@ namespace Arterra.GamePlay.UI {
 
         public static void InitializePlayerUI() {
             ToolTips.TooltipSystem.Initialize();
-            PanelNavbarManager.Initialize();
-            InventoryController.Initialize();
             ResourceInventoryController.Initialize();
         }
     }

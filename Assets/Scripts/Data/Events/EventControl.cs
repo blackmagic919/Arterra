@@ -56,6 +56,7 @@ namespace Arterra.Core.Events {
         Entity_AddModifier = GameEventBases.Entity_Base + 34,
         Entity_RemoveModifier = GameEventBases.Entity_Base + 35,
         Entity_SetInventorySlot = GameEventBases.Entity_Base + 36,
+        Entity_CraftInsufficient = GameEventBases.Entity_Base + 37,
 
         
         Item_ConsumeFood = GameEventBases.Item_Base + 0,
@@ -121,6 +122,10 @@ namespace Arterra.Core.Events {
         Apply_ReleaseRod = GameEventBases.Apply_Base + 25,
         Apply_CancelRod = GameEventBases.Apply_Base + 26,
         Apply_DropItem = GameEventBases.Apply_Base + 27,
+        Apply_InventoryInteraction = GameEventBases.Apply_Base + 28,
+        Apply_Craft = GameEventBases.Apply_Base + 29,
+        Apply_MatchRecipe = GameEventBases.Apply_Base + 30,
+        Apply_ClearCrafting = GameEventBases.Apply_Base + 31,
 
 
     }

@@ -1,3 +1,4 @@
+using Arterra.Data.Item;
 using Arterra.Core.Events;
 using System;
 using UnityEngine;
@@ -344,7 +345,7 @@ namespace Arterra.Data.Item {
                 int start = cxt.InvId;
                 slotItem = null;
 
-                if (!cxt.TryGetInventory(out InventoryController.Inventory inv))
+                if (!cxt.TryGetInventory(out Inventory inv))
                     return false;
 
                 int capacity = (int)inv.capacity;

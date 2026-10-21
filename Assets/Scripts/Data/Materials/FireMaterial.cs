@@ -92,7 +92,7 @@ namespace Arterra.Data.Material{
                             out Item.IItem origItem))
                             continue;
                         if (tag.GivesItem)
-                            InventoryController.DropItem(origItem, GCoord);
+                            PlayerInventoriesBehavior.SpawnDrop(origItem, GCoord);
                     }
                 }
             }

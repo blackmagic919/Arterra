@@ -193,7 +193,7 @@ namespace Arterra.Data.Entity.Behavior {
                 self.eventCtrl.RaiseEvent(GameEvent.Apply_Attack, self.info.rtEntityId, null), policy: ActionBind.Policy.Down),
                 AttackEntityName, "5.0::GamePlay");
             InputPoller.AddBinding(new ActionBind("Place", _ => self.eventCtrl.RaiseEvent(
-                GameEvent.Apply_PlaceTerrain, self.info.rtEntityId, null, InventoryController.SelectedIndex)), PlaceTerrainName, "5.0::GamePlay");
+                GameEvent.Apply_PlaceTerrain, self.info.rtEntityId, null, PlayerHandler.Inventory.SelectedIndex)), PlaceTerrainName, "5.0::GamePlay");
             InputPoller.AddBinding(new ActionBind("Remove", _ => self.eventCtrl.RaiseEvent(
                 GameEvent.Apply_RemoveTerrain, self.info.rtEntityId, null)), RemoveTerrainName, "5.0::GamePlay");
         }
@@ -253,7 +253,7 @@ namespace Arterra.Data.Entity.Behavior {
 
         private void PlaceTerrain(object source, object target, object context) {
             if (!PlayerHandler.active || !self.Is(out PlayerInventoriesBehavior inventories)) return;
-            if (context is not int slot || (uint)slot >= inventories.PrimaryI.Capacity) return;
+            if (context is not int slot || (uint)slot >= inventories.Primary.Capacity) return;
             inventories.SelectedIndex = slot;
 
             bool rayHit = false;
@@ -265,7 +265,7 @@ namespace Arterra.Data.Entity.Behavior {
 
             if (EntityManager.ESTree.FindClosestAlongRay(self.head, hitPt, self.info.rtEntityId, out var entity, out _)) {
                 EntityInteract(entity, inventories.Selected);
-                if (inventories.Selected?.AmountRaw == 0) inventories.PrimaryI.RemoveEntry(slot);
+                if (inventories.Selected?.AmountRaw == 0) inventories.Primary.RemoveEntry(slot);
                 return;
             }
 

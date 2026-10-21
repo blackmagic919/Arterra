@@ -1,3 +1,4 @@
+using Arterra.Data.Entity.Behavior;
 using Arterra.Core.Storage;
 using Newtonsoft.Json;
 using Unity.Mathematics;
@@ -67,7 +68,7 @@ namespace Arterra.Data.Material
                 return false;
             
             OpenedInventory.InitializeDisplay(this);
-            InventoryController.Activate();
+            PlayerHandler.Inventory.Activate();
             //Overrides the default inventory close window
             InputPoller.AddContextFence("MAT::Container", "3.5::Window", ActionBind.Exclusion.None);
             InputPoller.AddBinding(new ActionBind("Open Inventory",
@@ -119,7 +120,7 @@ namespace Arterra.Data.Material
             if (!CPUMapManager.TryGetExistingMapMeta(GCoord, out ContainerInventory cont))
                 return;
             if (cont.inv.capacity == SlotCount) return;
-            cont.inv.ResizeInventory(SlotCount, Item => InventoryController.DropItem(Item, GCoord));
+            cont.inv.ResizeInventory(SlotCount, Item => PlayerInventoriesBehavior.SpawnDrop(Item, GCoord));
         }
 
         private void DeactivateWindow(float _ = 0) {
@@ -133,7 +134,7 @@ namespace Arterra.Data.Material
                     OpenedInventory = null;
                 
             }
-            InventoryController.Deactivate();
+            PlayerHandler.Inventory.Deactivate();
         }
 
 
@@ -142,39 +143,39 @@ namespace Arterra.Data.Material
             return OpenedInventory.inv.Display.GetMouseSelected(out index);
         }
         private void Select(float _ = 0) {
-            if (!InventoryController.Select(GetMouseSelected)) return;
+            if (!PlayerHandler.Inventory.Select(GetMouseSelected)) return;
             InputPoller.SuspendKeybindPropogation("Select", ActionBind.Exclusion.ExcludeLayer);
         }
 
         private void DeselectDrag(float _ = 0) {
-            if (!InventoryController.DeselectDrag(GetMouseSelected)) return;
+            if (!PlayerHandler.Inventory.DeselectDrag(GetMouseSelected)) return;
             InputPoller.SuspendKeybindPropogation("Deselect", ActionBind.Exclusion.ExcludeLayer);
         }
         private void SelectPartial(float _ = 0) {
-            if (!InventoryController.SelectPartial(GetMouseSelected)) return;
+            if (!PlayerHandler.Inventory.SelectPartial(GetMouseSelected)) return;
             InputPoller.SuspendKeybindPropogation("SelectPartial", ActionBind.Exclusion.ExcludeLayer);
         }
-        private void SelectAll(float _ = 0) => InventoryController.SelectAll(OpenedInventory.inv);
+        private void SelectAll(float _ = 0) => PlayerHandler.Inventory.SelectAll(OpenedInventory.inv);
 
         private void DropInventoryContent(int3 GCoord) {
             if (!CPUMapManager.TryGetExistingMapMeta(GCoord, out ContainerInventory cont))
                 return;
             foreach (IItem item in cont.inv.Info)
-                InventoryController.DropItem(item, GCoord);
+                PlayerInventoriesBehavior.SpawnDrop(item, GCoord);
             CPUMapManager.SetExistingMapMeta<object>(GCoord, null);
         }
         public class ContainerInventory : MaterialInstance, PanelNavbarManager.INavPanel {
-            public InventoryController.Inventory inv;
+            public Inventory inv;
             [JsonIgnore] private ContainerMaterial settings;
 
             [JsonConstructor]
             public ContainerInventory() {/*Do nothing: this is for newtonsoft deserializer*/}
             internal ContainerInventory(int3 GCoord, int SlotCount) : base(GCoord) {
-                inv = new InventoryController.Inventory(SlotCount);
+                inv = new Inventory(SlotCount);
             }
 
             internal ContainerInventory(MaterialData.MetaConstructor constructor, int3 GCoord, int SlotCount) : base(GCoord)  {
-                inv = new InventoryController.Inventory(constructor, GCoord, SlotCount);
+                inv = new Inventory(constructor, GCoord, SlotCount);
             }
 
             //Ideally we should provide a callback in OnAddElement and OnRemoveElement

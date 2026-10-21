@@ -1,3 +1,4 @@
+using Arterra.Data.Entity.Behavior;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -469,7 +470,7 @@ namespace Arterra.Data.Material {
                 return;
 
             Item.IItem drop = matInfo.Retrieve(cur.material).OnRemoved(GCoord, deltaC);
-            if (DropItem) GamePlay.UI.InventoryController.DropItem(drop, GCoord);
+            if (DropItem) PlayerInventoriesBehavior.SpawnDrop(drop, GCoord);
             matInfo.Retrieve(newData.material).OnPlaced(GCoord, deltaN);
 
             CPUMapManager.SetMap(newData, GCoord);

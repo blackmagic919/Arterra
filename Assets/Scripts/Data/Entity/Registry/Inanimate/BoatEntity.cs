@@ -207,7 +207,7 @@ public class BoatEntity : Arterra.Data.Entity.Authoring {
             IItem dropItem = itemReg.Retrieve(index).Item;
             dropItem.Create(index, dropItem.UnitSize);
 
-            InventoryController.DropItem(dropItem, position);
+            PlayerInventoriesBehavior.SpawnDrop(dropItem, position);
         }
 
         public override void Disable() {

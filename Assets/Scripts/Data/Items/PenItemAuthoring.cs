@@ -1,3 +1,4 @@
+using Arterra.Data.Item;
 using Arterra.Core.Events;
 using System;
 using Newtonsoft.Json;
@@ -364,7 +365,7 @@ namespace Arterra.Data.Item
         private bool FindNextSolidMat(out IItem slotItem)
         {
             int start = cxt.InvId; slotItem = null;
-            if (!cxt.TryGetInventory(out InventoryController.Inventory inv))
+            if (!cxt.TryGetInventory(out Inventory inv))
                 return false;
             int capacity = (int)inv.capacity;
             for (int slot = (start + 1) % capacity; slot != start; slot = (slot + 1) % capacity) {

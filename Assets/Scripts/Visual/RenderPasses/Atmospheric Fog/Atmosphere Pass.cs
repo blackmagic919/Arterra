@@ -37,7 +37,6 @@ namespace Arterra.Engine.Rendering
         {
             renderPassEvent = passSettings.renderPassEvent;
             ConfigureInput(ScriptableRenderPassInput.Color);
-            initialized = false;
         }
 
         public static void Initialize()
