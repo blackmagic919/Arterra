@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using System.IO;
 using Arterra.Configuration;
 using Arterra.Core.Network;
 using Arterra.Data.Entity;
@@ -13,12 +14,13 @@ using UnityEngine;
 namespace Arterra.Core.Storage {
     /// <summary>One remote player's server-side driver. Requests allocate server-local shared chunks.</summary>
     public sealed class NetworkSource : LocalChunkSource, ITransportEventListener, IChunkConsumer {
-        internal const ushort Generate = 1, Content = 2, Enter = 3, Leave = 4, Failed = 5, MapChanges = 6;
+        internal const ushort Generate = 1, Content = 2, Enter = 3, Leave = 4, Failed = 5, MapChanges = 6, GenerateVisual = 7, VisualContent = 8, ReleaseVisualChunk = 9;
         public override bool DefersMapChanges => true;
 
         private readonly NetPeer peer;
         private readonly Guid referenceId;
         private readonly ChunkGenerationDriver driver;
+        private readonly VisualChunkGenerationDriver visualDriver;
         private bool disposed;
 
         internal static Guid ReferenceFor(Guid playerId) =>
@@ -28,14 +30,39 @@ namespace Arterra.Core.Storage {
             this.peer = peer;
             referenceId = ReferenceFor(playerId);
             driver = new ChunkGenerationDriver(CPUMapManager.numChunksAxis, this);
+            visualDriver = new VisualChunkGenerationDriver(this);
 
             TransportManager.Instance.Register(referenceId, this);
         }
 
         public void OnEvent(TransportEvent message) {
-            if (disposed || message.Peer != peer || message.EventId != Generate) return;
+            if (disposed || message.Peer != peer) return;
 
-            GenerateAsync(message);
+            if (message.EventId == Generate) GenerateAsync(message);
+            else if (message.EventId == GenerateVisual) GenerateVisualAsync(message);
+            else if (message.EventId == ReleaseVisualChunk) {
+                var release = JsonConvert.DeserializeObject<VisualChunkGenerationDriver.Request>(Encoding.UTF8.GetString(message.Payload));
+                visualDriver.Release(release.Coordinate, release.Depth, release.Id);
+            }
+        }
+
+        private async void GenerateVisualAsync(TransportEvent request) {
+            try {
+                var input = JsonConvert.DeserializeObject<VisualChunkGenerationDriver.Request>(Encoding.UTF8.GetString(request.Payload));
+                var subscription = visualDriver.Allocate(this, input.Coordinate, input.Depth, input.Id);
+                var map = await ReadVisualAsync(subscription);
+                if (disposed || !subscription.Active) return;
+
+                using var stream = new MemoryStream();
+                ChunkMapCodec.Write(stream, map);
+                TransportManager.Instance.SendEvent(peer, referenceId, VisualContent, stream.ToArray(), request.MessageId);
+            } catch (OperationCanceledException) { }
+            catch (Exception exception) {
+                if (disposed) return;
+                Debug.LogException(exception);
+                TransportManager.Instance.SendEvent(peer, referenceId, Failed,
+                    Encoding.UTF8.GetBytes(exception.Message), request.MessageId);
+            }
         }
 
         private async void GenerateAsync(TransportEvent request) {
@@ -88,6 +115,7 @@ namespace Arterra.Core.Storage {
             disposed = true;
 
             TransportManager.Instance.Unregister(referenceId, this);
+            visualDriver.Dispose();
             driver.Release();
         }
     }

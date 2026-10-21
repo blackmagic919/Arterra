@@ -281,6 +281,42 @@ namespace Arterra.Core.Storage {
             return mapInfo.ChunkData[mapInfo.Offset + PIndex];
         }
 
+        /// <summary>Copies dirty samples from loaded chunks into an existing map, leaving other cells unchanged.</summary>
+        public static void CopyLive(int3 coordinate, int depth, MapData[] destination) {
+            int chunkSize = mapChunkSize;
+            int sampleStep = 1 << depth;
+            int chunkStep = math.max(chunkSize, sampleStep);
+            int extent = chunkSize * sampleStep;
+            int3 offset = new();
+            for (offset.x = 0; offset.x < extent; offset.x += chunkStep) {
+                for (offset.y = 0; offset.y < extent; offset.y += chunkStep) {
+                    for (offset.z = 0; offset.z < extent; offset.z += chunkStep) {
+                        int3 chunkCoordinate = coordinate + offset / chunkSize;
+                        if (!TryGetChunkInfo(chunkCoordinate, out var chunk) || !chunk.HasMap) continue;
+                        if (chunk.MapFlags == ChunkMapInfo.Flags.Clean) continue;
+                        CopyMap(destination, chunk, offset / sampleStep);
+                    }
+                }
+            }
+
+            void CopyMap(MapData[] output, ChunkMapInfo chunk, int3 writeOrigin) {
+                int copySize = math.max(chunkSize >> depth, 1);
+                int3 sample = new();
+                for (sample.x = 0; sample.x < copySize; sample.x++) {
+                    for (sample.y = 0; sample.y < copySize; sample.y++) {
+                        for (sample.z = 0; sample.z < copySize; sample.z++) {
+                            int3 cell = sample * sampleStep;
+                            int readIndex = (cell.x * chunkSize + cell.y) * chunkSize + cell.z;
+                            int3 write = writeOrigin + sample;
+                            int writeIndex = (write.x * chunkSize + write.y) * chunkSize + write.z;
+                            MapData value = chunk.ChunkData[chunk.Offset + readIndex];
+                            if (value.isDirty) output[writeIndex] = value;
+                        }
+                    }
+                }
+            }
+        }
+
         /// <summary> Retrieves the <see cref="MapData.viscosity"/>/<see cref="MapData.SolidDensity"/> value of the 
         /// MapData associated with the given grid coordinate if it is currently being managed by <see cref="CPUMapManager"/>,
         /// otherwise returns 0xFF. </summary>
@@ -440,8 +476,9 @@ namespace Arterra.Core.Storage {
                 set => Volatile.Write(ref Generation.entityProgress, (int)value);
             }
             public readonly bool HasMap => MapProgress == State.Finished;
+            public readonly Flags MapFlags => ChunkFlags[(uint)FlagIndex];
             // Dirty CPU data supersedes the retained generation map.
-            public readonly bool HasGraphicsMap => Generation?.Pipeline?.IsReady == true && Generation.Pipeline.HasRetainedMap && ChunkFlags[(uint)FlagIndex] == Flags.Clean;
+            public readonly bool HasGraphicsMap => Generation?.Pipeline?.IsReady == true && Generation.Pipeline.HasRetainedMap && MapFlags == Flags.Clean;
             public readonly bool HasEntities => EntityProgress == State.Finished;
             public readonly Task Ready => Generation.Ready;
             public readonly ConcurrentDictionary<uint, object> MapMetaData => Generation.MapMetaData;
@@ -507,7 +544,7 @@ namespace Arterra.Core.Storage {
                 }
             }
 
-            public enum Flags : byte { Clean = 0, Dirty = 1 }
+            public enum Flags : byte { Clean = 0, Dirty = 1, Loaded = 2 }
             public enum State { Pending = 0, InProgress = 1, Finished = 2, Failed = 3, Disposed = 4 }
         }
 

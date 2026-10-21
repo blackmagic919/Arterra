@@ -21,10 +21,14 @@ namespace Arterra.Core.Storage {
             return Task.Run(() => Chunk.ReadChunkInfo(CCoord), token);
         }
 
-        public override Task<MapData[]> ReadVisualAsync(int3 coordinate, int depth) {
+        public override async Task<MapData[]> ReadVisualAsync(VisualChunkGenerationDriver.Subscription subscription) {
             RequireLocalAuthority();
-
-            return Task.Run(() => Chunk.ReadVisualChunkMap(coordinate, depth));
+            var request = subscription.Request;
+            var map = await Task.Run(() => Chunk.ReadVisualChunkMap(request.Coordinate, request.Depth), subscription.Token);
+            subscription.Token.ThrowIfCancellationRequested();
+            CPUMapManager.CopyLive(request.Coordinate, request.Depth, map);
+            subscription.Changes.Clear();
+            return map;
         }
 
         public override async Task ReleaseAsync(ChunkMapInfo chunk) {
@@ -44,8 +48,10 @@ namespace Arterra.Core.Storage {
         public override void EnterEntity(Entity entity) => entity.InitializeVisual();
 
         public override void ReflectChunk(int3 coordinate, IReadOnlyDictionary<uint, MapData> changes,
-            Func<byte[]> getEncodedChanges = null, Action abandoned = null) =>
+            Func<byte[]> getEncodedChanges = null, Action abandoned = null) {
             ChunkGenerationDriver.Local?.ReflectChunk(coordinate, changes);
+            VisualChunkGenerationDriver.Local?.ReflectChunk(coordinate, changes);
+        }
 
         public override void LeaveEntity(Guid entityId) {
             if (EntityManager.TryGetEntity(entityId, out var entity)) entity.DisposeVisual();

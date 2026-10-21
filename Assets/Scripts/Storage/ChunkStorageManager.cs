@@ -26,7 +26,7 @@ namespace Arterra.Core.Storage {
     /// to in-game memory. Concurrently, it also defines the structure of the data that is stored in terms of both
     /// format, encoding, and file-structure within the file system.
     /// </summary>
-    public static class Chunk {
+    public static partial class Chunk {
 
         private static int maxChunkSize;
         private static ChunkFinder chunkFinder;
@@ -282,56 +282,6 @@ namespace Arterra.Core.Storage {
             public KeyValuePair<uint, object>[] MapEntryMetaData;
         }
 
-        /// <summary>
-        /// A structure wrapping the maximum information a chunk may associate 
-        /// on the file system. Not all chunks may have every member defined, but 
-        /// every chunk must have at most only these fields populated. Structure
-        /// may be partially filled depending on what information exists/can be found.
-        /// </summary>
-        public struct ReadbackInfo {
-            /// <summary> All the entity information associated with the chunk</summary>
-            public EntityInfo entity;
-            /// <summary> All the map information associated with a chunk  </summary>
-            public MapInfo map;
-
-            /// <summary>A constructor to initialize a default instance of
-            /// <see cref="ReadbackInfo"/> which zeroes all fields. </summary>
-            /// <param name="_">A dummy paramater</param>
-            public ReadbackInfo(bool _) {
-                entity = default;
-                map = default;
-            }
-
-            /// <summary> Creates an instance of <see cref="ReadbackInfo"/> to 
-            /// wrap the specified information.</summary>
-            /// <param name="map">The list of deserialized <see cref="map">MapData</see> to wrap.</param>
-            /// <param name="mapMeta">The list of deserialized MapMetaData to wrap. </param>
-            /// <param name="entities">The list of deserialized <see cref="entities">entities</see> to wrap.</param>
-            public ReadbackInfo(MapData[] map, KeyValuePair<uint, object>[] mapMeta, List<Entity> entities) {
-                this.entity.entities = entities;
-                this.map.mapMeta = mapMeta;
-                this.map.map = map;
-            }
-
-            public struct MapInfo {
-                /// <summary>
-                /// A list of all deserialized <see cref="MapData">MapData</see> associated
-                /// with the chunk. See <see cref="MapData"/> for more information.
-                /// </summary>
-                public MapData[] map;
-                /// <summary> An array of all the deserialized <see cref="ChunkHeader.MapEntryMetaData"/> entries associated
-                /// with the chunk. See <see cref="ChunkHeader.MapEntryMetaData"/> for more information. </summary>
-                public KeyValuePair<uint, object>[] mapMeta;
-            }
-
-            public struct EntityInfo {
-                /// <summary>
-                /// A list of all deserialized <see cref="Entity">Entities</see> associated 
-                /// with the chunk. See <see cref="Entity"/> for more information.
-                /// </summary>
-                public List<Entity> entities;
-            }
-        }
 
         /*
         Checking whether a file exists through the file system(i.e. File.Exists)

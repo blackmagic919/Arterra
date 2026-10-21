@@ -12,7 +12,13 @@ namespace Arterra.Core.Storage {
         public void AddChunk(int3 coordinate) => PendingChanges.TryAdd(coordinate, new PendingChangeFlusher(coordinate));
 
         public void RemoveChunk(int3 coordinate) {
-            if (PendingChanges.Remove(coordinate, out var flusher)) flusher.Clear();
+            if (!PendingChanges.Remove(coordinate, out var flusher)) return;
+            var sources = new HashSet<ChunkSource>();
+            VisualChunkGenerationDriver.CollectSources(coordinate, sources);
+            if (ChunkGenerationDriver.Local != null) sources.Add(ChunkGenerationDriver.Local.Source);
+            // Visual subscribers outlive the CPU allocation. Deferred encoders retain this flusher
+            // until its final edits are captured; clearing it here would silently drop those edits.
+            flusher.FlushChanges(sources);
         }
 
         public void Clear() {
@@ -54,7 +60,8 @@ namespace Arterra.Core.Storage {
                 if (drivers != null)
                     foreach (var driver in drivers) sources.Add(driver.Source);
 
-                //Corner case (TODO: reminder to double check when implementing visual chunk syncing)
+                VisualChunkGenerationDriver.CollectSources(pair.Key, sources);
+
                 // A border edit can affect a local neighbor even when this chunk is remote-only.
                 if (ChunkGenerationDriver.Local != null) 
                     sources.Add(ChunkGenerationDriver.Local.Source);
@@ -64,7 +71,7 @@ namespace Arterra.Core.Storage {
 
             foreach (var coordinate in new List<int3>(PendingChanges.Keys)) {
                 if (CPUMapManager.TryGetChunkInfo(coordinate, out _)) continue;
-                if (PendingChanges.Remove(coordinate, out var flusher)) flusher.Clear();
+                RemoveChunk(coordinate);
             }
         }
 

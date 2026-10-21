@@ -12,7 +12,9 @@ namespace Arterra.Core.Storage {
     public abstract class ChunkSource : IDisposable {
         public abstract Task<Chunk.ReadbackInfo> ReadAsync(int3 coordinate, CancellationToken token = default);
 
-        public abstract Task<MapData[]> ReadVisualAsync(int3 coordinate, int depth);
+        public abstract Task<MapData[]> ReadVisualAsync(VisualChunkGenerationDriver.Subscription subscription);
+
+        public virtual void ReleaseVisual(int3 coordinate, int depth, ulong allocationId) { }
 
         // Receives already-offloaded data. The caller owns disposal after every user finishes.
         public abstract Task ReleaseAsync(ChunkMapInfo chunk);

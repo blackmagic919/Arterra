@@ -251,7 +251,11 @@ namespace Arterra.Core.Storage {
                     try { await write; }
                     finally { chunk.PendingWrites.Remove(write); }
                     CheckCanceled();
-                } else NativeArray<MapData>.Copy(content.map.map, 0, chunk.ChunkData, chunk.Offset, chunk.Length);
+                } else {
+                    NativeArray<MapData>.Copy(content.map.map, 0, chunk.ChunkData, chunk.Offset, chunk.Length);
+                    // Loaded data must be sent to subscribers, but does not need saving again.
+                    CPUMapManager.ChunkFlags[(uint)chunk.FlagIndex] = ChunkMapInfo.Flags.Loaded;
+                }
 
                 if (content.map.mapMeta != null)
                     foreach (var entry in content.map.mapMeta) MapMetaData[entry.Key] = entry.Value;

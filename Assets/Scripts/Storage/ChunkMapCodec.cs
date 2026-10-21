@@ -104,7 +104,7 @@ namespace Arterra.Core.Storage {
 
             for (int i = 0; i < map.Length; i++) {
                 map[i].data = UnsafeUtility.As<byte, uint>(ref buffer[i * 4]);
-                map[i].material = materials[map[i].material];
+                map[i]._material = materials[map[i].material];
             }
 
             return map;

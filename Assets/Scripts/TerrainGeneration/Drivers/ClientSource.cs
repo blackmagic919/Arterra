@@ -58,9 +58,31 @@ namespace Arterra.Core.Storage {
             }
         }
 
-        // Remote visual map loading is deferred; use the existing visual-chunk default-map fallback.
-        public override Task<MapData[]> ReadVisualAsync(int3 coordinate, int depth) =>
-            Task.FromResult<MapData[]>(null);
+        public override async Task<MapData[]> ReadVisualAsync(VisualChunkGenerationDriver.Subscription subscription) {
+            using var cancellation = CancellationTokenSource.CreateLinkedTokenSource(subscription.Token, lifetime.Token);
+            var transport = TransportManager.Instance;
+            var response = await transport.RequestEventAsync(transport.Server, referenceId, NetworkSource.GenerateVisual,
+                Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(subscription.Request)), cancellation.Token,
+                responseReceived: reply => {
+                    if (reply.EventId == NetworkSource.VisualContent && subscription.Active)
+                        subscription.Changes.Clear();
+                });
+            cancellation.Token.ThrowIfCancellationRequested();
+            if (response.EventId != NetworkSource.VisualContent)
+                throw new IOException(Encoding.UTF8.GetString(response.Payload));
+
+            using var stream = new MemoryStream(response.Payload);
+            return ChunkMapCodec.Read(stream, Config.CURRENT.Quality.Terrain.value.mapChunkSize, 0, out _);
+        }
+
+        public override void ReleaseVisual(int3 coordinate, int depth, ulong allocationId) {
+            if (disposed) return;
+            var transport = TransportManager.Instance;
+            transport.SendEvent(transport.Server, referenceId, NetworkSource.ReleaseVisualChunk,
+                Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(new VisualChunkGenerationDriver.Request {
+                    Coordinate = coordinate, Depth = depth, Id = allocationId
+                })));
+        }
 
         public override Task InitializeEntitiesAsync(int3 coordinate, List<Entity> entities, CancellationToken token) {
             var completion = new TaskCompletionSource<Task>(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -95,6 +117,7 @@ namespace Arterra.Core.Storage {
             if (message.EventId == NetworkSource.MapChanges) {
                 int size = Config.CURRENT.Quality.Terrain.value.mapChunkSize;
                 var updates = MapChangeAccumulator.DecodeChanges(message.Payload, size * size * size, out int3 coordinate);
+                VisualChunkGenerationDriver.Local?.ReflectChunk(coordinate, updates);
                 if (pending.TryGetValue(coordinate, out var loading)) {
                     if (loading.Token.IsCancellationRequested) return;
                     foreach (var update in updates) loading.MapChanges[update.Key] = update.Value;

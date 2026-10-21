@@ -473,7 +473,8 @@ namespace Arterra.Engine.Terrain{
         /// away from the viewer and do not have cached map data anywhere, their map data is generated on the fly to create a mesh and discarded immediately.
         /// Fake chunks hence only reflect a chunk's default map data while normal chunks are capable of displaying dirty map information loaded from storage.
         /// </summary>
-        public class VisualChunk : TerrainChunk {
+        public class VisualChunk : TerrainChunk, IChunkConsumer {
+            private readonly VisualChunkGenerationDriver.Subscription subscription;
             private Task<MapData[]> ReadSaveState;
             private int3 sOrigin;
             private int sChunkSize;
@@ -482,6 +483,8 @@ namespace Arterra.Engine.Terrain{
 
             /// <summary> Creates a new visual chunk with the the given origin and size. <seealso cref="TerrainChunk"/> </summary>
             public VisualChunk(Transform parent, int3 origin, int size, uint octreeIndex) : base(parent, origin, size, octreeIndex) {
+                if (GPUMapManager.IsChunkRegisterable(CCoord, depth))
+                    subscription = VisualChunkGenerationDriver.Local.Allocate(this, CCoord, depth);
                 ReadSaveState = null;
                 sOrigin = origin - mapSkipInc;
                 sChunkSize = mapChunkSize + 3;
@@ -492,6 +495,15 @@ namespace Arterra.Engine.Terrain{
             /// to reflect the flags. The status is updated accordingly after the tasks are enqueued/finished. </summary>
             public override void Update() {
                 base.Update();
+                if (subscription?.Active == true && status.PublishMap == Status.State.Finished
+                    && status.SetMap == Status.State.Pending) {
+                    status.SetMap = Status.State.InProgress;
+                    ArterraRuntime.Register(new () {
+                        task = ApplyMapChanges, id = (int)priorities.generation,
+                        cancelToken = () => !Active,
+                        processToken = () => GPUMapManager.TryAccessRegionWithGraphics(origin, origin + size, GraphicsGeneration)
+                    });
+                }
                 if (status.ReadSaveState == Status.State.Pending) {
                    status.ReadSaveState = Status.State.InProgress;
                     ArterraRuntime.Register(new () {
@@ -526,9 +538,22 @@ namespace Arterra.Engine.Terrain{
                 }
             }
 
+            void IChunkConsumer.ReflectChunk() => ReflectChunk();
+
+            private void ApplyMapChanges() {
+                var map = new MapData[mapChunkSize * mapChunkSize * mapChunkSize];
+                foreach (var change in subscription.Changes) map[change.Key] = change.Value;
+                subscription.Changes.Clear();
+                Generator.Pipeline.MapCreator.SetMapInfo(mapChunkSize, 0, map);
+                GPUMapManager.TranscribeMultiMap(GraphicsGeneration.Work.Transfer, CCoord, depth);
+                status.SetMap = Status.State.Finished;
+                status.UpdateMesh = Status.Initiate(status.UpdateMesh);
+            }
+
             /// <summary> Normal visual chunks reference directly their GPU-side map information inside the <see cref="GPUMapManager"/>, and are subscribed so
             /// that it isn't released while the chunk is holding it. On release, it's necessary to unsubscribe to allow the map to be released </summary>
             public override void ReleaseChunk() {
+                subscription?.Release();
                 //if we are still holding onto the map handle, release it
                 if (mapHandle != -1) GPUMapManager.UnsubscribeHandle(mapHandle);
                 unmanagedMap?.Release(GraphicsContextId.Generation);
@@ -537,8 +562,8 @@ namespace Arterra.Engine.Terrain{
             }
             private void ReadSavedState() {
                 Generator.Pipeline.Start();
-                ReadSaveState = GPUMapManager.IsChunkRegisterable(CCoord, depth)
-                    ? ChunkGenerationDriver.Local.Source.ReadVisualAsync(CCoord, depth)
+                ReadSaveState = subscription != null
+                    ? VisualChunkGenerationDriver.Local.Source.ReadVisualAsync(subscription)
                     : Task.FromResult<MapData[]>(null);
                 status.ReadSaveState = Status.Complete(status.ReadSaveState);
             }
@@ -562,13 +587,14 @@ namespace Arterra.Engine.Terrain{
                 Generator.Pipeline.CopyTo(gpuContext.Work.Scratch, Map.Creator.bufferOffsets.mapStart);
                 Generator.Pipeline.ReleaseMap();
 
-                if (!GPUMapManager.IsChunkRegisterable(CCoord, depth)) {
+                if (subscription == null || !GPUMapManager.IsChunkRegisterable(CCoord, depth)) {
+                    subscription?.Release();
                     Map.Creator.GeoGenOffsets fakeOffsets = Map.Creator.bufferOffsets;
                     unmanagedMap = GPUMapManager.RegisterChunkUnmanaged(
                         gpuContext.Work.Scratch, fakeOffsets.mapStart, gpuContext.id);
                     if (unmanagedMap == null)
                         return;
-                    status.UpdateMap = Status.Complete(status.UpdateMap);
+                    status.UpdateMap = Status.State.Finished;
                     callback?.Invoke();
                     return;
                 }
@@ -580,6 +606,8 @@ namespace Arterra.Engine.Terrain{
 
                 MapData[] info;
                 info = ReadSaveState.Result ?? new MapData[mapChunkSize * mapChunkSize * mapChunkSize];
+                foreach (var change in subscription.Changes) info[change.Key] = change.Value;
+                subscription.Changes.Clear();
                 //Consume this resource to stop extra memory usage
                 ReadSaveState.Dispose(); ReadSaveState = null;
 
@@ -587,11 +615,12 @@ namespace Arterra.Engine.Terrain{
                 GPUMapManager.TranscribeMultiMap(gpuContext.Work.Transfer, CCoord, depth);
                 //Subscribe once more so the chunk can't be released while we hold its handle
                 GPUMapManager.SubscribeHandle((uint)mapHandle);
-                status.UpdateMap = Status.Complete(status.UpdateMap);
+                status.UpdateMap = Status.State.Finished;
                 callback?.Invoke();
             }
 
             protected override bool CanCreateMesh() {
+                if (status.PublishMap != Status.State.Finished || status.SetMap != Status.State.Finished) return false;
                 if (unmanagedMap != null)
                     return unmanagedMap.CanAccess(GraphicsRendering);
                 return base.CanCreateMesh();
@@ -626,8 +655,6 @@ namespace Arterra.Engine.Terrain{
                     throw new InvalidOperationException("Mesh generation requires an accessible map region.");
                 //Specifically bind the handle so we safeguard against replacement
                 GPUMapManager.TryBindChunkOperation(mapHandle, Generator.MeshCreator.GetGraphicsContext()); 
-                GPUMapManager.UnsubscribeHandle(mapHandle);
-                mapHandle = -1;
                 FinishMeshCreation();
             }
 

@@ -94,6 +94,7 @@ public static class SystemProtocol{
             GameUIManager.InitializePlayerUI();
             ChunkGenerationDriver.Initialize(NetworkManager.IsActingServer
                 ? new LocalChunkSource() : new ClientSource(PlayerHandler.GetPlayerId()));
+            VisualChunkGenerationDriver.Initialize(ChunkGenerationDriver.Local.Source);
             OctreeTerrain.Initialize();
             LoadingHandler.Activate();
         }
@@ -167,6 +168,7 @@ public static class SystemProtocol{
         // ReleaseAsync stops local networking immediately; remote session deletion can finish later.
         Task networkShutdown = TryShutdownAsync(() => NetworkManager.ReleaseAsync(), nameof(NetworkManager));
         TryShutdown(() => ChunkGenerationDriver.Local?.Source.Dispose(), nameof(ChunkSource));
+        TryShutdown(() => VisualChunkGenerationDriver.Local?.Dispose(), nameof(VisualChunkGenerationDriver));
         TryShutdown(() => CPUMapManager.StopGeneration(), "Stop chunk generation");
         TryShutdown(() => MapGenerationPipeline.ReleaseAll(), nameof(MapGenerationPipeline));
         TryShutdown(() => ArterraRuntime.FinishGraphics(), "Drain submitted GPU work");
