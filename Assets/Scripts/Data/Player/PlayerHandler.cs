@@ -88,6 +88,7 @@ namespace Arterra.GamePlay{
         /// <summary> Whether or not the player is active; whether or not
         /// the user has control of the player instance  </summary>
         public static bool active = false;
+        private static bool respawning;
 
         /// <summary>
         /// Initializes the player and retrieves or creates a behavior-model runtime entity.
@@ -97,13 +98,15 @@ namespace Arterra.GamePlay{
             Camera = Viewer.Find("CameraHandler");
 
             active = false;
+            respawning = false;
             Players.Clear();
             playerIds.Clear();
             localAccount = ClientAuthentication.LocalAccount;
             if (NetworkManager.IsActingServer) PlayerStorage.Initialize();
             else PlayerStorage.Release();
             if (NetworkManager.IsActingServer) {
-                if (!TryLoadExistingPlayer(FinishInitialize)) CreatePlayer(FinishInitialize);
+                if (!TryLoadExistingPlayer(FinishInitialize))
+                CreatePlayer(FinishInitialize);
             } else {
                 data = PlayerConnection.TakeInitialPlayer();
                 playerIds.Add(data.info.rtEntityId);
@@ -261,27 +264,95 @@ namespace Arterra.GamePlay{
         /// at a set respawn location, abandoning the current active instance. </summary>
         /// <param name="cb">The option action to perform once respawned</param>
         public static void CreatePlayer(Action cb = null){
+            if (!NetworkManager.IsActingServer) {
+                RespawnRemote(cb);
+                return;
+            }
             float3 SpawnPoint = StartupPlacer.FindClearingAround(float3.zero);
             uint entityIndex = (uint)Config.CURRENT.Generation.Entities.RetrieveIndex("Player");
             BehaviorEntity.Animal nPlayer = Config.CURRENT.Generation.Entities.Reg[(int)entityIndex].Entity as BehaviorEntity.Animal;
 
-            var previous = data;
-            if (previous != null) {
-                // Release the old owner’s menus while keeping the corpse’s world presentation.
-                foreach (var behavior in previous.Behaviors) {
-                    if (behavior is PlayerInventoriesBehavior or PlayerCraftingBehavior or PlayerArmorBehavior)
-                        behavior.DisposeVisual(previous);
+            var previous = SetLocalPlayer(nPlayer);
+            EntityManager.CreateEntity(SpawnPoint, entityIndex, nPlayer, () => FinishLocalPlayer(cb, previous));
+        }
+
+        internal static Task<BehaviorEntity.Animal> RespawnPlayerAsync(NetPeer peer, Action<BehaviorEntity.Animal> capture) {
+            var previous = Players[peer];
+            uint index = (uint)Config.CURRENT.Generation.Entities.RetrieveIndex("Player");
+            var replacement = (BehaviorEntity.Animal)Config.CURRENT.Generation.Entities.Reg[(int)index].Entity;
+            RegisterPlayer(peer, replacement);
+            var completion = new TaskCompletionSource<BehaviorEntity.Animal>(TaskCreationOptions.RunContinuationsAsynchronously);
+            EntityManager.CreateEntity(StartupPlacer.FindClearingAround(float3.zero), index, replacement, () => {
+                if (!Players.TryGetValue(peer, out var current) || !ReferenceEquals(current, replacement)) {
+                    EntityManager.ReleaseEntity(replacement.info.rtEntityId);
+                    completion.TrySetCanceled();
+                    return;
                 }
+                playerIds.Add(replacement.info.rtEntityId);
+                previous.eventCtrl.RaiseEvent(GameEvent.Entity_Respawn, previous.info.rtEntityId,
+                    replacement.info.rtEntityId, null, local: true);
+                capture(replacement);
+                completion.TrySetResult(replacement);
+            }, error => completion.TrySetException(error));
+            return completion.Task;
+        }
+
+        private static async void RespawnRemote(Action completed) {
+            if (respawning || data == null) return;
+            respawning = true;
+            var previous = data;
+            try {
+                var replacement = await PlayerConnection.RespawnAsync(previous.info.rtEntityId);
+                EntityManager.AddHandlerEvent(() => {
+                    if (!ReferenceEquals(data, previous) || !TransportManager.Instance.IsRunning) {
+                        respawning = false;
+                        return;
+                    }
+                    bool exists = EntityManager.TryGetEntity(replacement.info.rtEntityId, out var existing);
+                    SetLocalPlayer(exists ? (BehaviorEntity.Animal)existing : replacement);
+                    if (exists) {
+                        SetPlayerBindings(data, false);
+                        SetPlayerBindings(data, true);
+                        FinishLocalPlayer(completed);
+                    } else EntityManager.DeserializeEntity(data, () => FinishLocalPlayer(completed), error => {
+                        respawning = false;
+                        Debug.LogException(error);
+                        GameOverHandler.Activate();
+                    });
+                });
+            } catch (Exception exception) {
+                respawning = false;
+                Debug.LogException(exception);
+                if (ReferenceEquals(data, previous) && TransportManager.Instance.IsRunning) GameOverHandler.Activate();
             }
+
+        }
+
+        private static BehaviorEntity.Animal SetLocalPlayer(BehaviorEntity.Animal replacement) {
+            var previous = data;
+            SetPlayerBindings(previous, false);
             if (previous != null) playerIds.Remove(previous.info.rtEntityId);
-            // Ownership must be visible to behavior initialization, including on respawn.
-            data = nPlayer;
-            EntityManager.CreateEntity(SpawnPoint, entityIndex, nPlayer, () => {
-                playerIds.Add(nPlayer.info.rtEntityId);
-                previous?.eventCtrl.RaiseEvent(GameEvent.Entity_Respawn, previous.info.rtEntityId, nPlayer.info.rtEntityId, null);
-                RebindPlayer(data);
-                cb?.Invoke();
-            });
+
+            // Ownership must be visible before behavior initialization or rebinding.
+            data = replacement;
+            if (replacement.info.rtEntityId != Guid.Empty) playerIds.Add(replacement.info.rtEntityId);
+            SetPlayerBindings(previous, true);
+            return previous;
+        }
+
+        private static void FinishLocalPlayer(Action completed, BehaviorEntity.Animal previous = null) {
+            // Newly created players receive their GUID during initialization.
+            playerIds.Add(data.info.rtEntityId);
+            previous?.eventCtrl.RaiseEvent(GameEvent.Entity_Respawn, previous.info.rtEntityId,
+                data.info.rtEntityId, null, local: true);
+            RebindPlayer(data);
+            respawning = false;
+            completed?.Invoke();
+        }
+
+        private static void SetPlayerBindings(BehaviorEntity.Animal player, bool bind) {
+            player?.eventCtrl.RaiseEvent(GameEvent.Entity_RebindPlayer,
+                player.info.rtEntityId, null, bind, local: true);
         }
 
         private static bool RebindPlayer(Entity player) {

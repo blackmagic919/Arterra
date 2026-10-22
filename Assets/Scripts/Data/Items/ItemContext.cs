@@ -59,7 +59,7 @@ namespace Arterra.Data.Item {
         }
 
         public void SetDirty() {
-            if (TryGetHolder(out Arterra.Data.Material.MaterialInventory material)
+            if (TryGetHolder(out Material.MaterialInventory material)
                 && Inv.TryGetTarget(out var materialInventory)) {
                 material.SetDirty(materialInventory, InvId);
                 return;

@@ -121,6 +121,8 @@ namespace Arterra.Data.Entity.Behavior {
 
         public override void InitializeVisual(BehaviorEntity.Animal self) {
             if (!self.IsOwner) return;
+            if (groundPattern == null) 
+                InitializePatterns();
             BindCommonInput();
             groundPattern?.BindInput();
             flightPattern?.BindInput();

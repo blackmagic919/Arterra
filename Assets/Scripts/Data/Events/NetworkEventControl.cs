@@ -3,34 +3,30 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Linq;
 using Arterra.Core.Network;
 using Arterra.Data.Entity;
-using Arterra.GamePlay;
+using LiteNetLib;
 
 namespace Arterra.Core.Events {
     /// <summary>Event forwarding for a shared instance. Register its ID on installation; dispose on release.</summary>
     public sealed class NetworkEventControl : EventControl, IDisposable {
         private readonly NetEventStream<RaisedEvent> networkEventStream;
-        private readonly NetEventStream<Subscription> subscriptionStream;
-        private readonly NetEventStream<Subscription> unsubscriptionStream;
-        private readonly NetEventStream<Guid> syncStream;
-        private readonly ConcurrentDictionary<GameEvent, HashSet<Guid>> remoteSubscription = new();
+        private readonly ControlStream<GameEvent> subscriptionStream;
+        private readonly ControlStream<GameEvent> unsubscriptionStream;
+        private readonly ControlStream<bool> syncStream;
+        private readonly ConcurrentDictionary<GameEvent, HashSet<NetPeer>> remoteSubscription = new();
 
         public NetworkEventControl() {
             networkEventStream = new NetEventStream<RaisedEvent>("EventControl:Events",
                 NetworkPermission.All, NetworkPermission.All, RecieveEventAsync) {
                 GameEventTypeGetter = GetGameEventType
             };
-            subscriptionStream = new NetEventStream<Subscription>("EventControl:Subscriptions",
-                NetworkPermission.All, NetworkPermission.All, RecieveRemoteSubscription);
-            unsubscriptionStream = new NetEventStream<Subscription>("EventControl:Unsubscriptions",
-                NetworkPermission.All, NetworkPermission.All, RecieveRemoteUnsubscription);
-            syncStream = new NetEventStream<Guid>("EventControl:Sync",
-                NetworkPermission.All, NetworkPermission.All, RecieveSync);
+            subscriptionStream = new ControlStream<GameEvent>("EventControl:Subscriptions", RecieveRemoteSubscription);
+            unsubscriptionStream = new ControlStream<GameEvent>("EventControl:Unsubscriptions", RecieveRemoteUnsubscription);
+            syncStream = new ControlStream<bool>("EventControl:Sync", RecieveSync);
         }
 
-        public event Action<GameEvent, Guid> RemoteSubscribed;
+        public event Action<GameEvent, NetPeer> RemoteSubscribed;
 
         public void Register(Entity self) => Register(self.info.rtEntityId);
 
@@ -39,6 +35,7 @@ namespace Arterra.Core.Events {
             subscriptionStream.Register(rootId);
             unsubscriptionStream.Register(rootId);
             syncStream.Register(rootId);
+            TransportManager.Instance.PeerDisconnected += RemovePeer;
             Sync();
         }
 
@@ -52,26 +49,24 @@ namespace Arterra.Core.Events {
         public void Sync() {
             if (!TransportManager.Instance.IsRunning) return;
             PublishSubscriptions();
-            syncStream.Fire(PlayerHandler.GetPlayerId());
+            syncStream.Fire(true);
         }
 
-        private void RecieveSync(Guid requester) {
-            if (requester == PlayerHandler.GetPlayerId()) return;
+        private void RecieveSync(bool _, NetPeer peer) {
+            if (peer == null) return;
             PublishSubscriptions();
         }
 
         private void PublishSubscriptions() {
-            Guid playerId = PlayerHandler.GetPlayerId();
             foreach (int type in events.Keys)
-                subscriptionStream.Fire(new Subscription((GameEvent)type, playerId));
+                subscriptionStream.Fire((GameEvent)type);
         }
 
         public override void AddEventHandler(GameEvent type, RefEventHandler handler, EventHandlePriority priority = EventHandlePriority.Commutative3) {
             bool hadHandlers = events.ContainsKey((int)type);
             base.AddEventHandler(type, handler, priority);
             if (!hadHandlers) {
-                Guid playerId = PlayerHandler.GetPlayerId();
-                subscriptionStream.Fire(new Subscription(type, playerId));
+                subscriptionStream.Fire(type);
             }
         }
 
@@ -79,8 +74,7 @@ namespace Arterra.Core.Events {
             bool hadHandlers = events.ContainsKey((int)type);
             base.RemoveEventHandler(type, handler);
             if (hadHandlers && !events.ContainsKey((int)type)) {
-                Guid playerId = PlayerHandler.GetPlayerId();
-                unsubscriptionStream.Fire(new Subscription(type, playerId));
+                unsubscriptionStream.Fire(type);
             }
         }
 
@@ -88,8 +82,7 @@ namespace Arterra.Core.Events {
             bool hadHandlers = events.ContainsKey((int)type);
             base.RemoveEventHandler(type);
             if (hadHandlers) {
-                Guid playerId = PlayerHandler.GetPlayerId();
-                unsubscriptionStream.Fire(new Subscription(type, playerId));
+                unsubscriptionStream.Fire(type);
             }
         }
 
@@ -99,7 +92,7 @@ namespace Arterra.Core.Events {
             RaisedEvent newEvent = new (type, actor, target, ctx);
             if (remoteSubscription.TryGetValue(type, out var subscribers) && !local) {
                 var recipients = NetworkManager.IsActingServer
-                    ? PlayerHandler.Players.Where(pair => subscribers.Contains(pair.Value.info.rtEntityId)).Select(pair => pair.Key)
+                    ? subscribers
                     : null;
                 networkEventStream.Fire(newEvent, RecieveEvent, recipients);
             } else RecieveEvent(newEvent);
@@ -109,7 +102,7 @@ namespace Arterra.Core.Events {
             RaisedEvent newEvent = new (type, actor, target, ctx);
             if (remoteSubscription.TryGetValue(type, out var subscribers) && !local) {
                 var recipients = NetworkManager.IsActingServer
-                    ? PlayerHandler.Players.Where(pair => subscribers.Contains(pair.Value.info.rtEntityId)).Select(pair => pair.Key)
+                    ? subscribers
                     : null;
                 networkEventStream.Fire(newEvent, recipients: recipients);
             } else RecieveEventAsync(newEvent);
@@ -139,22 +132,27 @@ namespace Arterra.Core.Events {
             (actor, target, ctx) => RaiseEvent(type, actor, target, ctx, local);
         
 
-        private void RecieveRemoteSubscription(Subscription s) {
-            if (s.peerId == Guid.Empty || s.peerId == PlayerHandler.GetPlayerId()) return;
+        private void RecieveRemoteSubscription(GameEvent type, NetPeer peer) {
+            if (peer == null) return;
             // Remote mutations run on the transport tick; worker threads only inspect the outer dictionary.
-            if (remoteSubscription.TryGetValue(s.type, out var peers)) {
-                if (!peers.Add(s.peerId)) return;
-            } else remoteSubscription[s.type] = new HashSet<Guid> { s.peerId };
-            RemoteSubscribed?.Invoke(s.type, s.peerId);
+            if (remoteSubscription.TryGetValue(type, out var peers)) {
+                if (!peers.Add(peer)) return;
+            } else remoteSubscription[type] = new HashSet<NetPeer> { peer };
+            RemoteSubscribed?.Invoke(type, peer);
         }
-        private void RecieveRemoteUnsubscription(Subscription s) {
-            if (s.peerId == Guid.Empty || s.peerId == PlayerHandler.GetPlayerId()) return;
-            if (!remoteSubscription.TryGetValue(s.type, out var peers)) return;
-            peers.Remove(s.peerId);
-            if (peers.Count == 0) remoteSubscription.TryRemove(s.type, out _);
+
+        private void RecieveRemoteUnsubscription(GameEvent type, NetPeer peer) {
+            if (peer == null || !remoteSubscription.TryGetValue(type, out var peers)) return;
+            peers.Remove(peer);
+            if (peers.Count == 0) remoteSubscription.TryRemove(type, out _);
+        }
+
+        private void RemovePeer(NetPeer peer) {
+            foreach (var type in remoteSubscription.Keys) RecieveRemoteUnsubscription(type, peer);
         }
 
         public void Dispose() {
+            TransportManager.Instance.PeerDisconnected -= RemovePeer;
             networkEventStream.Dispose();
             subscriptionStream.Dispose();
             unsubscriptionStream.Dispose();
@@ -218,13 +216,17 @@ namespace Arterra.Core.Events {
             }
         }
 
-        private struct Subscription {
-            public GameEvent type;
-            public Guid peerId;
-            public Subscription(GameEvent type, Guid peerId) {
-                this.type = type;
-                this.peerId = peerId;
+        // Subscription control is between each client and the server, never relayed to other clients.
+        private sealed class ControlStream<T> : NetEventStream<T> {
+            private readonly Action<T, NetPeer> receive;
+
+            public ControlStream(string name, Action<T, NetPeer> receive)
+                : base(name, NetworkPermission.All, NetworkPermission.All) {
+                this.receive = receive;
             }
+
+            protected override void ReceiveRemoteWrite(T data, NetPeer peer) => Receive(data, peer);
+            protected override void Receive(T data, NetPeer peer) => receive(data, peer);
         }
     }
 }

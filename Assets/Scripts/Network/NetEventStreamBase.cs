@@ -83,15 +83,18 @@ namespace Arterra.Core.Network {
                     return;
                 }
                 // Callback failures must not turn an accepted, already forwarded event into a rejection.
-                Publish(data);
+                ReceiveRemoteWrite(data, message.Peer);
             } else if (message.Peer == transport.Server) {
                 if (message.EventId == Delivery) {
-                    if (CanAccess(readPerm, default)) RecieveEvent?.Invoke(Decode(message.Payload));
+                    if (CanAccess(readPerm, default)) Receive(Decode(message.Payload), message.Peer);
                 } else if (message.EventId == Rejected)
                     UnityEngine.Debug.LogException(new InvalidOperationException("Server rejected the stream event."));
                 else throw new InvalidDataException("Invalid server stream event.");
             }
         }
+
+        protected virtual void ReceiveRemoteWrite(T data, NetPeer peer) => Publish(data);
+        protected virtual void Receive(T data, NetPeer peer) => RecieveEvent?.Invoke(data);
 
         private void Publish(T data, Action<T> localOverride = null, IEnumerable<NetPeer> recipients = null) {
             if (transport.IsRunning) {
@@ -108,8 +111,10 @@ namespace Arterra.Core.Network {
                 }
             }
             // Forward first so local handlers cannot mutate the outgoing event or reorder nested Fire calls.
-            if (CanAccess(readPerm, default)) 
-                (localOverride ?? RecieveEvent)?.Invoke(data);
+            if (CanAccess(readPerm, default)) {
+                if (localOverride != null) localOverride(data);
+                else Receive(data, null);
+            }
         }
 
         private void RequireConnection() {

@@ -85,7 +85,7 @@ namespace Arterra.Data.Entity.Behavior {
             if (self.context != BehaviorEntity.UpdateContext.Visual) return;
             if (animator == null) return;
 
-            float3 velocity = movement.NormalizedMoveVel;
+            float3 velocity = movement?.NormalizedMoveVel ?? 0;
             float speed = Mathf.Lerp(animator.GetFloat("Speed"), math.length(velocity), 0.35f);
             animator.SetFloat("Speed", speed);
             float angle = Mathf.Atan2(velocity.z, velocity.x) / Mathf.PI;

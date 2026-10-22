@@ -58,7 +58,8 @@ namespace Arterra.Data.Material {
             if (!NetworkManager.IsActingServer) return;
             var inventories = Inventories;
             for (int i = 0; i < inventories.Length; i++)
-                if (ReferenceEquals(inventories[i], inventory)) dirty.Add((i, slot));
+                if (ReferenceEquals(inventories[i], inventory)) 
+                    dirty.Add((i, slot));
             CPUMapManager.MarkMetadataDirty(position);
         }
 
@@ -74,7 +75,7 @@ namespace Arterra.Data.Material {
             return false;
         }
 
-        private void OnSubscribed(GameEvent type, Guid player) {
+        private void OnSubscribed(GameEvent type, LiteNetLib.NetPeer peer) {
             if (type != GameEvent.Material_InventorySlots) return;
             EntityManager.AddHandlerEvent(() => { if (Initialized) PublishAll(); });
         }

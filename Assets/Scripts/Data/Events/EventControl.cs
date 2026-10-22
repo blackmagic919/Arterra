@@ -27,6 +27,7 @@ namespace Arterra.Core.Events {
         Entity_Respawn = GameEventBases.Entity_Base + 1, 
         Entity_Damaged = GameEventBases.Entity_Base + 2,
         Entity_Attack = GameEventBases.Entity_Base + 3,
+        Entity_RebindPlayer = GameEventBases.Entity_Base + 4,
         Entity_Mate = GameEventBases.Entity_Base + 5,
         Entity_Guided = GameEventBases.Entity_Base + 6,
         Entity_Fed = GameEventBases.Entity_Base + 7,

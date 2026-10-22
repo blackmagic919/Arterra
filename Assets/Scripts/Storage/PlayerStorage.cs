@@ -31,7 +31,10 @@ namespace Arterra.Core.Storage {
         }
 
         public static void Capture(AccountId account, BehaviorEntity.Animal player) {
-            if (player != null) players[account.SaveKey] = JToken.FromObject(new Registerable<BehaviorEntity.Animal>(player));
+            if (player == null) return;
+            players[account.SaveKey] = JToken.FromObject(
+                new Registerable<BehaviorEntity.Animal>(player)
+            );
         }
         public static void Save() {
             string path = Path.Combine(World.WORLD_SELECTION.First.Value.Path, "PlayerData.json");

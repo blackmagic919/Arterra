@@ -265,6 +265,9 @@ namespace Arterra.Data.Entity.Behavior {
 
         public override void InitializeVisual(BehaviorEntity.Animal self) {
             if (!self.IsOwner || Menu != null) return;
+            self.eventCtrl.AddEventHandler(GameEvent.Entity_OpenMaterial, DisplayMaterial);
+            CPUMapManager.MetadataInstalled += DisplayInstalledMaterial;
+            CPUMapManager.AddOnReleaseChunk(CancelPendingMaterial);
             Menu = GameObject.Instantiate(Resources.Load<GameObject>("Prefabs/GameUI/Inventory/Panel"), GameUIManager.UIHandle.transform);
             ItemSettings = Config.CURRENT.Generation.Items;
             Cursor = new CursorDisplay(Menu.transform);
@@ -294,6 +297,9 @@ namespace Arterra.Data.Entity.Behavior {
 
         public override void DisposeVisual(BehaviorEntity.Animal self) {
             if (Menu == null) return;
+            self.eventCtrl.RemoveEventHandler(GameEvent.Entity_OpenMaterial, DisplayMaterial);
+            CPUMapManager.MetadataInstalled -= DisplayInstalledMaterial;
+            CPUMapManager.RemoveOnReleaseChunk(CancelPendingMaterial);
             pendingMaterial = Guid.Empty;
             ActiveMaterial?.CloseDisplay();
             InputPoller.RemoveContextFence("PlayerInventory:WndFrame", "3.5::Window");
@@ -620,11 +626,6 @@ namespace Arterra.Data.Entity.Behavior {
 
         private void BindEvents() {
             BindInteractions();
-            if (self.IsOwner) {
-                self.eventCtrl.AddEventHandler(GameEvent.Entity_OpenMaterial, DisplayMaterial);
-                CPUMapManager.MetadataInstalled += DisplayInstalledMaterial;
-                CPUMapManager.AddOnReleaseChunk(CancelPendingMaterial);
-            }
             Primary.AddCallbacks(SetupContext, SetupContext);
             Secondary.AddCallbacks(SetupContext, SetupContext);
             Primary.ReapplyHandles();

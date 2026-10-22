@@ -89,6 +89,16 @@ namespace Arterra.Data.Entity.Behavior {
         /// user's input and what they see. See <see cref="StreamingStatus"/> </summary>
         [JsonProperty]
         private StreamingStatus status = StreamingStatus.Activating;
+        private BehaviorEntity.Animal self;
+
+        private void RebindPlayer(object source, object target, object context) {
+            if (!self.VisualActive) return;
+            if (context is not bool bind) return;
+            foreach (var behavior in self.Behaviors) {
+                if (bind) behavior.InitializeVisual(self);
+                else behavior.DisposeVisual(self);
+            }
+        }
 
         /// <summary>Declares required player behavior dependencies.</summary>
         public override void AddBehaviorDependencies(Dictionary<Behaviors, int> hierarchy) {
@@ -109,12 +119,16 @@ namespace Arterra.Data.Entity.Behavior {
         /// <summary>Initializes root player behavior state for a newly created player entity.</summary>
         public override void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
             status = StreamingStatus.Live;
+            this.self = self;
+            self.eventCtrl.AddEventHandler(GameEvent.Entity_RebindPlayer, RebindPlayer);
 
         }
 
         /// <summary>Initializes root player behavior state for a deserialized player entity.</summary>
         public override void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
             status = StreamingStatus.Live;
+            this.self = self;
+            self.eventCtrl.AddEventHandler(GameEvent.Entity_RebindPlayer, RebindPlayer);
 
 
             if (self.Is(out VitalityBehavior vitality) && vitality.IsDead) {
@@ -133,6 +147,7 @@ namespace Arterra.Data.Entity.Behavior {
 
         /// <summary>Disables root player behavior and clears active references.</summary>
         public override void Disable(BehaviorEntity.Animal self) {
+            self.eventCtrl.RemoveEventHandler(GameEvent.Entity_RebindPlayer, RebindPlayer);
         }
 
         private void TriggerDetach(object srcId, object _trgt, object _ctx) {

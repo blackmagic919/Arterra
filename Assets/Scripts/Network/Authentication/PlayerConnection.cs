@@ -16,12 +16,13 @@ namespace Arterra.Core.Network.Authentication {
     /// <summary>Creates the owning player after discovery has authenticated its connection. Main-thread only.</summary>
     public sealed class PlayerConnection : ITransportEventListener {
         private static readonly Guid Reference = new("2ff008b2-eccf-46b8-b02b-7d43f266177b");
-        private const ushort Begin = 1, Accepted = 4, Rejected = 5, Ready = 6;
+        private const ushort Begin = 1, Accepted = 4, Rejected = 5, Ready = 6, Respawn = 7;
 
         private static readonly PlayerConnection instance = new();
         private readonly Dictionary<NetPeer, AccountId> accounts = new();
         private readonly Dictionary<NetPeer, NetworkSource> sources = new();
 
+        private readonly HashSet<NetPeer> respawning = new();
         private bool initialized;
         private static string initialPlayerJson;
 
@@ -44,6 +45,13 @@ namespace Arterra.Core.Network.Authentication {
             initialPlayerJson = Encoding.UTF8.GetString(response.Payload);
         }
 
+        internal static async Task<BehaviorEntity.Animal> RespawnAsync(Guid playerId) {
+            var transport = TransportManager.Instance;
+            var response = await transport.RequestEventAsync(transport.Server, Reference, Respawn, playerId.ToByteArray());
+            if (response.EventId != Accepted) throw new InvalidOperationException("Host rejected respawn.");
+            return JsonConvert.DeserializeObject<Registerable<BehaviorEntity.Animal>>(Encoding.UTF8.GetString(response.Payload)).Value;
+        }
+
         internal static BehaviorEntity.Animal TakeInitialPlayer() {
             if (string.IsNullOrEmpty(initialPlayerJson))
                 throw new InvalidOperationException("Authenticate and receive the owning player before opening the client world.");
@@ -60,6 +68,7 @@ namespace Arterra.Core.Network.Authentication {
             if (!TransportManager.Instance.IsServer) return;
 
             if (message.EventId == Begin) SpawnAsync(message);
+            else if (message.EventId == Respawn) RespawnAsync(message);
             else if (message.EventId == Ready) {
                 if (message.Payload.Length != 16 || !accounts.ContainsKey(message.Peer)
                     || PlayerHandler.GetPlayerId(message.Peer) != new Guid(message.Payload)) Reject(message);
@@ -113,12 +122,49 @@ namespace Arterra.Core.Network.Authentication {
                 && accounts.ContainsKey(message.Peer);
         }
 
+        private async void RespawnAsync(TransportEvent message) {
+            var transport = TransportManager.Instance;
+            uint session = transport.SessionVersion;
+            if (!accounts.ContainsKey(message.Peer) || message.Payload.Length != 16
+                || PlayerHandler.GetPlayerId(message.Peer) != new Guid(message.Payload)
+                || !PlayerHandler.Players.TryGetValue(message.Peer, out var previous)
+                || !previous.Is(out VitalityBehavior vitality) || !vitality.IsDead
+                || !respawning.Add(message.Peer)) {
+                Reject(message);
+                return;
+            }
+
+            try {
+                byte[] payload = null;
+                var completion = new TaskCompletionSource<BehaviorEntity.Animal>(TaskCreationOptions.RunContinuationsAsynchronously);
+                EntityManager.AddHandlerEvent(async () => {
+                    try {
+                        if (!Current()) throw new OperationCanceledException();
+                        completion.TrySetResult(await PlayerHandler.RespawnPlayerAsync(message.Peer, player =>
+                            payload = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(new Registerable<BehaviorEntity.Animal>(player)))));
+                    } catch (Exception exception) { completion.TrySetException(exception); }
+                });
+                await completion.Task;
+                if (!Current()) return;
+                transport.SendEvent(message.Peer, Reference, Accepted, payload, message.MessageId);
+            } catch (Exception exception) {
+                if (Current()) {
+                    Debug.LogException(exception);
+                    Reject(message);
+                }
+            } finally { respawning.Remove(message.Peer); }
+
+            bool Current() => transport.IsRunning && transport.SessionVersion == session
+                && accounts.ContainsKey(message.Peer);
+        }
+
         private static void Reject(TransportEvent message) {
             Debug.LogWarning($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Network Auth] Host: rejecting event {message.EventId} from peer {message.Peer}, request {message.MessageId}.");
             TransportManager.Instance.SendEvent(message.Peer, Reference, Rejected, Array.Empty<byte>(), message.MessageId);
         }
 
         private void Disconnected(NetPeer peer) {
+            respawning.Remove(peer);
             if (sources.Remove(peer, out var source)) source.Dispose();
 
             if (!accounts.Remove(peer, out var account)) return;

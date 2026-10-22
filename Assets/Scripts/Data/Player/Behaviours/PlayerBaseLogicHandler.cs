@@ -29,14 +29,18 @@ namespace Arterra.Data.Entity.Behavior {
             this.self = null;
         }
 
+        private readonly System.Collections.Generic.List<GameObject> ownerLayers = new();
+
+        private void UpdateOwnerLayers() {
+            int layer = LayerMask.NameToLayer(self.IsOwner ? "Self" : "Default");
+            foreach (var obj in ownerLayers) if (obj != null) obj.layer = layer;
+        }
+
         private void OnStartup() {
-            if (!self.IsOwner) { //Set proper layer
-                int selfLayer = LayerMask.NameToLayer("Self");
-                int visibleLayer = LayerMask.NameToLayer("Default");
-                foreach (Transform child in self.controller.gameObject.GetComponentsInChildren<Transform>(true)) {
-                    if (child.gameObject.layer == selfLayer) child.gameObject.layer = visibleLayer;
-                }
-            }
+            int selfLayer = LayerMask.NameToLayer("Self");
+            foreach (Transform child in self.controller.gameObject.GetComponentsInChildren<Transform>(true))
+                if (child.gameObject.layer == selfLayer) ownerLayers.Add(child.gameObject);
+            UpdateOwnerLayers();
 
             Config.CURRENT.System.AddHook("Gamemode:Intangibility", ToggleIntangibility);
             Config.CURRENT.System.AddHook("Gamemode:Invulnerability", ToggleInvulnerability);
@@ -50,6 +54,7 @@ namespace Arterra.Data.Entity.Behavior {
         }
 
         public override void InitializeVisual(BehaviorEntity.Animal self) {
+            UpdateOwnerLayers();
             if (!self.IsOwner || indicator == null) return;
             Config.CURRENT.System.RemoveHook("Statistics:Display", indicator.ToggleStatDisplay);
             ReMapStatDisplay(!Config.CURRENT.GamePlay.Gamemodes.value.Invulnerability);
