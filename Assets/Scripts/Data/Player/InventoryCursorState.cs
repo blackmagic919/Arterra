@@ -7,6 +7,7 @@ using Unity.Mathematics;
 
 namespace Arterra.Data.Player {
     public sealed class InventoryCursorState {
+        public delegate bool Selection(out IInventory inventory, out int slot);
         public IItem Item;
         public List<IItem> SplitItems;
         public bool Visible;
@@ -26,7 +27,7 @@ namespace Arterra.Data.Player {
             Changed = changed;
         }
 
-        public bool Select(Arterra.Data.Entity.Behavior.PlayerInventoriesBehavior.MouseInvSelect GetSelectedInvInfo, bool isRoot) {
+        public bool Select(Selection GetSelectedInvInfo, bool isRoot) {
             if (!GetSelectedInvInfo(out IInventory Inv, out int index)) {
                 if (isRoot) ClearCursor(DropItem);
                 return false;
@@ -54,7 +55,7 @@ namespace Arterra.Data.Player {
             return true;
         }
 
-        public bool SelectPartial(Arterra.Data.Entity.Behavior.PlayerInventoriesBehavior.MouseInvSelect GetSelectedInvInfo, bool isRoot) {
+        public bool SelectPartial(Selection GetSelectedInvInfo, bool isRoot) {
             if (!GetSelectedInvInfo(out IInventory Inv, out int index)) {
                 if (isRoot) ClearCursor(DropItem);
                 return false;
@@ -81,7 +82,7 @@ namespace Arterra.Data.Player {
         }
 
 
-        public bool DeselectDrag(Arterra.Data.Entity.Behavior.PlayerInventoriesBehavior.MouseInvSelect GetSelectedInvInfo, bool isRoot) {
+        public bool DeselectDrag(Selection GetSelectedInvInfo, bool isRoot) {
             if (!IsHolding) return false;
             if (!IsPlacing) return false;
             if (!GetSelectedInvInfo(out IInventory Inv, out int index)) {

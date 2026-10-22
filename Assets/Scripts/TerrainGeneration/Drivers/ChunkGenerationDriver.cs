@@ -258,7 +258,7 @@ namespace Arterra.Core.Storage {
                 }
 
                 if (content.map.mapMeta != null)
-                    foreach (var entry in content.map.mapMeta) MapMetaData[entry.Key] = entry.Value;
+                    foreach (var entry in content.map.mapMeta) CPUMapManager.InstallMetadata(chunk, entry.Key, entry.Value);
                 chunk.MapProgress = ChunkMapInfo.State.Finished;
 
                 if (NetworkManager.IsActingServer) {

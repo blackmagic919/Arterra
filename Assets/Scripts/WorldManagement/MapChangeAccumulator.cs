@@ -3,6 +3,9 @@ using System.Buffers.Binary;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
+using System.Text;
+using Newtonsoft.Json;
+using Arterra.Core.Network;
 using Unity.Mathematics;
 
 namespace Arterra.Core.Storage {
@@ -26,20 +29,44 @@ namespace Arterra.Core.Storage {
             PendingChanges.Clear();
         }
 
-        public static Dictionary<uint, MapData> DecodeChanges(byte[] bytes, int cellCount, out int3 coordinate) {
-            if (bytes.Length < 12 || (bytes.Length - 12) % 8 != 0)
-                throw new InvalidDataException("Invalid chunk map update length.");
+        public struct MetadataChange {
+            public uint CellIndex;
+            public object Value;
+        }
+
+        // The voxel section stays binary: coordinate, count, then eight bytes per cell.
+        // Only messages containing metadata have a trailing JSON array.
+        public static Dictionary<uint, MapData> DecodeChanges(byte[] bytes, int cellCount,
+            out int3 coordinate, out MetadataChange[] metadata) {
+            if (bytes.Length < 16) throw new InvalidDataException("Invalid chunk map update length.");
 
             coordinate = new int3(BinaryPrimitives.ReadInt32LittleEndian(bytes.AsSpan(0, 4)),
                 BinaryPrimitives.ReadInt32LittleEndian(bytes.AsSpan(4, 4)),
                 BinaryPrimitives.ReadInt32LittleEndian(bytes.AsSpan(8, 4)));
+            int count = BinaryPrimitives.ReadInt32LittleEndian(bytes.AsSpan(12, 4));
+            if (count < 0 || count > cellCount || count > (bytes.Length - 16) / 8)
+                throw new InvalidDataException("Invalid chunk map update count.");
+
+            int end = 16 + count * 8;
             var changes = new Dictionary<uint, MapData>();
-            for (int offset = 12; offset < bytes.Length; offset += 8) {
+            for (int offset = 16; offset < end; offset += 8) {
                 uint index = BinaryPrimitives.ReadUInt32LittleEndian(bytes.AsSpan(offset, 4));
                 if (index >= cellCount) throw new InvalidDataException("Chunk map update index is out of bounds.");
                 changes[index] = new MapData { data = BinaryPrimitives.ReadUInt32LittleEndian(bytes.AsSpan(offset + 4, 4)) };
             }
+
+            metadata = end == bytes.Length ? Array.Empty<MetadataChange>()
+                : JsonConvert.DeserializeObject<MetadataChange[]>(Encoding.UTF8.GetString(bytes, end, bytes.Length - end));
+            if (metadata == null) throw new InvalidDataException("Invalid chunk metadata update.");
+            foreach (var change in metadata)
+                if (change.CellIndex >= cellCount) throw new InvalidDataException("Chunk metadata index is out of bounds.");
             return changes;
+        }
+
+        public void TrackMetadata(int3 coordinate, uint index, object value) {
+            if (!TransportManager.Instance.IsRunning) return;
+            if (PendingChanges.TryGetValue(coordinate, out var flusher))
+                flusher.RegisterMetadata(index, value);
         }
 
         // Producers only copy values into a queue. Everything else runs on the flush/transport thread.
@@ -79,7 +106,9 @@ namespace Arterra.Core.Storage {
         public sealed class PendingChangeFlusher {
             private readonly int3 coordinate;
             private readonly ConcurrentQueue<(uint coord, MapData data)> pendingChanges = new();
-            private readonly Dictionary<uint, Change> activeChanges = new();
+            private readonly Dictionary<uint, Change<MapData>> activeChanges = new();
+            private readonly ConcurrentQueue<(uint index, byte[] bytes)> pendingMetadata = new();
+            private readonly Dictionary<uint, Change<byte[]>> activeMetadata = new();
             private readonly Dictionary<ChunkSource, int?> sources = new();
             private readonly Dictionary<int, ChunkSource> pendingSends = new();
             private readonly HashSet<int> AnsweredWindow = new();
@@ -89,6 +118,14 @@ namespace Arterra.Core.Storage {
             public PendingChangeFlusher(int3 coordinate) => this.coordinate = coordinate;
 
             public void Register(uint MCoord, MapData data) => pendingChanges.Enqueue((MCoord, data));
+
+            public void RegisterMetadata(uint index, object value) {
+                // Capture at the mutation site; deferred transport must never serialize a live inventory.
+                byte[] bytes = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(new MetadataChange {
+                    CellIndex = index, Value = value
+                }));
+                pendingMetadata.Enqueue((index, bytes));
+            }
 
             public void FlushChanges(HashSet<ChunkSource> currentSources) {
                 //Remove an exisitng listener(source) on the chunk
@@ -107,12 +144,13 @@ namespace Arterra.Core.Storage {
                         sources.TryAdd(source, null);
                 }
 
-                if (pendingChanges.IsEmpty) return;
+                if (pendingChanges.IsEmpty && pendingMetadata.IsEmpty) return;
 
                 if (sources.Count == 0) {
                     // Singleplayer/local reception: no generations, retained deltas, or serialization.
                     var localChanges = DrainPendingEvents();
-                    foreach (var source in currentSources) source.ReflectChunk(coordinate, localChanges);
+                    if (localChanges.Count != 0)
+                        foreach (var source in currentSources) source.ReflectChunk(coordinate, localChanges);
                     return;
                 }
 
@@ -132,7 +170,7 @@ namespace Arterra.Core.Storage {
 
                 var changes = DrainPendingEvents();
                 foreach (var source in currentSources) {
-                    if (!source.DefersMapChanges) source.ReflectChunk(coordinate, changes);
+                    if (!source.DefersMapChanges && changes.Count != 0) source.ReflectChunk(coordinate, changes);
                 }
 
                 for (int i = 0; i < sends.Count; i++) {
@@ -156,11 +194,15 @@ namespace Arterra.Core.Storage {
                 while (pendingChanges.TryDequeue(out var change)) {
                     changes[change.coord] = change.data;
                     if (sources.Count != 0) {
-                        activeChanges[change.coord] = new Change {
+                        activeChanges[change.coord] = new Change<MapData> {
                             data = change.data,
                             generation = generation
                         };
                     }
+                }
+                while (pendingMetadata.TryDequeue(out var change)) {
+                    if (sources.Count != 0)
+                        activeMetadata[change.index] = new Change<byte[]> { data = change.bytes, generation = generation };
                 }
                 return changes;
             }
@@ -174,11 +216,28 @@ namespace Arterra.Core.Storage {
                             count++;
                 }
 
-                byte[] bytes = new byte[checked(12 + count * 8)];
+                using var metadata = new MemoryStream();
+                bool includeMetadata = false;
+                if (source != null && CPUMapManager.TryGetChunkInfo(coordinate, out var chunk)) {
+                    foreach (var driver in chunk.Generation.GetDriverSet()) {
+                        if (ReferenceEquals(driver.Source, source)) { includeMetadata = true; break; }
+                    }
+                }
+                if (includeMetadata) {
+                    foreach (var change in activeMetadata.Values) {
+                        if (Before(change.generation, generation)) continue;
+                        metadata.WriteByte(metadata.Length == 0 ? (byte)'[' : (byte)',');
+                        metadata.Write(change.data, 0, change.data.Length);
+                    }
+                }
+                if (metadata.Length != 0) metadata.WriteByte((byte)']');
+
+                byte[] bytes = new byte[checked(16 + count * 8 + (int)metadata.Length)];
                 BinaryPrimitives.WriteInt32LittleEndian(bytes.AsSpan(0, 4), coordinate.x);
                 BinaryPrimitives.WriteInt32LittleEndian(bytes.AsSpan(4, 4), coordinate.y);
                 BinaryPrimitives.WriteInt32LittleEndian(bytes.AsSpan(8, 4), coordinate.z);
-                int offset = 12;
+                BinaryPrimitives.WriteInt32LittleEndian(bytes.AsSpan(12, 4), count);
+                int offset = 16;
                 if (source != null) {
                     foreach (var pair in activeChanges) {
                         if (Before(pair.Value.generation, generation)) continue;
@@ -187,6 +246,9 @@ namespace Arterra.Core.Storage {
                         offset += 8;
                     }
                 }
+
+                metadata.Position = 0;
+                metadata.Read(bytes, offset, (int)metadata.Length);
 
                 // Completion means captured into bytes, not acknowledged by the remote peer.
                 CompleteGeneration(generation);
@@ -204,6 +266,10 @@ namespace Arterra.Core.Storage {
                     if (Before(activeChanges[coord].generation, AnsweredGen))
                         activeChanges.Remove(coord);
                 }
+                foreach (var index in new List<uint>(activeMetadata.Keys)) {
+                    if (Before(activeMetadata[index].generation, AnsweredGen))
+                        activeMetadata.Remove(index);
+                }
             }
 
             public bool TryAdvanceGeneration() {
@@ -217,13 +283,15 @@ namespace Arterra.Core.Storage {
                 foreach (int generation in new List<int>(pendingSends.Keys)) CompleteGeneration(generation);
                 sources.Clear();
                 activeChanges.Clear();
+                activeMetadata.Clear();
+                while (pendingMetadata.TryDequeue(out _)) { }
                 while (pendingChanges.TryDequeue(out _)) { }
             }
 
             private static bool Before(int left, int right) => unchecked(left - right) < 0;
 
-            private struct Change {
-                public MapData data;
+            private struct Change<T> {
+                public T data;
                 public int generation;
             }
         }

@@ -1,3 +1,6 @@
+using Arterra.Core.Network;
+using Arterra.Core.Events;
+using System;
 using Arterra.Data.Entity.Behavior;
 using Arterra.Core.Storage;
 using Newtonsoft.Json;
@@ -49,41 +52,13 @@ namespace Arterra.Data.Material
             return new ContainerInventory(constructor, GCoord, MaxSlotCount);
         }
 
-        private ContainerInventory OpenedInventory = null;
         public override bool OnRemoving(int3 GCoord, Entity.Entity caller) {
-            if (caller == null || caller.info.entityType != Config.CURRENT.Generation.Entities.RetrieveIndex("Player"))
-                return false;
-            if (Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift))
-                return false;
+            if (!NetworkManager.IsActingServer || caller == null || !caller.Is(out PlayerInventoriesBehavior player)) return false;
             MapData info = CPUMapManager.SampleMap(GCoord);
             if (info.IsNull || !info.IsSolid) return false;
-
-            if (!VerifyStructurePlaceement(GCoord)) {
-                DropInventoryContent(GCoord);
-                return false;
-            }
-
-            if (!CPUMapManager.GetOrCreateMapMeta(GCoord, () => new ContainerInventory
-                (GCoord, MaxSlotCount), out OpenedInventory))
-                return false;
-            
-            OpenedInventory.InitializeDisplay(this);
-            PlayerHandler.Inventory.Activate();
-            //Overrides the default inventory close window
-            InputPoller.AddContextFence("MAT::Container", "3.5::Window", ActionBind.Exclusion.None);
-            InputPoller.AddBinding(new ActionBind("Open Inventory",
-                DeactivateWindow, ActionBind.Exclusion.ExcludeLayer, ActionBind.Policy.Down),
-                "MAT::Container:CL", "3.5::Window");
-            //Naturally propogate to inventory handles unless suspended manually
-            InputPoller.AddBinding(new ActionBind("Deselect",
-                DeselectDrag, ActionBind.Exclusion.None), "MAT::Container:DS", "3.5::Window");
-            InputPoller.AddBinding(new ActionBind("Select",
-                Select, ActionBind.Exclusion.None, ActionBind.Policy.Down), "MAT::Container:SL", "3.5::Window");
-            InputPoller.AddBinding(new ActionBind("SelectPartial", SelectPartial, policy: ActionBind.Policy.Down),  "MAT::Container:SELP", "3.5::Window");
-            InputPoller.AddBinding(new ActionBind("SelectAll", SelectAll, policy: ActionBind.Policy.Down), "MAT::Container:SELA", "3.0::AllWindow");
-            
-            PanelNavbarManager.Add(OpenedInventory, name);
-            PanelNavbarManager.Activate(name);
+            if (!VerifyStructurePlaceement(GCoord)) { DropInventoryContent(GCoord); return false; }
+            if (!CPUMapManager.GetOrCreateMapMeta(GCoord, () => new ContainerInventory(GCoord, MaxSlotCount), out var inventory)) return false;
+            player.OpenMaterial(inventory);
             return true;
         }
 
@@ -97,8 +72,6 @@ namespace Arterra.Data.Material
             if (info.IsNull || amount.IsNull) return null;
             if (!info.IsSolid) return null;
 
-            if (OpenedInventory != null && math.all(OpenedInventory.position == GCoord))
-                DeactivateWindow();
             int SolidDensity = info.SolidDensity - amount.SolidDensity;
             if (!VerifyStructurePlaceement(GCoord) || SolidDensity < CPUMapManager.IsoValue)
                 DropInventoryContent(GCoord);
@@ -109,8 +82,6 @@ namespace Arterra.Data.Material
         public override void OnPlaced(int3 GCoord, in MapData amount) {
             MapData info = CPUMapManager.SampleMap(GCoord);
             if (info.IsNull || amount.IsNull) return;
-            if (OpenedInventory != null && math.all(OpenedInventory.position == GCoord))
-                DeactivateWindow();
             int SolidDensity = info.SolidDensity + amount.SolidDensity;
             if (SolidDensity < CPUMapManager.IsoValue) return;
 
@@ -121,41 +92,9 @@ namespace Arterra.Data.Material
                 return;
             if (cont.inv.capacity == SlotCount) return;
             cont.inv.ResizeInventory(SlotCount, Item => PlayerInventoriesBehavior.SpawnDrop(Item, GCoord));
+            CPUMapManager.MarkMetadataDirty(GCoord);
+            cont.PublishAll();
         }
-
-        private void DeactivateWindow(float _ = 0) {
-            //IMPORTANT: The order in which these functions are called is VERY important
-            PanelNavbarManager.Remove(name);
-            PanelNavbarManager.Deactivate();
-            if (OpenedInventory != null) {
-                
-                    InputPoller.RemoveBinding("MAT::Container:SELA", "3.0::AllWindow");
-                    InputPoller.RemoveContextFence("MAT::Container", "3.5::Window");
-                    OpenedInventory = null;
-                
-            }
-            PlayerHandler.Inventory.Deactivate();
-        }
-
-
-        private bool GetMouseSelected(out IInventory inv, out int index) {
-            inv = OpenedInventory.inv;
-            return OpenedInventory.inv.Display.GetMouseSelected(out index);
-        }
-        private void Select(float _ = 0) {
-            if (!PlayerHandler.Inventory.Select(GetMouseSelected)) return;
-            InputPoller.SuspendKeybindPropogation("Select", ActionBind.Exclusion.ExcludeLayer);
-        }
-
-        private void DeselectDrag(float _ = 0) {
-            if (!PlayerHandler.Inventory.DeselectDrag(GetMouseSelected)) return;
-            InputPoller.SuspendKeybindPropogation("Deselect", ActionBind.Exclusion.ExcludeLayer);
-        }
-        private void SelectPartial(float _ = 0) {
-            if (!PlayerHandler.Inventory.SelectPartial(GetMouseSelected)) return;
-            InputPoller.SuspendKeybindPropogation("SelectPartial", ActionBind.Exclusion.ExcludeLayer);
-        }
-        private void SelectAll(float _ = 0) => PlayerHandler.Inventory.SelectAll(OpenedInventory.inv);
 
         private void DropInventoryContent(int3 GCoord) {
             if (!CPUMapManager.TryGetExistingMapMeta(GCoord, out ContainerInventory cont))
@@ -164,9 +103,15 @@ namespace Arterra.Data.Material
                 PlayerInventoriesBehavior.SpawnDrop(item, GCoord);
             CPUMapManager.SetExistingMapMeta<object>(GCoord, null);
         }
-        public class ContainerInventory : MaterialInstance, PanelNavbarManager.INavPanel {
+        public class ContainerInventory : MaterialInventory {
             public Inventory inv;
             [JsonIgnore] private ContainerMaterial settings;
+
+            [JsonIgnore] protected override Inventory[] Inventories => new[] { inv };
+            protected override void InitializeSimulation() {
+                Authoring.Is(out PlaceableStructureMat material);
+                settings = (ContainerMaterial)material;
+            }
 
             [JsonConstructor]
             public ContainerInventory() {/*Do nothing: this is for newtonsoft deserializer*/}
@@ -178,22 +123,17 @@ namespace Arterra.Data.Material
                 inv = new Inventory(constructor, GCoord, SlotCount);
             }
 
-            //Ideally we should provide a callback in OnAddElement and OnRemoveElement
-            //But it is difficult reapply and applying the hooks whenever the material is closed
-            internal void InitializeDisplay(ContainerMaterial settings) {
+            protected override void CreateDisplay() {
                 inv.InitializeDisplay(GameUIManager.UIHandle);
-                this.settings = settings;
+
             }
 
-            public Sprite GetNavIcon() => Config.CURRENT.Generation.Textures.Retrieve(
+            protected override void ReleaseDisplay() => inv.ReleaseDisplay();
+            protected override GameEvent OpenEvent => settings.OpenEvent;
+            public override Sprite GetNavIcon() => Config.CURRENT.Generation.Textures.Retrieve(
                 settings.Names.value[settings.DisplayIcon]).self;
-            public GameObject GetDispContent() => inv.Display.root;
-            public void Release() => inv.ReleaseDisplay();
-            public void Activate(){
-                inv.Display.root.SetActive(true);
-                PlayerHandler.data.eventCtrl.RaiseEvent(settings.OpenEvent, PlayerHandler.data.info.rtEntityId, null);
-            }
-            public void Deactivate() => inv.Display.root.SetActive(false);
+            public override GameObject GetDispContent() => inv.Display?.root;
+
         }
     }
 }

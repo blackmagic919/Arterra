@@ -88,10 +88,8 @@ namespace Arterra.Data.Entity.Behavior {
             float3 velocity = movement.NormalizedMoveVel;
             float speed = Mathf.Lerp(animator.GetFloat("Speed"), math.length(velocity), 0.35f);
             animator.SetFloat("Speed", speed);
-            if (self.IsOwner) {
-                float angle = Mathf.Atan2(velocity.z, velocity.x) / Mathf.PI;
-                animator.SetFloat("MoveTheta", Mathf.Lerp(animator.GetFloat("MoveTheta"), angle, 0.35f));
-            }
+            float angle = Mathf.Atan2(velocity.z, velocity.x) / Mathf.PI;
+            animator.SetFloat("MoveTheta", Mathf.Lerp(animator.GetFloat("MoveTheta"), angle, 0.35f));
         }
 
 

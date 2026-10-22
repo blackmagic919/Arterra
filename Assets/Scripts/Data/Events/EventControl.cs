@@ -12,6 +12,12 @@ namespace Arterra.Core.Events {
     }
 
     public enum GameEvent {
+        Material_InventorySlots = 6000,
+        Apply_MaterialInventory = 6001,
+        Apply_MaterialRecipe = 6002,
+        Apply_MaterialGrind = 6003,
+        Apply_CloseMaterial = 6004,
+        Entity_OpenMaterial = 6005,
         None = -1, // Placeholder for no event
 
         General_Notifcation = -2, // General notification event

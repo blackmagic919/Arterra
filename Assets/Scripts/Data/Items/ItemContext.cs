@@ -59,6 +59,11 @@ namespace Arterra.Data.Item {
         }
 
         public void SetDirty() {
+            if (TryGetHolder(out Arterra.Data.Material.MaterialInventory material)
+                && Inv.TryGetTarget(out var materialInventory)) {
+                material.SetDirty(materialInventory, InvId);
+                return;
+            }
             if (!TryGetHolder(out BehaviorEntity.Animal holder)) return;
             if (!Inv.TryGetTarget(out IInventory inventory)) return;
             holder.eventCtrl.RaiseEvent(GameEvent.Item_MutateItem,

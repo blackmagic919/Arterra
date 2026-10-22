@@ -511,6 +511,11 @@ namespace Arterra.Data.Material
     /// to represent a material at one specific position and are not always persisted.
     /// </summary>
     public class MaterialInstance : IRegistered {
+        [JsonProperty] public Guid Id { get; private set; } = Guid.NewGuid();
+        public virtual void Initialize() { }
+        public virtual void Dispose() { }
+
+
         /// <summary>The material authoring controlling generic logic of the material.
         /// This is logic that does not require metadata and is applied to all materials </summary>
         [JsonIgnore] public MaterialData Authoring;

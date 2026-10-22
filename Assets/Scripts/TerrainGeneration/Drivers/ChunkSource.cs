@@ -30,7 +30,7 @@ namespace Arterra.Core.Storage {
         public virtual bool DefersMapChanges => false;
 
         // Local sources consume changes immediately; remote sources retain only the encoder.
-        // Encoded layout: int3 coordinate followed by (uint cellIndex, uint packedMapData).
+        // Encoded layout: int3 coordinate, voxel count, packed voxel entries, optional JSON metadata.
         public abstract void ReflectChunk(int3 coordinate, IReadOnlyDictionary<uint, MapData> changes,
             Func<byte[]> getEncodedChanges = null, Action abandoned = null);
     }

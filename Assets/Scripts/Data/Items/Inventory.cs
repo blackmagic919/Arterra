@@ -336,7 +336,9 @@ namespace Arterra.Data.Item {
                 return start - remainder;
             }
 
-            public virtual void RemoveEntry(int SlotIndex) {
+            public virtual void RemoveEntry(int SlotIndex) => RemoveSlot(SlotIndex);
+
+            private void RemoveSlot(int SlotIndex) {
                 if (Info[SlotIndex] == null) return;
                 int Index = Info[SlotIndex].Index;
                 if (EntryDict.ContainsKey(Index) && SlotIndex == EntryDict[Index]) {
@@ -380,7 +382,9 @@ namespace Arterra.Data.Item {
                 return true;
             }
 
-            public virtual bool AddEntry(IItem entry, int index) {
+            public virtual bool AddEntry(IItem entry, int index) => AddSlot(entry, index);
+
+            private bool AddSlot(IItem entry, int index) {
                 if (length >= capacity) return false;
                 if (Info[index] != null) return false; //Slot has to be null
                 if (index == tail) tail = (int)EntryLL[tail].n;
@@ -398,6 +402,20 @@ namespace Arterra.Data.Item {
 
                 return true;
             }
+            public void ResizeReplicated(int size) {
+                if (size == capacity) return;
+                // Clear truncated slots without running derived inventory compaction.
+                for (int slot = size; slot < capacity; slot++) RemoveSlot(slot);
+                ResizeInventory(size);
+            }
+
+            // Replication assigns a slot; it must not invoke StackInventory's compaction policy.
+            public void ApplyReplicatedSlot(int slot, IItem item) {
+                if ((uint)slot >= capacity) return;
+                RemoveSlot(slot);
+                if (item != null) AddSlot((IItem)item.Clone(), slot);
+            }
+
             private void LLAdd(uint index, uint prev) {
                 if (prev == index) EntryLL[prev].n = index;
                 EntryLL[index] = new LLNode(prev, EntryLL[prev].n);

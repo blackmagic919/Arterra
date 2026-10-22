@@ -195,7 +195,8 @@ namespace Arterra.Data.Entity.Behavior {
             InputPoller.AddBinding(new ActionBind("Place", _ => self.eventCtrl.RaiseEvent(
                 GameEvent.Apply_PlaceTerrain, self.info.rtEntityId, null, PlayerHandler.Inventory.SelectedIndex)), PlaceTerrainName, "5.0::GamePlay");
             InputPoller.AddBinding(new ActionBind("Remove", _ => self.eventCtrl.RaiseEvent(
-                GameEvent.Apply_RemoveTerrain, self.info.rtEntityId, null)), RemoveTerrainName, "5.0::GamePlay");
+                GameEvent.Apply_RemoveTerrain, self.info.rtEntityId, null,
+                Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift))), RemoveTerrainName, "5.0::GamePlay");
         }
 
         private void UnbindInput() {
@@ -296,7 +297,8 @@ namespace Arterra.Data.Entity.Behavior {
             }
 
             self.eventCtrl.RaiseEvent(GameEvent.Action_RemoveTerrain, self.info.rtEntityId, null, hitPt);
-            Terraforming.Terraform(hitPt, TerraformRadius, RemoveSolidBareHand, CallOnMapRemoving);
+            Terraforming.Terraform(hitPt, TerraformRadius, RemoveSolidBareHand,
+                coordinate => context is bool bypass && bypass ? false : CallOnMapRemoving(coordinate));
         }
 
         private bool CanPlaceSolid(IItem selected, MapData pointInfo, out int matIndex) {

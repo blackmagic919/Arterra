@@ -9,15 +9,15 @@ using Arterra.Data.Entity;
 using Arterra.GamePlay;
 
 namespace Arterra.Core.Events {
-    /// <summary>Entity event forwarding. Register after assigning the shared entity ID; dispose when released.</summary>
-    public sealed class EntityEventControl : EventControl, IDisposable {
+    /// <summary>Event forwarding for a shared instance. Register its ID on installation; dispose on release.</summary>
+    public sealed class NetworkEventControl : EventControl, IDisposable {
         private readonly NetEventStream<RaisedEvent> networkEventStream;
         private readonly NetEventStream<Subscription> subscriptionStream;
         private readonly NetEventStream<Subscription> unsubscriptionStream;
         private readonly NetEventStream<Guid> syncStream;
         private readonly ConcurrentDictionary<GameEvent, HashSet<Guid>> remoteSubscription = new();
 
-        public EntityEventControl() {
+        public NetworkEventControl() {
             networkEventStream = new NetEventStream<RaisedEvent>("EventControl:Events",
                 NetworkPermission.All, NetworkPermission.All, RecieveEventAsync) {
                 GameEventTypeGetter = GetGameEventType
@@ -30,13 +30,22 @@ namespace Arterra.Core.Events {
                 NetworkPermission.All, NetworkPermission.All, RecieveSync);
         }
 
-        public void Register(Entity self) {
-            networkEventStream.Register(self);
-            subscriptionStream.Register(self);
-            unsubscriptionStream.Register(self);
-            syncStream.Register(self);
+        public event Action<GameEvent, Guid> RemoteSubscribed;
 
+        public void Register(Entity self) => Register(self.info.rtEntityId);
+
+        public void Register(Guid rootId) {
+            networkEventStream.Register(rootId);
+            subscriptionStream.Register(rootId);
+            unsubscriptionStream.Register(rootId);
+            syncStream.Register(rootId);
             Sync();
+        }
+
+        // Requests need only the root reference, not a completed exchange of handler subscriptions.
+        public void RaiseServerEvent(GameEvent type, Guid actor, object target, object context = null) {
+            var ev = new RaisedEvent(type, actor, target, context);
+            networkEventStream.Fire(ev, RecieveEvent);
         }
 
         // Exchange current subscriptions; gameplay events are never replayed.
@@ -133,8 +142,10 @@ namespace Arterra.Core.Events {
         private void RecieveRemoteSubscription(Subscription s) {
             if (s.peerId == Guid.Empty || s.peerId == PlayerHandler.GetPlayerId()) return;
             // Remote mutations run on the transport tick; worker threads only inspect the outer dictionary.
-            if (remoteSubscription.TryGetValue(s.type, out var peers)) peers.Add(s.peerId);
-            else remoteSubscription[s.type] = new HashSet<Guid> { s.peerId };
+            if (remoteSubscription.TryGetValue(s.type, out var peers)) {
+                if (!peers.Add(s.peerId)) return;
+            } else remoteSubscription[s.type] = new HashSet<Guid> { s.peerId };
+            RemoteSubscribed?.Invoke(s.type, s.peerId);
         }
         private void RecieveRemoteUnsubscription(Subscription s) {
             if (s.peerId == Guid.Empty || s.peerId == PlayerHandler.GetPlayerId()) return;
@@ -149,6 +160,7 @@ namespace Arterra.Core.Events {
             unsubscriptionStream.Dispose();
             syncStream.Dispose();
             remoteSubscription.Clear();
+            RemoteSubscribed = null;
         }
 
         [JsonConverter(typeof(RaisedEventConverter))]

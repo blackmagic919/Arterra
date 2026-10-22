@@ -43,6 +43,7 @@ namespace Arterra.Core.Storage {
                         if (reply.EventId != NetworkSource.Content || cancellation.IsCancellationRequested) return;
                         // The full reply supersedes preceding deltas. Later deltas stay buffered until installation.
                         changes.MapChanges.Clear();
+                        changes.MetadataChanges.Clear();
                         var transfer = JsonConvert.DeserializeObject<ChunkTransfer>(Encoding.UTF8.GetString(reply.Payload));
                         content = transfer.Read();
                     });
@@ -94,7 +95,10 @@ namespace Arterra.Core.Storage {
                     if (disposed) throw new OperationCanceledException();
 
                     // Generation has installed the full CPU map before invoking this method.
-                    if (changes != null) ApplyMapChanges(coordinate, changes.MapChanges);
+                    if (changes != null) {
+                        CPUMapManager.ApplyMetadataUpdates(coordinate, changes.MetadataChanges);
+                        ApplyMapChanges(coordinate, changes.MapChanges);
+                    }
 
                     var merged = entities.ToDictionary(entity => entity.info.rtEntityId);
                     if (changes != null) foreach (var change in changes.Entities) {
@@ -116,12 +120,18 @@ namespace Arterra.Core.Storage {
 
             if (message.EventId == NetworkSource.MapChanges) {
                 int size = Config.CURRENT.Quality.Terrain.value.mapChunkSize;
-                var updates = MapChangeAccumulator.DecodeChanges(message.Payload, size * size * size, out int3 coordinate);
+                var updates = MapChangeAccumulator.DecodeChanges(message.Payload, size * size * size, out int3 coordinate, out var metadata);
                 VisualChunkGenerationDriver.Local?.ReflectChunk(coordinate, updates);
                 if (pending.TryGetValue(coordinate, out var loading)) {
                     if (loading.Token.IsCancellationRequested) return;
                     foreach (var update in updates) loading.MapChanges[update.Key] = update.Value;
-                } else ApplyMapChanges(coordinate, updates);
+                    foreach (var update in metadata) loading.MetadataChanges[update.CellIndex] = update.Value;
+                } else {
+                    var metadataChanges = new Dictionary<uint, object>();
+                    foreach (var update in metadata) metadataChanges[update.CellIndex] = update.Value;
+                    CPUMapManager.ApplyMetadataUpdates(coordinate, metadataChanges);
+                    ApplyMapChanges(coordinate, updates);
+                }
             } else if (message.EventId == NetworkSource.Enter) {
                 var entity = JsonConvert.DeserializeObject<Registerable<Entity>>(Encoding.UTF8.GetString(message.Payload)).Value;
 
@@ -200,6 +210,7 @@ namespace Arterra.Core.Storage {
             public readonly CancellationToken Token;
             public readonly Dictionary<Guid, Entity> Entities = new();
             public readonly Dictionary<uint, MapData> MapChanges = new();
+            public readonly Dictionary<uint, object> MetadataChanges = new();
 
             public PendingChunk(CancellationToken token) => Token = token;
         }

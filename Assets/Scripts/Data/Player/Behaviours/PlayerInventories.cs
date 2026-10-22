@@ -1,3 +1,5 @@
+using Arterra.Data.Material;
+using Arterra.Core.Storage;
 using Arterra.GamePlay.Interaction;
 using Arterra.GamePlay;
 using TMPro;
@@ -80,7 +82,7 @@ namespace Arterra.Data.Entity.Behavior {
             set => restoredCursor = value;
         }
 
-        public enum InventoryAction { Select, SelectPartial, DeselectDrag, SelectAll, Clear, Armor }
+        public enum InventoryAction { Select, SelectPartial, DeselectDrag, SelectAll, Clear, Armor, Resource }
 
         public struct InventoryInteraction {
             public InventoryAction Action;
@@ -108,6 +110,7 @@ namespace Arterra.Data.Entity.Behavior {
         }
 
         private void PublishSplitItem(IItem item) {
+            if (ActiveMaterial?.PublishSplitItem(item) == true) return;
             foreach (InventoryKind kind in new[] { InventoryKind.Primary, InventoryKind.Secondary,
                 InventoryKind.CraftingMaterials, InventoryKind.CraftingItems }) {
                 IInventory inventory = GetInventory(kind);
@@ -127,20 +130,26 @@ namespace Arterra.Data.Entity.Behavior {
                 self.info.rtEntityId, InventoryKind.Cursor, (0, visible));
         }
 
-        private void InteractInventory(object source, object target, object context) {
+        public void InteractInventory(object source, object target, object context) {
             if (target is not InventoryKind kind || context is not InventoryInteraction request) return;
             int slot = request.Slot;
             if (request.CraftingTarget) {
                 bool material;
                 if (CursorState.IsHolding) {
-                    var setting = Arterra.Configuration.Config.CURRENT.Generation.Items.Retrieve(CursorState.Item.Index);
+                    var setting = Config.CURRENT.Generation.Items.Retrieve(CursorState.Item.Index);
                     material = setting is PlaceableItem placeable && Arterra.Configuration.Config.CURRENT.Generation.Materials.value.MaterialDictionary.Contains(placeable.MaterialName);
                 } else material = (uint)request.AlternateSlot >= Crafting.Items.Capacity
                     || Crafting.Items.PeekItem(request.AlternateSlot) == null;
                 kind = material ? InventoryKind.CraftingMaterials : InventoryKind.CraftingItems;
                 slot = material ? request.Slot : request.AlternateSlot;
             }
-            IInventory inventory = GetInventory(kind);
+            ApplyInteraction(GetInventory(kind), kind, request, slot);
+        }
+
+        public void InteractMaterial(IInventory inventory, InventoryInteraction request) =>
+            ApplyInteraction(inventory, InventoryKind.Cursor, request, request.Slot);
+
+        private void ApplyInteraction(IInventory inventory, InventoryKind kind, InventoryInteraction request, int slot) {
             IItem oldItem = CursorState.Item;
             int oldAmount = oldItem?.AmountRaw ?? 0;
             bool oldVisible = CursorState.Visible;
@@ -167,6 +176,15 @@ namespace Arterra.Data.Entity.Behavior {
                 case InventoryAction.Clear:
                     CursorState.ClearCursor(AddItem);
                     break;
+                case InventoryAction.Resource:
+                    var items = Config.CURRENT.Generation.Items;
+                    if (!Config.CURRENT.GamePlay.Gamemodes.value.ResourceInventory || !items.Contains(slot)) return;
+
+                    IItem resource = items.Retrieve(slot).Item;
+                    resource.Create(slot, resource.StackLimit);
+                    CursorState.ClearCursor(AddItem);
+                    CursorState.HoldItem(resource);
+                    break;
                 case InventoryAction.Armor:
                     if (kind != InventoryKind.Armor || (uint)slot >= ArmorI.Capacity || CursorState.IsSplitUp) return;
                     if (CursorState.IsHolding) {
@@ -182,13 +200,68 @@ namespace Arterra.Data.Entity.Behavior {
             }
             if (oldItem != CursorState.Item || oldAmount != (CursorState.Item?.AmountRaw ?? 0)
                 || oldVisible != CursorState.Visible) PublishCursor();
+            ActiveMaterial?.FlushChanges();
+        }
+
+        [JsonIgnore] public MaterialInventory ActiveMaterial { get; private set; }
+
+        public void OpenMaterial(MaterialInventory material) {
+            if (!self.IsAuthority) return;
+            if (!ReferenceEquals(ActiveMaterial, material)) {
+                if (self.IsOwner) ActiveMaterial?.CloseDisplay();
+                CloseMaterial();
+                CursorState.ClearCursor(AddItem);
+                PublishCursor();
+                material.Initialize();
+                ActiveMaterial = material;
+                material.AddUser(this);
+            }
+            self.eventCtrl.RaiseEvent(GameEvent.Entity_OpenMaterial, self.info.rtEntityId, material.Id, material.position);
+        }
+
+        private Guid pendingMaterial;
+        private int3 pendingMaterialPosition;
+
+        private void DisplayMaterial(object source, object target, object context) {
+            if (!self.IsOwner || target is not Guid id || context is not int3 coordinate) return;
+            if (ActiveMaterial != null && ActiveMaterial.Id != id) ActiveMaterial.CloseDisplay();
+            pendingMaterial = id;
+            pendingMaterialPosition = coordinate;
+            if (CPUMapManager.TryGetExistingMapMeta(coordinate, out MaterialInventory material))
+                DisplayInstalledMaterial(material);
+        }
+
+        private void DisplayInstalledMaterial(MaterialInstance instance) {
+            if (instance.Id != pendingMaterial || instance is not MaterialInventory material) return;
+            EntityManager.AddHandlerEvent(() => {
+                if (material.Id != pendingMaterial || !material.Initialized) return;
+                pendingMaterial = Guid.Empty;
+                ActiveMaterial = material;
+                material.InitializeDisplay(self);
+            });
+        }
+
+        private void CancelPendingMaterial(int3 chunk) {
+            int size = Config.CURRENT.Quality.Terrain.value.mapChunkSize;
+            int3 cell = ((pendingMaterialPosition % size) + size) % size;
+            if (math.all((pendingMaterialPosition - cell) / size == chunk)) pendingMaterial = Guid.Empty;
+        }
+
+        public void CloseMaterial() {
+            if (self.IsAuthority && ActiveMaterial != null) {
+                CursorState.ClearCursor(AddItem);
+                PublishCursor();
+            }
+            ActiveMaterial?.RemoveUser(this);
+            ActiveMaterial = null;
+            pendingMaterial = Guid.Empty;
         }
 
         [JsonIgnore] public CursorDisplay Cursor;
         private GameObject Menu;
         private ItemDescription itemInfo;
-        private Catalogue<Arterra.Data.Item.Authoring> ItemSettings;
-        [JsonIgnore] public Arterra.Data.Item.Authoring SelectedSetting => ItemSettings.Retrieve(Selected.Index);
+        private Catalogue<Item.Authoring> ItemSettings;
+        [JsonIgnore] public Item.Authoring SelectedSetting => ItemSettings.Retrieve(Selected.Index);
 
         public override void InitializeVisual(BehaviorEntity.Animal self) {
             if (!self.IsOwner || Menu != null) return;
@@ -221,6 +294,8 @@ namespace Arterra.Data.Entity.Behavior {
 
         public override void DisposeVisual(BehaviorEntity.Animal self) {
             if (Menu == null) return;
+            pendingMaterial = Guid.Empty;
+            ActiveMaterial?.CloseDisplay();
             InputPoller.RemoveContextFence("PlayerInventory:WndFrame", "3.5::Window");
             InputPoller.RemoveContextFence("PlayerInventory:AllFrame", "3.0::AllWindow");
             InputPoller.RemoveStackPoll("Frame:Inventory", "CursorLock");
@@ -259,7 +334,7 @@ namespace Arterra.Data.Entity.Behavior {
             PanelNavbarManager.Deactivate();
             Deactivate();
         }
-        public void Activate() {
+        public void Activate(bool clearCursor = true) {
             self.eventCtrl.RaiseEvent(GameEvent.Action_OpenInventory, self.info.rtEntityId, null);
             InputPoller.AddStackPoll(new ActionBind("Frame:Inventory", _ => InputPoller.SetCursorLock(false)), "CursorLock");
 
@@ -269,21 +344,21 @@ namespace Arterra.Data.Entity.Behavior {
             InputPoller.AddBinding(new ActionBind("Deselect", _ => DeselectDrag(GetMouseTarget, true)), "PlayerInventory:DSL", "3.5::Window");
             InputPoller.AddBinding(new ActionBind("Select", _ => Select(GetMouseTarget, true), policy: ActionBind.Policy.Down),  "PlayerInventory:SEL", "3.5::Window");
             InputPoller.AddBinding(new ActionBind("SelectPartial", _ => SelectPartial(GetMouseTarget, true), policy: ActionBind.Policy.Down),  "PlayerInventory:SELP", "3.5::Window");
-            InputPoller.AddBinding(new ActionBind("SelectAll", _ => { SelectAll(Primary); SelectAll(Secondary); },
+            InputPoller.AddBinding(new ActionBind("SelectAll", _ => { SelectAll(InventoryKind.Primary); SelectAll(InventoryKind.Secondary); },
                 ActionBind.Exclusion.ExcludeLayer,  ActionBind.Policy.Down),"PlayerInventory:SELA", "3.0::AllWindow");
 
-            RequestInteraction(InventoryAction.Clear);
+            if (clearCursor) RequestInteraction(InventoryAction.Clear);
             Secondary.Display.parent.SetActive(true);
         }
 
-        public void Deactivate() {
+        public void Deactivate(bool clearCursor = true) {
             InputPoller.RemoveStackPoll("Frame:Inventory", "CursorLock");
 
                 InputPoller.RemoveContextFence("PlayerInventory:WndFrame", "3.5::Window");
                 InputPoller.RemoveContextFence("PlayerInventory:AllFrame", "3.0::AllWindow");
 
             Secondary.Display.parent.SetActive(false);
-            RequestInteraction(InventoryAction.Clear);
+            if (clearCursor) RequestInteraction(InventoryAction.Clear);
         }
 
         private void AddHotbarKeybinds() {
@@ -317,12 +392,12 @@ namespace Arterra.Data.Entity.Behavior {
             Primary.Display.Slots[SelectedIndex].GetComponent<Image>().color = settings.SelectedColor; //Set the inital selected color
         }
 
-        private bool GetMouseTarget(out IInventory Inv, out int index) {
-            Inv = null;
+        private bool GetMouseTarget(out InventoryKind Inv, out int index) {
+            Inv = InventoryKind.Cursor;
             if (Primary.Display.GetMouseSelected(out index)) {
-                Inv = Primary;
+                Inv = InventoryKind.Primary;
             } else if (Secondary.Display.GetMouseSelected(out index)) {
-                Inv = Secondary;
+                Inv = InventoryKind.Secondary;
             } else return false;
             return true;
         }
@@ -341,40 +416,41 @@ namespace Arterra.Data.Entity.Behavior {
             EntityManager.CreateEntity(location, (uint)eIndex, Entity);
         }
 
-        public delegate bool MouseInvSelect(out IInventory Inv, out int index);
+        public delegate bool MouseInvSelect(out InventoryKind kind, out int index);
         public bool Select(MouseInvSelect GetSelectedInvInfo) => Select(GetSelectedInvInfo, false);
         public bool SelectPartial(MouseInvSelect GetSelectedInvInfo) => SelectPartial(GetSelectedInvInfo, false);
         public bool DeselectDrag(MouseInvSelect GetSelectedInvInfo) => DeselectDrag(GetSelectedInvInfo, false);
         public void RequestInteraction(InventoryAction action,
             InventoryKind kind = InventoryKind.Cursor,
             int slot = -1, bool root = false) {
+            RequestInteraction(kind, new InventoryInteraction { Action = action, Slot = slot, Root = root });
+        }
+
+        public void RequestInteraction(InventoryKind kind, InventoryInteraction request) {
             var player = self;
             if (player == null) return;
-            player.eventCtrl.RaiseEvent(GameEvent.Apply_InventoryInteraction, player.info.rtEntityId, kind,
-                new InventoryInteraction { Action = action, Slot = slot, Root = root });
+            if (ActiveMaterial != null && ActiveMaterial.Initialized)
+                ActiveMaterial.Events.RaiseServerEvent(GameEvent.Apply_MaterialInventory, player.info.rtEntityId, kind, request);
+            else player.eventCtrl.RaiseEvent(GameEvent.Apply_InventoryInteraction, player.info.rtEntityId, kind, request);
         }
 
         private bool SendInteraction(MouseInvSelect getSelected, bool root,
             InventoryAction action) {
-            bool selected = getSelected(out IInventory inventory, out int slot);
-            PlayerInventoriesBehavior owner = this;
-            var kind = InventoryKind.Cursor;
-            if (selected && !owner.TryGetInventoryKind(inventory, out kind)) return false;
+            bool selected = getSelected(out InventoryKind kind, out int slot);
             if (selected || root) RequestInteraction(action, kind, slot, root);
             return selected;
         }
 
         private bool Select(MouseInvSelect getSelected, bool root) =>
-            SendInteraction(getSelected, root, PlayerInventoriesBehavior.InventoryAction.Select);
+            SendInteraction(getSelected, root, InventoryAction.Select);
 
         private bool SelectPartial(MouseInvSelect getSelected, bool root) =>
-            SendInteraction(getSelected, root, PlayerInventoriesBehavior.InventoryAction.SelectPartial);
+            SendInteraction(getSelected, root, InventoryAction.SelectPartial);
 
         private bool DeselectDrag(MouseInvSelect getSelected, bool root) =>
-            SendInteraction(getSelected, root, PlayerInventoriesBehavior.InventoryAction.DeselectDrag);
+            SendInteraction(getSelected, root, InventoryAction.DeselectDrag);
 
-        public bool SelectAll(Inventory inventory) {
-            if (!TryGetInventoryKind(inventory, out var kind)) return false;
+        public bool SelectAll(InventoryKind kind) {
             RequestInteraction(PlayerInventoriesBehavior.InventoryAction.SelectAll, kind);
             return true;
         }
@@ -427,11 +503,6 @@ namespace Arterra.Data.Entity.Behavior {
                 Item?.AttachDisplay(display.transform, Item.Index);
             }
 
-            public void HoldItem(IItem item) => SetItem(item);
-            public void ClearCursor(Action<IItem> onDispose = null) {
-                onDispose?.Invoke(Item);
-                SetItem(null);
-            }
             public void Update() => display.transform.position = Input.mousePosition;
             public void Dispose() {
                 SetItem(null);
@@ -515,6 +586,11 @@ namespace Arterra.Data.Entity.Behavior {
 		public override void Disable(BehaviorEntity.Animal self) {
             DisposeVisual(self);
             UnbindInteractions();
+            ActiveMaterial?.CloseDisplay();
+            CloseMaterial();
+            self.eventCtrl.RemoveEventHandler(GameEvent.Entity_OpenMaterial, DisplayMaterial);
+            CPUMapManager.MetadataInstalled -= DisplayInstalledMaterial;
+            CPUMapManager.RemoveOnReleaseChunk(CancelPendingMaterial);
 			Primary?.UnapplyHandles();
             Secondary?.UnapplyHandles();
 
@@ -544,6 +620,11 @@ namespace Arterra.Data.Entity.Behavior {
 
         private void BindEvents() {
             BindInteractions();
+            if (self.IsOwner) {
+                self.eventCtrl.AddEventHandler(GameEvent.Entity_OpenMaterial, DisplayMaterial);
+                CPUMapManager.MetadataInstalled += DisplayInstalledMaterial;
+                CPUMapManager.AddOnReleaseChunk(CancelPendingMaterial);
+            }
             Primary.AddCallbacks(SetupContext, SetupContext);
             Secondary.AddCallbacks(SetupContext, SetupContext);
             Primary.ReapplyHandles();

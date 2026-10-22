@@ -155,9 +155,8 @@ namespace Arterra.Data.Entity.Behavior {
         public void Deactivate() {
             self.eventCtrl.RemoveEventHandler(GameEvent.Entity_CraftInsufficient, FlashIndicator);
             Request(GameEvent.Apply_ClearCrafting);
-
-                InputPoller.RemoveContextFence("PlayerCraft", "3.5::Window");
-                InputPoller.RemoveBinding("PlayerCraft:SELA", "3.0::AllWindow");
+            InputPoller.RemoveContextFence("PlayerCraft", "3.5::Window");
+            InputPoller.RemoveBinding("PlayerCraft:SELA", "3.0::AllWindow");
 
             Rendering.ReleaseDisplay();
             craftingMenu.SetActive(false);
@@ -178,9 +177,7 @@ namespace Arterra.Data.Entity.Behavior {
             }
             if (materialSlot < 0 && itemSlot < 0) return false;
 
-            var player = self;
-            player.eventCtrl.RaiseEvent(GameEvent.Apply_InventoryInteraction, player.info.rtEntityId,
-                PlayerInventoriesBehavior.InventoryKind.CraftingMaterials,
+            inventories.RequestInteraction(PlayerInventoriesBehavior.InventoryKind.CraftingMaterials,
                 new PlayerInventoriesBehavior.InventoryInteraction {
                     Action = action, Slot = materialSlot, AlternateSlot = itemSlot, CraftingTarget = true
                 });
@@ -203,8 +200,8 @@ namespace Arterra.Data.Entity.Behavior {
         }
 
         private void SelectAll(float _ = 0) {
-            inventories.SelectAll(Rendering.MainGridMatItems);
-            inventories.SelectAll(Rendering.crafting.NonMatInventory);
+            inventories.SelectAll(PlayerInventoriesBehavior.InventoryKind.CraftingMaterials);
+            inventories.SelectAll(PlayerInventoriesBehavior.InventoryKind.CraftingItems);
             Refresh();
         }
 
