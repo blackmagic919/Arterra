@@ -42,14 +42,14 @@ namespace Arterra.Core.Storage {
             else if (message.EventId == GenerateVisual) GenerateVisualAsync(message);
             else if (message.EventId == ReleaseVisualChunk) {
                 var release = JsonConvert.DeserializeObject<VisualChunkGenerationDriver.Request>(Encoding.UTF8.GetString(message.Payload));
-                visualDriver.Release(release.Coordinate, release.Depth, release.Id);
+                visualDriver.Release(release.CCoord, release.Depth, release.Id);
             }
         }
 
         private async void GenerateVisualAsync(TransportEvent request) {
             try {
                 var input = JsonConvert.DeserializeObject<VisualChunkGenerationDriver.Request>(Encoding.UTF8.GetString(request.Payload));
-                var subscription = visualDriver.Allocate(this, input.Coordinate, input.Depth, input.Id);
+                var subscription = visualDriver.Allocate(this, input.CCoord, input.Depth, input.Id);
                 var map = await ReadVisualAsync(subscription);
                 if (disposed || !subscription.Active) return;
 
@@ -67,8 +67,8 @@ namespace Arterra.Core.Storage {
 
         private async void GenerateAsync(TransportEvent request) {
             try {
-                int3 coordinate = JsonConvert.DeserializeObject<int3>(Encoding.UTF8.GetString(request.Payload));
-                var subscription = driver.Allocate(this, coordinate);
+                int3 CCoord = JsonConvert.DeserializeObject<int3>(Encoding.UTF8.GetString(request.Payload));
+                var subscription = driver.Allocate(this, CCoord);
                 await subscription.Ready;
                 if (disposed || !subscription.Active) return;
 
@@ -100,7 +100,7 @@ namespace Arterra.Core.Storage {
 
         void IChunkConsumer.ReflectChunk() { }
 
-        public override void ReflectChunk(int3 coordinate, IReadOnlyDictionary<uint, MapData> changes,
+        public override void ReflectChunk(int3 CCoord, IReadOnlyDictionary<uint, MapData> changes,
             Func<byte[]> getEncodedChanges = null, Action abandoned = null) {
             if (disposed) { abandoned?.Invoke(); return; }
 

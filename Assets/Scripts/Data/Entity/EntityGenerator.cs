@@ -109,12 +109,12 @@ namespace Arterra.Data.Entity {
             gpu.SetBufferData(gpu.Work.Transfer, map.ChunkData, map.Offset, 0, map.Length);
         }
 
-        private void IdentifyCandidates(int biomeStart, int3 coordinate) {
+        private void IdentifyCandidates(int biomeStart, int3 CCoord) {
             var gpu = GraphicsGeneration;
             if (bufferOffsets.bufferEnd > gpu.Work.Scratch.count)
                 throw new InvalidOperationException("Entity candidate scratch buffer is too small.");
             gpu.Work.ClearRange(gpu.Work.Scratch, bufferOffsets.counterEnd - bufferOffsets.bufferStart, bufferOffsets.bufferStart);
-            gpu.SetInts(identifier, "CCoord", new[] { coordinate.x, coordinate.y, coordinate.z });
+            gpu.SetInts(identifier, "CCoord", new[] { CCoord.x, CCoord.y, CCoord.z });
             gpu.SetInt(identifier, "bSTART_biome", biomeStart);
             int kernel = identifier.FindKernel("Identify");
             identifier.GetKernelThreadGroupSizes(kernel, out uint threads, out _, out _);
@@ -175,8 +175,8 @@ namespace Arterra.Data.Entity {
             LeftoverEntities = 0;
         }
 
-        public void Release(int3 coordinate) {
-            if (CPUMapManager.TryGetChunkInfo(coordinate, out var chunk) && ReferenceEquals(chunk.Generation.Entities, this))
+        public void Release(int3 CCoord) {
+            if (CPUMapManager.TryGetChunkInfo(CCoord, out var chunk) && ReferenceEquals(chunk.Generation.Entities, this))
                 chunk.Generation.Entities = null;
             pendingMaps = 0;
             ReleaseAllocation();

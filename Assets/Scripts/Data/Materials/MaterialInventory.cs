@@ -29,7 +29,7 @@ namespace Arterra.Data.Material {
         private string PanelName => Id.ToString();
 
         protected MaterialInventory() { }
-        protected MaterialInventory(int3 coordinate) : base(coordinate) { }
+        protected MaterialInventory(int3 GCoord) : base(GCoord) { }
 
         public override void Initialize() {
             if (Initialized) return;

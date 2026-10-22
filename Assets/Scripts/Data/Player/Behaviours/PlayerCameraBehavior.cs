@@ -212,8 +212,8 @@ namespace Arterra.Data.Entity.Behavior {
             return cameraTransform.parent.worldToLocalMatrix.MultiplyVector(desiredWorldOffset);
         }
 
-        internal static uint RayTestSolid(int3 coord) {
-            MapData pointInfo = CPUMapManager.SampleMap(coord);
+        internal static uint RayTestSolid(int3 GCoord) {
+            MapData pointInfo = CPUMapManager.SampleMap(GCoord);
             return (uint)pointInfo.viscosity;
         }
 

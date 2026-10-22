@@ -243,7 +243,7 @@ namespace Arterra.Core.Storage{
         /// address buffer</see> of the address within <see cref="Storage"/> of the stored chunk information, and
         /// 2. the amount of references held by either the hasmap or <see cref="SubscribeHandle">manually</see>.</returns>
         public static ChunkHandle GetHandle(int handleAddress) => HandleDict[handleAddress];
-        public static int GetChunkHandle(int3 coordinate) => (int)MapLookup[HashCoord(coordinate)];
+        public static int GetChunkHandle(int3 CCoord) => (int)MapLookup[HashCoord(CCoord)];
         /// <summary>Prevents the stored map information from being garbage collected even if other chunks completely
         /// replace it in the hashmap making it unaccessible. Increments the amount of references held to the
         /// map information pointed to by <i>handleAddress</i> by one. </summary>

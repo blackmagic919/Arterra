@@ -63,9 +63,9 @@ namespace Arterra.Data.Item
             if (!cxt.TryGetHolder(out BehaviorEntity.Animal player) || !player.Is(out PlayerInteractionBehavior interact)) return;
             if (!interact.RayTestSolid(out float3 hitPt)) return;
             if (EntityManager.ESTree.FindClosestAlongRay(player.head, hitPt, player.info.rtEntityId, out _, out _)) return;
-            bool CanConvert(int3 coordinate) {
-                MapData map = CPUMapManager.SampleMap(coordinate);
-                return IMaterialConverting.CanConvert(map, coordinate, settings.ConverterTag, out ConverterToolTag _);
+            bool CanConvert(int3 GCoord) {
+                MapData map = CPUMapManager.SampleMap(GCoord);
+                return IMaterialConverting.CanConvert(map, GCoord, settings.ConverterTag, out ConverterToolTag _);
             }
             if (!Terraforming.FindTerraformable(hitPt, settings.TerraformRadius, CanConvert, out _)) return;
             InputPoller.SuspendKeybindPropogation("ConvertMaterial", ActionBind.Exclusion.ExcludeLayer);

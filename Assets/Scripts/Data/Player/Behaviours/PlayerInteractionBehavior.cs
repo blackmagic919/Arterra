@@ -145,8 +145,8 @@ namespace Arterra.Data.Entity.Behavior {
         }
 
         public bool RayTestSolid<T>(T entity, float reach, out float3 hitPt) where T : Entity {
-            static uint RaySolid(int3 coord) {
-                MapData pointInfo = CPUMapManager.SampleMap(coord);
+            static uint RaySolid(int3 GCoord) {
+                MapData pointInfo = CPUMapManager.SampleMap(GCoord);
                 return (uint)pointInfo.viscosity;
             }
 
@@ -154,16 +154,16 @@ namespace Arterra.Data.Entity.Behavior {
         }
 
         public bool RayTestLiquid<T>(T entity, float reach, out float3 hitPt) where T : Entity {
-            static uint RayLiquid(int3 coord) {
-                MapData pointInfo = CPUMapManager.SampleMap(coord);
+            static uint RayLiquid(int3 GCoord) {
+                MapData pointInfo = CPUMapManager.SampleMap(GCoord);
                 return (uint)Mathf.Max(pointInfo.viscosity, pointInfo.density - pointInfo.viscosity);
             }
             return Terraforming.RayCastTerrain(entity.head, entity.Forward, reach, RayLiquid, out hitPt);
         }
 
         public bool CylinderTestSolid<T>(T entity, float reach, float radius, out float3 hitPt) where T : Entity {
-            static uint CylinderSolid(int3 coord) {
-                MapData pointInfo = CPUMapManager.SampleMap(coord);
+            static uint CylinderSolid(int3 GCoord) {
+                MapData pointInfo = CPUMapManager.SampleMap(GCoord);
                 return (uint)pointInfo.viscosity;
             }
 
@@ -298,7 +298,7 @@ namespace Arterra.Data.Entity.Behavior {
 
             self.eventCtrl.RaiseEvent(GameEvent.Action_RemoveTerrain, self.info.rtEntityId, null, hitPt);
             Terraforming.Terraform(hitPt, TerraformRadius, RemoveSolidBareHand,
-                coordinate => context is bool bypass && bypass ? false : CallOnMapRemoving(coordinate));
+                GCoord => context is bool bypass && bypass ? false : CallOnMapRemoving(GCoord));
         }
 
         private bool CanPlaceSolid(IItem selected, MapData pointInfo, out int matIndex) {

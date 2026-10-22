@@ -19,7 +19,7 @@ namespace Arterra.Data.Entity.Behavior {
             hierarchy.TryAdd(Behaviors.PlayerInventories, hierarchy.Count);
         }
 
-        public override void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 coordinate) {
+        public override void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
             this.self = self;
             self.Register(this);
             self.Is(out inventories);
@@ -31,8 +31,8 @@ namespace Arterra.Data.Entity.Behavior {
             self.eventCtrl.AddEventHandler(GameEvent.Entity_Respawn, TransferArmor);
         }
 
-        public override void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 coordinate) =>
-            Initialize(self, setting, coordinate);
+        public override void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) =>
+            Initialize(self, setting, GCoord);
 
         public override void Disable(BehaviorEntity.Animal self) {
             DisposeVisual(self);

@@ -12,16 +12,27 @@ namespace Arterra.Core.Storage {
     public class MapChangeAccumulator {
         public readonly Dictionary<int3, PendingChangeFlusher> PendingChanges = new();
 
-        public void AddChunk(int3 coordinate) => PendingChanges.TryAdd(coordinate, new PendingChangeFlusher(coordinate));
+        public void AddChunk(int3 CCoord) {
+            if (!PendingChanges.TryAdd(CCoord, new PendingChangeFlusher(CCoord))) return;
+            // Border edits can affect local neighbors even in a remote-only chunk.
+            if (ChunkGenerationDriver.Local != null) AddSource(CCoord, ChunkGenerationDriver.Local.Source);
+        }
 
-        public void RemoveChunk(int3 coordinate) {
-            if (!PendingChanges.Remove(coordinate, out var flusher)) return;
-            var sources = new HashSet<ChunkSource>();
-            VisualChunkGenerationDriver.CollectSources(coordinate, sources);
-            if (ChunkGenerationDriver.Local != null) sources.Add(ChunkGenerationDriver.Local.Source);
+        public void AddSource(int3 CCoord, ChunkSource source) {
+            if (PendingChanges.TryGetValue(CCoord, out var flusher))
+                flusher.AddSource(source);
+        }
+
+        public void RemoveSource(int3 CCoord, ChunkSource source) {
+            if (PendingChanges.TryGetValue(CCoord, out var flusher))
+                flusher.RemoveSource(source);
+        }
+
+        public void RemoveChunk(CPUMapManager.ChunkMapInfo chunk) {
+            if (!PendingChanges.Remove(chunk.CCoord, out var flusher)) return;
             // Visual subscribers outlive the CPU allocation. Deferred encoders retain this flusher
             // until its final edits are captured; clearing it here would silently drop those edits.
-            flusher.FlushChanges(sources);
+            flusher.FlushChanges();
         }
 
         public void Clear() {
@@ -34,13 +45,30 @@ namespace Arterra.Core.Storage {
             public object Value;
         }
 
+        public void TrackMetadata(int3 CCoord, uint index, object value) {
+            if (!TransportManager.Instance.IsRunning) return;
+            if (PendingChanges.TryGetValue(CCoord, out var flusher))
+                flusher.RegisterMetadata(index, value);
+        }
+
+        // Producers only copy values into a queue. Everything else runs on the flush/transport thread.
+        public void TrackChange(int3 CCoord, uint MCoord, MapData data) {
+            if (PendingChanges.TryGetValue(CCoord, out var flusher))
+                flusher.Register(MCoord, data);
+        }
+
+        public void FlushChangesTick() {
+            foreach (var flusher in PendingChanges.Values)
+                flusher.FlushChanges();
+        }
+
         // The voxel section stays binary: coordinate, count, then eight bytes per cell.
         // Only messages containing metadata have a trailing JSON array.
         public static Dictionary<uint, MapData> DecodeChanges(byte[] bytes, int cellCount,
-            out int3 coordinate, out MetadataChange[] metadata) {
+            out int3 CCoord, out MetadataChange[] metadata) {
             if (bytes.Length < 16) throw new InvalidDataException("Invalid chunk map update length.");
 
-            coordinate = new int3(BinaryPrimitives.ReadInt32LittleEndian(bytes.AsSpan(0, 4)),
+            CCoord = new int3(BinaryPrimitives.ReadInt32LittleEndian(bytes.AsSpan(0, 4)),
                 BinaryPrimitives.ReadInt32LittleEndian(bytes.AsSpan(4, 4)),
                 BinaryPrimitives.ReadInt32LittleEndian(bytes.AsSpan(8, 4)));
             int count = BinaryPrimitives.ReadInt32LittleEndian(bytes.AsSpan(12, 4));
@@ -63,59 +91,21 @@ namespace Arterra.Core.Storage {
             return changes;
         }
 
-        public void TrackMetadata(int3 coordinate, uint index, object value) {
-            if (!TransportManager.Instance.IsRunning) return;
-            if (PendingChanges.TryGetValue(coordinate, out var flusher))
-                flusher.RegisterMetadata(index, value);
-        }
-
-        // Producers only copy values into a queue. Everything else runs on the flush/transport thread.
-        public void TrackChange(int3 CCoord, uint MCoord, MapData data) {
-            if (PendingChanges.TryGetValue(CCoord, out var flusher))
-                flusher.Register(MCoord, data);
-        }
-
-        public void FlushChangesTick() {
-            // Discover subscriptions even when a chunk has no new changes this tick.
-            foreach (var pair in CPUMapManager.ChunkData) {
-                if (!PendingChanges.TryGetValue(pair.Key, out var flusher)) {
-                    flusher = new PendingChangeFlusher(pair.Key);
-                    PendingChanges.Add(pair.Key, flusher);
-                }
-                var sources = new HashSet<ChunkSource>();
-                var drivers = pair.Value.Generation?.GetDriverSet();
-                if (drivers != null)
-                    foreach (var driver in drivers) sources.Add(driver.Source);
-
-                VisualChunkGenerationDriver.CollectSources(pair.Key, sources);
-
-                // A border edit can affect a local neighbor even when this chunk is remote-only.
-                if (ChunkGenerationDriver.Local != null) 
-                    sources.Add(ChunkGenerationDriver.Local.Source);
-
-                flusher.FlushChanges(sources);
-            }
-
-            foreach (var coordinate in new List<int3>(PendingChanges.Keys)) {
-                if (CPUMapManager.TryGetChunkInfo(coordinate, out _)) continue;
-                RemoveChunk(coordinate);
-            }
-        }
-
         // Reference type: deferred callbacks and the chunk dictionary must share the same state.
         public sealed class PendingChangeFlusher {
-            private readonly int3 coordinate;
+            private readonly int3 CCoord;
             private readonly ConcurrentQueue<(uint coord, MapData data)> pendingChanges = new();
             private readonly Dictionary<uint, Change<MapData>> activeChanges = new();
             private readonly ConcurrentQueue<(uint index, byte[] bytes)> pendingMetadata = new();
             private readonly Dictionary<uint, Change<byte[]>> activeMetadata = new();
+            private readonly Dictionary<ChunkSource, int> subscriberCounts = new();
             private readonly Dictionary<ChunkSource, int?> sources = new();
             private readonly Dictionary<int, ChunkSource> pendingSends = new();
             private readonly HashSet<int> AnsweredWindow = new();
             private int NextSendGen;
             private int AnsweredGen;
 
-            public PendingChangeFlusher(int3 coordinate) => this.coordinate = coordinate;
+            public PendingChangeFlusher(int3 CCoord) => this.CCoord = CCoord;
 
             public void Register(uint MCoord, MapData data) => pendingChanges.Enqueue((MCoord, data));
 
@@ -127,30 +117,33 @@ namespace Arterra.Core.Storage {
                 pendingMetadata.Enqueue((index, bytes));
             }
 
-            public void FlushChanges(HashSet<ChunkSource> currentSources) {
-                //Remove an exisitng listener(source) on the chunk
-                foreach (var source in new List<ChunkSource>(sources.Keys)) {
-                    if (currentSources.Contains(source) && source.DefersMapChanges) continue;
-                    var generation = sources[source];
-                    if (generation.HasValue)
-                        CompleteGeneration(generation.Value);
-                    sources.Remove(source);
-                }
-                
+            public void AddSource(ChunkSource source) {
+                subscriberCounts.TryGetValue(source, out int count);
+                subscriberCounts[source] = count + 1;
+                if (count == 0 && source.DefersMapChanges) sources.Add(source, null);
+            }
 
-                //For all new sources add a new listener entry
-                foreach (var source in currentSources) {
-                    if (source.DefersMapChanges)
-                        sources.TryAdd(source, null);
+            public void RemoveSource(ChunkSource source) {
+                if (!subscriberCounts.TryGetValue(source, out int count)) return;
+                if (count > 1) {
+                    subscriberCounts[source] = count - 1;
+                    return;
                 }
 
+                subscriberCounts.Remove(source);
+                if (sources.TryGetValue(source, out var generation) && generation.HasValue)
+                    CompleteGeneration(generation.Value);
+                sources.Remove(source);
+            }
+
+            public void FlushChanges() {
                 if (pendingChanges.IsEmpty && pendingMetadata.IsEmpty) return;
 
-                if (sources.Count == 0) {
-                    // Singleplayer/local reception: no generations, retained deltas, or serialization.
+                if (sources.Count == 0) { // Singleplayer/local reception: no generations, retained deltas, or serialization.
                     var localChanges = DrainPendingEvents();
                     if (localChanges.Count != 0)
-                        foreach (var source in currentSources) source.ReflectChunk(coordinate, localChanges);
+                        foreach (var source in subscriberCounts.Keys)
+                            source.ReflectChunk(CCoord, localChanges);
                     return;
                 }
 
@@ -169,16 +162,19 @@ namespace Arterra.Core.Storage {
                 }
 
                 var changes = DrainPendingEvents();
-                foreach (var source in currentSources) {
-                    if (!source.DefersMapChanges && changes.Count != 0) source.ReflectChunk(coordinate, changes);
+                foreach (var source in subscriberCounts.Keys) {
+                    if (!source.DefersMapChanges && changes.Count != 0) 
+                        source.ReflectChunk(CCoord, changes);
                 }
 
                 for (int i = 0; i < sends.Count; i++) {
                     var send = sends[i];
                     int generation = send.generation;
                     try {
-                        send.source.ReflectChunk(coordinate, changes,
-                            () => SendToPeer(generation), () => CompleteGeneration(generation));
+                        send.source.ReflectChunk(CCoord, changes,
+                            () => SendToPeer(generation),
+                            () => CompleteGeneration(generation)
+                        );
                     } catch {
                         // No callback was handed off successfully for the remaining sends.
                         for (int j = i; j < sends.Count; j++) CompleteGeneration(sends[j].generation);
@@ -202,7 +198,10 @@ namespace Arterra.Core.Storage {
                 }
                 while (pendingMetadata.TryDequeue(out var change)) {
                     if (sources.Count != 0)
-                        activeMetadata[change.index] = new Change<byte[]> { data = change.bytes, generation = generation };
+                        activeMetadata[change.index] = new Change<byte[]> { 
+                            data = change.bytes,
+                            generation = generation
+                        };
                 }
                 return changes;
             }
@@ -217,13 +216,7 @@ namespace Arterra.Core.Storage {
                 }
 
                 using var metadata = new MemoryStream();
-                bool includeMetadata = false;
-                if (source != null && CPUMapManager.TryGetChunkInfo(coordinate, out var chunk)) {
-                    foreach (var driver in chunk.Generation.GetDriverSet()) {
-                        if (ReferenceEquals(driver.Source, source)) { includeMetadata = true; break; }
-                    }
-                }
-                if (includeMetadata) {
+                if (HasRealChunkSubscription(source)) {
                     foreach (var change in activeMetadata.Values) {
                         if (Before(change.generation, generation)) continue;
                         metadata.WriteByte(metadata.Length == 0 ? (byte)'[' : (byte)',');
@@ -233,9 +226,9 @@ namespace Arterra.Core.Storage {
                 if (metadata.Length != 0) metadata.WriteByte((byte)']');
 
                 byte[] bytes = new byte[checked(16 + count * 8 + (int)metadata.Length)];
-                BinaryPrimitives.WriteInt32LittleEndian(bytes.AsSpan(0, 4), coordinate.x);
-                BinaryPrimitives.WriteInt32LittleEndian(bytes.AsSpan(4, 4), coordinate.y);
-                BinaryPrimitives.WriteInt32LittleEndian(bytes.AsSpan(8, 4), coordinate.z);
+                BinaryPrimitives.WriteInt32LittleEndian(bytes.AsSpan(0, 4), CCoord.x);
+                BinaryPrimitives.WriteInt32LittleEndian(bytes.AsSpan(4, 4), CCoord.y);
+                BinaryPrimitives.WriteInt32LittleEndian(bytes.AsSpan(8, 4), CCoord.z);
                 BinaryPrimitives.WriteInt32LittleEndian(bytes.AsSpan(12, 4), count);
                 int offset = 16;
                 if (source != null) {
@@ -253,6 +246,15 @@ namespace Arterra.Core.Storage {
                 // Completion means captured into bytes, not acknowledged by the remote peer.
                 CompleteGeneration(generation);
                 return bytes;
+            }
+
+            // Visual-only subscribers need voxel changes, but not material-instance metadata.
+            private bool HasRealChunkSubscription(ChunkSource source) {
+                if (source == null || !CPUMapManager.TryGetChunkInfo(CCoord, out var chunk)) return false;
+                foreach (var driver in chunk.Generation.GetDriverSet()) {
+                    if (ReferenceEquals(driver.Source, source)) return true;
+                }
+                return false;
             }
 
             /// <summary>Also call when abandoning a deferred send without invoking its callback.</summary>
@@ -282,6 +284,7 @@ namespace Arterra.Core.Storage {
             public void Clear() {
                 foreach (int generation in new List<int>(pendingSends.Keys)) CompleteGeneration(generation);
                 sources.Clear();
+                subscriberCounts.Clear();
                 activeChanges.Clear();
                 activeMetadata.Clear();
                 while (pendingMetadata.TryDequeue(out _)) { }

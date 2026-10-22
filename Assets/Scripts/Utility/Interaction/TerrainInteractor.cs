@@ -71,13 +71,13 @@ namespace Arterra.GamePlay.Interaction {
             if (TrilinearBlend(ref c, d, out int corner)) {
                 contact |= Liquid; //Collide with barrier(null)
                 if (!m[corner].IsNull) {
-                    int3 coord = ccoord(l, corner);
+                    int3 GCoord = ccoord(l, corner);
                     MaterialData mat = matInfo.Retrieve(m[corner].material);
-                    mat.OnEntityTouchLiquid(coord, caller);
+                    mat.OnEntityTouchLiquid(GCoord, caller);
                     friction = math.max(mat.Roughness, friction);
 
                     touchMatL ??= caller?.eventCtrl.GetRaiseEventAction(Core.Events.GameEvent.Entity_TouchMatLiquid, true);
-                    touchMatL?.Invoke(caller.info.rtEntityId, m[corner], coord);
+                    touchMatL?.Invoke(caller.info.rtEntityId, m[corner], GCoord);
                 }
             }
 
@@ -89,13 +89,13 @@ namespace Arterra.GamePlay.Interaction {
             if (TrilinearBlend(ref c, d, out corner)) {
                 contact |= Solid; //Collide with barrier(null)
                 if (!m[corner].IsNull) {
-                    int3 coord = ccoord(l, corner);
+                    int3 GCoord = ccoord(l, corner);
                     MaterialData mat = matInfo.Retrieve(m[corner].material);
                     friction = math.max(mat.Roughness, friction);
-                    mat.OnEntityTouchSolid(coord, caller);
+                    mat.OnEntityTouchSolid(GCoord, caller);
 
                     touchMatS ??= caller?.eventCtrl.GetRaiseEventAction(Core.Events.GameEvent.Entity_TouchMatSolid, true);
-                    touchMatS?.Invoke(caller.info.rtEntityId, m[corner], coord);
+                    touchMatS?.Invoke(caller.info.rtEntityId, m[corner], GCoord);
                 }
             } 
 
@@ -257,11 +257,11 @@ namespace Arterra.GamePlay.Interaction {
             int3 maxC = (int3)math.floor(max);
             byte contacted = 0;
 
-            int3 coord = int3.zero;
-            for (coord.x = minC.x; coord.x <= maxC.x; coord.x++) {
-                for (coord.y = minC.y; coord.y <= maxC.y; coord.y++) {
-                    for (coord.z = minC.z; coord.z <= maxC.z; coord.z++) {
-                        contacted |= UnitContact(coord, caller, ref friction);
+            int3 GCoord = int3.zero;
+            for (GCoord.x = minC.x; GCoord.x <= maxC.x; GCoord.x++) {
+                for (GCoord.y = minC.y; GCoord.y <= maxC.y; GCoord.y++) {
+                    for (GCoord.z = minC.z; GCoord.z <= maxC.z; GCoord.z++) {
+                        contacted |= UnitContact(GCoord, caller, ref friction);
                     }
                 }
             }

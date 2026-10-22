@@ -116,13 +116,13 @@ public class RegionReconstructor{
     }
 
     private static MapData[] CaptureBaseMap(int3 cMin, int3 cMax) {
-        int3 cAxis = cMax - cMin + 1; int3 coord;
+        int3 cAxis = cMax - cMin + 1; int3 GCoord;
         MapData[] map = new MapData[cAxis.x * cAxis.y * cAxis.z];
-        for (coord.x = cMin.x + 1; coord.x < cMax.x - 1; coord.x++) {
-            for (coord.y = cMin.y + 1; coord.y < cMax.y - 1; coord.y++) {
-                for (coord.z = cMin.z + 1; coord.z < cMax.z - 1; coord.z++) {
-                    int index = CustomUtility.irregularIndexFromCoord(coord - cMin, cAxis.yz);
-                    map[index] = CPUMapManager.SampleMap(coord);
+        for (GCoord.x = cMin.x + 1; GCoord.x < cMax.x - 1; GCoord.x++) {
+            for (GCoord.y = cMin.y + 1; GCoord.y < cMax.y - 1; GCoord.y++) {
+                for (GCoord.z = cMin.z + 1; GCoord.z < cMax.z - 1; GCoord.z++) {
+                    int index = CustomUtility.irregularIndexFromCoord(GCoord - cMin, cAxis.yz);
+                    map[index] = CPUMapManager.SampleMap(GCoord);
                 } } }
         return map;
     }

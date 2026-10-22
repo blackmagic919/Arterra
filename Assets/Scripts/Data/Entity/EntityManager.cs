@@ -88,11 +88,11 @@ public static class EntityManager
         return sEntity;
     }
 
-    public static async Task<Entity> CreateEntityAsync(float3 coordinate, uint entityIndex,
+    public static async Task<Entity> CreateEntityAsync(float3 GCoord, uint entityIndex,
         Entity entity = null, CancellationToken token = default) {
         var completion = new TaskCompletionSource<Entity>(TaskCreationOptions.RunContinuationsAsynchronously);
         using var cancellation = token.Register(() => completion.TrySetCanceled());
-        entity = CreateEntity(coordinate, entityIndex, entity,
+        entity = CreateEntity(GCoord, entityIndex, entity,
             () => completion.TrySetResult(entity), error => completion.TrySetException(error), token);
         return await completion.Task;
     }
@@ -132,9 +132,9 @@ public static class EntityManager
         while (HandlerEvents.TryDequeue(out Action action)) action();
     }
 
-    public static async Task ReleaseChunkEntitiesAsync(int3 coordinate, bool save = true) {
+    public static async Task ReleaseChunkEntitiesAsync(int3 CCoord, bool save = true) {
         if (ESTree.tree == null) return;
-        var entities = GetChunkEntities(coordinate);
+        var entities = GetChunkEntities(CCoord);
         entities.RemoveAll(entity => entity.IsOwner || (!PlayerHandler.Players.IsEmpty && PlayerHandler.Players.Values.Contains(entity)));
         if (entities.Count != 0) {
             var released = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -143,15 +143,15 @@ public static class EntityManager
             AddHandlerEvent(() => released.TrySetResult(true));
             await released.Task;
         }
-        if (save) await Chunk.SaveEntitiesToJsonAsync(entities, coordinate);
+        if (save) await Chunk.SaveEntitiesToJsonAsync(entities, CCoord);
     }
     public static void ReleaseE(Guid entityId){
         if(!EntityIndex.TryGetValue(entityId, out Entity entity))
             return;
 
         entity.active = false;
-        if (entity.IsAuthority && EntitySubCCoord.TryGetValue(entityId, out var coordinate)
-            && CPUMapManager.TryGetChunkInfo(coordinate, out var chunk)) {
+        if (entity.IsAuthority && EntitySubCCoord.TryGetValue(entityId, out var CCoord)
+            && CPUMapManager.TryGetChunkInfo(CCoord, out var chunk)) {
             foreach (var driver in chunk.Generation.GetDriverSet()) driver.Source.LeaveEntity(entityId);
         }
         EntityReg.Remove(entity);
@@ -250,10 +250,10 @@ public static class EntityManager
         for(int x = 0; x < setting.profile.bounds.x; x++) {
         for(int y = 0; y < setting.profile.bounds.y; y++) {
         for(int z = 0; z < setting.profile.bounds.z; z++) {
-            int3 coord = new (x, y, z);
+            int3 profileMCoord = new (x, y, z);
             ProfileE profile = default;
             StructureData.CheckInfo check = default;
-            if (math.any(coord == 0)) {
+            if (math.any(profileMCoord == 0)) {
                 check.MinLiquid = 0; check.MaxLiquid = (uint)MapData.MaxDensity;
                 check.MinSolid = (uint)(MapData.MaxDensity * rSettings.IsoLevel);
                 check.MaxSolid = (uint)MapData.MaxDensity;
@@ -264,7 +264,7 @@ public static class EntityManager
                 check.MaxSolid = (uint)(MapData.MaxDensity * rSettings.IsoLevel);
                 profile.flags = ProfileE.AND;
             } profile.bounds = check;
-            int index = CustomUtility.irregularIndexFromCoord(coord, new int2(y, z));
+            int index = CustomUtility.irregularIndexFromCoord(profileMCoord, new int2(y, z));
             playerProfile[index] = profile;
         }}} //Construct profile from size
 
@@ -341,17 +341,17 @@ public static class EntityManager
         EntitySubCCoord[entityId] = CCoord;
     }
 
-    public static int3 GetChunkCoordinate(float3 position) => CPUMapManager.GSToCS((int3)math.floor(position));
+    public static int3 GetChunkCoordinate(float3 GCoord) => CPUMapManager.GSToCS((int3)math.floor(GCoord));
 
     /// <summary>Fresh origin-based chunk membership.</summary>
-    public static List<Entity> GetChunkEntities(int3 coordinate) {
+    public static List<Entity> GetChunkEntities(int3 CCoord) {
         int size = Config.CURRENT.Quality.Terrain.value.mapChunkSize;
         var result = new HashSet<Entity>();
         if (ESTree.tree == null) return new List<Entity>();
-        ESTree.QueryExclusive(new Bounds(((float3)coordinate + 0.5f) * size, (float3)size), candidate => {
+        ESTree.QueryExclusive(new Bounds(((float3)CCoord + 0.5f) * size, (float3)size), candidate => {
             // Spatial aliases resolve to their root before membership is checked.
             if (candidate == null || !TryGetEntity(candidate.info.rtEntityId, out var entity) || !entity.active) return;
-            if (math.all(GetChunkCoordinate(entity.position) == coordinate)) result.Add(entity);
+            if (math.all(GetChunkCoordinate(entity.position) == CCoord)) result.Add(entity);
         });
         return result.ToList();
     }

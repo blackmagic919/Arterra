@@ -12,8 +12,8 @@ namespace Arterra.Utils
         /// <summary> Basic Function given to RayCastTerrain to test if it intersect solid ground </summary>
         /// <param name="coord"></param>
         /// <returns></returns>
-        public static uint RayTestSolid(int3 coord) {
-            MapData pointInfo = CPUMapManager.SampleMap(coord);
+        public static uint RayTestSolid(int3 GCoord) {
+            MapData pointInfo = CPUMapManager.SampleMap(GCoord);
             return (uint)pointInfo.viscosity;
         }
 

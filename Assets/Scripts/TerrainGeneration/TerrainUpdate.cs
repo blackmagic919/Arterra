@@ -68,7 +68,7 @@ namespace Arterra.Engine.Terrain{
     public static class TerrainUpdate {
         public static void CompleteJobs() => Executor?.CompleteBlocking();
 
-        private static void RefreshChunk(int3 coordinate) => Executor?.QueueChunk(coordinate);
+        private static void RefreshChunk(int3 CCoord) => Executor?.QueueChunk(CCoord);
 
         public static void Release() {
             CPUMapManager.RemoveOnCreateChunk(RefreshChunk);
@@ -174,16 +174,16 @@ namespace Arterra.Engine.Terrain{
                 dispatched = false;
             }
 
-            internal void QueueChunk(int3 coordinate) => chunkChanges.Enqueue(coordinate);
+            internal void QueueChunk(int3 CCoord) => chunkChanges.Enqueue(CCoord);
 
             private void FlushChunkChanges() {
-                while (chunkChanges.TryDequeue(out int3 coordinate)) {
-                    bool hasSlot = coordinateSlots.TryGetValue(coordinate, out int slot);
-                    if (CPUMapManager.TryGetChunkInfo(coordinate, out _)) {
-                        if (!hasSlot) coordinateSlots.Add(coordinate, chunkCoordinates.Add(coordinate));
+                while (chunkChanges.TryDequeue(out int3 CCoord)) {
+                    bool hasSlot = coordinateSlots.TryGetValue(CCoord, out int slot);
+                    if (CPUMapManager.TryGetChunkInfo(CCoord, out _)) {
+                        if (!hasSlot) coordinateSlots.Add(CCoord, chunkCoordinates.Add(CCoord));
                     } else if (hasSlot) {
                         chunkCoordinates.Remove(slot);
-                        coordinateSlots.Remove(coordinate);
+                        coordinateSlots.Remove(CCoord);
 
                         // Removal moved the last coordinate into this slot.
                         if (slot < chunkCoordinates.Length)
@@ -234,15 +234,15 @@ namespace Arterra.Engine.Terrain{
                 /// <summary> Executes the point update in parallel. </summary>
                 /// <param name="index">The index of the job-thread executing the task</param>
                 public void Execute(int index) {
-                    if (!UpdateCoordinates.TryDequeue(out int3 coord))
+                    if (!UpdateCoordinates.TryDequeue(out int3 GCoord))
                         return;
-                    IncludedCoords.ClearFlag(HashFlag(coord));
+                    IncludedCoords.ClearFlag(HashFlag(GCoord));
 
-                    MapData mapData = CPUMapManager.SampleMap(coord);
+                    MapData mapData = CPUMapManager.SampleMap(GCoord);
                     if (!MaterialDictionary.Contains(mapData.material))
                         return; //Invalid Data
                     Unity.Mathematics.Random prng = new((seed.state ^ (uint)index) | 1u);
-                    MaterialDictionary.Retrieve(mapData.material).PropogateMaterialUpdate(coord, prng);
+                    MaterialDictionary.Retrieve(mapData.material).PropogateMaterialUpdate(GCoord, prng);
                 }
             }
 

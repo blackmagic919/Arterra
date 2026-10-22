@@ -211,16 +211,16 @@ namespace Arterra.Data.Item
                 AddNextSolidWithDurability(cxt, hitCoord, nextSlot);
                 return;
             }
-            int3 coord = 0;
-            for (coord.x = (int)SelectBounds.min.x; coord.x <= SelectBounds.max.x; coord.x++)
+            int3 GCoord = 0;
+            for (GCoord.x = (int)SelectBounds.min.x; GCoord.x <= SelectBounds.max.x; GCoord.x++)
             {
-                for (coord.y = (int)SelectBounds.min.y; coord.y <= SelectBounds.max.y; coord.y++)
+                for (GCoord.y = (int)SelectBounds.min.y; GCoord.y <= SelectBounds.max.y; GCoord.y++)
                 {
-                    for (coord.z = (int)SelectBounds.min.z; coord.z <= SelectBounds.max.z; coord.z++)
+                    for (GCoord.z = (int)SelectBounds.min.z; GCoord.z <= SelectBounds.max.z; GCoord.z++)
                     {
                         if (item.durability <= 0) return;
                         if (!FindNextSolidMat(out IItem slot)) return;
-                        AddNextSolidWithDurability(cxt, coord, slot);
+                        AddNextSolidWithDurability(cxt, GCoord, slot);
                     }
                 }
             }
@@ -236,15 +236,15 @@ namespace Arterra.Data.Item
                 return;
             }
 
-            int3 coord = 0;
-            for (coord.x = (int)SelectBounds.min.x; coord.x <= SelectBounds.max.x; coord.x++)
+            int3 GCoord = 0;
+            for (GCoord.x = (int)SelectBounds.min.x; GCoord.x <= SelectBounds.max.x; GCoord.x++)
             {
-                for (coord.y = (int)SelectBounds.min.y; coord.y <= SelectBounds.max.y; coord.y++)
+                for (GCoord.y = (int)SelectBounds.min.y; GCoord.y <= SelectBounds.max.y; GCoord.y++)
                 {
-                    for (coord.z = (int)SelectBounds.min.z; coord.z <= SelectBounds.max.z; coord.z++)
+                    for (GCoord.z = (int)SelectBounds.min.z; GCoord.z <= SelectBounds.max.z; GCoord.z++)
                     {
                         if (item.durability <= 0) return;
-                        RemoveSolidWithDurability(cxt, coord);
+                        RemoveSolidWithDurability(cxt, GCoord);
                     }
                 }
             }

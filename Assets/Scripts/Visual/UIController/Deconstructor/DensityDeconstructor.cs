@@ -527,8 +527,8 @@ namespace Arterra.Editor {
             bool hasPoint = false;
             for (int i = 0, count = Selected.Count; i < count; i++) {
                 uint index = Selected.Dequeue();
-                int3 coord = new int3((int)(index / (GridSize.y * GridSize.z)), (int)((index / GridSize.z) % GridSize.y), (int)(index % GridSize.z));
-                Vector3 worldPoint = this.transform.localToWorldMatrix.MultiplyPoint3x4(new Vector3(coord.x, coord.y, coord.z));
+                int3 MCoord = new int3((int)(index / (GridSize.y * GridSize.z)), (int)((index / GridSize.z) % GridSize.y), (int)(index % GridSize.z));
+                Vector3 worldPoint = this.transform.localToWorldMatrix.MultiplyPoint3x4(new Vector3(MCoord.x, MCoord.y, MCoord.z));
 
                 if (!hasPoint) {
                     min = worldPoint;
@@ -696,8 +696,8 @@ namespace Arterra.Editor {
             if (info == null) return;
             int3 gridSize = (int3)GridSize;
             for (int ind = 0; ind < gridSize.x * gridSize.y * gridSize.z; ind++) {
-                int3 coord = new int3(ind / (gridSize.y * gridSize.z), (ind / gridSize.z) % gridSize.y, ind % gridSize.z);
-                if (!VerifyProfile(info, coord)) continue;
+                int3 MCoord = new int3(ind / (gridSize.y * gridSize.z), (ind / gridSize.z) % gridSize.y, ind % gridSize.z);
+                if (!VerifyProfile(info, MCoord)) continue;
                 currentState.SelectedArray[ind] = true;
             }
         }

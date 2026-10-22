@@ -223,11 +223,11 @@ namespace Arterra.Data.Entity.Behavior {
         private int3 pendingMaterialPosition;
 
         private void DisplayMaterial(object source, object target, object context) {
-            if (!self.IsOwner || target is not Guid id || context is not int3 coordinate) return;
+            if (!self.IsOwner || target is not Guid id || context is not int3 GCoord) return;
             if (ActiveMaterial != null && ActiveMaterial.Id != id) ActiveMaterial.CloseDisplay();
             pendingMaterial = id;
-            pendingMaterialPosition = coordinate;
-            if (CPUMapManager.TryGetExistingMapMeta(coordinate, out MaterialInventory material))
+            pendingMaterialPosition = GCoord;
+            if (CPUMapManager.TryGetExistingMapMeta(GCoord, out MaterialInventory material))
                 DisplayInstalledMaterial(material);
         }
 

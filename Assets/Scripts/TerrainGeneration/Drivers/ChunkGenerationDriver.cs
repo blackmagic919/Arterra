@@ -42,8 +42,8 @@ namespace Arterra.Core.Storage {
             region = new Subscription[checked(numChunksAxis * numChunksAxis * numChunksAxis)];
         }
 
-        private int HashCoord(int3 coordinate) {
-            int3 hash = ((coordinate % numChunksAxis) + numChunksAxis) % numChunksAxis;
+        private int HashCoord(int3 CCoord) {
+            int3 hash = ((CCoord % numChunksAxis) + numChunksAxis) % numChunksAxis;
             return (hash.x * numChunksAxis + hash.y) * numChunksAxis + hash.z;
         }
 
@@ -51,18 +51,19 @@ namespace Arterra.Core.Storage {
         /// Subscribe and start the shared load if needed. Await Ready before using the data.
         /// Coordinates within this driver's desired region must have distinct modulo hashes.
         /// </summary>
-        public Subscription Allocate(IChunkConsumer owner, int3 coordinate) {
+        public Subscription Allocate(IChunkConsumer owner, int3 CCoord) {
             if (owner == null) throw new ArgumentNullException(nameof(owner));
-            int index = HashCoord(coordinate);
+            int index = HashCoord(CCoord);
             Subscription previous = region[index];
-            if (previous != null && previous.Active && math.all(previous.Chunk.CCoord == coordinate) &&
+            if (previous != null && previous.Active && math.all(previous.Chunk.CCoord == CCoord) &&
                 ReferenceEquals(previous.Owner, owner)) return previous;
 
-            ChunkMapInfo chunk = CPUMapManager.GetOrCreateChunkInfo(coordinate);
+            ChunkMapInfo chunk = CPUMapManager.GetOrCreateChunkInfo(CCoord);
             var subscription = new Subscription(this, owner, chunk);
 
             // Subscribe first so replacing the owner at this coordinate never unloads the data.
             chunk.Generation.Subscribers.Add(subscription);
+            CPUMapManager.MapChanges.AddSource(CCoord, Source);
             region[index] = subscription;
             previous?.Release();
 
@@ -84,24 +85,24 @@ namespace Arterra.Core.Storage {
             catch (Exception exception) { Debug.LogException(exception); }
         }
 
-        public void Release(int3 coordinate) {
-            int index = HashCoord(coordinate);
+        public void Release(int3 CCoord) {
+            int index = HashCoord(CCoord);
             Subscription subscription = region[index];
-            if (subscription == null || math.any(subscription.Chunk.CCoord != coordinate)) return;
+            if (subscription == null || math.any(subscription.Chunk.CCoord != CCoord)) return;
 
             region[index] = null;
             subscription.Release();
         }
 
-        public void ReflectChunk(int3 coordinate, IReadOnlyDictionary<uint, MapData> changes) {
+        public void ReflectChunk(int3 CCoord, IReadOnlyDictionary<uint, MapData> changes) {
             int size = Config.CURRENT.Quality.Terrain.value.mapChunkSize;
-            var affected = new HashSet<int3> { coordinate };
+            var affected = new HashSet<int3> { CCoord };
             foreach (uint index in changes.Keys) {
-                int3 cell = new((int)index / (size * size), (int)index / size % size, (int)index % size);
-                for (int x = cell.x == 0 ? -1 : 0; x <= 0; x++) {
-                for (int y = cell.y == 0 ? -1 : 0; y <= 0; y++) {
-                for (int z = cell.z == 0 ? -1 : 0; z <= 0; z++) {
-                    affected.Add(coordinate + new int3(x, y, z));
+                int3 MCoord = new((int)index / (size * size), (int)index / size % size, (int)index % size);
+                for (int x = MCoord.x == 0 ? -1 : 0; x <= 0; x++) {
+                for (int y = MCoord.y == 0 ? -1 : 0; y <= 0; y++) {
+                for (int z = MCoord.z == 0 ? -1 : 0; z <= 0; z++) {
+                    affected.Add(CCoord + new int3(x, y, z));
                 }}}
             }
 
@@ -138,6 +139,7 @@ namespace Arterra.Core.Storage {
 
             internal void Release() {
                 if (!Chunk.Generation.Subscribers.Remove(this)) return;
+                CPUMapManager.MapChanges.RemoveSource(Chunk.CCoord, Driver.Source);
                 if (ReferenceEquals(Driver, Local) && NetworkManager.IsActingServer && !Chunk.Generation.GetDriverSet().Contains(Driver)) {
                     foreach (var entity in EntityManager.GetChunkEntities(Chunk.CCoord))
                         Driver.Source.LeaveEntity(entity.info.rtEntityId);

@@ -70,6 +70,7 @@ namespace Arterra.Core.Storage {
             numChunksAxis = OctreeTerrain.BalancedOctree.GetAxisChunksDepth(0, rSettings.Balance, (uint)rSettings.MinChunkRadius);
             
             ChunkFlags = new SharedLinkedList<ChunkMapInfo.Flags>(numChunks);
+            VisualChunkGenerationDriver.InitializeChunkIndex(rSettings.MaxDepth, rSettings.Balance, mapChunkSize);
             MapChanges = new MapChangeAccumulator();
             mapChangeUpdate = new ArterraRuntime.IndirectUpdate(_ => MapChanges.FlushChangesTick());
             ArterraRuntime.MainLateUpdateTasks.Enqueue(mapChangeUpdate);
@@ -130,6 +131,7 @@ namespace Arterra.Core.Storage {
             var chunk = new ChunkMapInfo(CCoord, (int)flagIndex, numPoints);
             if (ChunkData.TryAdd(CCoord, chunk)) {
                 MapChanges.AddChunk(CCoord);
+                VisualChunkGenerationDriver.SubscribeChunk(chunk);
                 OnCreateChunk?.Invoke(CCoord);
                 return chunk;
             }
@@ -168,18 +170,19 @@ namespace Arterra.Core.Storage {
         }
 
         /// <summary>Detach the CPU allocation without freeing it. The caller owns and must dispose the result.</summary>
-        public static ChunkMapInfo OffloadChunkData(int3 coordinate) {
-            if (!ChunkData.TryGetValue(coordinate, out ChunkMapInfo chunk)) return default;
+        public static ChunkMapInfo OffloadChunkData(int3 CCoord) {
+            if (!ChunkData.TryGetValue(CCoord, out ChunkMapInfo chunk)) return default;
             if (chunk.Generation.Subscribers.Count != 0)
                 throw new InvalidOperationException("Cannot offload a chunk with subscribers.");
             chunk.Generation.Cancel();
             // GPU lifetime remains on the main thread; only CPU data travels to the writer.
-            chunk.Generation.Entities?.Release(coordinate);
+            chunk.Generation.Entities?.Release(CCoord);
             chunk.Generation.Pipeline?.Release();
-            ChunkData.TryRemove(coordinate, out _);
+            ChunkData.TryRemove(CCoord, out _);
             foreach (var metadata in chunk.MapMetaData.Values) ReleaseMetadata(metadata);
-            MapChanges?.RemoveChunk(coordinate);
-            OnReleaseChunk?.Invoke(coordinate);
+            MapChanges?.RemoveChunk(chunk);
+            VisualChunkGenerationDriver.UnsubscribeChunk(chunk);
+            OnReleaseChunk?.Invoke(CCoord);
             var flags = ChunkFlags[(uint)chunk.FlagIndex];
             ChunkFlags.Remove((uint)chunk.FlagIndex);
             ChunkMapInfo offloaded = chunk.Offload();
@@ -285,33 +288,33 @@ namespace Arterra.Core.Storage {
         }
 
         /// <summary>Copies dirty samples from loaded chunks into an existing map, leaving other cells unchanged.</summary>
-        public static void CopyLive(int3 coordinate, int depth, MapData[] destination) {
+        public static void CopyLive(int3 CCoord, int depth, MapData[] destination) {
             int chunkSize = mapChunkSize;
             int sampleStep = 1 << depth;
             int chunkStep = math.max(chunkSize, sampleStep);
             int extent = chunkSize * sampleStep;
-            int3 offset = new();
-            for (offset.x = 0; offset.x < extent; offset.x += chunkStep) {
-                for (offset.y = 0; offset.y < extent; offset.y += chunkStep) {
-                    for (offset.z = 0; offset.z < extent; offset.z += chunkStep) {
-                        int3 chunkCoordinate = coordinate + offset / chunkSize;
-                        if (!TryGetChunkInfo(chunkCoordinate, out var chunk) || !chunk.HasMap) continue;
+            int3 GOffset = new();
+            for (GOffset.x = 0; GOffset.x < extent; GOffset.x += chunkStep) {
+                for (GOffset.y = 0; GOffset.y < extent; GOffset.y += chunkStep) {
+                    for (GOffset.z = 0; GOffset.z < extent; GOffset.z += chunkStep) {
+                        int3 liveCCoord = CCoord + GOffset / chunkSize;
+                        if (!TryGetChunkInfo(liveCCoord, out var chunk) || !chunk.HasMap) continue;
                         if (chunk.MapFlags == ChunkMapInfo.Flags.Clean) continue;
-                        CopyMap(destination, chunk, offset / sampleStep);
+                        CopyMap(destination, chunk, GOffset / sampleStep);
                     }
                 }
             }
 
-            void CopyMap(MapData[] output, ChunkMapInfo chunk, int3 writeOrigin) {
+            void CopyMap(MapData[] output, ChunkMapInfo chunk, int3 originMCoord) {
                 int copySize = math.max(chunkSize >> depth, 1);
-                int3 sample = new();
-                for (sample.x = 0; sample.x < copySize; sample.x++) {
-                    for (sample.y = 0; sample.y < copySize; sample.y++) {
-                        for (sample.z = 0; sample.z < copySize; sample.z++) {
-                            int3 cell = sample * sampleStep;
-                            int readIndex = (cell.x * chunkSize + cell.y) * chunkSize + cell.z;
-                            int3 write = writeOrigin + sample;
-                            int writeIndex = (write.x * chunkSize + write.y) * chunkSize + write.z;
+                int3 sampleMCoord = new();
+                for (sampleMCoord.x = 0; sampleMCoord.x < copySize; sampleMCoord.x++) {
+                    for (sampleMCoord.y = 0; sampleMCoord.y < copySize; sampleMCoord.y++) {
+                        for (sampleMCoord.z = 0; sampleMCoord.z < copySize; sampleMCoord.z++) {
+                            int3 MCoord = sampleMCoord * sampleStep;
+                            int readIndex = (MCoord.x * chunkSize + MCoord.y) * chunkSize + MCoord.z;
+                            int3 writeMCoord = originMCoord + sampleMCoord;
+                            int writeIndex = (writeMCoord.x * chunkSize + writeMCoord.y) * chunkSize + writeMCoord.z;
                             MapData value = chunk.ChunkData[chunk.Offset + readIndex];
                             if (value.isDirty) output[writeIndex] = value;
                         }
@@ -440,8 +443,8 @@ namespace Arterra.Core.Storage {
         public static bool ClearMapMetaData(int3 GCoord) => SetExistingMapMeta<object>(GCoord, null);
 
         // Replicated metadata is already captured by the server. Do not echo it through the accumulator.
-        internal static void ApplyMetadataUpdates(int3 coordinate, IReadOnlyDictionary<uint, object> changes) {
-            if (!TryGetChunkInfo(coordinate, out var chunk) || !chunk.HasMap
+        internal static void ApplyMetadataUpdates(int3 CCoord, IReadOnlyDictionary<uint, object> changes) {
+            if (!TryGetChunkInfo(CCoord, out var chunk) || !chunk.HasMap
                 || chunk.Generation.Subscribers.Count == 0) return;
 
             foreach (var change in changes) {
@@ -451,10 +454,10 @@ namespace Arterra.Core.Storage {
             }
         }
 
-        public static void MarkMetadataDirty(int3 coordinate) {
+        public static void MarkMetadataDirty(int3 GCoord) {
             if (!NetworkManager.IsActingServer) return;
-            int3 cell = ((coordinate % mapChunkSize) + mapChunkSize) % mapChunkSize;
-            if (TryGetChunkInfo((coordinate - cell) / mapChunkSize, out var chunk))
+            int3 MCoord = ((GCoord % mapChunkSize) + mapChunkSize) % mapChunkSize;
+            if (TryGetChunkInfo((GCoord - MCoord) / mapChunkSize, out var chunk))
                 ChunkFlags[(uint)chunk.FlagIndex] = ChunkMapInfo.Flags.Dirty;
         }
 
@@ -495,6 +498,7 @@ namespace Arterra.Core.Storage {
             public NativeArray<MapData> ChunkData;
             // Shared by struct copies and the offloaded owner; modified on the main thread.
             public readonly HashSet<Task> PendingWrites;
+            public readonly HashSet<VisualChunkGenerationDriver.Subscription> VisualSubscriptions;
             public ChunkGenerationDriver.GenerationState Generation;
             public readonly int FlagIndex;
             public readonly int Offset;
@@ -528,6 +532,7 @@ namespace Arterra.Core.Storage {
                 this.Length = length;
                 this.Generation = new ChunkGenerationDriver.GenerationState();
                 this.PendingWrites = new HashSet<Task>();
+                this.VisualSubscriptions = new HashSet<VisualChunkGenerationDriver.Subscription>();
                 this.ownsMemory = true;
             }
 
@@ -542,6 +547,7 @@ namespace Arterra.Core.Storage {
                 this.Length = length;
                 this.Generation = new ChunkGenerationDriver.GenerationState();
                 this.PendingWrites = new HashSet<Task>();
+                this.VisualSubscriptions = new HashSet<VisualChunkGenerationDriver.Subscription>();
                 this.ownsMemory = false;
             }
 

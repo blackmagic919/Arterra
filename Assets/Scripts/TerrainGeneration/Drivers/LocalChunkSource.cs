@@ -24,9 +24,9 @@ namespace Arterra.Core.Storage {
         public override async Task<MapData[]> ReadVisualAsync(VisualChunkGenerationDriver.Subscription subscription) {
             RequireLocalAuthority();
             var request = subscription.Request;
-            var map = await Task.Run(() => Chunk.ReadVisualChunkMap(request.Coordinate, request.Depth), subscription.Token);
+            var map = await Task.Run(() => Chunk.ReadVisualChunkMap(request.CCoord, request.Depth), subscription.Token);
             subscription.Token.ThrowIfCancellationRequested();
-            CPUMapManager.CopyLive(request.Coordinate, request.Depth, map);
+            CPUMapManager.CopyLive(request.CCoord, request.Depth, map);
             subscription.Changes.Clear();
             return map;
         }
@@ -47,10 +47,10 @@ namespace Arterra.Core.Storage {
         //Default values for local chunk
         public override void EnterEntity(Entity entity) => entity.InitializeVisual();
 
-        public override void ReflectChunk(int3 coordinate, IReadOnlyDictionary<uint, MapData> changes,
+        public override void ReflectChunk(int3 CCoord, IReadOnlyDictionary<uint, MapData> changes,
             Func<byte[]> getEncodedChanges = null, Action abandoned = null) {
-            ChunkGenerationDriver.Local?.ReflectChunk(coordinate, changes);
-            VisualChunkGenerationDriver.Local?.ReflectChunk(coordinate, changes);
+            ChunkGenerationDriver.Local?.ReflectChunk(CCoord, changes);
+            VisualChunkGenerationDriver.Local?.ReflectChunk(CCoord, changes);
         }
 
         public override void LeaveEntity(Guid entityId) {

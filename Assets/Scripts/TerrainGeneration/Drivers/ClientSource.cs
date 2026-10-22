@@ -15,9 +15,9 @@ using Unity.Mathematics;
 namespace Arterra.Core.Storage {
     /// <summary>Requests authoritative chunks; canceled replies have no effect on local generation.</summary>
     public sealed class ClientSource : ChunkSource, ITransportEventListener {
-        public override void ReflectChunk(int3 coordinate, IReadOnlyDictionary<uint, MapData> changes,
+        public override void ReflectChunk(int3 CCoord, IReadOnlyDictionary<uint, MapData> changes,
             Func<byte[]> getEncodedChanges = null, Action abandoned = null) =>
-            ChunkGenerationDriver.Local?.ReflectChunk(coordinate, changes);
+            ChunkGenerationDriver.Local?.ReflectChunk(CCoord, changes);
 
         private readonly Guid referenceId;
         private readonly CancellationTokenSource lifetime = new();
@@ -29,16 +29,16 @@ namespace Arterra.Core.Storage {
             TransportManager.Instance.Register(referenceId, this);
         }
 
-        public override async Task<Chunk.ReadbackInfo> ReadAsync(int3 coordinate, CancellationToken token = default) {
+        public override async Task<Chunk.ReadbackInfo> ReadAsync(int3 CCoord, CancellationToken token = default) {
             using var cancellation = CancellationTokenSource.CreateLinkedTokenSource(token, lifetime.Token);
             var changes = new PendingChunk(token);
-            pending.Add(coordinate, changes);
+            pending.Add(CCoord, changes);
             Chunk.ReadbackInfo content = default;
 
             try {
                 var transport = TransportManager.Instance;
                 var response = await transport.RequestEventAsync(transport.Server, referenceId, NetworkSource.Generate,
-                    Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(coordinate)), cancellation.Token,
+                    Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(CCoord)), cancellation.Token,
                     responseReceived: reply => {
                         if (reply.EventId != NetworkSource.Content || cancellation.IsCancellationRequested) return;
                         // The full reply supersedes preceding deltas. Later deltas stay buffered until installation.
@@ -54,7 +54,7 @@ namespace Arterra.Core.Storage {
 
                 return content;
             } catch {
-                RemovePending(coordinate, changes);
+                RemovePending(CCoord, changes);
                 throw;
             }
         }
@@ -76,18 +76,18 @@ namespace Arterra.Core.Storage {
             return ChunkMapCodec.Read(stream, Config.CURRENT.Quality.Terrain.value.mapChunkSize, 0, out _);
         }
 
-        public override void ReleaseVisual(int3 coordinate, int depth, ulong allocationId) {
+        public override void ReleaseVisual(int3 CCoord, int depth, ulong allocationId) {
             if (disposed) return;
             var transport = TransportManager.Instance;
             transport.SendEvent(transport.Server, referenceId, NetworkSource.ReleaseVisualChunk,
                 Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(new VisualChunkGenerationDriver.Request {
-                    Coordinate = coordinate, Depth = depth, Id = allocationId
+                    CCoord = CCoord, Depth = depth, Id = allocationId
                 })));
         }
 
-        public override Task InitializeEntitiesAsync(int3 coordinate, List<Entity> entities, CancellationToken token) {
+        public override Task InitializeEntitiesAsync(int3 CCoord, List<Entity> entities, CancellationToken token) {
             var completion = new TaskCompletionSource<Task>(TaskCreationOptions.RunContinuationsAsynchronously);
-            pending.TryGetValue(coordinate, out var changes);
+            pending.TryGetValue(CCoord, out var changes);
 
             EntityManager.AddHandlerEvent(() => {
                 try {
@@ -96,8 +96,8 @@ namespace Arterra.Core.Storage {
 
                     // Generation has installed the full CPU map before invoking this method.
                     if (changes != null) {
-                        CPUMapManager.ApplyMetadataUpdates(coordinate, changes.MetadataChanges);
-                        ApplyMapChanges(coordinate, changes.MapChanges);
+                        CPUMapManager.ApplyMetadataUpdates(CCoord, changes.MetadataChanges);
+                        ApplyMapChanges(CCoord, changes.MapChanges);
                     }
 
                     var merged = entities.ToDictionary(entity => entity.info.rtEntityId);
@@ -109,7 +109,7 @@ namespace Arterra.Core.Storage {
                     completion.TrySetResult(EntityManager.InitializeChunkEntitiesAsync(merged.Values.ToList(), token));
                 } catch (OperationCanceledException) { completion.TrySetCanceled(); }
                 catch (Exception exception) { completion.TrySetException(exception); }
-                finally { RemovePending(coordinate, changes); }
+                finally { RemovePending(CCoord, changes); }
             });
 
             return completion.Task.Unwrap();
@@ -120,24 +120,24 @@ namespace Arterra.Core.Storage {
 
             if (message.EventId == NetworkSource.MapChanges) {
                 int size = Config.CURRENT.Quality.Terrain.value.mapChunkSize;
-                var updates = MapChangeAccumulator.DecodeChanges(message.Payload, size * size * size, out int3 coordinate, out var metadata);
-                VisualChunkGenerationDriver.Local?.ReflectChunk(coordinate, updates);
-                if (pending.TryGetValue(coordinate, out var loading)) {
+                var updates = MapChangeAccumulator.DecodeChanges(message.Payload, size * size * size, out int3 CCoord, out var metadata);
+                VisualChunkGenerationDriver.Local?.ReflectChunk(CCoord, updates);
+                if (pending.TryGetValue(CCoord, out var loading)) {
                     if (loading.Token.IsCancellationRequested) return;
                     foreach (var update in updates) loading.MapChanges[update.Key] = update.Value;
                     foreach (var update in metadata) loading.MetadataChanges[update.CellIndex] = update.Value;
                 } else {
                     var metadataChanges = new Dictionary<uint, object>();
                     foreach (var update in metadata) metadataChanges[update.CellIndex] = update.Value;
-                    CPUMapManager.ApplyMetadataUpdates(coordinate, metadataChanges);
-                    ApplyMapChanges(coordinate, updates);
+                    CPUMapManager.ApplyMetadataUpdates(CCoord, metadataChanges);
+                    ApplyMapChanges(CCoord, updates);
                 }
             } else if (message.EventId == NetworkSource.Enter) {
                 var entity = JsonConvert.DeserializeObject<Registerable<Entity>>(Encoding.UTF8.GetString(message.Payload)).Value;
 
-                int3 coordinate = EntityManager.GetChunkCoordinate(entity.position);
+                int3 CCoord = EntityManager.GetChunkCoordinate(entity.position);
 
-                if (pending.TryGetValue(coordinate, out var changes)) {
+                if (pending.TryGetValue(CCoord, out var changes)) {
                     if (!changes.Token.IsCancellationRequested) changes.Entities[entity.info.rtEntityId] = entity;
                 } else EnterEntity(entity);
             } else if (message.EventId == NetworkSource.Leave) {
@@ -151,16 +151,16 @@ namespace Arterra.Core.Storage {
             // Content is decoded by the original request's response callback, never by this listener.
         }
 
-        private static void ApplyMapChanges(int3 coordinate, IReadOnlyDictionary<uint, MapData> changes) {
-            if (!CPUMapManager.TryGetChunkInfo(coordinate, out var chunk) || !chunk.HasMap
+        private static void ApplyMapChanges(int3 CCoord, IReadOnlyDictionary<uint, MapData> changes) {
+            if (!CPUMapManager.TryGetChunkInfo(CCoord, out var chunk) || !chunk.HasMap
                 || chunk.Generation.Subscribers.Count == 0) return;
 
             int size = Config.CURRENT.Quality.Terrain.value.mapChunkSize;
             foreach (var change in changes) {
                 int index = (int)change.Key;
-                int3 cell = new(index / (size * size), index / size % size, index % size);
+                int3 MCoord = new(index / (size * size), index / size % size, index % size);
                 // Use the same accumulator/local reflection path without triggering terrain simulation.
-                CPUMapManager.ApplyMapUpdate(change.Value, coordinate * size + cell);
+                CPUMapManager.ApplyMapUpdate(change.Value, CCoord * size + MCoord);
             }
         }
 
@@ -168,8 +168,8 @@ namespace Arterra.Core.Storage {
             EntityManager.AddHandlerEvent(() => {
                 if (disposed) return;
 
-                int3 coordinate = EntityManager.GetChunkCoordinate(entity.position);
-                if (CPUMapManager.TryGetChunkInfo(coordinate, out var chunk) && chunk.Generation.Subscribers.Count != 0)
+                int3 CCoord = EntityManager.GetChunkCoordinate(entity.position);
+                if (CPUMapManager.TryGetChunkInfo(CCoord, out var chunk) && chunk.Generation.Subscribers.Count != 0)
                     EntityManager.DeserializeEntity(entity);
             });
         }
@@ -190,9 +190,9 @@ namespace Arterra.Core.Storage {
             return EntityManager.ReleaseChunkEntitiesAsync(chunk.CCoord, save: false);
         }
 
-        private void RemovePending(int3 coordinate, PendingChunk loading) {
-            if (pending.TryGetValue(coordinate, out var current) && ReferenceEquals(current, loading))
-                pending.Remove(coordinate);
+        private void RemovePending(int3 CCoord, PendingChunk loading) {
+            if (pending.TryGetValue(CCoord, out var current) && ReferenceEquals(current, loading))
+                pending.Remove(CCoord);
         }
 
         public override void Dispose() {

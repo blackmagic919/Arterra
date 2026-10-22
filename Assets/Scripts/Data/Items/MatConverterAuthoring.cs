@@ -118,9 +118,9 @@ namespace Arterra.Data.Item
             if (!interact.RayTestSolid(out float3 hitPt)) return;
             if (EntityManager.ESTree.FindClosestAlongRay(player.head, hitPt, player.info.rtEntityId, out _, out _)) return;
             if (settings.MaterialName == null) return;
-            bool CanConvert(int3 coordinate) {
-                MapData map = CPUMapManager.SampleMap(coordinate);
-                return map.material == MatInfo.RetrieveIndex(settings.MaterialName) || IMaterialConverting.CanConvert(map, coordinate, settings.ConverterTag, out ConvertibleToolTag _);
+            bool CanConvert(int3 GCoord) {
+                MapData map = CPUMapManager.SampleMap(GCoord);
+                return map.material == MatInfo.RetrieveIndex(settings.MaterialName) || IMaterialConverting.CanConvert(map, GCoord, settings.ConverterTag, out ConvertibleToolTag _);
             }
             if (!Terraforming.FindTerraformable(hitPt, settings.TerraformRadius, CanConvert, out _)) return;
             InputPoller.SuspendKeybindPropogation("ConvertMaterial", ActionBind.Exclusion.ExcludeLayer);

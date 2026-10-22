@@ -11,6 +11,16 @@ namespace Arterra.Core.Storage {
         public static VisualChunkGenerationDriver Local { get; private set; }
         private static readonly HashSet<VisualChunkGenerationDriver> drivers = new();
 
+        private static Dictionary<int3, HashSet<CPUMapManager.ChunkMapInfo>>[] chunksByDepth;
+        private static int indexedRootOffset, indexedChunkSize;
+
+        internal static void InitializeChunkIndex(int maxDepth, int balance, int chunkSize) {
+            indexedRootOffset = balance == 1 && maxDepth > 0 ? 1 << (maxDepth - 1) : 0;
+            indexedChunkSize = chunkSize;
+            chunksByDepth = new Dictionary<int3, HashSet<CPUMapManager.ChunkMapInfo>>[maxDepth + 1];
+            for (int depth = 1; depth <= maxDepth; depth++) chunksByDepth[depth] = new();
+        }
+
         public ChunkSource Source { get; }
         private readonly Subscription[][] regions;
         private readonly int[] diameters;
@@ -40,88 +50,117 @@ namespace Arterra.Core.Storage {
             drivers.Add(this);
         }
 
-        private int Index(int3 coordinate, int depth) {
+        private int Index(int3 CCoord, int depth) {
             if (depth < 1 || depth > maxDepth) throw new ArgumentOutOfRangeException(nameof(depth));
             int scale = 1 << depth;
             int offset = rootOffset % scale;
-            if (math.any((coordinate - offset) % scale != 0))
-                throw new ArgumentException("Visual chunk origin is not aligned to its octree depth.", nameof(coordinate));
-            int3 lattice = (coordinate - offset) / scale;
+            if (math.any((CCoord - offset) % scale != 0))
+                throw new ArgumentException("Visual chunk origin is not aligned to its octree depth.", nameof(CCoord));
+            int3 lattice = (CCoord - offset) / scale;
             int diameter = diameters[depth];
             int3 hash = ((lattice % diameter) + diameter) % diameter;
             return (hash.x * diameter + hash.y) * diameter + hash.z;
         }
 
-        public Subscription Allocate(IChunkConsumer owner, int3 coordinate, int depth, ulong id = 0) {
+        public Subscription Allocate(IChunkConsumer owner, int3 CCoord, int depth, ulong id = 0) {
             if (disposed) throw new ObjectDisposedException(nameof(VisualChunkGenerationDriver));
-            int index = Index(coordinate, depth);
+            int index = Index(CCoord, depth);
             var previous = regions[depth][index];
-            if (previous != null && previous.Coordinate.Equals(coordinate)
+            if (previous != null && previous.CCoord.Equals(CCoord)
                 && ReferenceEquals(previous.Owner, owner) && (id == 0 || id == previous.Id)) return previous;
             if (id == 0) id = ++nextId;
 
-            var subscription = new Subscription(this, owner, coordinate, depth, id);
+            var subscription = new Subscription(this, owner, CCoord, depth, id);
             regions[depth][index] = subscription;
+            if (chunksByDepth[depth].TryGetValue(CCoord, out var chunks))
+                foreach (var chunk in chunks) {
+                    if (chunk.VisualSubscriptions.Add(subscription))
+                        CPUMapManager.MapChanges.AddSource(chunk.CCoord, Source);
+                }
             previous?.Release();
             return subscription;
         }
 
-        public void Release(int3 coordinate, int depth, ulong id) {
-            int index = Index(coordinate, depth);
+        public void Release(int3 CCoord, int depth, ulong id) {
+            int index = Index(CCoord, depth);
             var subscription = regions[depth][index];
-            if (subscription == null || subscription.Id != id || !subscription.Coordinate.Equals(coordinate)) return;
+            if (subscription == null || subscription.Id != id || !subscription.CCoord.Equals(CCoord)) return;
             subscription.Release();
         }
 
-        // Discover recipients without allocating a lattice of underlying real chunks.
-        public static void CollectSources(int3 coordinate, HashSet<ChunkSource> sources) {
-            foreach (var driver in drivers)
-                driver.Visit(coordinate, _ => sources.Add(driver.Source));
+        // Index only loaded CPU chunks; each depth stores their overlapping visual origins.
+        internal static void SubscribeChunk(CPUMapManager.ChunkMapInfo chunk) {
+            VisitOrigins(chunk.CCoord, chunksByDepth.Length - 1, indexedRootOffset, indexedChunkSize, (originCCoord, depth) => {
+                var layer = chunksByDepth[depth];
+                if (!layer.TryGetValue(originCCoord, out var chunks)) layer.Add(originCCoord, chunks = new());
+                chunks.Add(chunk);
+                foreach (var driver in drivers) {
+                    var subscription = driver.regions[depth][driver.Index(originCCoord, depth)];
+                    if (subscription != null && subscription.CCoord.Equals(originCCoord)
+                        && chunk.VisualSubscriptions.Add(subscription))
+                        CPUMapManager.MapChanges.AddSource(chunk.CCoord, subscription.Source);
+                }
+            });
         }
 
-        public void ReflectChunk(int3 coordinate, IReadOnlyDictionary<uint, MapData> changes) {
-            Visit(coordinate, subscription => {
+        internal static void UnsubscribeChunk(CPUMapManager.ChunkMapInfo chunk) {
+            VisitOrigins(chunk.CCoord, chunksByDepth.Length - 1, indexedRootOffset, indexedChunkSize, (originCCoord, depth) => {
+                var layer = chunksByDepth[depth];
+                if (!layer.TryGetValue(originCCoord, out var chunks)) return;
+                chunks.Remove(chunk);
+                if (chunks.Count == 0) layer.Remove(originCCoord);
+            });
+            chunk.VisualSubscriptions.Clear();
+        }
+
+        public void ReflectChunk(int3 CCoord, IReadOnlyDictionary<uint, MapData> changes) {
+            Visit(CCoord, subscription => {
                 int scale = 1 << subscription.Depth;
                 int axis = chunkSize;
                 bool changed = false;
                 foreach (var change in changes) {
                     int index = (int)change.Key;
-                    int3 cell = new(index / (chunkSize * chunkSize), index / chunkSize % chunkSize, index % chunkSize);
-                    int3 relative = (coordinate - subscription.Coordinate) * chunkSize + cell;
-                    if (math.any(relative % scale != 0)) continue;
-                    int3 sample = relative / scale;
-                    if (math.any(sample < -1) || math.any(sample > axis + 1)) continue;
+                    int3 MCoord = new(index / (chunkSize * chunkSize), index / chunkSize % chunkSize, index % chunkSize);
+                    int3 relativeGCoord = (CCoord - subscription.CCoord) * chunkSize + MCoord;
+                    if (math.any(relativeGCoord % scale != 0)) continue;
+                    int3 visualMCoord = relativeGCoord / scale;
+                    if (math.any(visualMCoord < -1) || math.any(visualMCoord > axis + 1)) continue;
                     changed = true;
-                    if (math.any(sample < 0) || math.any(sample >= axis)) continue;
-                    subscription.Changes[(sample.x * axis + sample.y) * axis + sample.z] = change.Value;
+                    if (math.any(visualMCoord < 0) || math.any(visualMCoord >= axis)) continue;
+                    subscription.Changes[(visualMCoord.x * axis + visualMCoord.y) * axis + visualMCoord.z] = change.Value;
                 }
                 if (changed) subscription.Owner?.ReflectChunk();
             });
         }
 
-        private void Visit(int3 coordinate, Action<Subscription> visit) {
+        private void Visit(int3 CCoord, Action<Subscription> visit) {
+            VisitOrigins(CCoord, maxDepth, rootOffset, chunkSize, (originCCoord, depth) => {
+                var subscription = regions[depth][Index(originCCoord, depth)];
+                if (subscription != null && subscription.CCoord.Equals(originCCoord)) visit(subscription);
+            });
+        }
+
+        private static void VisitOrigins(int3 CCoord, int maxDepth, int rootOffset, int chunkSize, Action<int3, int> visit) {
             for (int depth = 1; depth <= maxDepth; depth++) {
                 int scale = 1 << depth;
                 int offset = rootOffset % scale;
-                int3 relative = coordinate - offset;
-                int3 origin = relative - ((relative % scale) + scale) % scale + offset;
+                int3 relativeCCoord = CCoord - offset;
+                int3 originCCoord = relativeCCoord - ((relativeCCoord % scale) + scale) % scale + offset;
                 for (int x = -1; x <= 1; x++) {
                 for (int y = -1; y <= 1; y++) {
                 for (int z = -1; z <= 1; z++) {
-                    int3 candidate = origin + new int3(x, y, z) * scale;
-                    var subscription = regions[depth][Index(candidate, depth)];
-                    if (subscription == null || !subscription.Coordinate.Equals(candidate)) continue;
-                    double3 min = (double3)candidate * chunkSize - scale;
-                    double3 max = (double3)candidate * chunkSize + (long)(chunkSize + 1) * scale;
-                    double3 changedMin = (double3)coordinate * chunkSize;
-                    if (math.any(changedMin > max) || math.any(changedMin + chunkSize - 1 < min)) continue;
-                    visit(subscription);
+                    int3 candidateCCoord = originCCoord + new int3(x, y, z) * scale;
+                    double3 minGCoord = (double3)candidateCCoord * chunkSize - scale;
+                    double3 maxGCoord = (double3)candidateCCoord * chunkSize + (long)(chunkSize + 1) * scale;
+                    double3 changedMinGCoord = (double3)CCoord * chunkSize;
+                    if (math.any(changedMinGCoord > maxGCoord) || math.any(changedMinGCoord + chunkSize - 1 < minGCoord)) continue;
+                    visit(candidateCCoord, depth);
                 }}}
             }
         }
 
         public struct Request {
-            public int3 Coordinate;
+            public int3 CCoord;
             public int Depth;
             public ulong Id;
         }
@@ -137,20 +176,21 @@ namespace Arterra.Core.Storage {
 
         public sealed class Subscription {
             public readonly IChunkConsumer Owner;
-            public readonly int3 Coordinate;
+            public ChunkSource Source => driver.Source;
+            public readonly int3 CCoord;
             public readonly int Depth;
             public readonly ulong Id;
             public bool Active { get; private set; } = true;
             public readonly Dictionary<int, MapData> Changes = new();
-            public Request Request => new() { Coordinate = Coordinate, Depth = Depth, Id = Id };
+            public Request Request => new() { CCoord = CCoord, Depth = Depth, Id = Id };
             private readonly VisualChunkGenerationDriver driver;
             private readonly CancellationTokenSource cancellation = new();
             public CancellationToken Token { get; }
 
-            internal Subscription(VisualChunkGenerationDriver driver, IChunkConsumer owner, int3 coordinate, int depth, ulong id) {
+            internal Subscription(VisualChunkGenerationDriver driver, IChunkConsumer owner, int3 CCoord, int depth, ulong id) {
                 this.driver = driver;
                 Owner = owner;
-                Coordinate = coordinate;
+                this.CCoord = CCoord;
                 Depth = depth;
                 Id = id;
                 Token = cancellation.Token;
@@ -159,12 +199,17 @@ namespace Arterra.Core.Storage {
             public void Release() {
                 if (!Active) return;
                 Active = false;
-                int index = driver.Index(Coordinate, Depth);
+                if (chunksByDepth[Depth].TryGetValue(CCoord, out var chunks))
+                    foreach (var chunk in chunks) {
+                        if (chunk.VisualSubscriptions.Remove(this))
+                            CPUMapManager.MapChanges.RemoveSource(chunk.CCoord, Source);
+                    }
+                int index = driver.Index(CCoord, Depth);
                 if (ReferenceEquals(driver.regions[Depth][index], this)) driver.regions[Depth][index] = null;
                 Changes.Clear();
                 cancellation.Cancel();
                 cancellation.Dispose();
-                driver.Source.ReleaseVisual(Coordinate, Depth, Id);
+                driver.Source.ReleaseVisual(CCoord, Depth, Id);
             }
         }
     }
