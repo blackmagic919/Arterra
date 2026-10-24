@@ -16,6 +16,7 @@ namespace Arterra.Core.Network {
         private string discoveryTicket;
         private Guid joiningIntroduction;
         private readonly Dictionary<Guid, Introduction> introductions = new();
+        private readonly Dictionary<NetPeer, Guid> connectionIntroductions = new();
 
         internal bool TryGetUser(NetPeer peer, out Guid userId) {
             userId = peer?.Tag is Guid id ? id : Guid.Empty;
@@ -62,9 +63,11 @@ namespace Arterra.Core.Network {
                     var introduction = GetIntroduction(message.IntroductionId);
                     introduction.UserId = message.RemoteUserId;
                     if (!IsServer) joiningIntroduction = message.IntroductionId;
-                    foreach (var request in introduction.Requests) AcceptIntroduction(request, introduction);
+                    foreach (var request in introduction.Requests) 
+                        AcceptIntroduction(request, introduction, message.IntroductionId);
                     introduction.Requests.Clear();
-                    foreach (var endpoint in introduction.Endpoints) ConnectCandidate(message.IntroductionId, introduction, endpoint);
+                    foreach (var endpoint in introduction.Endpoints)
+                        ConnectCandidate(message.IntroductionId, introduction, endpoint);
                     break;
                 case "introductionFinished":
                     RemoveIntroduction(message.IntroductionId);
@@ -89,7 +92,8 @@ namespace Arterra.Core.Network {
 
         private void OnNatIntroduction(IPEndPoint endpoint, NatAddressType type, string token) {
             if (IsServer || server != null || !Guid.TryParseExact(token, "N", out var id)) return;
-            var introduction = GetIntroduction(id);
+            var introduction = GetIntroduction(id); 
+            //if UserId is empty this'll get buffered until introduction arrives
             if (introduction.Endpoints.Add(endpoint) && introduction.UserId != Guid.Empty)
                 ConnectCandidate(id, introduction, endpoint);
         }
@@ -107,16 +111,24 @@ namespace Arterra.Core.Network {
             if (!IsServer || !request.Data.TryGetString(out var token)
                 || !Guid.TryParseExact(token, "N", out var id)) { request.Reject(); return; }
             var introduction = GetIntroduction(id);
-            if (introduction.UserId != Guid.Empty) AcceptIntroduction(request, introduction);
+            if (introduction.UserId != Guid.Empty)
+                AcceptIntroduction(request, introduction, id);
             else introduction.Requests.Add(request);
         }
 
-        private void AcceptIntroduction(ConnectionRequest request, Introduction introduction) {
+        private void AcceptIntroduction(ConnectionRequest request, Introduction introduction, Guid id) {
             if (!IsServer || introduction.Accepted) { request.Reject(); return; }
             var peer = request.Accept();
             if (peer == null) return;
-            introduction.Accepted = true;
+            //gate so only one peer per introduction client
+            connectionIntroductions[peer] = id;
+            introduction.Accepted = true; 
             peer.Tag = introduction.UserId;
+        }
+
+        private void ReportDeparture(NetPeer peer) {
+            if (connectionIntroductions.Remove(peer, out var id))
+                SendDiscovery(new { type = "connectionDeparted", introductionId = id });
         }
 
         private void ReportIntroduction(bool success) {
@@ -149,6 +161,7 @@ namespace Arterra.Core.Network {
             foreach (var introduction in introductions.Values)
                 foreach (var peer in introduction.Candidates) peer.Tag = null;
             introductions.Clear();
+            connectionIntroductions.Clear();
             discoveryPeer = null;
             discoveryTicket = null;
             joiningIntroduction = Guid.Empty;

@@ -26,6 +26,8 @@ namespace Arterra.Core.Network.Service {
     }
 
     public sealed class SessionView {
+        public int ConnectionCount;
+        public int? MaxConnections;
         public Guid SessionId;
         public string Name;
         public DateTimeOffset ExpiresAt;
@@ -37,7 +39,7 @@ namespace Arterra.Core.Network.Service {
 
     public sealed class SessionList {
         public SessionView[] Sessions;
-        public Guid? NextCursor;
+        public string NextCursor;
     }
 
     public sealed class ConnectionTicket {

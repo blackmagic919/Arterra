@@ -8,5 +8,6 @@ namespace Arterra.Core.Network {
         //Whether or not the server will send map and entity data
         //To the client even if it isn't dirty (modified).
         public bool Authoritative = false; 
+        public int MaxPlayers = 4;
     }
 }

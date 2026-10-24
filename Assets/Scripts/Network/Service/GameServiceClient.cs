@@ -29,16 +29,18 @@ namespace Arterra.Core.Network.Service {
             BaseUrl = baseUrl.TrimEnd('/');
         }
 
-        public Task<SessionList> ListAsync(Guid? cursor, CancellationToken token) =>
+        public Task<SessionList> ListAsync(string cursor, CancellationToken token) =>
             RequestAsync<SessionList>(HttpMethod.Get, "/sessions?limit=100" +
-                (cursor.HasValue ? "&cursor=" + cursor.Value : ""), null, false, token);
+                (cursor != null ? "&cursor=" + Uri.EscapeDataString(cursor) : ""), null, false, token);
 
         public Task<SessionView> GetAsync(string id, CancellationToken token) =>
             RequestAsync<SessionView>(HttpMethod.Get, $"/sessions/{Guid.Parse(id)}", null, false, token);
 
-        public Task<CreatedSession> CreateAsync(string name, byte[] metadata, byte[] chunk, CancellationToken token) =>
+        public Task<CreatedSession> CreateAsync(string name, byte[] metadata, byte[] chunk, int maxPlayers, CancellationToken token) =>
             RequestAsync<CreatedSession>(HttpMethod.Post, "/sessions", new {
-                name, metadataBytes = metadata.LongLength, displayChunkBytes = chunk.LongLength
+                name, metadataBytes = metadata.LongLength,
+                displayChunkBytes = chunk.LongLength,
+                maxConnections = maxPlayers,
             }, true, token);
 
         public Task CompleteAsync(Guid id, CancellationToken token) =>

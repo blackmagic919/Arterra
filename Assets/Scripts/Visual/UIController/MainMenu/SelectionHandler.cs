@@ -8,6 +8,7 @@ using Arterra.Utils;
 using Arterra.GamePlay.UI;
 using System.Threading;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 
 
 public class SelectionHandler : MonoBehaviour
@@ -76,8 +77,13 @@ public class SelectionHandler : MonoBehaviour
         }).Invoke();
     }
 
-    public static void Return() { 
+    public static async void Return() { 
         if(!active) return;
+
+        cancel = new CancellationTokenSource();
+        if (WORLD_SELECTION.Count == 0) 
+            await LoadGalaxy(GalaxyType.Local, cancel.Token);
+
         HaltPendingTasks();
         Deactivate(() => MenuHandler.Activate()); 
     }

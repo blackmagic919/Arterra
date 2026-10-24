@@ -101,6 +101,7 @@ namespace Arterra.Core.Network {
                 Fail(new IOException("Discovery connection ended: " + detail));
                 return;
             }
+            if (IsServer) ReportDeparture(peer);
             Exception reason = info.Reason == DisconnectReason.Timeout
                 ? new TimeoutException("Connection to host timed out.")
                 : new IOException($"Host disconnected: {info.Reason}.");
@@ -109,7 +110,7 @@ namespace Arterra.Core.Network {
 
         public void Disconnect(NetPeer peer, Exception reason = null) {
             if (!IsStarted || !peers.Contains(peer)) return;
-            if (IsServer) peer.Disconnect();
+            if (IsServer) { ReportDeparture(peer); peer.Disconnect(); }
             RemovePeer(peer, reason ?? new IOException("Disconnected from host."));
         }
 

@@ -158,7 +158,7 @@ namespace Arterra.Core.Network {
             byte[] chunk = ChunkMapCodec.EncodePreview(OptionsHandler.GetDisplayMap());
 
             try {
-                var created = await api.CreateAsync(meta.Name, metadata, chunk, token);
+                var created = await api.CreateAsync(meta.Name, metadata, chunk, settings.MaxPlayers, token);
                 SessionId = created.SessionId;
                 await Task.WhenAll(GameServiceClient.UploadAsync(created.Metadata, metadata, token),
                     GameServiceClient.UploadAsync(created.DisplayChunk, chunk, token));
@@ -300,8 +300,8 @@ namespace Arterra.Core.Network {
             try {
                 var api = Service;
                 var worlds = new List<World.WorldMeta>();
-                var cursors = new HashSet<Guid>();
-                Guid? cursor = null;
+                var cursors = new HashSet<string>();
+                string cursor = null;
                 do {
                     var page = await api.ListAsync(cursor, cancellationToken);
                     foreach (var session in page.Sessions) {
@@ -311,10 +311,10 @@ namespace Arterra.Core.Network {
                         });
                     }
                     cursor = page.NextCursor;
-                    if (cursor.HasValue && !cursors.Add(cursor.Value))
+                    if (cursor != null && !cursors.Add(cursor))
                         throw new InvalidDataException("Repeated session-list cursor.");
                     // An empty filtered page can still have a continuation cursor.
-                } while (cursor.HasValue);
+                } while (cursor != null);
                 return worlds;
             } finally { queries.Release(); }
         }
