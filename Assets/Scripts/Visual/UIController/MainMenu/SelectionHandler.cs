@@ -1,4 +1,5 @@
 using System;
+using Arterra.Core.Network.Service;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
@@ -18,6 +19,8 @@ public class SelectionHandler : MonoBehaviour
     private static Sprite DefaultChunkIcon;
     private static TextMeshProUGUI TitleButton;
     private static CancellationTokenSource cancel;
+    private static CancellationTokenSource previewLoads;
+    private static readonly List<Sprite> previewSprites = new();
     private static bool active = false;
 
     static readonly Dictionary<GalaxyType, string> GalaxyTitles = new Dictionary<GalaxyType, string>{
@@ -37,12 +40,14 @@ public class SelectionHandler : MonoBehaviour
 
 
     private void OnDisable() {
+        ReleaseSelectionInfo();
         active = false;
         HaltPendingTasks();
     }
 
     private static void CreateSelections(){
         ReleaseSelectionInfo();
+        previewLoads = new CancellationTokenSource();
         foreach(WorldMeta meta in WORLD_SELECTION) 
             CreateWorldSelection(meta, infoContent);
     }
@@ -64,6 +69,7 @@ public class SelectionHandler : MonoBehaviour
         }).Invoke(); 
     }
     public static void Deactivate(Action callback = null){
+        CancelPreviewLoads();
         HaltPendingTasks();
         if(!active) return;
         active = false;
@@ -111,6 +117,13 @@ public class SelectionHandler : MonoBehaviour
     }
 
     private static void ReleaseSelectionInfo(){
+        CancelPreviewLoads();
+        foreach (var sprite in previewSprites) {
+            Destroy(sprite.texture);
+            Destroy(sprite);
+        }
+        previewSprites.Clear();
+        if (!infoContent) return;
         foreach(Transform child in infoContent){ 
             Destroy(child.gameObject); 
         }
@@ -135,17 +148,20 @@ public class SelectionHandler : MonoBehaviour
         Button info = newSelection.GetComponent<Button>();
         transform.Find("Name").GetComponent<TextMeshProUGUI>().text = meta.Name;
 
-        string timeElapsed = TimeTextUtilty.ToTimeAgo(meta.LastAccessTime);
-        transform.Find("AccessTime").GetComponent<TextMeshProUGUI>().text = timeElapsed;
+        transform.Find("PrimaryText").GetComponent<TextMeshProUGUI>().text = meta.Type == GalaxyType.Local
+            ? TimeTextUtilty.ToTimeAgo(meta.Local.LastAccessTime)
+            : $"{meta.Remote.ConnectedPlayers}/{meta.Remote.MaximumPlayers}";
+        transform.Find("SecondaryText").GetComponent<TextMeshProUGUI>().text = meta.Type == GalaxyType.Local
+            ? meta.Local.CreationTime.ToString("dd/MM/yyyy HH:mm")
+            : meta.Remote.HostUserName;
 
-        string creationTime = meta.CreationTime.ToString("dd/MM/yyyy HH:mm");
-        transform.Find("CreationTime").GetComponent<TextMeshProUGUI>().text = creationTime;
-
-        string iconPath = meta.Path + DisplayChunkPath;
         Sprite chunkIcon = meta.Type == GalaxyType.Local
-            ? SaveTextureToFileUtility.LoadImageToSprite(iconPath) : null;
-        if (chunkIcon == null) chunkIcon = DefaultChunkIcon;
-        transform.Find("ChunkDIsplay").GetComponent<Image>().sprite = chunkIcon;
+            ? SaveTextureToFileUtility.LoadImageToSprite(meta.Local.Path + DisplayChunkPath) : null;
+        if (chunkIcon != null) previewSprites.Add(chunkIcon);
+        var image = transform.Find("ChunkDisplay").GetComponent<Image>();
+        image.sprite = chunkIcon != null ? chunkIcon : DefaultChunkIcon;
+        if (meta.Type != GalaxyType.Local && !string.IsNullOrEmpty(meta.Remote.PreviewInfoUrl))
+            _ = LoadPreviewImageAsync(meta.Remote.PreviewInfoUrl, image, previewLoads.Token);
 
         newSelection.GetComponent<Button>().onClick.AddListener(async () => {
             if (!active) return;
@@ -171,6 +187,28 @@ public class SelectionHandler : MonoBehaviour
         });
         
         return newSelection;
+    }
+
+    private static async Task LoadPreviewImageAsync(string url, Image image, CancellationToken token) {
+        try {
+            byte[] bytes = await GameServiceClient.DownloadAsync(url, token);
+            token.ThrowIfCancellationRequested();
+            if (!image) return;
+            var sprite = SaveTextureToFileUtility.LoadImageToSprite(bytes);
+            if (sprite == null) return;
+            previewSprites.Add(sprite);
+            image.sprite = sprite;
+        } catch (OperationCanceledException) when (token.IsCancellationRequested) {
+        } catch (Exception) {
+            // A preview failure must not prevent selecting the world or expose its signed URL.
+            Debug.LogWarning("Could not load a world preview image; using the default icon.");
+        }
+    }
+
+    private static void CancelPreviewLoads() {
+        previewLoads?.Cancel();
+        previewLoads?.Dispose();
+        previewLoads = null;
     }
 
     private static void HaltPendingTasks() {

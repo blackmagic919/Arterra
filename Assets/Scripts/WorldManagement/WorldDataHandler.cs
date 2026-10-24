@@ -107,7 +107,8 @@ public static class WorldDataHandler
     {
         Sun = GameObject.Instantiate(Resources.Load<GameObject>("Prefabs/GameUI/Sun")).GetComponent<Light>();
         Moon = GameObject.Instantiate(Resources.Load<GameObject>("Prefabs/GameUI/Moon")).GetComponent<Light>();
-        LoadWorldData();
+        if (World.WORLD_SELECTION.First.Value.Local != null) LoadWorldData();
+        else WorldData = WorldData.Build();
 
         gameStartTime = DateTime.UnixEpoch + TimeSpan.FromHours(settings.startHour);
         clock = new NetworkVariableBase<TimeAnchor>(
@@ -140,11 +141,11 @@ public static class WorldDataHandler
             clock.Dispose();
             clock = null;
         }
-        SaveWorldData();
+        if (World.WORLD_SELECTION.First.Value.Local != null) SaveWorldData();
     }
 
     static void LoadWorldData(){
-        string path = World.WORLD_SELECTION.First.Value.Path + "/WorldData.json";
+        string path = World.WORLD_SELECTION.First.Value.Local.Path + "/WorldData.json";
         if(!File.Exists(path)) { 
             WorldData = WorldData.Build(); 
         } else {
@@ -154,7 +155,7 @@ public static class WorldDataHandler
     }
 
     static void SaveWorldData(){
-        string path = World.WORLD_SELECTION.First.Value.Path + "/WorldData.json";
+        string path = World.WORLD_SELECTION.First.Value.Local.Path + "/WorldData.json";
         using (FileStream fs = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.None)){
             using StreamWriter writer = new StreamWriter(fs);
             string data = Newtonsoft.Json.JsonConvert.SerializeObject(WorldData);

@@ -15,7 +15,7 @@ namespace Arterra.Core.Storage {
 
         public static void Initialize() {
             Release();
-            string path = Path.Combine(World.WORLD_SELECTION.First.Value.Path, "PlayerData.json");
+            string path = Path.Combine(World.WORLD_SELECTION.First.Value.Local.Path, "PlayerData.json");
             if (!File.Exists(path)) { players = new(); return; }
             var json = JObject.Parse(File.ReadAllText(path));
             if ((int?)json["version"] != FormatVersion) throw new InvalidDataException("Unsupported player save version.");
@@ -37,7 +37,7 @@ namespace Arterra.Core.Storage {
             );
         }
         public static void Save() {
-            string path = Path.Combine(World.WORLD_SELECTION.First.Value.Path, "PlayerData.json");
+            string path = Path.Combine(World.WORLD_SELECTION.First.Value.Local.Path, "PlayerData.json");
             var json = new JObject { ["version"] = FormatVersion, ["players"] = JObject.FromObject(players) };
             string temporary = path + ".tmp";
             Directory.CreateDirectory(Path.GetDirectoryName(path));

@@ -88,29 +88,26 @@ namespace Arterra.Utils {
 
             try
             {
-                byte[] bytes = System.IO.File.ReadAllBytes(filePath);
-                if (bytes == null || bytes.Length == 0)
-                    return null;
-
-                // Create texture; let Unity infer format
-                Texture2D tex = new Texture2D(2, 2, TextureFormat.ARGB32, false);
-                if (!tex.LoadImage(bytes)) {
-                    Object.Destroy(tex);
-                    return null;
-                }
-
-                // Create sprite with full rect, centered pivot
-                return Sprite.Create(
-                    tex,
-                    new Rect(0, 0, tex.width, tex.height),
-                    new Vector2(0.5f, 0.5f),
-                    100f   // default pixels-per-unit
-                );
+                return LoadImageToSprite(System.IO.File.ReadAllBytes(filePath));
             }
             catch
             {
                 return null;
             }
+        }
+
+        public static Sprite LoadImageToSprite(byte[] bytes) {
+            if (bytes == null || bytes.Length == 0) return null;
+            var texture = new Texture2D(2, 2, TextureFormat.ARGB32, false);
+            try {
+                if (texture.LoadImage(bytes))
+                    return Sprite.Create(texture, new Rect(0, 0, texture.width, texture.height), new Vector2(0.5f, 0.5f));
+            } catch {
+                Object.Destroy(texture);
+                return null;
+            }
+            Object.Destroy(texture);
+            return null;
         }
 
     }

@@ -72,7 +72,7 @@ public static class SystemProtocol{
         NauseaPass.Initialize();
         DizzinessPass.Initialize();
         BlindnessPass.Initialize();
-        Chunk.Initialize();
+        if (World.WORLD_SELECTION.First.Value.Local != null) Chunk.Initialize();
         OptionsHandler.RefreshDisplayMap();
         NetworkManager.Initialize();
 
@@ -112,7 +112,7 @@ public static class SystemProtocol{
         IRegister.Setup(Config.CURRENT);
         SharedResourceManager.Initialize(true);
         GenerationPreset.MinimalInitialize();
-        Chunk.MinimalInitialze();
+        if (World.WORLD_SELECTION.First.Value.Local != null) Chunk.MinimalInitialze();
     }
 
     /// <summary> Performs the proper shutdown protocol depending on what system state the game is in

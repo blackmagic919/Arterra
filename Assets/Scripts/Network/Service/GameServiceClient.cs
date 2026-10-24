@@ -36,10 +36,10 @@ namespace Arterra.Core.Network.Service {
         public Task<SessionView> GetAsync(string id, CancellationToken token) =>
             RequestAsync<SessionView>(HttpMethod.Get, $"/sessions/{Guid.Parse(id)}", null, false, token);
 
-        public Task<CreatedSession> CreateAsync(string name, byte[] metadata, byte[] chunk, int maxPlayers, CancellationToken token) =>
+        public Task<CreatedSession> CreateAsync(string name, byte[] previewInfo, byte[] detailedInfo, int maxPlayers, CancellationToken token) =>
             RequestAsync<CreatedSession>(HttpMethod.Post, "/sessions", new {
-                name, metadataBytes = metadata.LongLength,
-                displayChunkBytes = chunk.LongLength,
+                name, previewInfoBytes = previewInfo.LongLength,
+                detailedInfoBytes = detailedInfo.LongLength,
                 maxConnections = maxPlayers,
             }, true, token);
 

@@ -136,15 +136,21 @@ namespace Arterra.GamePlay.UI {
         public void LateUpdate() => spinChunk.Render(this);
 
         // Called after host chunk storage initializes, even when no preview UI is open.
-        public static uint[] GetDisplayMap() => SingleChunkDisplay.DisplayMap;
+        public static MapData[] GetDisplayMap() => SingleChunkDisplay.DisplayMap;
         public static void RefreshDisplayMap() => SingleChunkDisplay.RefreshDisplayMap();
+        public static void SetRawDisplayMap(byte[] chunk) => SingleChunkDisplay.RawSerializedDisplay = chunk;
 
         private class SingleChunkDisplay {
-            public static uint[] DisplayMap;
+            public static MapData[] DisplayMap;
+            public static byte[] RawSerializedDisplay;
 
-            // Chunk storage and the material registry must be initialized for the selected local world.
+            // The material registry must be initialized; local worlds also require chunk storage.
             public static void RefreshDisplayMap() {
-                if (WORLD_SELECTION?.First?.Value.Type != GalaxyType.Local) return;
+                if (WORLD_SELECTION.First.Value.Type != GalaxyType.Local) {
+                    DisplayMap = ChunkMapCodec.DecodePreview(RawSerializedDisplay ?? Array.Empty<byte>());
+                    return;
+                }
+
                 var coord = Config.CURRENT.System.WorldApperance.value.DisplayedChunk;
                 var map = Chunk.ReadChunkMap(coord).map;
                 if (map == null && Chunk.TryFindSavedMapChunk(out coord)) {
@@ -152,7 +158,7 @@ namespace Arterra.GamePlay.UI {
                     Config.CURRENT.System.WorldApperance.IsDirty = true;
                     map = Chunk.ReadChunkMap(coord).map;
                 }
-                DisplayMap = map == null ? null : Array.ConvertAll(map, point => point.data);
+                DisplayMap = map;
             }
 
             private int loadVersion;
@@ -182,18 +188,11 @@ namespace Arterra.GamePlay.UI {
                     await SystemProtocol.ShutdownTask;
                     if (version != loadVersion) return;
                     SystemProtocol.MinimalStartup();
-                    MapData[] chunk;
-                    if (meta.Type == GalaxyType.Local) {
-                        RefreshDisplayMap();
-                        uint[] packed = SingleChunkDisplay.DisplayMap;
-                        chunk = packed == null ? null : Array.ConvertAll(packed, bits => new MapData { data = bits });
-                    } else {
-                        chunk = await NetworkManager.LoadPreviewMapAsync(meta.SessionId);
-                    }
+                    RefreshDisplayMap();
                     if (version != loadVersion || !ChunkDisplay ||
                         !ReferenceEquals(meta, WORLD_SELECTION.First.Value)) return;
 
-                    LoadWorldChunkDisplay(chunk);
+                    LoadWorldChunkDisplay(DisplayMap);
                     shownWorld = meta;
                 } catch (Exception exception) {
                     if (version == loadVersion) Debug.LogException(exception);
@@ -250,7 +249,7 @@ namespace Arterra.GamePlay.UI {
                 if (!active || version != loadVersion || !ReferenceEquals(meta, WORLD_SELECTION.First.Value)) yield break;
 
                 var cam = CameraController.GetComponentInChildren<Camera>();
-                string savePath = meta.Path + DisplayChunkPath;
+                string savePath = meta.Local.Path + DisplayChunkPath;
 
                 SaveTextureToFileUtility.SaveRenderTextureToFile(
                     cam.targetTexture,

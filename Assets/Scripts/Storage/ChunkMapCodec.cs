@@ -110,20 +110,17 @@ namespace Arterra.Core.Storage {
             return map;
         }
 
-        // A presence byte permits new worlds with no saved chunk. Present maps use the shared storage codec.
-        public static byte[] EncodePreview(uint[] packed) {
+        // Empty payloads represent worlds with no saved chunk.
+        public static byte[] EncodePreview(MapData[] map) {
             using var stream = new MemoryStream();
-            stream.WriteByte(packed == null ? (byte)0 : (byte)1);
-            if (packed != null)
-                ChunkMapCodec.Write(stream, Array.ConvertAll(packed, value => new MapData { data = value }));
+            if (map != null)
+                ChunkMapCodec.Write(stream, map);
             return stream.ToArray();
         }
 
         public static MapData[] DecodePreview(byte[] bytes) {
+            if (bytes.Length == 0) return null;
             using var stream = new MemoryStream(bytes);
-            int present = stream.ReadByte();
-            if (present == 0 && stream.Length == 1) return null;
-            if (present != 1) throw new InvalidDataException("Invalid display chunk.");
             return ChunkMapCodec.Read(stream, Config.CURRENT.Quality.Terrain.value.mapChunkSize, 0, out _);
         }
 

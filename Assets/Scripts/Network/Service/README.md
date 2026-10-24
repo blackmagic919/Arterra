@@ -8,17 +8,20 @@ Unity Authentication remains the identity provider; Unity Multiplayer/Relay/Tran
 ## Flow
 
 1. The host enables multiplayer in a local world. The client exchanges its Unity JWT at `/login`.
-2. `/sessions` returns signed upload targets. The host uploads public world metadata/config JSON and a display chunk, then calls `/complete`.
+2. `/sessions` returns signed upload targets. The host uploads PreviewInfo (PNG) and DetailedInfo (world metadata, config, and display chunk JSON), then calls `/complete`.
 3. `/host` returns a single-use discovery ticket. The game connects to the discovery endpoint using LiteNetLib protocol version 1 and authenticates with that ticket and its local endpoint. `hostReady` marks the session discoverable.
-4. The remote-world list uses `/sessions`. Selecting a world downloads its published config; the options preview downloads its chunk. Neither action opens a game connection.
+4. The remote-world list uses `/sessions`. List entries download PreviewInfo images. Selecting a world downloads DetailedInfo once for both config and the options chunk preview. Neither action opens a game connection.
 5. Play calls `/join`, authenticates the returned ticket over UDP, and waits for the introduction. Both NAT traversal and gameplay use the same UDP socket. The joining client initiates the direct connection using the introduction ID. The host binds the peer to the service-provided user ID.
 6. The existing transport request/reply machinery fetches live config and requests the owning player. Player creation stays deferred through EntityManager. Chunk requests and entity replication then use the existing drivers.
 7. The joining discovery connection closes after introduction; the host's stays connected to maintain its lease. Stopping hosting deletes the session and stops the socket. Hosting recovery recreates a session after failure, as before.
 
 Published metadata is immutable for the session lifetime. Joining fetches current config from the host.
-The display blob starts with a presence byte: `0` alone for a world with no saved chunk,
-or `1` followed by the shared `ChunkMapCodec` format (localized materials and gzip map data).
-The metadata is a `PublishedWorld` JSON object, with no local filesystem path.
+The service stores two opaque objects: PreviewInfo (up to 4 MiB) and DetailedInfo (up to 32 MiB),
+returning signed download URLs for each. Empty objects are allowed.
+Arterra uses raw PNG bytes for PreviewInfo, with an empty or undecodable image falling back to the default icon.
+DetailedInfo is `PublishedWorld` JSON: `id`, `creationTime`, `lastAccessTime`, `config`, and `displayChunk`.
+`displayChunk` is Base64-encoded shared `ChunkMapCodec` data (localized materials and gzip map data),
+or an empty byte array for a world with no saved chunk. No presence prefixes or local filesystem paths are included.
 
 Remote saves use the service's user GUID, qualified by service URL, as their account key.
 The local player's existing local/Unity save identity is unchanged.

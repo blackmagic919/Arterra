@@ -151,17 +151,19 @@ namespace Arterra.Core.Network {
             PlayerConnection.Initialize();
             OptionsHandler.RefreshDisplayMap();
             var published = new PublishedWorld {
-                Id = meta.Id, CreationTime = meta.CreationTime,
-                LastAccessTime = meta.LastAccessTime, Config = Config.CURRENT
+                Id = meta.Id, Config = Config.CURRENT,
+                DisplayChunk = ChunkMapCodec.EncodePreview(OptionsHandler.GetDisplayMap())
             };
-            byte[] metadata = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(published));
-            byte[] chunk = ChunkMapCodec.EncodePreview(OptionsHandler.GetDisplayMap());
+            byte[] detailedInfo = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(published));
+            string imagePath = meta.Local.Path + World.DisplayChunkPath + ".png";
+            byte[] previewInfo = File.Exists(imagePath)
+                ? await File.ReadAllBytesAsync(imagePath, token) : Array.Empty<byte>();
 
             try {
-                var created = await api.CreateAsync(meta.Name, metadata, chunk, settings.MaxPlayers, token);
+                var created = await api.CreateAsync(meta.Name, previewInfo, detailedInfo, settings.MaxPlayers, token);
                 SessionId = created.SessionId;
-                await Task.WhenAll(GameServiceClient.UploadAsync(created.Metadata, metadata, token),
-                    GameServiceClient.UploadAsync(created.DisplayChunk, chunk, token));
+                await Task.WhenAll(GameServiceClient.UploadAsync(created.PreviewInfo, previewInfo, token),
+                    GameServiceClient.UploadAsync(created.DetailedInfo, detailedInfo, token));
                 await api.CompleteAsync(created.SessionId, token);
                 var ticket = await api.HostAsync(created.SessionId, token);
                 await TransportManager.Instance.StartAsync(created.SessionId, ticket, true, token);
@@ -305,9 +307,15 @@ namespace Arterra.Core.Network {
                 do {
                     var page = await api.ListAsync(cursor, cancellationToken);
                     foreach (var session in page.Sessions) {
-                        worlds.Add(new World.WorldMeta(session.SessionId.ToString()) {
-                            Type = World.GalaxyType.DirectWAN,
-                            SessionId = session.SessionId.ToString(), Name = session.Name
+                        worlds.Add(new World.WorldMeta(session.SessionId.ToString(), World.GalaxyType.DirectWAN) {
+                            Name = session.Name,
+                            Remote = new World.WorldMeta.RemoteConfig {
+                                SessionId = session.SessionId.ToString(),
+                                PreviewInfoUrl = session.PreviewInfoUrl,
+                                ConnectedPlayers = session.ConnectionCount,
+                                MaximumPlayers = session.MaxConnections,
+                                HostUserName = session.HostDisplayName
+                            }
                         });
                     }
                     cursor = page.NextCursor;
@@ -319,24 +327,16 @@ namespace Arterra.Core.Network {
             } finally { queries.Release(); }
         }
 
-        public static async Task<Config> LoadPreviewConfigAsync(World.WorldMeta meta, CancellationToken token) {
+        public static async Task<(Config Config, byte[] DisplayChunk)> LoadPreviewConfigAsync(World.WorldMeta meta, CancellationToken token) {
             var api = Service;
-            var session = await api.GetAsync(meta.SessionId, token);
-            byte[] bytes = await GameServiceClient.DownloadAsync(session.MetadataUrl, token);
+            var session = await api.GetAsync(meta.Remote.SessionId, token);
+            byte[] bytes = await GameServiceClient.DownloadAsync(session.DetailedInfoUrl, token);
             var world = JsonConvert.DeserializeObject<PublishedWorld>(Encoding.UTF8.GetString(bytes));
             if (world?.Config == null) throw new InvalidDataException("Session has no world configuration.");
             meta.Id = world.Id;
-            meta.CreationTime = world.CreationTime;
-            meta.LastAccessTime = world.LastAccessTime;
             // Service selection belongs to this machine, not the downloaded world's settings.
             world.Config.System.Network.value.ServiceUrl = api.BaseUrl;
-            return world.Config;
-        }
-
-        public static async Task<MapData[]> LoadPreviewMapAsync(string id, CancellationToken token = default) {
-            var session = await Service.GetAsync(id, token);
-            var bytes = await GameServiceClient.DownloadAsync(session.DisplayChunkUrl, token);
-            return ChunkMapCodec.DecodePreview(bytes);
+            return (world.Config, world.DisplayChunk ?? Array.Empty<byte>());
         }
 
     }

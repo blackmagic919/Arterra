@@ -1,4 +1,5 @@
 using System;
+using Newtonsoft.Json;
 using Arterra.Configuration;
 
 namespace Arterra.Core.Network.Service {
@@ -21,20 +22,20 @@ namespace Arterra.Core.Network.Service {
 
     public sealed class CreatedSession {
         public Guid SessionId;
-        public UploadTarget Metadata;
-        public UploadTarget DisplayChunk;
+        public UploadTarget PreviewInfo;
+        public UploadTarget DetailedInfo;
     }
 
     public sealed class SessionView {
+        public string HostDisplayName;
         public int ConnectionCount;
         public int? MaxConnections;
         public Guid SessionId;
         public string Name;
         public DateTimeOffset ExpiresAt;
         public ServiceEndpoint HostEndpoint;
-        public ServiceEndpoint ConnectivityEndpoint;
-        public string MetadataUrl;
-        public string DisplayChunkUrl;
+        public string PreviewInfoUrl;
+        public string DetailedInfoUrl;
     }
 
     public sealed class SessionList {
@@ -55,10 +56,9 @@ namespace Arterra.Core.Network.Service {
 
     // Only public world information belongs here, never a host's save path.
     public sealed class PublishedWorld {
-        public string Id;
-        public DateTime CreationTime;
-        public DateTime LastAccessTime;
-        public Config Config;
+        [JsonProperty("id")] public string Id;
+        [JsonProperty("config")] public Config Config;
+        [JsonProperty("displayChunk")] public byte[] DisplayChunk;
     }
 
     public sealed class DiscoveryMessage {

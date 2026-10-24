@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using System;
 using Arterra.Configuration;
 using Arterra.Core.Network;
+using Arterra.GamePlay.UI;
 using Newtonsoft.Json;
 
 namespace Arterra.Core.Storage {
@@ -60,7 +61,8 @@ namespace Arterra.Core.Storage {
             InitializeTemplates();
             await LoadGalaxy(GalaxyType.Local);
             if (WORLD_SELECTION.Count == 0) {
-                WORLD_SELECTION.AddFirst(new WorldMeta(Guid.NewGuid().ToString()));
+                WORLD_SELECTION.AddFirst(
+                    new WorldMeta(Guid.NewGuid().ToString()));
                 await SaveMeta();
             }
             await LoadOptions();
@@ -84,7 +86,7 @@ namespace Arterra.Core.Storage {
                             ?? new LinkedList<WorldMeta>();
                     }
                     if (newSelection.First != null)
-                        newSelection.First.Value.LastAccessTime = DateTime.Now;
+                        newSelection.First.Value.Local.LastAccessTime = DateTime.Now;
                     break;
                 case GalaxyType.DirectWAN:
                     newSelection = new LinkedList<WorldMeta>(
@@ -111,10 +113,11 @@ namespace Arterra.Core.Storage {
             WorldMeta meta = WORLD_SELECTION?.First?.Value
                 ?? throw new InvalidOperationException("Select a world before loading options.");
             Config loaded;
+            byte[] displayChunk = null;
             switch (meta.Type) {
                 case GalaxyType.Local:
                     await NetworkManager.DisconnectClientAsync();
-                    string location = meta.Path + "/Config.json";
+                    string location = meta.Local.Path + "/Config.json";
                     if (!File.Exists(location)) {
                         loaded = Config.Create();
                         await SaveOptions(meta, loaded, cancellationToken);
@@ -125,7 +128,7 @@ namespace Arterra.Core.Storage {
                     break;
                 case GalaxyType.DirectWAN:
                     await NetworkManager.DisconnectClientAsync();
-                    loaded = await NetworkManager.LoadPreviewConfigAsync(meta, cancellationToken);
+                    (loaded, displayChunk) = await NetworkManager.LoadPreviewConfigAsync(meta, cancellationToken);
                     break;
                 default:
                     Debug.Log($"Galaxy type {meta.Type} is not implemented yet.");
@@ -135,6 +138,7 @@ namespace Arterra.Core.Storage {
             cancellationToken.ThrowIfCancellationRequested();
             if (!ReferenceEquals(meta, WORLD_SELECTION?.First?.Value))
                 throw new OperationCanceledException("World selection changed during options loading.");
+            OptionsHandler.SetRawDisplayMap(displayChunk);
             Config.CURRENT = loaded;
         }
 
@@ -168,14 +172,10 @@ namespace Arterra.Core.Storage {
 
         // Loading saves the new config before assigning CURRENT; normal saves use the same path.
         private static Task SaveOptions(WorldMeta meta, Config config, CancellationToken token = default) {
+            if (GALAXY_TYPE != GalaxyType.Local) return Task.CompletedTask;
             token.ThrowIfCancellationRequested();
             string location = PrepareConfigPath(meta);
             return File.WriteAllTextAsync(location, JsonConvert.SerializeObject(config), token);
-        }
-
-        private static string PrepareConfigPath(WorldMeta meta) {
-            Directory.CreateDirectory(meta.Path);
-            return meta.Path + "/Config.json";
         }
 
         /// <summary> Same as <see cref="SaveOptions"/> but synchronous. See <see cref="SaveOptions"/> for more information. </summary>
@@ -183,6 +183,12 @@ namespace Arterra.Core.Storage {
             if (GALAXY_TYPE != GalaxyType.Local) return;
             File.WriteAllText(PrepareConfigPath(WORLD_SELECTION.First.Value), JsonConvert.SerializeObject(Config.CURRENT));
         }
+
+        private static string PrepareConfigPath(WorldMeta meta) {
+            Directory.CreateDirectory(meta.Local.Path);
+            return meta.Local.Path + "/Config.json";
+        }
+
 
         /// <summary>
         /// Selects the world through the information specified in <paramref name="meta"/>. This involves
@@ -195,7 +201,8 @@ namespace Arterra.Core.Storage {
         public static async Task SelectWorld(WorldMeta meta, CancellationToken cancellationToken = default) {
             WORLD_SELECTION.Remove(meta);
             WORLD_SELECTION.AddFirst(meta);
-            meta.LastAccessTime = DateTime.Now;
+            if (meta.Type == GalaxyType.Local)
+                meta.Local.LastAccessTime = DateTime.Now;
             await LoadOptions(cancellationToken);
             await SaveMeta();
         }
@@ -217,10 +224,10 @@ namespace Arterra.Core.Storage {
         /// This function then loads then selects the next consecutive world in <see cref="WORLD_SELECTION"/> and loads its configuration,
         /// creating a new world if there are no worlds left. </summary>
         public static void DeleteWorld() {
-            if (WORLD_SELECTION.Count == 0) return;
+            if (WORLD_SELECTION.Count == 0 || WORLD_SELECTION.First.Value.Type != GalaxyType.Local) return;
 
-            if (Directory.Exists(WORLD_SELECTION.First.Value.Path))
-                Directory.Delete(WORLD_SELECTION.First.Value.Path, true);
+            if (Directory.Exists(WORLD_SELECTION.First.Value.Local.Path))
+                Directory.Delete(WORLD_SELECTION.First.Value.Local.Path, true);
             WORLD_SELECTION.RemoveFirst();
             if (WORLD_SELECTION.Count == 0) CreateWorld();
             else {
@@ -242,23 +249,6 @@ namespace Arterra.Core.Storage {
             /// this is an absolute unique identifier for the world that should not be changed. </summary>
             [HideInInspector]
             public string Id;
-            [JsonProperty("Path")]
-            private string _meta;
-
-            /// <summary> The location of the directory containing the world-specific information in the file system. 
-            /// This includes the world configuration, and any modified world data. </summary>
-            [HideInInspector] [JsonIgnore]
-            public string Path {
-                get { return _meta; }
-                set { _meta = value; }
-            }
-            
-            /// <summary> The sessionId on the remote discovery network if the world is of <see cref="WorldType">WorldType.Remote</see> </summary>
-            [HideInInspector] [JsonIgnore]
-            public string SessionId {
-                get { return _meta; }
-                set { _meta = value; }
-            }
 
             /// <summary> The user-assigned name of the world. This is the name that will be displayed 
             /// in-game and to the user. This does not need to be unique and may be customized for user 
@@ -266,23 +256,48 @@ namespace Arterra.Core.Storage {
             [HideInInspector]
             public string Name;
 
-            /// <summary> The last time this world was selected. </summary>
-            public DateTime LastAccessTime;
-            /// <summary> The timestamp of when the world was created. </summary>
-            public DateTime CreationTime;
+            public LocalConfig Local;
+            [JsonIgnore]
+            public RemoteConfig Remote;
+
 
             /// <summary> Creates a new world meta data object with the specified id.
             /// This action creates a new unique location for the world's information
             /// and provides a default name for the world. </summary>
             /// <param name="id">The absolute unique identifier for the world</param>
-            public WorldMeta(string id) {
+            /// <param name="type"> The type of this world </param>
+            public WorldMeta(string id, GalaxyType type = GalaxyType.Local) {
                 this.Id = id;
-                this.Path = BASE_LOCATION + "WorldData_" + id;
+                this.Type = type;
                 this.Name = "New World";
-                this.CreationTime = DateTime.Now;
-                this.LastAccessTime = DateTime.Now;
+                if (type == GalaxyType.Local)
+                    Local = new LocalConfig(id);
+            }
+
+            public class LocalConfig {
+                /// <summary> The last time this world was selected. </summary>
+                public DateTime LastAccessTime;
+                /// <summary> The timestamp of when the world was created. </summary>
+                public DateTime CreationTime;
+                /// <summary> The sessionId on the remote discovery network if the world is of <see cref="WorldType">WorldType.Remote</see> </summary>
+                public string Path;
+
+                public LocalConfig(string id) {
+                    this.Path = BASE_LOCATION + "WorldData_" + id;
+                    this.CreationTime = DateTime.Now;
+                    this.LastAccessTime = DateTime.Now;
+                }
+            }
+
+            public class RemoteConfig {
+                public string PreviewInfoUrl;
+                public int ConnectedPlayers;
+                public int? MaximumPlayers;
+                public string HostUserName;
+                public string SessionId;
             }
         }
+
         public enum GalaxyType {
             Local, 
             DirectWAN,

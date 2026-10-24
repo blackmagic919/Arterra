@@ -300,8 +300,8 @@ namespace Arterra.Core.Storage {
             private bool IsTrackRegions;
             private const string fileExtension = ".bin";
             public ChunkFinder() {
-                chunkPath = World.WORLD_SELECTION.First.Value.Path + "/MapData/";
-                entityPath = World.WORLD_SELECTION.First.Value.Path + "/EntityData/";
+                chunkPath = World.WORLD_SELECTION.First.Value.Local.Path + "/MapData/";
+                entityPath = World.WORLD_SELECTION.First.Value.Local.Path + "/EntityData/";
 
                 Configuration.Quality.Terrain rSettings = Config.CURRENT.Quality.Terrain.value;
                 numChunksAxis = OctreeTerrain.BalancedOctree.GetAxisChunksDepth(rSettings.MaxDepth, rSettings.Balance, (uint)rSettings.MinChunkRadius);
