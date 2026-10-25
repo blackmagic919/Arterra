@@ -175,6 +175,47 @@ float snoise2D(float2 v) {
     return 130.0 * dot(m, g);
 }
 
+// Returns (value, dValue/dX, dValue/dY) in input-coordinate units.
+// Uses the same lattice, gradients, and value scale as snoise2D.
+float3 snoise2D_grad(float2 v) {
+    const float4 C = float4(0.211324865405187,
+                            0.366025403784439,
+                            -0.577350269189626,
+                            0.024390243902439);
+
+    float2 i = floor(v + dot(v, C.yy));
+    float2 x0 = v - i + dot(i, C.xx);
+    float2 i1;
+    i1.x = step(x0.y, x0.x);
+    i1.y = 1.0 - i1.x;
+    float2 x1 = x0 + C.xx - i1;
+    float2 x2 = x0 + C.zz;
+
+    i = mod289(i);
+    float3 p = permute(permute(i.y + float3(0.0, i1.y, 1.0))
+                                  + i.x + float3(0.0, i1.x, 1.0));
+
+    float3 x = 2.0 * frac(p * C.www) - 1.0;
+    float3 h = abs(x) - 0.5;
+    float3 a0 = x - floor(x + 0.5);
+    float3 norm = taylorInvSqrt(a0 * a0 + h * h);
+
+    float3 t = max(0.5 - float3(dot(x0, x0), dot(x1, x1), dot(x2, x2)), 0.0);
+    float3 t2 = t * t;
+    float3 t3 = t2 * t;
+    float3 t4 = t2 * t2;
+    float3 projection = float3(dot(float2(a0.x, h.x), x0),
+                               dot(float2(a0.y, h.y), x1),
+                               dot(float2(a0.z, h.z), x2));
+
+    // d(t^4 * dot(g, r))/dr = t^4 * g - 8 * t^3 * dot(g, r) * r.
+    float3 radial = -8.0 * t3 * norm * projection;
+    float3 weight = t4 * norm;
+    float2 gradient = float2(dot(weight, a0), dot(weight, h))
+                    + radial.x * x0 + radial.y * x1 + radial.z * x2;
+    return 130.0 * float3(dot(weight, projection), gradient);
+}
+
 float4 snoise_grad(float3 v)
 {
     const float2 C = float2(1.0 / 6.0, 1.0 / 3.0);

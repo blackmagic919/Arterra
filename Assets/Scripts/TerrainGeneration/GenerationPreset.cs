@@ -73,7 +73,8 @@ public static class SystemProtocol{
         NauseaPass.Initialize();
         DizzinessPass.Initialize();
         BlindnessPass.Initialize();
-        if (World.WORLD_SELECTION.First.Value.Local != null) Chunk.Initialize();
+        if (World.WORLD_SELECTION.First.Value.Local != null) 
+            Chunk.Initialize();
         OptionsHandler.RefreshDisplayMap();
 
         Structure.Creator.PresetData();

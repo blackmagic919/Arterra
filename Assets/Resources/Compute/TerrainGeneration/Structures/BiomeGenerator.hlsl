@@ -16,9 +16,10 @@ int SampleBiome (float3 position)
     surfData[1] = GetRawNoise2D(position.xz, erosionSampler);
     surfData[2] = GetRawNoise2D(position.xz, squashSampler);
 
-    float2 warpOffset = GetDomainWarpOffset2D(position.xz, majorWarpSampler, minorWarpSampler);
+    float2x2 warpJacobian;
+    float2 warpOffset = GetDomainWarpOffset2D(position.xz, majorWarpSampler, minorWarpSampler, warpJacobian);
     float erosionNoise = interpolateValue(surfData[1], erosionSampler);
-    surfData[0] = GetErodedNoise2D(position.xz, erosionNoise, warpOffset, continentalSampler);
+    surfData[0] = GetErodedNoise2D(position.xz, erosionNoise, warpOffset, warpJacobian, continentalSampler);
     surfData[3] = GetRawNoise2D(position.xz, InfHeightSampler);
     surfData[4] = GetRawNoise2D(position.xz, InfOffsetSampler);
     surfData[5] = GetRawNoise2D(position.xz, atmosphereSampler);
@@ -60,9 +61,10 @@ float SampleHeightFactor(float3 position) {
     float surfData[6];
     surfData[1] = GetRawNoise2D(position.xz, erosionSampler);
 
-    float2 warpOffset = GetDomainWarpOffset2D(position.xz, majorWarpSampler, minorWarpSampler);
+    float2x2 warpJacobian;
+    float2 warpOffset = GetDomainWarpOffset2D(position.xz, majorWarpSampler, minorWarpSampler, warpJacobian);
     float erosionNoise = interpolateValue(surfData[1], erosionSampler);
-    surfData[0] = GetErodedNoise2D(position.xz, erosionNoise, warpOffset, continentalSampler);
+    surfData[0] = GetErodedNoise2D(position.xz, erosionNoise, warpOffset, warpJacobian, continentalSampler);
     surfData[3] = GetRawNoise2D(position.xz, InfHeightSampler);
     surfData[4] = GetRawNoise2D(position.xz, InfOffsetSampler);
     surfData[5] = GetRawNoise2D(position.xz, atmosphereSampler);

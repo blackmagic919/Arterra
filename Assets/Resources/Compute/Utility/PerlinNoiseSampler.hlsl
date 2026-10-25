@@ -55,6 +55,43 @@ float interpolateValue(float value, uint samplerIndex){
     );
 }
 
+// Derivative of the same quadratic spline used by interpolateValue.
+float interpolateDerivative(float value, uint samplerIndex){
+    uint upperBoundIndex = Search(value, samplerIndex);
+    float4 upperBound = _NoiseSplinePoints[upperBoundIndex];
+    float4 lowerBound = _NoiseSplinePoints[upperBoundIndex - 1];
+    float dt = upperBound.x - lowerBound.x;
+    float progress = invLerp(lowerBound.x, upperBound.x, value);
+    float anchor = (lowerBound.y + lowerBound.w * dt
+                  + upperBound.y - upperBound.z * dt) / 2;
+    return 2 * lerp(anchor - lowerBound.y, upperBound.y - anchor, progress) / dt;
+}
+
+// Returns (mapped value, dValue/dWorldX, dValue/dWorldZ).
+// Derivatives are with respect to base grid units, independent of skipInc.
+float3 GetNoise2DGradient(float2 id, uint samplerIndex){
+    NoiseSetting settings = _NoiseSettings[samplerIndex];
+    float2 position = id * skipInc;
+    float amplitude = 1;
+    float frequency = 1;
+    float maxHeight = 0;
+    float3 result = 0;
+    for(uint i = _NoiseIndexes[samplerIndex].x; i < _NoiseIndexes[samplerIndex + 1].x; i++){
+        float scale = frequency / settings.noiseScale;
+        float2 sample = (position + _NoiseOffsets[i].xy + sOffset.xz) / settings.noiseScale * frequency;
+        float3 octave = snoise2D_grad(sample);
+        result += float3(octave.x, octave.yz * scale) * amplitude;
+        maxHeight += amplitude;
+        amplitude *= settings.persistence;
+        frequency *= settings.lacunarity;
+    }
+    result /= 2 * maxHeight;
+    result.x += 0.5;
+    result.yz *= interpolateDerivative(result.x, samplerIndex);
+    result.x = interpolateValue(result.x, samplerIndex);
+    return result;
+}
+
 float GetRawNoise(float3 id, uint samplerIndex, float3 sOffset){
     NoiseSetting settings = _NoiseSettings[samplerIndex];
     float3 sPos = id * skipInc;
@@ -114,43 +151,32 @@ float GetNoise(uint3 id, uint samplerIndex) { return interpolateValue(GetRawNois
 float GetNoise(float3 id, uint samplerIndex) { return interpolateValue(GetRawNoise(id, samplerIndex), samplerIndex); }
 
 
-float3 SampleDerivNoise2D(float2 position, float stepSize){
-    float s00 = snoise2D(position);
-    float s01 = snoise2D(position + float2(0, stepSize));
-    float s10 = snoise2D(position + float2(stepSize, 0));
-
-    float dx = (s10 - s00) / stepSize;
-    float dy = (s01 - s00) / stepSize;
-
-    return float3(s00, dx, dy);
+float3 SampleDerivNoise2D(float2 position){
+    return snoise2D_grad(position);
 }
 
-float4 SampleDerivNoise3D(float3 position, float stepSize){
-    float s000 = snoise(position);
-    float s100 = snoise(position + float3(stepSize, 0, 0));
-    float s010 = snoise(position + float3(0, stepSize, 0));
-    float s001 = snoise(position + float3(0, 0, stepSize));
-
-    float dx = (s100 - s000) / stepSize;
-    float dy = (s010 - s000) / stepSize;
-    float dz = (s001 - s000) / stepSize;
-
-    return float4(s000, dx, dy, dz);
+float4 SampleDerivNoise3D(float3 position){
+    return snoise_grad(position);
 }
 
-float2 GetDomainWarpOffset2D(float2 id, uint majorWarp, uint minorWarp){
+
+// Jacobian rows are gradients of warp.x and warp.y in base grid units.
+float2 GetDomainWarpOffset2D(float2 id, uint majorWarp, uint minorWarp, out float2x2 warpJacobian){
     float2 position = id * skipInc;
-    float2 q = float2(
-        GetNoise2D((position + float2(0, 0)) / skipInc, majorWarp),
-        GetNoise2D((position + float2(5.2f, 1.3f)) / skipInc, majorWarp)
-    ) * 4.0f;
-    return float2 (
-        GetNoise2D((position + q + float2(1.7f, 9.2f)) / skipInc, minorWarp),
-        GetNoise2D((position + q + float2(8.3f, 2.8f)) / skipInc, minorWarp)
-    );//
+    float3 majorX = GetNoise2DGradient(id, majorWarp) * 4.0;
+    float3 majorY = GetNoise2DGradient((position + float2(5.2, 1.3)) / skipInc, majorWarp) * 4.0;
+    float2 q = float2(majorX.x, majorY.x);
+    float2x2 innerJacobian = float2x2(1 + majorX.y, majorX.z,
+                                     majorY.y, 1 + majorY.z);
+    float3 minorX = GetNoise2DGradient((position + q + float2(1.7, 9.2)) / skipInc, minorWarp);
+    float3 minorY = GetNoise2DGradient((position + q + float2(8.3, 2.8)) / skipInc, minorWarp);
+    float2 dx = mul(minorX.yz, innerJacobian);
+    float2 dy = mul(minorY.yz, innerJacobian);
+    warpJacobian = float2x2(dx.x, dx.y, dy.x, dy.y);
+    return float2(minorX.x, minorY.x);
 }
 
-float GetErodedNoise2D(float2 id, float erosion, float2 warpOffset, uint samplerIndex){
+float GetErodedNoise2D(float2 id, float erosion, float2 warpOffset, float2x2 warpJacobian, uint samplerIndex){
     NoiseSetting settings = _NoiseSettings[samplerIndex];
     float2 sPos = id * skipInc;
 
@@ -160,10 +186,18 @@ float GetErodedNoise2D(float2 id, float erosion, float2 warpOffset, uint sampler
     float3 noiseHeight = 0;
     for(uint i = _NoiseIndexes[samplerIndex].x; i < _NoiseIndexes[samplerIndex + 1].x; i++) {
         float2 sample = (sPos + _NoiseOffsets[i].xy + sOffset.xz) / settings.noiseScale * frequency + warpOffset;
-        float3 simplexValue = SampleDerivNoise2D(sample, 1 / settings.noiseScale * frequency);
+        float3 simplexValue = SampleDerivNoise2D(sample);
 
+        // sample = position * scale + warp(position). Apply its Jacobian,
+        // then divide by scale to retain the existing unwarped erosion units.
+        // This is an erosion slope estimate, not the full derivative of the
+        // height: derivatives of the adaptive octave weights are not included.
+
+        float scale = frequency / settings.noiseScale;
+        float2 erosionGradient = simplexValue.yz + mul(simplexValue.yz, warpJacobian) / scale;
         float octaveAmplitude = amplitude / (1 + dot(noiseHeight.yz, noiseHeight.yz) * erosion);
-        noiseHeight.yz += simplexValue.yz * octaveAmplitude;
+        
+        noiseHeight.yz += erosionGradient * octaveAmplitude;
         noiseHeight.x += simplexValue.x * octaveAmplitude;
         maxHeight += amplitude;
         
@@ -185,7 +219,7 @@ float GetErodedNoise3D(float3 id, float erosion, float3 warpOffset, uint sampler
     float4 noiseHeight = 0;
     for(uint i = _NoiseIndexes[samplerIndex].x; i < _NoiseIndexes[samplerIndex + 1].x; i++) {
         float3 sample = (sPos + _NoiseOffsets[i] + sOffset) / settings.noiseScale * frequency + warpOffset;
-        float4 simplexValue = SampleDerivNoise3D(sample, 1 / settings.noiseScale * frequency);
+        float4 simplexValue = SampleDerivNoise3D(sample);
 
         float octaveAmplitude = amplitude / (1 + dot(noiseHeight.yzw, noiseHeight.yzw) * erosion);
         noiseHeight.yzw += simplexValue.yzw * octaveAmplitude;

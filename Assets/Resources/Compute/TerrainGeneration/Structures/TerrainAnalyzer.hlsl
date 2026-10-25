@@ -19,9 +19,10 @@ float GetNoiseCentered(float val, float center)
 uint SampleTerrain (float3 position)
 {
     //Get SurfaceData
-    float2 warpOffset = GetDomainWarpOffset2D(position.xz, majorWarpSampler, minorWarpSampler);
+    float2x2 warpJacobian;
+    float2 warpOffset = GetDomainWarpOffset2D(position.xz, majorWarpSampler, minorWarpSampler, warpJacobian);
     float erosion = GetNoise2D(position.xz, erosionSampler);
-    float terrainHeight = GetErodedNoise2D(position.xz, erosion, warpOffset, continentalSampler);
+    float terrainHeight = GetErodedNoise2D(position.xz, erosion, warpOffset, warpJacobian, continentalSampler);
     float squashFactor = GetNoise2D(position.xz, squashSampler) * squashHeight;
 
     terrainHeight = terrainHeight * maxTerrainHeight + heightOffset;
