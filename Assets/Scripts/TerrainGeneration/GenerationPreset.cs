@@ -42,12 +42,13 @@ public static class SystemProtocol{
     /// <summary> Performs the proper startup protocol when the <b>world</b> is initialized
     /// (this excludes when the main menu is displayed). This is a static factory protocol and only
     /// changes when modifying the system's functionality through its source code. </summary>
-    public static void Startup(){
+    public static async Task Startup(){
         if (state == SystemState.Active) return;
         if (state != SystemState.Inactive) Shutdown();
         if (!ShutdownTask.IsCompletedSuccessfully)
             throw new System.InvalidOperationException("Await SystemProtocol.ShutdownTask before starting another world.");
         state = SystemState.Active;
+        NetworkManager.Initialize();
 
         IRegister.Setup(Config.CURRENT);
         SharedResourceManager.Initialize();
@@ -74,7 +75,6 @@ public static class SystemProtocol{
         BlindnessPass.Initialize();
         if (World.WORLD_SELECTION.First.Value.Local != null) Chunk.Initialize();
         OptionsHandler.RefreshDisplayMap();
-        NetworkManager.Initialize();
 
         Structure.Creator.PresetData();
         Surface.Creator.PresetData();
@@ -88,6 +88,8 @@ public static class SystemProtocol{
         Readback.AsyncGenInfoReadback.PresetData();
         Readback.AsyncMeshReadback.PresetData();
 
+        if (!await NetworkManager.StartSessionAsync() || state != SystemState.Active)
+            return;
         PlayerHandler.Initialize(InitializePlayerWorld);
 
         void InitializePlayerWorld() {
@@ -137,15 +139,12 @@ public static class SystemProtocol{
 
     private static async Task ShutdownAll() {
         var shutdownTimer = System.Diagnostics.Stopwatch.StartNew();
-        Debug.Log($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Shutdown] World shutdown started.");
         // Startup marks state as Active before all systems are guaranteed initialized.
         // Shutdown must therefore tolerate partially initialized systems.
         static void TryShutdown(System.Action action, string systemName) {
             var timer = System.Diagnostics.Stopwatch.StartNew();
-            Debug.Log($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Shutdown] Starting {systemName}.");
             try {
                 action?.Invoke();
-                Debug.Log($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Shutdown] Completed {systemName} in {timer.ElapsedMilliseconds} ms.");
             } catch (System.Exception ex) {
                 Debug.LogWarning($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Shutdown] Failed {systemName} after {timer.ElapsedMilliseconds} ms: {ex}");
             }
@@ -153,10 +152,8 @@ public static class SystemProtocol{
 
         static async Task TryShutdownAsync(System.Func<Task> action, string systemName) {
             var timer = System.Diagnostics.Stopwatch.StartNew();
-            Debug.Log($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Shutdown] Starting {systemName}.");
             try {
                 await action();
-                Debug.Log($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Shutdown] Completed {systemName} in {timer.ElapsedMilliseconds} ms.");
             } catch (System.Exception ex) {
                 Debug.LogWarning($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Shutdown] Failed {systemName} after {timer.ElapsedMilliseconds} ms: {ex}");
             }
@@ -192,7 +189,6 @@ public static class SystemProtocol{
         TryShutdown(() => SharedResourceManager.Release(), nameof(SharedResourceManager));
         await Task.WhenAll(cpuMapShutdown, networkShutdown);
         state = SystemState.Inactive;
-        Debug.Log($"[{System.DateTime.UtcNow:yyyy-MM-dd HH:mm:ss.fff} UTC] [Shutdown] World shutdown finished in {shutdownTimer.ElapsedMilliseconds} ms.");
     }
 
     private static void ShutdownMinimal() {

@@ -27,6 +27,7 @@ namespace Arterra.Core.Network {
         private static readonly SemaphoreSlim queries = new(1, 1);
         private static bool joiningClient;
         private static CancellationTokenSource hosting;
+        private static CancellationTokenSource connecting;
         private static string hostedWorldId;
         private static bool recovering;
 
@@ -67,12 +68,31 @@ namespace Arterra.Core.Network {
         }
 
         public static void Initialize() {
-            if (initialized) return;
-
+            TransportManager.Instance.Stopped -= OnClientTransportStopped;
+            TransportManager.Instance.Initialize();
+            PlayerConnection.Initialize();
+            joiningClient = World.WORLD_SELECTION.First.Value.Type == World.GalaxyType.DirectWAN;
             Config.CURRENT.System.AddHook(MultiplayerHook, ToggleMultiplayer);
             initialized = true;
-            if (!IsActingServer) TransportManager.Instance.Stopped += OnClientTransportStopped;
-            if (MultiplayerEnabled && World.GALAXY_TYPE == World.GalaxyType.Local) Observe(EnableMultiplayer());
+        }
+
+        public static async Task<bool> StartSessionAsync() {
+            using var lifetime = new CancellationTokenSource();
+            connecting = lifetime;
+            try {
+                if (World.WORLD_SELECTION.First.Value.Type == World.GalaxyType.DirectWAN) {
+                    await ConnectSessionAsync(World.WORLD_SELECTION.First.Value.Remote.SessionId, lifetime.Token);
+                    lifetime.Token.ThrowIfCancellationRequested();
+                    TransportManager.Instance.Stopped += OnClientTransportStopped;
+                } else if (MultiplayerEnabled) {
+                    Observe(EnableMultiplayer());
+                }
+                return true;
+            } catch (OperationCanceledException) when (lifetime.IsCancellationRequested) {
+                return false;
+            } finally {
+                if (connecting == lifetime) connecting = null;
+            }
         }
 
         private static void OnClientTransportStopped(Exception reason) {
@@ -96,6 +116,7 @@ namespace Arterra.Core.Network {
         }
 
         public static async Task ReleaseAsync() {
+            connecting?.Cancel();
             TransportManager.Instance.Stopped -= OnClientTransportStopped;
             if (initialized)
                 Config.CURRENT.System.RemoveHook(MultiplayerHook, ToggleMultiplayer);
@@ -148,7 +169,6 @@ namespace Arterra.Core.Network {
         private static async Task CreateHostSessionAsync(World.WorldMeta meta) {
             var token = hosting.Token;
             var api = Service;
-            PlayerConnection.Initialize();
             OptionsHandler.RefreshDisplayMap();
             var published = new PublishedWorld {
                 Id = meta.Id, Config = Config.CURRENT,
@@ -260,15 +280,11 @@ namespace Arterra.Core.Network {
                 if (SessionId == id && TransportManager.Instance.IsRunning) return;
                 await LeaveSessionAsync();
                 var api = Service;
-                PlayerConnection.Initialize();
                 joiningClient = true;
                 try {
                     var joined = await api.JoinAsync(sessionId, token);
                     SessionId = id;
                     await TransportManager.Instance.StartAsync(id, joined.Connection, false, token);
-                    // The published preview may be older than the live host configuration.
-                    await Config.CurrentVariable.GetAsync(token);
-                    Config.CURRENT.System.Network.value.ServiceUrl = api.BaseUrl;
                     await PlayerConnection.JoinAsync(token);
                 } catch {
                     await LeaveSessionAsync();

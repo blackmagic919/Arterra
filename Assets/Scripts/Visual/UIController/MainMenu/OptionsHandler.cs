@@ -128,7 +128,6 @@ namespace Arterra.GamePlay.UI {
             CreateOptionDisplay(Config.CURRENT, infoContent, (ChildUpdate cb) => {
                 object wo = Config.CURRENT;
                 cb.Invoke(ref wo);
-                Config.Broadcast();
             }, displayFlags: displayFlags);
             infoContent.GetComponent<VerticalLayoutGroup>().padding.left = 0;
         }

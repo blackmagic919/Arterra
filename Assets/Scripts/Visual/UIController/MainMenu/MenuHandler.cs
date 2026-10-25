@@ -77,9 +77,6 @@ namespace Arterra.GamePlay.UI {
             if (!await EnsureWorldReadyAsync() || !active) return;
             active = false;
             try {
-                var meta = Core.Storage.World.WORLD_SELECTION.First.Value;
-                if (meta.Type == Core.Storage.World.GalaxyType.DirectWAN)
-                    await Core.Network.NetworkManager.ConnectSessionAsync(meta.Remote.SessionId);
                 _ = Core.Storage.World.SaveOptions();
                 SceneManager.LoadScene("GameScene");
             } catch (Exception exception) {

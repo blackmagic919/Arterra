@@ -26,10 +26,6 @@ namespace Arterra.Configuration {
     /// </summary>
     [CreateAssetMenu(menuName = "Generation/WorldOptions")]
     public class Config : ScriptableObject {
-        private static readonly Guid ConfigReferenceId = new("00000000-0000-0000-0000-000000000001");
-        private static readonly NetworkVariableBase<Config> _current = new(ConfigReferenceId, retainValueOnDisconnect: true);
-        internal static NetworkVariableBase<Config> CurrentVariable => _current;
-        public static void Broadcast() => _current.Broadcast();
         private static Config _template;
         /// <summary>
         /// A singleton instance rooting the settings tree for the currently selected world.
@@ -38,10 +34,7 @@ namespace Arterra.Configuration {
         /// it is likely the same instance as the <see cref="TEMPLATE"/>. It only means that the tree 
         /// sufficiently describes all settings for the world.
         /// </summary>
-        public static Config CURRENT {
-            get => _current.HasValue ? _current.Value : null;
-            set => _current.Value = value;
-        }
+        public static Config CURRENT { get; set; }
 
         /// <summary>
         /// A singleton instance rooting the template(default) settings of a world. This should not be

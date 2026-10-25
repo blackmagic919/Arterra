@@ -251,7 +251,8 @@ namespace Arterra.Core.Network {
         public void Dispose() {
             if (disposed) return;
             disposed = true;
-            if (ReferenceId != Guid.Empty) transport.Unregister(ReferenceId, this);
+            if (ReferenceId != Guid.Empty) 
+                transport.Unregister(ReferenceId, this);
             // Released entities can still be serialized by chunk/account storage.
             pendingRead = null;
             hasCachedValue = false;

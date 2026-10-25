@@ -23,19 +23,22 @@ namespace Arterra.Core.Network.Authentication {
         private readonly Dictionary<NetPeer, NetworkSource> sources = new();
 
         private readonly HashSet<NetPeer> respawning = new();
-        private bool initialized;
         private static string initialPlayerJson;
 
         public static bool TryGetAccount(NetPeer peer, out AccountId account) => instance.accounts.TryGetValue(peer, out account);
 
         public static void Initialize() {
-            if (instance.initialized) return;
-
             var transport = TransportManager.Instance;
+            transport.PeerDisconnected -= instance.Disconnected;
+            transport.Stopped -= instance.Stopped;
+            instance.accounts.Clear();
+            instance.sources.Clear();
+            instance.respawning.Clear();
+            initialPlayerJson = null;
+
             transport.Register(Reference, instance);
             transport.PeerDisconnected += instance.Disconnected;
             transport.Stopped += instance.Stopped;
-            instance.initialized = true;
         }
 
         public static async Task JoinAsync(CancellationToken token) {

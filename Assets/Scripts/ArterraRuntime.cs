@@ -78,7 +78,11 @@ public class ArterraRuntime : MonoBehaviour {
         MainCoroutines = new Queue<System.Collections.IEnumerator>();
         EventTaskQueue = new LinkedList<RuntimeTaskEl>();
         _nextNode = null;
-        SystemProtocol.Startup();
+        try { await SystemProtocol.Startup(); }
+        catch (Exception exception) {
+            Debug.LogException(exception);
+            if (isActiveAndEnabled) Arterra.GamePlay.UI.PauseHandler.Exit();
+        }
     }
 
     private void OnDisable() {

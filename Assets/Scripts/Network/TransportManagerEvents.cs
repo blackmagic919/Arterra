@@ -38,7 +38,7 @@ namespace Arterra.Core.Network {
     public sealed partial class TransportManager {
         // Guid.Empty is reserved for transport subscription control.
         private const ushort Subscribe = 1, Unsubscribe = 2;
-        private readonly Dictionary<NetPeer, ConnectionControl> connections = new();
+        private Dictionary<NetPeer, ConnectionControl> connections;
         private const int ReferenceIdBytes = 16;
         private const int ControlHeaderBytes = sizeof(uint) + sizeof(ushort);
         private const int DataHeaderBytes = ControlHeaderBytes + sizeof(uint) + sizeof(byte);
@@ -47,12 +47,22 @@ namespace Arterra.Core.Network {
         // message is submitted whole, so it may temporarily exceed this soft queue limit.
         private const int MaxQueuedPackets = 1024;
         public static readonly TimeSpan DefaultEventTimeout = TimeSpan.FromSeconds(60);
-        private readonly Dictionary<Guid, ReferenceCommunication> references = new();
-        private readonly Dictionary<(NetPeer, uint), EventRequest> requests = new();
-        private ConcurrentQueue<(NetPeer peer, OutgoingEvent message)> pendingEvents = new();
+        private Dictionary<Guid, ReferenceCommunication> references;
+        private Dictionary<(NetPeer, uint), EventRequest> requests;
+        private ConcurrentQueue<(NetPeer peer, OutgoingEvent message)> pendingEvents;
         private int nextMessageId;
         private readonly NetDataWriter messageWriter = new();
         private SendTiming sendTiming;
+
+        internal void Initialize() {
+            references = new();
+            requests = new();
+            pendingEvents = new();
+            connections = new();
+            nextMessageId = 0;
+            sendTiming = default;
+            ++SessionVersion;
+        }
 
         /// <summary>One listener per reference, regardless of the listener's value type.</summary>
         public void Register(Guid referenceId, ITransportEventListener listener) {
@@ -474,6 +484,7 @@ namespace Arterra.Core.Network {
         }
 
         private void ResetEvents(Exception reason) {
+            if (references == null) return;
             // Late producers keep the old queue, so their sends cannot enter a new session.
             var discarded = Interlocked.Exchange(ref pendingEvents, new());
             while (discarded.TryDequeue(out var pending)) pending.message.Cancel();
