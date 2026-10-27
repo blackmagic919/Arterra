@@ -102,10 +102,11 @@ namespace Arterra.Data.Entity.Behavior {
 
             int PathDist = flee.fleeDist;
             float3 rayDir = self.position - predator.position;
-            if(!path.FindPathAlongRay(settings.TaskName, self.PathCoord, ref rayDir, PathDist + 1,
+            int3 pathOrigin = path.GetPathOrigin(settings.TaskName);
+            if(!path.FindPathAlongRay(settings.TaskName, pathOrigin, ref rayDir, PathDist + 1,
                 MMove.Profile(mmove, settings.TaskName, self.settings), EntityJob.cxt, out byte[] nPath))
                 return;
-            path.SetPath(nPath);
+            path.SetPath(pathOrigin, nPath);
             manager.TaskTarget = predator.info.rtEntityId;
             manager.Transition(settings.TaskName);
         }

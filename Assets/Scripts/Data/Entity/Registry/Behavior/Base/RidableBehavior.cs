@@ -30,6 +30,7 @@ public class RidableBehavior : SpeciesBehavior, IRidable {
 
     private BehaviorEntity.Animal self;
     private ColliderUpdateBehavior collider;
+    private Guid localRider;
     [JsonIgnore] public Transform RideRoot;
     [JsonProperty] private NetworkVariable<Guid> riderTarget = new("RiderTarget", NetworkPermission.Server);
     [JsonIgnore] public Guid RiderTarget { get => riderTarget.Value; private set => riderTarget.Value = value; }
@@ -38,11 +39,8 @@ public class RidableBehavior : SpeciesBehavior, IRidable {
     [JsonIgnore] public Entity AsEntity => self;
 
     public void Dismount() {
-        Guid riderId = RiderTarget;
-        Dismounted(self.info.rtEntityId, riderId);
-        if (EntityManager.TryGetEntity(riderId, out Entity rider))
-            rider.eventCtrl.EnqueueEvent(GameEvent.Action_Dismount,
-                riderId, self.info.rtEntityId);
+        self.eventCtrl.RaiseEvent(GameEvent.Action_Dismounted,
+            self.info.rtEntityId, RiderTarget, local: true);
     }
 
     public void Dismounted(object srcId, object tgtId) {
@@ -50,6 +48,7 @@ public class RidableBehavior : SpeciesBehavior, IRidable {
         if (tgtId is not Guid riderId || riderId != RiderTarget) return;
         collider?.IgnoredEntities?.Remove(RiderTarget);
         RiderTarget = Guid.Empty;
+        SyncRider(this, ref localRider);
     }
 
 
@@ -64,11 +63,12 @@ public class RidableBehavior : SpeciesBehavior, IRidable {
 
         RiderTarget = caller.info.rtEntityId;
         if (collider != null) {
-            if(collider.IgnoredEntities == null) collider.IgnoredEntities = new HashSet<Guid>() { RiderTarget };
+            if(collider.IgnoredEntities == null)
+                collider.IgnoredEntities = new HashSet<Guid>() { RiderTarget };
             else collider.IgnoredEntities.Add(RiderTarget);
         }
 
-        caller.eventCtrl.EnqueueEvent(GameEvent.Action_Mount, callerId, self.info.rtEntityId);
+        SyncRider(this, ref localRider);
     }
 
 
@@ -95,6 +95,7 @@ public class RidableBehavior : SpeciesBehavior, IRidable {
         this.self = self;
         self.Register<IRidable>(this);
         riderTarget.Register(self);
+        SyncRider(this, ref localRider);
     }
 
     public override void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord){
@@ -110,27 +111,43 @@ public class RidableBehavior : SpeciesBehavior, IRidable {
         self.Register<IRidable>(this);
         this.self = self;
         riderTarget.Register(self);
+        SyncRider(this, ref localRider);
     }
 
     public override void Update(BehaviorEntity.Animal self) {
         if (!self.ShouldUpdateAnimations()) return;
-        RestoreRider(this);
+        SyncRider(this, ref localRider);
     }
 
-    public static void RestoreRider(IRidable mount) {
-        if (mount.RiderTarget == Guid.Empty) return;
-        if (EntityManager.TryGetEntity(mount.RiderTarget, out var rider)
-            && rider.Is(out PlayerMovementBehavior movement)) movement.RestoreMount(mount);
+    // Local attachment follows replicated rider state, including deserialization and late entity loading.
+    public static void SyncRider(IRidable mount, ref Guid localRider) {
+        Guid riderId = mount.RiderTarget;
+        if (localRider == riderId) return;
+        ReleaseRider(mount, ref localRider);
+        localRider = riderId;
+        NotifyRider(mount);
     }
 
-    public static void ReleaseRider(IRidable mount) {
-        if (EntityManager.TryGetEntity(mount.RiderTarget, out var rider)
-            && rider.Is(out PlayerMovementBehavior movement)) movement.ReleaseMount(mount);
+    public static void NotifyRider(IRidable mount) {
+        Guid riderId = mount.RiderTarget;
+        if (riderId == Guid.Empty) return;
+        if (EntityManager.TryGetEntity(riderId, out var rider))
+            rider.eventCtrl.RaiseEvent(GameEvent.Action_Mount, riderId,
+                mount.AsEntity.info.rtEntityId, mount, local: true);
+    }
+
+    public static void ReleaseRider(IRidable mount, ref Guid localRider) {
+        Guid riderId = localRider;
+        localRider = Guid.Empty;
+        if (riderId == Guid.Empty) return;
+        if (EntityManager.TryGetEntity(riderId, out var rider))
+            rider.eventCtrl.RaiseEvent(GameEvent.Action_Dismount, riderId,
+                mount.AsEntity.info.rtEntityId, mount, local: true);
     }
 
     public override void Disable(BehaviorEntity.Animal self) {
         if (this.self == null) return;
-        ReleaseRider(this);
+        ReleaseRider(this, ref localRider);
         self.Unregister(typeof(IRidable));
         riderTarget?.Dispose();
         this.self = null;       

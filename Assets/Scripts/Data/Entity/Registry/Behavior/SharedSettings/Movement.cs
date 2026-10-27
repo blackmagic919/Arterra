@@ -6,6 +6,7 @@ using TerrainCollider = Arterra.GamePlay.Interaction.TerrainCollider;
 using Arterra.Data.Entity.Behavior;
 using System.Collections.Generic;
 using static Arterra.Data.Entity.Behavior.PathFinderBehavior;
+using Arterra.Utils;
 
 namespace Arterra.Data.Entity.Behavior {
     [Serializable]
@@ -83,6 +84,31 @@ namespace Arterra.Data.Entity.Behavior {
             } return (rot, aim);
         }
 
+        internal static bool TryGetShadowOrigin(TerrainCollider tCollider, float signY, out float originY) {
+            TerrainCollider.Transform transform = tCollider.transform;
+            float3 halfSize = transform.size/2f; originY = 0;
+            if (math.abs(signY) != 1) return false;
+            if (!Terraforming.RectangularCastTerrain(
+                (float3)transform.position + halfSize,
+                Vector3.up * signY,
+                halfSize.x * Vector3.right,
+                halfSize.z * Vector3.forward,
+                transform.size.y * 2,
+                Terraforming.RayTestSolid,
+                out float3 hitPt
+            )) return false;
+            originY = hitPt.y;
+            return true;
+        }
+
+        static void Progress(ref PathInfo finder) {
+            byte dir = finder.path[finder.currentInd];
+            int3 nextPos = finder.currentPos + new int3((dir / 9) - 1, (dir / 3 % 3) - 1, (dir % 3) - 1);
+            finder.currentPos = nextPos;
+            finder.stepDuration = 0;
+            finder.currentInd++;
+        }
+
         public static (Quaternion, float3) DynamicDirect(EntitySetting.ProfileInfo profile, ref PathInfo finder, TerrainCollider tCollider, float3 target, FollowType movement = FollowType.Planar) {
             finder.stepDuration++;
             if (math.any(math.abs(tCollider.transform.position - finder.currentPos) > profile.bounds))
@@ -113,11 +139,16 @@ namespace Arterra.Data.Entity.Behavior {
                     break;
             }
 
-            if (math.all(math.abs(tCollider.transform.position - nextPos) <= 1)) {
-                finder.currentPos = nextPos;
-                finder.stepDuration = 0;
-                finder.currentInd++;
-            } return (rot, aim);
+            //Planar movements cannot direct vertical velocity
+            double3 dist = nextPos - tCollider.transform.position;
+            double3 waypointDist = math.abs(dist);
+            if (math.all(waypointDist <= 1)) Progress(ref finder);
+            else if (math.all(waypointDist.xz <= 1) && movement == FollowType.Planar) {
+                if (TryGetShadowOrigin(tCollider, (float)math.sign(dist.y), out float originY)
+                    && math.abs(originY - nextPos.y) <= 1) Progress(ref finder);
+            } 
+
+            return (rot, aim);
         }
 
 
@@ -148,12 +179,17 @@ namespace Arterra.Data.Entity.Behavior {
                     break;
             }
 
-            if (math.all(math.abs(tCollider.transform.position - nextPos) <= 1)) {
-                finder.currentPos = nextPos;
-                finder.stepDuration = 0;
-                finder.currentInd++;
-            } return (rot, aim);
+            double3 dist = nextPos - tCollider.transform.position;
+            double3 waypointDist = math.abs(dist);
+            if (math.all(waypointDist <= 1)) Progress(ref finder);
+            else if (math.all(waypointDist.xz <= 1) && movement == FollowType.Planar) {
+                if (TryGetShadowOrigin(tCollider, (float)math.sign(dist.y), out float originY)
+                    && math.abs(originY - nextPos.y) <= 1) Progress(ref finder);
+            } 
+
+            return (rot, aim);
         }
+
 
         struct BoidDMtrx {
             public float3 SeperationDir;

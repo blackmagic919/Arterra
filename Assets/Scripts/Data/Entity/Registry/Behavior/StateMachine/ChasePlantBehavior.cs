@@ -76,17 +76,18 @@ namespace Arterra.Data.Entity.Behavior {
                 out int3 preyPos
             )) return false;
 
-            if(path.FindPathOrApproachTarget(settings.TaskName, self.PathCoord, preyPos - self.PathCoord, movement.pathDistance,
+            int3 pathOrigin = path.GetPathOrigin(settings.TaskName);
+            if(path.FindPathOrApproachTarget(settings.TaskName, pathOrigin, preyPos - pathOrigin, movement.pathDistance,
                 MMove.Profile(mmove, settings.TaskName, self.settings),
                 EntityJob.cxt, out byte[] nPath)) {
-                path.SetPath(nPath);
+                path.SetPath(pathOrigin, nPath);
                 LockedOn = true;
             } else return true;
 
             float dist = ColliderUpdateBehavior.GetColliderDist(self, preyPos);
 
             //If it can't get to the prey and is currently at the closest position it can be
-            if (math.all(path.pathFinder.destination == self.PathCoord)) {
+            if (math.all(path.pathFinder.destination == pathOrigin)) {
                 if (dist <= manager.settings.ContactDistance && manager.Transition(settings.OnReachPreyTransition)) {
                     manager.TaskPosition = preyPos;
                 } return false;

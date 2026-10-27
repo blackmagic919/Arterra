@@ -428,7 +428,6 @@ namespace Arterra.Data.Entity.Behavior {
             [JsonIgnore] public override ref TerrainCollider.Transform transform => ref Collider.transform; 
             [JsonIgnore] public override float3 head => colliderInfo?.HeadPosition ?? default;
             [JsonIgnore] public override Quaternion Facing => Rotation;
-            [JsonIgnore] public int3 PathCoord => (int3)math.floor(PathCollider.transform.position);
             [JsonIgnore] public UpdateContext context = UpdateContext.Simulation;
             [JsonIgnore] public float DeltaTime => PlayerHandler.IsPlayer(this)
                 ? (context == UpdateContext.Simulation || context == UpdateContext.ClientSimulation

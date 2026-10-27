@@ -52,10 +52,8 @@ namespace Arterra.Data.Entity.Behavior {
     /// and switches the active movement mode through input stack polls.
     /// </summary>
     public class PlayerMovementBehavior : SpeciesBehavior {
-        private IRidable activeMount;
-        [JsonIgnore] public bool IsMounted => activeMount != null;
+        [JsonIgnore] public bool IsMounted => ridePattern?.IsMounted == true;
         public float3 NormalizedMoveVel => self != null ? GetSpeed3D(self.velocity) : 0;
-        private const string MountedGravity = "PlayerMovement::Mounted";
         /// <summary>Resolved movement settings for this behavior instance.</summary>
         [JsonIgnore] public PlayerMovementSettings settings;
         private Modifier mod;
@@ -103,7 +101,7 @@ namespace Arterra.Data.Entity.Behavior {
             self.Register(this);
             netInputDir.Register(self);
             netSprinting.Register(self);
-            if (self.IsAuthority || self.IsOwner) InitializePatterns();
+            InitializePatterns();
         }
 
         /// <summary>Initializes movement state and bindings after entity deserialization.</summary>
@@ -116,7 +114,7 @@ namespace Arterra.Data.Entity.Behavior {
             self.Register(this);
             netInputDir.Register(self);
             netSprinting.Register(self);
-            if (self.IsAuthority || self.IsOwner) InitializePatterns();
+            InitializePatterns();
         }
 
         public override void InitializeVisual(BehaviorEntity.Animal self) {
@@ -140,7 +138,6 @@ namespace Arterra.Data.Entity.Behavior {
         public override void Disable(BehaviorEntity.Animal self) {
             if (this.self == null) return;
             DisposeVisual(self);
-            ClearMount();
             ridePattern?.Disable();
             flightPattern?.Disable();
             swimPattern?.Disable();
@@ -168,8 +165,6 @@ namespace Arterra.Data.Entity.Behavior {
             if (hasBindings) return;
             hasBindings = true;
 
-            self.eventCtrl.AddEventHandler(GameEvent.Action_Mount, Mount);
-            self.eventCtrl.AddEventHandler(GameEvent.Action_Dismount, Dismount);
             self.eventCtrl.AddEventHandler(GameEvent.Entity_Death, OnDeath);
             InputPoller.AddBinding(new ActionBind("Move Vertical", v => SetInput(1, v)), MoveVerticalName, "4.0::Movement");
             InputPoller.AddBinding(new ActionBind("Move Horizontal", v => SetInput(0, v)), MoveHorizontalName, "4.0::Movement");
@@ -186,8 +181,6 @@ namespace Arterra.Data.Entity.Behavior {
             hasBindings = false;
             netInputDir.Value = float3.zero;
             sprinting = false;
-            self.eventCtrl.RemoveEventHandler(GameEvent.Action_Mount, Mount);
-            self.eventCtrl.RemoveEventHandler(GameEvent.Action_Dismount, Dismount);
             self.eventCtrl.RemoveEventHandler(GameEvent.Entity_Death, OnDeath);
 
             InputPoller.RemoveBinding(MoveVerticalName, "4.0::Movement");
@@ -207,10 +200,15 @@ namespace Arterra.Data.Entity.Behavior {
         }
 
         private void InitializePatterns() {
+            if (ridePattern == null) {
+                ridePattern = new RideMovementPattern(this);
+                ridePattern.Initialize();
+            }
+            if (!self.IsAuthority && !self.IsOwner) return;
+
             groundPattern = new GroundMovementPattern(this);
             swimPattern = new SwimMovementPattern(this);
             flightPattern = new FlightMovementPattern(this);
-            ridePattern = new RideMovementPattern(this);
 
             groundPattern.Initialize();
             if (self.IsAuthority) swimPattern.Initialize();
@@ -220,43 +218,12 @@ namespace Arterra.Data.Entity.Behavior {
         /// <summary>Simulates the player's movement on the server and presents replicated movement locally.</summary>
         public override void Update(BehaviorEntity.Animal self) {
             if (self.context == BehaviorEntity.UpdateContext.Visual) {
-                RideMovementPattern.UpdateVisual(this);
+                ridePattern?.UpdateVisual();
                 return;
             }
 
             if (self.context != BehaviorEntity.UpdateContext.Simulation) return;
             InputPoller.InvokeStackTop(UpdateLayer);
-        }
-
-        public void RestoreMount(IRidable mount) {
-            if (ReferenceEquals(activeMount, mount)) return;
-            if (ridePattern != null) {
-                if (activeMount != null) ClearMount();
-                ridePattern.TryAddHandles(mount.AsEntity);
-                return;
-            }
-            if (activeMount != null) ClearMount();
-            activeMount = mount;
-            AddIgnoredEntity(mount.AsEntity.info.rtEntityId);
-            self.Collider.SetGravityState(MountedGravity,
-                GamePlay.Interaction.TerrainCollider.GravityPriority.Movement, false);
-            self.eventCtrl.RaiseEvent(GameEvent.Action_MountRideable, self.info.rtEntityId, mount.AsEntity.info.rtEntityId);
-        }
-
-        public void ReleaseMount(IRidable mount) {
-            if (ReferenceEquals(activeMount, mount)) ClearMount();
-        }
-
-        private void ClearMount() {
-            if (activeMount == null) return;
-            if (ridePattern != null) { ridePattern.RemoveHandles(); return; }
-            Guid mountId = activeMount.AsEntity?.info.rtEntityId ?? Guid.Empty;
-            RemoveIgnoredEntity(mountId);
-            self.Collider.RemoveGravityState(MountedGravity);
-            self.eventCtrl.RaiseEvent(GameEvent.Action_DismountRideable, self.info.rtEntityId, mountId);
-            var subTransform = GetRiderSubTransform();
-            if (subTransform != null) subTransform.localRotation = Quaternion.identity;
-            activeMount = null;
         }
 
         private void OnDeath(object source, object target, object context) => self.RemoveBehavior(Id);
@@ -266,22 +233,6 @@ namespace Arterra.Data.Entity.Behavior {
             float rotation = inputDir.x * sensitivity;
             SetInput(0, 0);
             return rotation;
-        }
-
-        /// <summary>IRider entrypoint invoked when the player mounts a ridable entity.</summary>
-        public void Mount(object srcId, object tgtId, object _) {
-            if (tgtId is not Guid targetId) return;
-            if (!EntityManager.TryGetEntity(targetId, out Entity mount)) return;
-            if(!(ridePattern?.TryAddHandles(mount) ?? false)) return;
-            mount.eventCtrl.EnqueueEvent(GameEvent.Action_Mounted, targetId, srcId);
-        }
-
-        /// <summary>IRider entrypoint invoked when the player dismounts a ridable entity.</summary>
-        public void Dismount(object srcId, object tgtId, object _) {
-            if (tgtId is not Guid targetId) return;
-            if (!EntityManager.TryGetEntity(targetId, out Entity mount)) return;
-            // Keep the local attachment until the server clears RiderTarget.
-            mount.eventCtrl.EnqueueEvent(GameEvent.Action_Dismounted, targetId, srcId, null);
         }
 
         private void AddIgnoredEntity(Guid entityId) {
@@ -547,7 +498,8 @@ namespace Arterra.Data.Entity.Behavior {
         private class RideMovementPattern {
             private static readonly HashSet<string> OverridableStates = new() { "GroundMove:1", "SwimMove:1", "FlightMove:1" };
             private readonly PlayerMovementBehavior owner;
-            private IRidable mount { get => owner.activeMount; set => owner.activeMount = value; }
+            private IRidable mount;
+            public bool IsMounted => mount != null;
 
             private string RideMove1Name => $"RideMove:1::{owner.self.info.rtEntityId}";
             private string RideMove2Name => $"RideMove:2::{owner.self.info.rtEntityId}";
@@ -562,10 +514,48 @@ namespace Arterra.Data.Entity.Behavior {
                 this.owner = owner;
             }
 
-            public void Disable() => RemoveHandles();
+            public void Initialize() {
+                owner.self.eventCtrl.AddEventHandler(GameEvent.Action_Mount, Mount);
+                owner.self.eventCtrl.AddEventHandler(GameEvent.Action_Dismount, Dismount);
+                // Run once after all of the player's behaviors have finished initializing.
+                EntityManager.AddHandlerEvent(() => {
+                    if (owner.self == null || !owner.self.active || !ReferenceEquals(owner.ridePattern, this)) return;
+                    foreach (Entity entity in EntityManager.EntityReg) {
+                        if (!entity.active || !entity.Is(out IRidable available)) continue;
+                        if (available.RiderTarget == owner.self.info.rtEntityId)
+                            RidableBehavior.NotifyRider(available);
+                    }
+                });
+            }
+
+            public void Disable() {
+                owner.self.eventCtrl.RemoveEventHandler(GameEvent.Action_Mount, Mount);
+                owner.self.eventCtrl.RemoveEventHandler(GameEvent.Action_Dismount, Dismount);
+                RemoveHandles();
+            }
+
+            private void Mount(object riderId, object mountId, object context) {
+                if (context is not IRidable next || next.RiderTarget != owner.self.info.rtEntityId) return;
+                if (ReferenceEquals(mount, next)) return;
+                if (mount != null) RemoveHandles();
+                if (!TryAddHandles(next.AsEntity)) return;
+                if (owner.self.IsAuthority)
+                    next.AsEntity.eventCtrl.RaiseEvent(GameEvent.Action_Mounted,
+                        next.AsEntity.info.rtEntityId, owner.self.info.rtEntityId, local: true);
+            }
+
+            private void Dismount(object riderId, object mountId, object context) {
+                if (ReferenceEquals(mount, context)) RemoveHandles();
+            }
+
+            private void RequestDismount(float _) {
+                if (!IsRideActive) return;
+                mount.AsEntity.eventCtrl.EnqueueEvent(GameEvent.Action_Dismounted,
+                    mount.AsEntity.info.rtEntityId, owner.self.info.rtEntityId);
+            }
 
             public bool TryAddHandles(Entity mount) {
-                if (mount == null) return false;
+                if (mount == null || !mount.active) return false;
                 if (ReferenceEquals(this.mount?.AsEntity, mount)) return true;
                 string currentState = InputPoller.PeekTop(owner.UpdateLayer)?.Split("::").First();
                 if (owner.self.IsAuthority && !OverridableStates.Contains(currentState)) {
@@ -583,11 +573,13 @@ namespace Arterra.Data.Entity.Behavior {
                 else this.mount = newMount;
 
                 owner.AddIgnoredEntity(mount.info.rtEntityId);
+                owner.self.Collider.SetGravityState(RideMove2Name,
+                    GamePlay.Interaction.TerrainCollider.GravityPriority.Movement, false);
 
                 if (owner.self.IsAuthority) owner.self.velocity = float3.zero;
                 owner.self.eventCtrl.RaiseEvent(GameEvent.Action_MountRideable,
                     owner.self.info.rtEntityId,
-                    this.mount?.AsEntity?.info.rtEntityId
+                    this.mount?.AsEntity?.info.rtEntityId, local: true
                 );    
 
                 if (owner.self.IsAuthority) {
@@ -606,11 +598,8 @@ namespace Arterra.Data.Entity.Behavior {
                 InputPoller.AddContextFence(RideFenceName, "4.0::Movement", ActionBind.Exclusion.ExcludeLayer);
                 InputPoller.AddBinding(new ActionBind("Move Vertical", MoveForward), RideMoveVerticalName, "4.0::Movement");
                 InputPoller.AddBinding(new ActionBind("Move Horizontal", Rotate), RideMoveHorizontalName, "4.0::Movement");
-                InputPoller.AddBinding(new ActionBind("Dismount", _ => 
-                    owner.self.eventCtrl.RaiseEvent(GameEvent.Action_Dismount,
-                        owner.self.info.rtEntityId,
-                        this.mount.AsEntity.info.rtEntityId)
-                , policy: ActionBind.Policy.Down), RideDismountName, "5.0::Gameplay");
+                InputPoller.AddBinding(new ActionBind("Dismount", RequestDismount,
+                    policy: ActionBind.Policy.Down), RideDismountName, "5.0::Gameplay");
             }
 
             public void RemoveHandles() {
@@ -622,7 +611,7 @@ namespace Arterra.Data.Entity.Behavior {
                 owner.self.eventCtrl.RaiseEvent(
                     GameEvent.Action_DismountRideable,
                     owner.self.info.rtEntityId,
-                    oldMount?.AsEntity?.info.rtEntityId
+                    oldMount?.AsEntity?.info.rtEntityId, local: true
                 );
 
                 Transform subTransform = owner.GetRiderSubTransform();
@@ -652,10 +641,10 @@ namespace Arterra.Data.Entity.Behavior {
 
             }
 
-            public static void UpdateVisual(PlayerMovementBehavior owner) {
-                if (owner.activeMount == null) return;
+            public void UpdateVisual() {
+                if (!IsRideActive) return;
                 Transform subTransform = owner.GetRiderSubTransform();
-                if (subTransform != null) subTransform.rotation = owner.activeMount.GetRiderRoot().rotation;
+                if (subTransform != null) subTransform.rotation = mount.GetRiderRoot().rotation;
             }
 
             private void MoveForward(float strength) {

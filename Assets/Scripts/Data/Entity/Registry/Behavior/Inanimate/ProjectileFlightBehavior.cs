@@ -70,7 +70,6 @@ namespace Arterra.Data.Entity.Behavior {
             if (!EntityManager.ESTree.FindClosestAlongRay(startGS, endGS, self.info.rtEntityId, out Entity hitEntity, out _))
                 return false;
             self.eventCtrl.RaiseEvent(Core.Events.GameEvent.Entity_ProjectileHit, self.info.rtEntityId, hitEntity?.info.rtEntityId);
-            if (!hitEntity.Is(out IVitality atkEntity)) return false;
 
             float speed = math.length(pVel);
             float damage = speed * settings.DamageMultiplier;

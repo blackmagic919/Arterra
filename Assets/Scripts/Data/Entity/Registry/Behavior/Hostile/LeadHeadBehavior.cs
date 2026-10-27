@@ -219,9 +219,14 @@ namespace Arterra.Data.Entity.Behavior {
             }
 
             public override void Update() {
+                if (!active || self == null) return;
+                Guid registrationId = spatialId;
                 EntityManager.AddHandlerEvent(() => {
+                    // Disable/rebind can run before this deferred spatial update.
+                    // Never read a disposed transform or update a later registration.
+                    if (!active || self == null || spatialId != registrationId) return;
                     Bounds bounds = new Bounds((float3)collider.transform.position, collider.transform.size);
-                    EntityManager.ESTree.AssertEntityLocation(spatialId, bounds);
+                    EntityManager.ESTree.AssertEntityLocation(registrationId, bounds);
                 });
                 this.collider.Update(self);
                 this.collider.EntityCollisionUpdate(self);
@@ -231,7 +236,7 @@ namespace Arterra.Data.Entity.Behavior {
             public override void UpdateJobSync() {
                 if (!visible) return;
                 float3 BonePos = (float3)collider.transform.position + aSettings.BoneOffset;
-                Controller.SetPositionAndRotation(Arterra.Core.Storage.CPUMapManager.GSToWS(BonePos), collider.transform.rotation * Quaternion.Euler(-90f, 0f, 0f));
+                Controller.SetPositionAndRotation(Core.Storage.CPUMapManager.GSToWS(BonePos), collider.transform.rotation * Quaternion.Euler(-90f, 0f, 0f));
             }
 
             public void SetActive(bool enabled) {
@@ -241,13 +246,16 @@ namespace Arterra.Data.Entity.Behavior {
                 } if (!visible) return;
             }
             public override void Disable() {
-                collider?.transform.Dispose();
-                this.self = null;
-                if (!active) return;
+                Guid registrationId = spatialId;
+                spatialId = Guid.Empty;
                 active = false;
+                visible = false;
+                this.self = null;
+                collider?.transform.Dispose();
+                if (registrationId == Guid.Empty) return;
 
-                EntityManager.EntityIndex.Remove(spatialId);
-                EntityManager.ESTree.Delete(spatialId);
+                EntityManager.EntityIndex.Remove(registrationId);
+                EntityManager.ESTree.Delete(registrationId);
             }
         }
 

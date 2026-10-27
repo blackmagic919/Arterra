@@ -14,6 +14,8 @@ namespace Arterra.Data.Entity.Behavior {
     public class PathFinderBehavior : SpeciesBehavior {
         public PathInfo pathFinder;
         private BehaviorEntity.Animal self;
+        private Movement movement; // Optional: pathfinding also supports entities without movement settings.
+        private MMove mmove;
         private Dictionary<EntitySMTasks, long> TaskBouncer;
         private long updateCycles;
         const double CyclesPerNode = 0.0025f;
@@ -22,12 +24,16 @@ namespace Arterra.Data.Entity.Behavior {
             TaskBouncer = new ();
             updateCycles = 0;
             this.self = self;
+            if (!setting.Is(out movement)) movement = null;
+            if (!setting.Is(out mmove)) mmove = null;
         }
 
         public override void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
             TaskBouncer = new ();
             updateCycles = 0;
             this.self = self;
+            if (!setting.Is(out movement)) movement = null;
+            if (!setting.Is(out mmove)) mmove = null;
         }
 
         public override void Update(BehaviorEntity.Animal self) {
@@ -42,6 +48,32 @@ namespace Arterra.Data.Entity.Behavior {
 
         public override void OnDrawGizmos(BehaviorEntity.Animal self) {
             PathInfo finder = pathFinder; //copy so we don't modify the original
+            /*if (finder.hasPath && finder.path != null
+                && finder.currentInd >= 0 && finder.currentInd < finder.path.Length) {
+                // Show the actual steering target separately from the remaining grid path.
+                // Both endpoints use the same center offset; pathfinding still uses origins.
+                var collider = self.PathCollider;
+                float3 centerOffset = collider.transform.size * 0.5f;
+                float3 position = (float3)collider.transform.position;
+                int direction = finder.path[finder.currentInd];
+                int3 next = finder.currentPos + new int3(direction / 9 - 1,
+                    direction / 3 % 3 - 1, direction % 3 - 1);
+                Color previousColor = Gizmos.color;
+                Gizmos.color = Color.magenta;
+                Gizmos.DrawLine(CPUMapManager.GSToWS(position + centerOffset),
+                    CPUMapManager.GSToWS((float3)next + centerOffset));
+                Gizmos.DrawWireSphere(CPUMapManager.GSToWS((float3)next + centerOffset), 0.2f);
+                Gizmos.color = previousColor;
+#if UNITY_EDITOR
+                float3 error = (float3)next - position;
+                float3 velocity = collider.transform.velocity;
+                UnityEditor.Handles.Label(CPUMapManager.GSToWS(position + centerOffset),
+                    $"Path {finder.currentInd}/{finder.path.Length}, ticks {finder.stepDuration:0}\n"
+                    + $"Waypoint error X: {error.x:F2}, Y: {error.y:F2}, Z: {error.z:F2}\n"
+                    + $"Velocity X: {velocity.x:F2}, Y: {velocity.y:F2}, Z: {velocity.z:F2}\n"
+                    + $"Body gravity: {collider.UseGravity}");
+#endif
+            }*/
             if (finder.hasPath) {
                 int ind = finder.currentInd;
                 while (ind != finder.path.Length) {
@@ -55,8 +87,18 @@ namespace Arterra.Data.Entity.Behavior {
             }
         }
 
-        public void SetPath(byte[] path) => pathFinder = new PathInfo(self.PathCoord, path);
-        public void SetPath(int3 PCoord, byte[] path) => pathFinder = new PathInfo(PCoord, path);
+        /// <summary> Resolves a task's path origin once for both searching and installing its path.
+        /// Missing movement settings, non-planar movement, or a failed ground cast use the collider origin. </summary>
+        public int3 GetPathOrigin(EntitySMTasks task) {
+            int3 origin = (int3)math.floor(self.PathCollider.transform.position);
+            if (movement == null || MMove.MovementType(mmove, task) != Movement.FollowType.Planar)
+                return origin;
+            if (Movement.TryGetShadowOrigin(self.PathCollider, -1, out float shadowY))
+                origin.y = (int)math.floor(shadowY);
+            return origin;
+        }
+
+        public void SetPath(int3 origin, byte[] path) => pathFinder = new PathInfo(origin, path);
 
         public bool FindPath(
             EntitySMTasks task,

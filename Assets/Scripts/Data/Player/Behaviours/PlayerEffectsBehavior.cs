@@ -61,6 +61,9 @@ namespace Arterra.Data.Entity.Behavior {
             isSwimming = false;
             isShaking = false;
             BindEvents(self);
+
+            if (self.Is(out VitalityBehavior vit) && vit.IsDead)
+                SetBool("IsDead", true); //must refresh on every init
         }
 
 

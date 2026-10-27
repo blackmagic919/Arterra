@@ -375,7 +375,7 @@ MonoBehaviour:
         StartTask: 0
         AverageStartDuration: 2
         AverageStartDurationVariance: 0
-        ContactDistance: 7
+        ContactDistance: 5
     - rid: 3097083922518114518
       type: {class: AttackStats, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
@@ -489,7 +489,7 @@ MonoBehaviour:
         OnReachEnemyTransition: 30600
         SearchChances:
           value: []
-        SearchDistance: 10
+        SearchDistance: 30
         DesiredEnemyState: 1
         Enemy:
           value:
@@ -500,12 +500,12 @@ MonoBehaviour:
         Variants:
           value:
           - TriggerAnim: AttackR
-            AttackChance: 0.027777785
+            AttackChance: 0.011363644
             AttackDuration: 0.25
             AttackDamage: 7.5
             Knockback: 10
           - TriggerAnim: AttackL
-            AttackChance: 0.99999994
+            AttackChance: 1
             AttackDuration: 0.25
             AttackDamage: 7.5
             Knockback: 10
@@ -521,8 +521,8 @@ MonoBehaviour:
             x: 2.5
             y: 2
             z: 2.5
-        HeadRubberBand: 5
-        BodyRubberBand: 1
+        HeadRubberBand: 20
+        BodyRubberBand: 5
     - rid: 5205636901300338764
       type: {class: MultiPedalSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
@@ -796,8 +796,9 @@ MonoBehaviour:
           - name: 1010
             var: 0.25
             geneWeight: 0.025
-        NormalizeWeights: 1
     - rid: 5295427349367226868
       type: {class: StepSoundBehaviorSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
         StepDistance: 5
+        TouchState: 0
+        entityStepSound: 0

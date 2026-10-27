@@ -122,7 +122,7 @@ namespace Arterra.Data.Entity.Behavior{
                 return;
             }
 
-            if (!PathFinderBehavior.VerifyMatProfile(self.PathCoord, settings.paths.HiddenBounds, settings.paths.HiddenProfile, false)) {
+            if (!PathFinderBehavior.VerifyMatProfile(path.GetPathOrigin(settings.Task1Name), settings.paths.HiddenBounds, settings.paths.HiddenProfile, false)) {
                 if(!manager.Transition(settings.Task1Name))
                     manager.Transition(settings.OnHitOutState);
                 return;
@@ -165,11 +165,12 @@ namespace Arterra.Data.Entity.Behavior{
         }
 
         private void FindPathOut() {
-             if(!path.FindMatchAlongRay(settings.Task3Name, self.PathCoord, (float3)Vector3.up, movement.pathDistance,
+            int3 pathOrigin = path.GetPathOrigin(settings.Task3Name);
+             if(!path.FindMatchAlongRay(settings.Task3Name, pathOrigin, (float3)Vector3.up, movement.pathDistance,
                 settings.paths.BurrowBounds, settings.paths.BurrowProfile,
                 settings.paths.SurfBounds, settings.paths.SurfProfile,
                 out foundSurface, out byte[] nPath)) return;
-            path.SetPath(nPath);
+            path.SetPath(pathOrigin, nPath);
         }
 
         public bool TransitionToTask1() {
@@ -190,9 +191,10 @@ namespace Arterra.Data.Entity.Behavior{
             if(!path.FindPathAlongRay(settings.Task1Name, (int3)origin, ref digDir, pathLength, 
                 settings.paths.BurrowBounds, settings.paths.BurrowProfile, out byte[] nPath)) 
                 return false;
-            byte[] toStart = PathFinderBehavior.GetStraightLinePath(self.PathCoord, (int3)origin);
+            int3 pathOrigin = path.GetPathOrigin(settings.Task1Name);
+            byte[] toStart = PathFinderBehavior.GetStraightLinePath(pathOrigin, (int3)origin);
             if (nPath.Length < pathLength) return false;
-            path.SetPath(toStart.Concat(nPath).ToArray());
+            path.SetPath(pathOrigin, toStart.Concat(nPath).ToArray());
             return true;
         }
  

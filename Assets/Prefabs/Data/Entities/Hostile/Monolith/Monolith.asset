@@ -270,7 +270,7 @@ MonoBehaviour:
         StartTask: 0
         AverageStartDuration: Infinity
         AverageStartDurationVariance: 0
-        ContactDistance: 6
+        ContactDistance: 4
     - rid: 3097083922518114518
       type: {class: AttackStats, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
@@ -311,7 +311,7 @@ MonoBehaviour:
         TaskName: 50100
         OnLostAttacker: 100
         OnReachAttacker: 30600
-        ChaseDistance: 24
+        ChaseDistance: 30
     - rid: 3097083922518114532
       type: {class: RunFromPredatorSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
@@ -342,8 +342,8 @@ MonoBehaviour:
     - rid: 3097083922518114639
       type: {class: Movement, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
-        walkSpeed: 2
-        runSpeed: 3
+        walkSpeed: 3
+        runSpeed: 5
         pathDistance: 32
         rotSpeed: 180
     - rid: 3097084037468258397
@@ -382,7 +382,7 @@ MonoBehaviour:
         OnReachEnemyTransition: 30600
         SearchChances:
           value: []
-        SearchDistance: 10
+        SearchDistance: 20
         DesiredEnemyState: 1
         Enemy:
           value:
@@ -393,7 +393,7 @@ MonoBehaviour:
         Variants:
           value:
           - TriggerAnim: AttackR
-            AttackChance: 0.032258075
+            AttackChance: 0.009259266
             AttackDuration: 0.25
             AttackDamage: 6
             Knockback: 10
@@ -415,7 +415,7 @@ MonoBehaviour:
             y: 2
             z: 2
         HeadRubberBand: 20
-        BodyRubberBand: 2
+        BodyRubberBand: 5
     - rid: 5205636901300338764
       type: {class: MultiPedalSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
@@ -606,8 +606,9 @@ MonoBehaviour:
           - name: 1010
             var: 0.25
             geneWeight: 0.025
-        NormalizeWeights: 1
     - rid: 5295427349367226867
       type: {class: StepSoundBehaviorSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
         StepDistance: 4
+        TouchState: 0
+        entityStepSound: 0

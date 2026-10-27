@@ -145,10 +145,13 @@ namespace Arterra.Data.Entity.Behavior {
             if (self.context != BehaviorEntity.UpdateContext.Simulation) return;
             if (manager.TaskIndex != settings.TaskName) return;
             if (!settings.FindPreferredEnemyEntity(self,  SearchDistance, out Entity Enemy, relations)) {
-                manager.Transition(settings.TaskName);
+                // Re-entering chase repeats the failed target search in TransitionTo,
+                // leaving the state and old path frozen when that transition fails.
+                path.pathFinder.hasPath = false;
+                manager.Transition(settings.OnNotFoundTransition);
                 return;
             }
-
+            
             self.PathCollider.Follow(self, Movement.DynamicDirect(
                 MMove.Profile(mmove, settings.TaskName, self.settings),
                 ref path.pathFinder, self.PathCollider, Enemy.origin,
@@ -170,16 +173,17 @@ namespace Arterra.Data.Entity.Behavior {
             ) return false;
             
             int PathDist = movement.pathDistance;
-            int3 destination = (int3)math.round(Enemy.origin) - self.PathCoord;
-            if(!path.FindPathOrApproachTarget(settings.TaskName, self.PathCoord, destination, PathDist + 1,
+            int3 pathOrigin = path.GetPathOrigin(settings.TaskName);
+            int3 destination = (int3)math.round(Enemy.origin) - pathOrigin;
+            if(!path.FindPathOrApproachTarget(settings.TaskName, pathOrigin, destination, PathDist + 1,
                 MMove.Profile(mmove, settings.TaskName, self.settings), EntityJob.cxt, out byte[] nPath))
                 return false;
-            path.SetPath(nPath);
+            path.SetPath(pathOrigin, nPath);
             float dist = ColliderUpdateBehavior.GetColliderDist(self, Enemy);
 
 
             //If it can't get to the Enemy and is currently at the closest position it can be
-            if (math.all(path.pathFinder.destination == self.PathCoord)) {
+            if (math.all(path.pathFinder.destination == pathOrigin)) {
                 if (dist <= manager.settings.ContactDistance && manager.Transition(settings.OnReachEnemyTransition)) {
                     manager.TaskTarget = Enemy.info.rtEntityId;
                 } return false;

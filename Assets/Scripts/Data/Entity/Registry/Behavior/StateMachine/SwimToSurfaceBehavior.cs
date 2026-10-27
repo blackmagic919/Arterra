@@ -94,10 +94,11 @@ namespace Arterra.Data.Entity.Behavior{
                  Vector3.up;
             float3 flightTarget = movement.pathDistance * flightDir;
             
-            if(!path.FindMatchAlongRay(settings.TaskName, self.PathCoord, flightTarget, movement.pathDistance + 1,
+            int3 pathOrigin = path.GetPathOrigin(settings.TaskName);
+            if(!path.FindMatchAlongRay(settings.TaskName, pathOrigin, flightTarget, movement.pathDistance + 1,
                 MMove.Profile(mmove, settings.TaskName, self.settings), settings._Profile,
                 EntityJob.cxt, out foundSurface, out byte[] nPath)) return;
-            path.SetPath(nPath);
+            path.SetPath(pathOrigin, nPath);
         }
 
         private bool IsSurfacing() {

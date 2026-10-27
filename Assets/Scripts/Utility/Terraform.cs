@@ -94,14 +94,30 @@ namespace Arterra.Utils
         /// <param name="hit">If the ray intersects the IsoSurface, the position in GridSpace of the first intersection. </param>
         /// <returns>Whether or not the ray intersects the IsoSurface in less than <i>rayLength</i> distance from the rayOrigin(<i>oGS</i>)</returns>
         public static bool CylinderCastTerrain(float3 oGS, float3 rayDir, float radius, float rayLength, Func<int3, uint> callback, out float3 hit) {
+            if (math.lengthsq(rayDir) < 1e-12f) throw new ArgumentException("Cast direction must be nonzero.", nameof(rayDir));
             rayDir = math.normalize(rayDir);
             //Get tangent vectors
             float3 a = rayDir.x < 0 ? new float3(1, 1, 1) : new float3(-1, 1, -1);
-            float3 r1 = math.normalize(math.cross(rayDir, a));
+            float3 tangent = math.cross(rayDir, a);
+            if (math.lengthsq(tangent) < 1e-6f)
+                tangent = math.cross(rayDir, new float3(0, 1, 0));
+            float3 r1 = math.normalizesafe(tangent);
             float3 r2 = math.cross(rayDir, r1);
-            r1 *= radius; r2 *= radius;
-            float3 signR1 = math.sign(rayDir) * math.sign(r1);
-            float3 signR2 = math.sign(rayDir) * math.sign(r2);
+            return RectangularCastTerrain(oGS, rayDir, r1 * radius, r2 * radius, rayLength, callback, out hit);
+        }
+
+        /// <summary> Casts a rectangular cross-section centered on oGS. halfHeight and halfWidth
+        /// are scaled, mutually perpendicular tangent vectors perpendicular to rayDir.
+        /// The corners are oGS +/- halfHeight +/- halfWidth; rayLength is in grid units.
+        /// Uses the same voxel-plane sampling as CylinderCastTerrain (not an exact volume sweep). </summary>
+        public static bool RectangularCastTerrain(float3 oGS, float3 rayDir, float3 halfHeight, float3 halfWidth,
+            float rayLength, Func<int3, uint> callback, out float3 hit) {
+            if (math.lengthsq(rayDir) < 1e-12f) throw new ArgumentException("Cast direction must be nonzero.", nameof(rayDir));
+            rayDir = math.normalize(rayDir);
+            float3 r1 = halfHeight, r2 = halfWidth;
+            // A zero component is a corner-selection tie, not a collapsed edge.
+            float3 signR1 = math.select(new float3(-1), new float3(1), rayDir * r1 >= 0);
+            float3 signR2 = math.select(new float3(-1), new float3(1), rayDir * r2 >= 0);
 
             float3 xInt = oGS;
             float3 yInt = oGS;
@@ -119,6 +135,7 @@ namespace Arterra.Utils
             tMax.x *= rayDir.x >= 0 ? 1 - math.frac(xInt.x) : math.frac(xInt.x);
             tMax.y *= rayDir.y >= 0 ? 1 - math.frac(yInt.y) : math.frac(yInt.y);
             tMax.z *= rayDir.z >= 0 ? 1 - math.frac(zInt.z) : math.frac(zInt.z);
+            tMax = math.select(tMax, new float3(float.PositiveInfinity), rayDir == 0);
             signR1 *= -1; signR2 *= -1; //point opposite
 
 
@@ -126,20 +143,27 @@ namespace Arterra.Utils
             hit = nHit;
             float progress = 0;
             float hitD = 0;
+            float hitDistance = rayLength;
+            bool found = false;
             do {
+                bool candidate = false;
                 if (tMax.x < tMax.y) {
                     if (tMax.x < tMax.z) {
                         int xPlane = GCoord.x + sPlane.x;
                         var corners = ProjectSquare(xInt, r1 * signR1.x, r2 * signR2.x, rayDir, 'x', xPlane);
-                        if (Get2DQuadrilateralIntersect(corners, (y, z) => callback(new(xPlane, y, z)), out hitD, out float2 p))
+                        if (Get2DQuadrilateralIntersect(corners, (y, z) => callback(new(xPlane, y, z)), out hitD, out float2 p)) {
                             nHit = GetBackwardsIntersect(new float3(xPlane, p.x, p.y), -rayDir, (uint)hitD, callback);
+                            candidate = true;
+                        }
                         GCoord.x += step.x;
                         tMax.x += tDelta.x;
                     } else {
                         int zPlane = GCoord.z + sPlane.z;
                         var corners = ProjectSquare(zInt, r1 * signR1.z, r2 * signR2.z, rayDir, 'z', zPlane);
-                        if (Get2DQuadrilateralIntersect(corners, (x, y) => callback(new(x, y, zPlane)), out hitD, out float2 p))
+                        if (Get2DQuadrilateralIntersect(corners, (x, y) => callback(new(x, y, zPlane)), out hitD, out float2 p)) {
                             nHit = GetBackwardsIntersect(new float3(p.x, p.y, zPlane), -rayDir, (uint)hitD, callback);
+                            candidate = true;
+                        }
                         GCoord.z += step.z;
                         tMax.z += tDelta.z;
                     }
@@ -147,26 +171,34 @@ namespace Arterra.Utils
                     if (tMax.y < tMax.z) {
                         int yPlane = GCoord.y + sPlane.y;
                         var corners = ProjectSquare(yInt, r1 * signR1.y, r2 * signR2.y, rayDir, 'y', yPlane);
-                        if (Get2DQuadrilateralIntersect(corners, (x, z) => callback(new(x, yPlane, z)), out hitD, out float2 p))
+                        if (Get2DQuadrilateralIntersect(corners, (x, z) => callback(new(x, yPlane, z)), out hitD, out float2 p)) {
                             nHit = GetBackwardsIntersect(new float3(p.x, yPlane, p.y), -rayDir, (uint)hitD, callback);
+                            candidate = true;
+                        }
                         GCoord.y += step.y;
                         tMax.y += tDelta.y;
                     } else {
                         int zPlane = GCoord.z + sPlane.z;
                         var corners = ProjectSquare(zInt, r1 * signR1.z, r2 * signR2.z, rayDir, 'z', zPlane);
-                        if (Get2DQuadrilateralIntersect(corners, (x, y) => callback(new(x, y, zPlane)), out hitD, out float2 p))
+                        if (Get2DQuadrilateralIntersect(corners, (x, y) => callback(new(x, y, zPlane)), out hitD, out float2 p)) {
                             nHit = GetBackwardsIntersect(new float3(p.x, p.y, zPlane), -rayDir, (uint)hitD, callback);
+                            candidate = true;
+                        }
                         GCoord.z += step.z;
                         tMax.z += tDelta.z;
                     }
                 }
-                if (math.lengthsq(nHit - oGS) < math.lengthsq(hit - oGS))
+                // Compare travel along the sweep, not distance from its centerline.
+                float distance = math.dot(nHit - oGS, rayDir);
+                if (candidate && distance >= 0 && distance <= hitDistance) {
                     hit = nHit;
-                float len = math.length(hit - oGS);
+                    hitDistance = distance;
+                    found = true;
+                }
                 progress = Mathf.Min(tMax.x, tMax.y, tMax.z);
-                if (progress >= len) return true;
-            } while (progress < rayLength);
-            return false;
+                if (found && progress >= hitDistance) return true;
+            } while (progress <= rayLength);
+            return found;
         }
 
         private static uint GetRayPlaneIntersectionX(ref float3 rayOrigin, float3 rayDir, int XPlane, Func<int3, uint> SampleMap) {
@@ -202,6 +234,9 @@ namespace Arterra.Utils
         private static float3 GetBackwardsIntersect(float3 hit, float3 backDir, uint hitDens, Func<int3, uint> SampleMap) {
             int3 step = (int3)math.sign(backDir);
             int3 GCoord = (int3)math.floor(hit);
+            // When going backwards from a grid plane, sample the previous plane,
+            // rather than intersecting the same point again at distance zero.
+            GCoord -= math.select(new int3(0), new int3(1), (backDir < 0) & (hit == (float3)GCoord));
             int3 sPlane = math.max(step, 0);
 
             float3 tDelta = 1.0f / math.abs(backDir); float3 tMax = tDelta;
@@ -210,7 +245,8 @@ namespace Arterra.Utils
             tMax.z *= backDir.z >= 0 ? 1 - (hit.z - GCoord.z) : (hit.z - GCoord.z);
 
             float3 nonHit = hit;
-            GCoord.x += sPlane.x; //Next
+            tMax = math.select(tMax, new float3(float.PositiveInfinity), backDir == 0);
+            GCoord += sPlane; //Next plane on each axis, not only X.
             uint nonDens = 0;
             if (tMax.x < tMax.y) {
                 if (tMax.x < tMax.z) nonDens = GetRayPlaneIntersectionX(ref nonHit, backDir, GCoord.x, SampleMap);
@@ -304,13 +340,13 @@ namespace Arterra.Utils
                 int2 min = (int2)math.ceil(math.min(c0, c1));
                 int2 max = (int2)math.floor(math.max(c0, c1));
                 float2 len = math.abs(c1 - c0);
-                for (int x = min.x; x <= max.x; x++) {
+                for (int x = min.x; len.x > 0 && x <= max.x; x++) {
                     float t = math.abs(c0.x - x) / len.x;
                     pos.x = x; pos.y = c0.y + t * (c1.y - c0.y);
                     float density = LinearDensity(pos.y, ry => SampleMap(x, ry));
                     if (density >= IsoValue) return density;
                 }
-                for (int y = min.y; y <= max.y; y++) {
+                for (int y = min.y; len.y > 0 && y <= max.y; y++) {
                     float t = math.abs(c0.y - y) / len.y;
                     pos.y = y; pos.x = c0.x + t * (c1.x - c0.x);
                     float density = LinearDensity(pos.x, rx => SampleMap(rx, y));

@@ -52,6 +52,7 @@ public class BoatEntity : Arterra.Data.Entity.Authoring {
         [JsonProperty] private NetworkVariable<Guid> riderTarget = new("RiderTarget", NetworkPermission.Server);
         [JsonIgnore] public Guid RiderTarget { get => riderTarget.Value; private set => riderTarget.Value = value; }
         private HashSet<Guid> IgnoredEntities;
+        private Guid localRider;
         private BoatController controller;
         private BoatSetting settings;
         [JsonIgnore]
@@ -65,6 +66,7 @@ public class BoatEntity : Arterra.Data.Entity.Authoring {
             if (target is not Guid riderId || riderId != RiderTarget) return;
             IgnoredEntities = null;
             RiderTarget = Guid.Empty;
+            RidableBehavior.SyncRider(this, ref localRider);
         }
 
         private void Interact(object source, object target, object context) {
@@ -73,7 +75,7 @@ public class BoatEntity : Arterra.Data.Entity.Authoring {
             if (RiderTarget != Guid.Empty) return; //Already has a rider
             RiderTarget = caller.info.rtEntityId;
             IgnoredEntities = new HashSet<Guid>{ RiderTarget };
-            caller.eventCtrl.EnqueueEvent(GameEvent.Action_Mount, caller.info.rtEntityId, info.rtEntityId);
+            RidableBehavior.SyncRider(this, ref localRider);
         }
         private void Collect(object receiver, object source, object context) {
             if (context is not float amount) return;
@@ -133,6 +135,7 @@ public class BoatEntity : Arterra.Data.Entity.Authoring {
             controller = new BoatController(Controller, this);
             controller.DisposeVisual();
             RegisterEvents();
+            RidableBehavior.SyncRider(this, ref localRider);
         }
 
         public override void Deserialize(EntitySetting setting, GameObject Controller, out int3 GCoord) {
@@ -146,17 +149,16 @@ public class BoatEntity : Arterra.Data.Entity.Authoring {
             tCollider.SetGravityState(BaseGravityStateName, TerrainCollider.GravityPriority.Default, true);
             GCoord = this.GCoord;
 
+            RidableBehavior.SyncRider(this, ref localRider);
             if (!IsAuthority || RiderTarget == Guid.Empty) return;
             IgnoredEntities = new HashSet<Guid>{RiderTarget};
-            if (EntityManager.TryGetEntity(RiderTarget, out Entity entity))
-                entity.eventCtrl.EnqueueEvent(GameEvent.Action_Mount, entity.info.rtEntityId, info.rtEntityId);
         }
 
         public override void UpdateJobSync() {
             if (!active) return;
             if (IsAuthority || VisualActive) {
                 controller.Update();
-                RidableBehavior.RestoreRider(this);
+                RidableBehavior.SyncRider(this, ref localRider);
             }
         }
         [JsonIgnore] public override bool VisualActive => controller?.VisualActive == true;
@@ -211,7 +213,7 @@ public class BoatEntity : Arterra.Data.Entity.Authoring {
         }
 
         public override void Disable() {
-            if (controller?.active == true) RidableBehavior.ReleaseRider(this);
+            RidableBehavior.ReleaseRider(this, ref localRider);
             DisposeVisual();
             eventCtrl.Dispose();
             riderTarget?.Dispose();

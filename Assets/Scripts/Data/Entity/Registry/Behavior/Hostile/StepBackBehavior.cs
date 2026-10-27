@@ -52,11 +52,12 @@ namespace Arterra.Data.Entity.Behavior {
                 }
                 
                 int PathDist = settings.PathDist;
-                float3 rayDir = math.normalizesafe(self.PathCoord - target.position);
-                if(!path.FindPathAlongRay(settings.TaskName, self.PathCoord, ref rayDir, PathDist + 1, 
+                int3 pathOrigin = path.GetPathOrigin(settings.TaskName);
+                float3 rayDir = math.normalizesafe(pathOrigin - target.position);
+                if(!path.FindPathAlongRay(settings.TaskName, pathOrigin, ref rayDir, PathDist + 1,
                     MMove.Profile(mmove, settings.TaskName, self.settings),
                     EntityJob.cxt, out byte[] nPath)) return;
-                path.SetPath(nPath);
+                path.SetPath(pathOrigin, nPath);
             }
             self.PathCollider.Follow(self, Movement.StaticDirect(
                 MMove.Profile(mmove, manager.TaskIndex, self.settings),

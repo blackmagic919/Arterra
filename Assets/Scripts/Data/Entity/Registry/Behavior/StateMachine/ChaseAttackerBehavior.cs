@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Arterra.Configuration;
 using Arterra.Core.Events;
 using Newtonsoft.Json;
 using Unity.Mathematics;
@@ -51,17 +52,27 @@ namespace Arterra.Data.Entity.Behavior {
             else if (ColliderUpdateBehavior.GetColliderDist(self, target) > ChaseDistance)
                 manager.TaskTarget = Guid.Empty;
             if (manager.TaskTarget == Guid.Empty) {
+                path.pathFinder.hasPath = false;
                 manager.Transition(settings.OnLostAttacker);
+                return;
+            }
+
+            // Reaching the target does not require a path or an available search budget.
+            if (ColliderUpdateBehavior.GetColliderDist(self, target) < manager.settings.ContactDistance
+                && manager.Transition(settings.OnReachAttacker)) {
+                path.pathFinder.hasPath = false;
                 return;
             }
 
             if (!path.pathFinder.hasPath) {
                 int PathDist = movement.pathDistance;
-                int3 destination = (int3)math.round(target.origin) - self.PathCoord;
-                if(!path.FindPathOrApproachTarget(settings.TaskName, self.PathCoord, destination, PathDist + 1,
-                    MMove.Profile(mmove, manager.TaskIndex, self.settings), EntityJob.cxt, out byte[] nPath))
-                    return;
-                path.SetPath(nPath);
+                int3 pathOrigin = path.GetPathOrigin(settings.TaskName);
+                int3 destination = (int3)math.round(target.origin) - pathOrigin;
+                if(!path.FindPathOrApproachTarget(settings.TaskName, pathOrigin, destination, PathDist + 1,
+                    MMove.Profile(mmove, manager.TaskIndex, self.settings), EntityJob.cxt, out byte[] nPath)) {
+                    return; // Search is throttled; this is not an unreachable result.
+                }
+                path.SetPath(pathOrigin, nPath);
             }
 
             self.PathCollider.Follow(self, Movement.DynamicDirect(
@@ -69,11 +80,6 @@ namespace Arterra.Data.Entity.Behavior {
                 ref path.pathFinder, self.PathCollider, target.origin,
                 MMove.MovementType(mmove, settings.TaskName)
             ), RunSpeed, movement.rotSpeed, self.DeltaTime, GameEvent.Action_Run);
-
-            if (ColliderUpdateBehavior.GetColliderDist(self, target) < manager.settings.ContactDistance) {
-                manager.Transition(settings.OnReachAttacker);
-                return;
-            }
         }
 
         private void RespondToAttack(object clrId, object atkrId) {

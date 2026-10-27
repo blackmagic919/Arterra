@@ -94,13 +94,14 @@ namespace Arterra.Data.Entity.Behavior {
                 if (self.random.NextFloat() > chaseProb) return false;
                 if (friend.Is(out VitalityBehavior vit) && vit.IsDead) return false; 
                 
-                int3 destination = (int3)math.round(friend.origin) - self.PathCoord;
-                if(!path.FindPathOrApproachTarget(settings.TaskName, self.PathCoord, destination, PathDist + 1,
+                int3 pathOrigin = path.GetPathOrigin(settings.TaskName);
+                int3 destination = (int3)math.round(friend.origin) - pathOrigin;
+                if(!path.FindPathOrApproachTarget(settings.TaskName, pathOrigin, destination, PathDist + 1,
                     MMove.Profile(mmove, settings.TaskName, self.settings), EntityJob.cxt, out byte[] nPath))
                     return false;
-                path.SetPath(nPath);
+                path.SetPath(pathOrigin, nPath);
 
-                if (math.all(path.pathFinder.destination == self.PathCoord)) return false;
+                if (math.all(path.pathFinder.destination == pathOrigin)) return false;
                 return true;
             }
 
@@ -111,13 +112,14 @@ namespace Arterra.Data.Entity.Behavior {
                 float avoidProb = 1 - math.exp(-preference * prob);
                 if (self.random.NextFloat() > avoidProb) return false;
 
-                float3 aim = math.normalizesafe(self.PathCoord - (int3)math.round(enemy.origin));
-                if(!path.FindPathAlongRay(settings.TaskName, self.PathCoord, ref aim, PathDist + 1,
+                int3 pathOrigin = path.GetPathOrigin(settings.TaskName);
+                float3 aim = math.normalizesafe(pathOrigin - (int3)math.round(enemy.origin));
+                if(!path.FindPathAlongRay(settings.TaskName, pathOrigin, ref aim, PathDist + 1,
                     MMove.Profile(mmove, settings.TaskName, self.settings), EntityJob.cxt, out byte[] nPath))
                     return false;
-                path.SetPath(nPath);
+                path.SetPath(pathOrigin, nPath);
                 
-                if (math.all(path.pathFinder.destination == self.PathCoord)) return false;
+                if (math.all(path.pathFinder.destination == pathOrigin)) return false;
                 return true;
             }
 
