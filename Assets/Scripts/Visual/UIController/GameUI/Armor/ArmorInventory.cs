@@ -13,7 +13,7 @@ using Arterra.Editor;
 
 namespace Arterra.GamePlay.UI {
     public class ArmorInventory : IInventory {
-        private Catalogue<EquipableArmor> system => Config.CURRENT.System.Armor.value.Variants;
+        public Catalogue<EquipableArmor> system => Config.CURRENT.System.Armor.value.Variants;
         [JsonIgnore]
         public ArmorSlot[] Display;
         public IArmorItem[] Info;
@@ -261,17 +261,17 @@ namespace Arterra.GamePlay.UI {
         public interface IArmorItem : IItem {
             public EquipInfo GetEquipInfo();
             public void OnDamaged(ref float dmg, ref float3 knockback, ref Entity attacker);
-            public void OnEquipped(string armor);
-            public void OnUnequipped(string armor);
         }
         [Serializable]
         public struct EquipInfo {
+            public string ModelPath;
             public Option<List<Slot>> Regions;
             [Serializable]
             public struct Slot {
                 [RegistryReference("ArmorVariants")]
                 public string PlaceableSlot;
                 public int GroupReference;
+                public bool showBaseClothing;
             }
         }
     }

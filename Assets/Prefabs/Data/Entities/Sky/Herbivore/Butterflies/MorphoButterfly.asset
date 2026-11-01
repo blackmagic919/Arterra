@@ -21,7 +21,7 @@ MonoBehaviour:
           value:
             rid: -2
   Controller:
-    value: {fileID: 8756024530695903605, guid: 9657e6a06ada943f59992a59c81edc9b, type: 3}
+    value: Prefabs/Animals/MorphoButterfly
   Profile:
     value:
     - bounds:

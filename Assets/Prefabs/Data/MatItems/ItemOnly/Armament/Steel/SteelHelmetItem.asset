@@ -19,10 +19,12 @@ MonoBehaviour:
   TextureName: SteelHelmet
   Description: Durable Helmet Made of Steel
   EquipInfo:
+    ModelPath: Prefabs/Player/Armor/SteelHelmet
     Regions:
       value:
       - PlaceableSlot: Helmet
         GroupReference: 1
+        showBaseClothing: 0
   MaxDurability: 1500
   DamageReduction: 0.3
   KnockbackReduction: 0.15

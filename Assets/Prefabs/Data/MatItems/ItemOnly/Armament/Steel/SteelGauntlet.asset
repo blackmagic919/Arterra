@@ -19,12 +19,15 @@ MonoBehaviour:
   TextureName: SteelGauntlet
   Description: Durable Gauntlet Made of Steel
   EquipInfo:
+    ModelPath: Prefabs/Player/Armor/SteelGauntlet
     Regions:
       value:
       - PlaceableSlot: RightHand
         GroupReference: 1
+        showBaseClothing: 0
       - PlaceableSlot: LeftHand
         GroupReference: 2
+        showBaseClothing: 0
   MaxDurability: 1500
   DamageReduction: 0.1
   KnockbackReduction: 0.02

@@ -17,7 +17,7 @@ MonoBehaviour:
     Reg:
       value: []
   Controller:
-    value: {fileID: 1908375830853998594, guid: 8faa932f4533348788985465538d77dd, type: 3}
+    value: Prefabs/Animals/MoorishIdol
   Profile:
     value:
     - bounds:

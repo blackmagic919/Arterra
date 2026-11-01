@@ -17,7 +17,7 @@ MonoBehaviour:
     Reg:
       value: []
   Controller:
-    value: {fileID: 9045687092765437273, guid: f5a127809a16546488372de7b38413cd, type: 3}
+    value: Prefabs/Animals/Jellyfish
   Profile:
     value:
     - bounds:

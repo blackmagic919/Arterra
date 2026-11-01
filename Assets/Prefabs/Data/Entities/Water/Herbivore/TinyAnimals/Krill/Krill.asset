@@ -17,7 +17,7 @@ MonoBehaviour:
     Reg:
       value: []
   Controller:
-    value: {fileID: 862757727636746975, guid: 9df2c361d13c14b8ab156e3cf2dacd6f, type: 3}
+    value: Prefabs/Animals/Krill
   Profile:
     value:
     - bounds:

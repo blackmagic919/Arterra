@@ -19,10 +19,12 @@ MonoBehaviour:
   TextureName: LeatherHelmet
   Description: Wearable Helmet Made of Leather
   EquipInfo:
+    ModelPath: Prefabs/Player/Armor/LeatherHelmet
     Regions:
       value:
       - PlaceableSlot: Helmet
         GroupReference: 1
+        showBaseClothing: 0
   MaxDurability: 800
   DamageReduction: 0.1
   KnockbackReduction: 0.1

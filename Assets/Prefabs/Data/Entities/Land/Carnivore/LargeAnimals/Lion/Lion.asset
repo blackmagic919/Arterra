@@ -21,7 +21,7 @@ MonoBehaviour:
           value:
             rid: -2
   Controller:
-    value: {fileID: 7444842499540815504, guid: b058661615f864cf8ac4f6450e29e64c, type: 3}
+    value: Prefabs/Animals/Lion
   Profile:
     value:
     - bounds:

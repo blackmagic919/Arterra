@@ -19,12 +19,15 @@ MonoBehaviour:
   TextureName: SteelArmGuards
   Description: Durable Arm Guards Made of Steel
   EquipInfo:
+    ModelPath: Prefabs/Player/Armor/SteelGuards
     Regions:
       value:
       - PlaceableSlot: RightArmGuard
         GroupReference: 1
+        showBaseClothing: 0
       - PlaceableSlot: LeftArmGuard
         GroupReference: 1
+        showBaseClothing: 0
   MaxDurability: 1500
   DamageReduction: 0.15
   KnockbackReduction: 0.025

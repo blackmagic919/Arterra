@@ -15,6 +15,24 @@ using Arterra.Data.Entity.Behavior;
 
 namespace Arterra.Data.Entity.Behavior {
     public class PlayerArmorBehavior : SpeciesBehavior, PanelNavbarManager.INavPanel {
+        private ArmorVisuals visuals;
+        //UI Objects
+        private Armor settings;
+        private GameObject ArmorPanel;
+        private RectTransform ArmorMenu;
+
+        //Scene Objects
+        private Camera Camera;
+        private GameObject PlayerCamera;
+        private FreeCamera CamMovement;
+
+        public ArmorInventory Inventory;
+        private BehaviorEntity.Animal self;
+        private PlayerInventoriesBehavior inventories;
+        private bool IsDragging = false;
+        private bool ShowAllSlots = false;
+        private int SelectedIndex = -1;
+        private IItem Selected => SelectedIndex < 0 ? null : Inventory.Info[SelectedIndex];
         public override void AddBehaviorDependencies(System.Collections.Generic.Dictionary<Behaviors, int> hierarchy) {
             hierarchy.TryAdd(Behaviors.PlayerInventories, hierarchy.Count);
         }
@@ -52,7 +70,7 @@ namespace Arterra.Data.Entity.Behavior {
         private void TransferArmor(object source, object target, object context) {
             if (!Config.CURRENT.GamePlay.Gamemodes.value.KeepInventory || target is not Guid id
                 || !EntityManager.TryGetEntity(id, out Entity next) || !next.Is(out PlayerArmorBehavior replacement)) return;
-            bool display = replacement.ArmorPanel != null;
+            bool display = replacement.visuals != null;
             if (display) replacement.DisposeVisual(replacement.self);
             Inventory.UnapplyHandles();
             replacement.Inventory.UnapplyHandles();
@@ -64,25 +82,17 @@ namespace Arterra.Data.Entity.Behavior {
             if (display) replacement.InitializeVisual(replacement.self);
         }
 
-        //UI Objects
-        private Armor settings;
-        private GameObject ArmorPanel;
-        private RectTransform ArmorMenu;
-
-        //Scene Objects
-        private Camera Camera;
-        private GameObject PlayerCamera;
-        private FreeCamera CamMovement;
-
-        public ArmorInventory Inventory;
-        private BehaviorEntity.Animal self;
-        private PlayerInventoriesBehavior inventories;
-        private bool IsDragging = false;
-        private bool ShowAllSlots = false;
-        private int SelectedIndex = -1;
-        private IItem Selected => SelectedIndex < 0 ? null : Inventory.Info[SelectedIndex];
-        private ItemContext GetArmorCxt(ItemContext cxt) => cxt.SetupScenario(self, ItemContext.Scenario.ActivePlayerArmor);
         public override void InitializeVisual(BehaviorEntity.Animal self) {
+            Transform player = self.controller.transform.Find("Player");
+            if (visuals == null && player != null) {
+                Inventory.UnapplyHandles();
+                settings.Variants.Construct();
+                Transform skin = player.Find(settings.PlayerSkinBasePath);
+                SkinnedMeshRenderer renderer = skin != null ? skin.GetComponent<SkinnedMeshRenderer>() : null;
+                visuals = new ArmorVisuals(player, player.Find(settings.PlayerSkinRootBone), renderer?.bones);
+                self.Register(visuals);
+                Inventory.ReapplyHandles();
+            }
             if (!self.IsOwner || ArmorPanel != null) return;
             PlayerCamera = PlayerHandler.Viewer.Find("SelfCamera").gameObject;
             Camera = PlayerCamera.GetComponent<Camera>();
@@ -95,12 +105,8 @@ namespace Arterra.Data.Entity.Behavior {
             PlayerCamera.SetActive(false);
             ArmorPanel.SetActive(false);
 
-            settings.Variants.Construct();
-            settings.BindBones(self.controller.transform.Find("Player"));
-            Inventory.UnapplyHandles();
-            Inventory.AddCallbacks(GetArmorCxt, GetArmorCxt);
+            settings.BindBones(player);
             Inventory.InitializeDisplay(ArmorPanel);
-            Inventory.ReapplyHandles();
             PanelNavbarManager.Add(this, "Armor");
         }
 
@@ -140,13 +146,17 @@ namespace Arterra.Data.Entity.Behavior {
     public void Release() => DisposeVisual(self);
 
     public override void DisposeVisual(BehaviorEntity.Animal self) {
+        if (visuals != null) {
+            Inventory.UnapplyHandles();
+            visuals.Dispose();
+            self.Unregister(typeof(ArmorVisuals));
+            visuals = null;
+            Inventory.ReapplyHandles();
+        }
         if (ArmorPanel == null) return;
         if (ArmorPanel.activeSelf) Deactivate();
         PanelNavbarManager.Remove("Armor", release: false);
-        Inventory.UnapplyHandles();
         Inventory.ReleaseDisplay();
-        Inventory.AddCallbacks(SetupContext, SetupContext);
-        Inventory.ReapplyHandles();
         GameObject.Destroy(ArmorPanel);
         ArmorPanel = null;
     }
@@ -247,8 +257,8 @@ namespace Arterra.Data.Entity.Behavior {
 
             InputPoller.SuspendKeybindPropogation("Select", ActionBind.Exclusion.ExcludeLayerByName);
             inventories.RequestInteraction(
-                Arterra.Data.Entity.Behavior.PlayerInventoriesBehavior.InventoryAction.Armor,
-                Arterra.Data.Entity.Behavior.PlayerInventoriesBehavior.InventoryKind.Armor, SelectedIndex);
+                PlayerInventoriesBehavior.InventoryAction.Armor,
+                PlayerInventoriesBehavior.InventoryKind.Armor, SelectedIndex);
         }
         private void RotateCamera() {
             if (!IsDragging) return;

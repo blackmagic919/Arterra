@@ -193,7 +193,9 @@ namespace Arterra.Data.Entity.Behavior {
             this.self = self;
             invincibility = 0;
             MaxAccDamage = 0;
-            health = (float)CustomUtility.Sample(self.random, stats.StartHealthPercent, stats.StartHealthVariance);
+            health = (float)CustomUtility.Sample(
+                ref self.random, stats.StartHealthPercent,
+                stats.StartHealthVariance);
             health = math.clamp(health, 0, 1);
             health *= MaxHealth;
             TriggeredDeath = false;

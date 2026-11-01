@@ -21,7 +21,7 @@ MonoBehaviour:
           value:
             rid: -2
   Controller:
-    value: {fileID: 263103620081019413, guid: a76f5c034b4d243e88e312ec2c44970a, type: 3}
+    value: Prefabs/Animals/Crab
   Profile:
     value:
     - bounds:

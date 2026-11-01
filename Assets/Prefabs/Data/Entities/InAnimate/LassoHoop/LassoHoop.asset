@@ -17,7 +17,7 @@ MonoBehaviour:
     Reg:
       value: []
   Controller:
-    value: {fileID: 5489795332452210488, guid: 218351a49ec694253b39ec99517e5336, type: 3}
+    value: Prefabs/Animals/LassoHoop
   Profile:
     value: []
   _Setting:

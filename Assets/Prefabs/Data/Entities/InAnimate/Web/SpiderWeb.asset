@@ -17,7 +17,7 @@ MonoBehaviour:
     Reg:
       value: []
   Controller:
-    value: {fileID: 1957860278909418881, guid: 6036887e2f84b4b278f21f0b5fe94b92, type: 3}
+    value: Prefabs/Animals/Webs
   Profile:
     value: []
   _Setting:

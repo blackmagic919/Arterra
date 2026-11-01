@@ -43,6 +43,10 @@ MonoBehaviour:
         Bone:
           BonePath: hRig/spine/pelvis.R
         SelectRadius: 0.05
+  DefaultClothing:
+    value:
+    - value:
+        ObjectPath: Pants
   references:
     version: 2
     RefIds: []

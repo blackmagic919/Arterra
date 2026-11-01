@@ -17,7 +17,7 @@ MonoBehaviour:
     Reg:
       value: []
   Controller:
-    value: {fileID: 1363864841180675569, guid: 9f3da586f65d14207adc445c8018826b, type: 3}
+    value: Prefabs/Animals/ArcticHare
   Profile:
     value:
     - bounds:

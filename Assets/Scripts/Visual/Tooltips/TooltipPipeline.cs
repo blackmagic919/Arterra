@@ -58,9 +58,6 @@ namespace Arterra.GamePlay.UI.ToolTips {
         }
 
         public void ShowToolTipImmediate(TooltipData tooltip) => Show(tooltip, immediate: true);
-
-        protected override void CreateContent(TooltipConfig config) =>
-            GameObject.Instantiate(Resources.Load<GameObject>(config.PrefabPath), content);
     }
 
     /// <summary>

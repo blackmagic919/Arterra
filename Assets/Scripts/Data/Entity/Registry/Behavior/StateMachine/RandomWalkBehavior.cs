@@ -79,7 +79,7 @@ namespace Arterra.Data.Entity.Behavior {
 
         private bool TransitionTo() {
             manager.TaskDuration = (float)CustomUtility.Sample(
-                self.random, AverageWalkTime, AverageWalkVariance
+                ref self.random, AverageWalkTime, AverageWalkVariance
             );
             return true;
         }

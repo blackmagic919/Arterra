@@ -75,7 +75,7 @@ namespace Arterra.Data.Entity.Behavior {
 
         private bool TransitionTo() {
             manager.TaskDuration = (float)CustomUtility.Sample(
-                self.random, AverageFlightTime, AverageFlightVariance
+                ref self.random, AverageFlightTime, AverageFlightVariance
             );
             return true;
         }

@@ -17,7 +17,7 @@ MonoBehaviour:
     Reg:
       value: []
   Controller:
-    value: {fileID: 435428154833586252, guid: 8a78362c9c1db49cb8d76cd3d9e0df5e, type: 3}
+    value: Prefabs/Animals/Shark
   Profile:
     value:
     - bounds:

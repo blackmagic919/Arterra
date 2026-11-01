@@ -9,12 +9,18 @@ namespace Arterra.Configuration {
     public class EquipableArmor : Category<EquipableArmor> {
         public float TargetSlotDistance = 0.2f;
         public Option<List<Option<BoneRegion>>> Bones;
+        public Option<List<Option<ClothingBinding>>> DefaultClothing;
         public BoneRegion Root => Bones.value[0];
 
         [Serializable]
         public class BoneRegion {
             public BoneBinding Bone;
             public float SelectRadius;
+        }
+
+        [Serializable]
+        public class ClothingBinding {
+            public string ObjectPath;
         }
         [Serializable]
         public class BoneBinding {

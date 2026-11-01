@@ -238,6 +238,9 @@ namespace Arterra.Configuration {
         public bool BlockingTooltips;
 
         public object Clone() => MemberwiseClone();
+        public override void CreateContent(Transform slot) {
+            GameObject.Instantiate(Resources.Load<GameObject>(PrefabPath), slot);
+        }
     }
 
     // Tooltip dismissor tag data

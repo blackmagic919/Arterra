@@ -1,5 +1,16 @@
 ## [Unreleased]
 
+### Added
+- Support for multiplayer via P2P connections
+- Usage of custom protocol and endpoint setup in ArterraResources
+- Added Multi-sourced generation drivers 
+- Added armor models that show on equip
+
+### Fixed
+- Used simplex gradients and warp jacobian to more accurately simulate erosion
+- Greatly improved player animations
+- Armor UI was not showing
+
 ## [0.1.1] - 2026-09-24
 ### Added
 - In game volume controls

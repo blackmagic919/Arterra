@@ -38,15 +38,16 @@ namespace Arterra.Data.Item
             cxt.RegisterEvent(this, GameEvent.Apply_WeaponAttack, PlayerAttack);
             if (!cxt.IsOwner || cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
             if (cxt.TryGetHolder(out IEventControlled effect) && settings.Model.Enabled) 
-                effect.RaiseEvent(GameEvent.Item_HoldTool, effect is Entity.Entity ? ((Entity.Entity)effect).info.rtEntityId : effect, this, ref settings.Model.Value);
+                effect.RaiseEvent(GameEvent.Item_HoldTool, 
+                    this, ref settings.Model.Value);
             Core.ArterraRuntime.MainLoopUpdateTasks.Enqueue(this);
             this.active = true; this.cxt = cxt;
             
-                InputPoller.AddBinding(new ActionBind(
-                    "Remove", _ => RequestAttack(cxt),
-                    ActionBind.Exclusion.ExcludeLayer),
-                    "ITEM::WeaponTool:RM", "5.0::GamePlay"
-                );
+            InputPoller.AddBinding(new ActionBind(
+                "Remove", _ => RequestAttack(cxt),
+                ActionBind.Exclusion.ExcludeLayer),
+                "ITEM::WeaponTool:RM", "5.0::GamePlay"
+            );
             
         }
 
@@ -54,7 +55,7 @@ namespace Arterra.Data.Item
             cxt.UnregisterEvent(GameEvent.Apply_WeaponAttack);
             if (!cxt.IsOwner || cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
             if (cxt.TryGetHolder(out IEventControlled effect) && settings.Model.Enabled) 
-                effect.RaiseEvent(GameEvent.Item_UnholdTool, effect is Entity.Entity ? ((Entity.Entity)effect).info.rtEntityId : effect, this, ref settings.Model.Value);
+                effect.RaiseEvent(GameEvent.Item_UnholdTool, this, ref settings.Model.Value);
             this.active = false;
             this.cxt = null;
             
@@ -90,6 +91,8 @@ namespace Arterra.Data.Item
         private void RequestAttack(ItemContext context) {
             if (!context.TryGetHolder(out BehaviorEntity.Animal player)) return;
             if (!player.Is(out PlayerInteractionBehavior interact)) return;
+            if (interact.AttackCooldown > 0) return;
+            
             interact.AttackCooldown = settings.AttackCooldown;
             context.RaiseEvent(GameEvent.Apply_WeaponAttack);
         }
@@ -103,7 +106,7 @@ namespace Arterra.Data.Item
                 * interact.settings.ReachDistance;
 
             if (settings.OnUseAnim.Enabled && player is IEventControlled effectable)
-                effectable.RaiseEvent(GameEvent.Item_UseTool, player.info.rtEntityId, this, ref settings.OnUseAnim.Value);
+                effectable.RaiseEvent(GameEvent.Item_UseTool, this, ref settings.OnUseAnim.Value);
                     
             if (interact.RayTestSolid(out float3 terrHit)) hitPt = terrHit;
             if (!EntityManager.ESTree.FindClosestAlongRay(player.head, hitPt, player.info.rtEntityId, out Entity.Entity entity, out _))

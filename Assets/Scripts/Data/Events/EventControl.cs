@@ -159,8 +159,9 @@ namespace Arterra.Core.Events {
         public void AddEventHandler<T>(GameEvent type, RefEventHandler handler) => Events.AddEventHandler(type, handler);
         public void RemoveEventHandler<T>(GameEvent type, RefEventHandler handler) => Events.RemoveEventHandler(type, handler);
         public void AddContextlessEventHandler<T>(GameEvent type, Action<object, object> handler) => Events.AddContextlessEventHandler(type, handler);
-        public void RaiseEvent<T>(GameEvent type, object actor, object target, ref T ctx) => Events.RaiseEvent(type, actor, target, ctx);
-        public void RaiseEvent(GameEvent type, object actor, object target) => Events.RaiseEvent(type, actor, target);
+        public void RaiseEvent<T>(GameEvent type, object target, ref T ctx) => Events.RaiseEvent(type, ActorId, target, ctx);
+        public void RaiseEvent(GameEvent type, object target) => Events.RaiseEvent(type, ActorId, target);
+        public Guid ActorId { get; }
         public EventControl Events {get;}
     }
 

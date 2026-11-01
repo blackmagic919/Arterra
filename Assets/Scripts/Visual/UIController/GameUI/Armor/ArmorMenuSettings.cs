@@ -14,6 +14,8 @@ namespace Arterra.Data.Intrinsic {
         /// referring to Armor Display.  </summary>
         [RegistryReference("Textures")]
         public string DisplayIcon;
+        public string PlayerSkinBasePath = "Retop_Body";
+        public string PlayerSkinRootBone = "hRig/spine";
         public float ShrinkDistance = 0.05f;
         public float SeperationDistance = 0.15f;
         public Color BaseLineColor = Color.white;

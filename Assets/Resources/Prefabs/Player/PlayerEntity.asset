@@ -17,7 +17,7 @@ MonoBehaviour:
     Reg:
       value: []
   Controller:
-    value: {fileID: 2758236328317862729, guid: 3f474f15b1873425baffca027dfebe50, type: 3}
+    value: Prefabs/Player/PlayerController
   Profile:
     value:
     - bounds:
@@ -75,47 +75,53 @@ MonoBehaviour:
           value:
           - value:
               value:
-                rid: 6692794842124910754
+                rid: 6692795048646148277
           - value:
               value:
-                rid: 6692794842124910755
+                rid: 6692795048646148278
           - value:
               value:
-                rid: 6692794842124910756
+                rid: 6692795048646148279
           - value:
               value:
-                rid: 6692794842124910757
+                rid: 6692795048646148280
           - value:
               value:
-                rid: 6692794842124910758
+                rid: 6692795048646148281
           - value:
               value:
-                rid: 6692794842124910759
+                rid: 6692795048646148282
           - value:
               value:
-                rid: 6692794842124910760
+                rid: 6692795048646148283
           - value:
               value:
-                rid: 6692794842124910761
+                rid: 6692795048646148284
           - value:
               value:
-                rid: 6692794842124910762
+                rid: 6692795048646148285
           - value:
               value:
-                rid: 6692794842124910763
+                rid: 6692795048646148286
           - value:
               value:
-                rid: 6692794842124910764
+                rid: 6692795048646148287
       _prevBehaviorCount: 16
   references:
     version: 2
     RefIds:
-    - rid: 6692794842124910754
+    - rid: 6692795048646148276
+      type: {class: DizzinessEffect, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        Strength: 1
+        Duration: Infinity
+        EffectIcon: DizzinessIcon
+    - rid: 6692795048646148277
       type: {class: ColliderUpdateSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
         interactType: 0
         UseGravity: 1
-    - rid: 6692794842124910755
+    - rid: 6692795048646148278
       type: {class: PhysicalitySetting, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
         weight: 50
@@ -124,21 +130,21 @@ MonoBehaviour:
         MaxHealth: 20
         NaturalRegen: 0.01
         InvincTime: 0.25
-    - rid: 6692794842124910756
+    - rid: 6692795048646148279
       type: {class: Decomposition, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
         LootTable:
           value:
-          - ItemName: GameMeat
+          - ItemName: Meat
             DropAmount: 0.075
-    - rid: 6692794842124910757
+    - rid: 6692795048646148280
       type: {class: MapInteractorSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
         interactType: 0
         HoldBreathTime: 10
         Bouyancy: -1
         UseFallDamage: 1
-    - rid: 6692794842124910758
+    - rid: 6692795048646148281
       type: {class: PlayerInventorySettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
         PrimarySlotCount: 5
@@ -146,7 +152,7 @@ MonoBehaviour:
         RecoverSpeedMultiplier: 25
         SelectedColor: {r: 0.6792453, g: 0.5261536, b: 0.33641866, a: 0.39215687}
         BaseColor: {r: 0.6862745, g: 0.6862745, b: 0.6862745, a: 0.39215687}
-    - rid: 6692794842124910759
+    - rid: 6692795048646148282
       type: {class: PlayerCameraSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
         Sensitivity: 2
@@ -155,7 +161,7 @@ MonoBehaviour:
         MaximumX: 90
         smooth: 0
         smoothTime: 5
-    - rid: 6692794842124910760
+    - rid: 6692795048646148283
       type: {class: PlayerMovementSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
         walkSpeed: 3
@@ -163,7 +169,7 @@ MonoBehaviour:
         jumpForce: 5
         groundStickDist: 0.05
         flightSpeedMultiplier: 3
-    - rid: 6692794842124910761
+    - rid: 6692795048646148284
       type: {class: PlayerInteractionSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
         TerraformRadius: 1
@@ -178,17 +184,19 @@ MonoBehaviour:
         AttackDamage: 2
         AttackFrequency: 0.25
         KnockBackStrength: 10
-    - rid: 6692794842124910762
+    - rid: 6692795048646148285
       type: {class: PlayerEffectsSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
         AnimatorPath: Player
-    - rid: 6692794842124910763
+        AverageBlinkTime: 3
+        BlinkVariance: 0.5
+    - rid: 6692795048646148286
       type: {class: StepSoundBehaviorSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
         StepDistance: 1.5
         TouchState: 0
         entityStepSound: 0
-    - rid: 6692794842124910764
+    - rid: 6692795048646148287
       type: {class: HungerSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
         MaxHungerHealthColor: {r: 1, g: 0, b: 0, a: 1}
@@ -262,7 +270,7 @@ MonoBehaviour:
             name: 4
             behavior:
               value:
-                rid: 6692794842124910765
+                rid: 6692795048646148276
         Exercises:
           value:
           - trigger: 3017
@@ -280,9 +288,3 @@ MonoBehaviour:
         startingPercent: 1.5
         baseStarveRate: 0.0001
         feedMultiplier: 0.1
-    - rid: 6692794842124910765
-      type: {class: DizzinessEffect, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
-      data:
-        Strength: 1
-        Duration: Infinity
-        EffectIcon: DizzinessIcon

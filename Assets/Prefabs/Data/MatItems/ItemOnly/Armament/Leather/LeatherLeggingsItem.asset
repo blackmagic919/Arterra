@@ -19,10 +19,12 @@ MonoBehaviour:
   TextureName: LeatherLeggings
   Description: Wearable Pants Made of Leather
   EquipInfo:
+    ModelPath: Prefabs/Player/Armor/LeatherPants
     Regions:
       value:
       - PlaceableSlot: Leggings
         GroupReference: 1
+        showBaseClothing: 0
   MaxDurability: 800
   DamageReduction: 0.1
   KnockbackReduction: 0.1

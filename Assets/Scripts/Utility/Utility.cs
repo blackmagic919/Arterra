@@ -308,7 +308,7 @@ namespace Arterra.Utils {
 
         public static Unity.Mathematics.Random SeedRng(int hash) => new Unity.Mathematics.Random((uint)(hash ^ Config.CURRENT.Seed));
 
-        public static double Sample(Unity.Mathematics.Random rng, double mean, double variance) {
+        public static double Sample(ref Unity.Mathematics.Random rng, double mean, double variance) {
             double u1 = 1.0 - rng.NextDouble(); // (0,1]
             double u2 = 1.0 - rng.NextDouble();
 

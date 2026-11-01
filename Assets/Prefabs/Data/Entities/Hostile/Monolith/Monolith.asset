@@ -17,7 +17,7 @@ MonoBehaviour:
     Reg:
       value: []
   Controller:
-    value: {fileID: 2418125290398583344, guid: eb5a61fdd28b0479f90066785e3e1807, type: 3}
+    value: Prefabs/Animals/Monolith
   Profile:
     value:
     - bounds:

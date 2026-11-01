@@ -18,10 +18,8 @@ public abstract class Authoring : Category<Authoring>{
     public virtual Entity Entity{get; }
     /// <summary> A reference to the readonly shared settings that all instances of this entity uses. See <see cref="EntitySetting"/> for more information</summary>
     public virtual EntitySetting Setting{get; set;}
-    /// <summary> A reference to the controller responsible for displaying the entity. The controller is the visual gameobject
-    /// representing the entity whose display is managed by Unity. </summary>
-    [UIHidden][JsonIgnore]
-    public Option<GameObject> Controller;
+    /// <summary> Resources path of the controller prefab, without the file extension. </summary>
+    public Option<string> Controller;
     /// <summary> A list of points defining the profile of the entity, the list is linearly encoded through the dimensions
     /// specified in <see cref="EntitySetting.ProfileInfo"/>. See <see cref="ProfileE"/> for more information </summary>
     public Option<List<ProfileE>> Profile;
@@ -45,6 +43,7 @@ public abstract class Entity: IRegistered, IEventControlled{
         && Arterra.GamePlay.PlayerHandler.data != null
         && Arterra.GamePlay.PlayerHandler.data.info.rtEntityId == info.rtEntityId;
     [JsonIgnore] public virtual bool VisualActive => false;
+    public Guid ActorId => info.rtEntityId;
 
     public virtual void InitializeVisual() { }
     public virtual void DisposeVisual() { }

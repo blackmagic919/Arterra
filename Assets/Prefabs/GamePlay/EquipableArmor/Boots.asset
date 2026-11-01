@@ -27,6 +27,10 @@ MonoBehaviour:
         Bone:
           BonePath: hRig/spine/thigh.R/shin.R/foot.R
         SelectRadius: 0.1
+  DefaultClothing:
+    value:
+    - value:
+        ObjectPath: Boots
   references:
     version: 2
     RefIds: []

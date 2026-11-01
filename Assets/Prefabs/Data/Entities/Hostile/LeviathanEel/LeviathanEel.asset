@@ -17,7 +17,7 @@ MonoBehaviour:
     Reg:
       value: []
   Controller:
-    value: {fileID: 6191056119190147178, guid: c7d9a5adb8ffc4b7ebcaa8003742308b, type: 3}
+    value: Prefabs/Animals/LeviathanEel
   Profile:
     value:
     - bounds:

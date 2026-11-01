@@ -17,7 +17,7 @@ MonoBehaviour:
     Reg:
       value: []
   Controller:
-    value: {fileID: 2888932847785352030, guid: 762912c73ba224af2a13d1caa3755bc3, type: 3}
+    value: Prefabs/Animals/SpiderMutant
   Profile:
     value:
     - bounds:
@@ -416,7 +416,7 @@ MonoBehaviour:
         TaskName: 50100
         OnLostAttacker: 100
         OnReachAttacker: 30600
-        ChaseDistance: 24
+        ChaseDistance: 32
     - rid: 3097083922518114532
       type: {class: RunFromPredatorSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
@@ -447,8 +447,8 @@ MonoBehaviour:
     - rid: 3097083922518114639
       type: {class: Movement, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
-        walkSpeed: 2.1
-        runSpeed: 5.5
+        walkSpeed: 4
+        runSpeed: 10
         pathDistance: 32
         rotSpeed: 180
     - rid: 3097084037468258397
@@ -500,12 +500,12 @@ MonoBehaviour:
         Variants:
           value:
           - TriggerAnim: AttackR
-            AttackChance: 0.011363644
+            AttackChance: 0.0068965564
             AttackDuration: 0.25
             AttackDamage: 7.5
             Knockback: 10
           - TriggerAnim: AttackL
-            AttackChance: 1
+            AttackChance: 1.0000001
             AttackDuration: 0.25
             AttackDamage: 7.5
             Knockback: 10

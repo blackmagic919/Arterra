@@ -17,7 +17,7 @@ MonoBehaviour:
     Reg:
       value: []
   Controller:
-    value: {fileID: 1513989328087953977, guid: ed44e613a5a8e43eea7ce08f03bf33e3, type: 3}
+    value: Prefabs/Animals/RockGolem
   Profile:
     value:
     - bounds:

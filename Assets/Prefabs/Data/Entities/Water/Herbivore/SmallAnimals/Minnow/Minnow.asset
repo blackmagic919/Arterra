@@ -17,7 +17,7 @@ MonoBehaviour:
     Reg:
       value: []
   Controller:
-    value: {fileID: 6063595616544400903, guid: 4f6e8e29260eb4bc39852742f952aa82, type: 3}
+    value: Prefabs/Animals/Minnow
   Profile:
     value:
     - bounds:

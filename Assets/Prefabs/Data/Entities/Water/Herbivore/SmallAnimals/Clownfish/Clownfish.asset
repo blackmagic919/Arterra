@@ -21,7 +21,7 @@ MonoBehaviour:
           value:
             rid: -2
   Controller:
-    value: {fileID: 6914161578373423669, guid: d14ed3eb31b1041a0822b1b2e12a69e9, type: 3}
+    value: Prefabs/Animals/Clownfish
   Profile:
     value:
     - bounds:

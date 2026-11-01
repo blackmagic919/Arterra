@@ -236,7 +236,7 @@ AnimatorState:
   m_TimeParameter: 
 --- !u!1107 &-3574638853757956219
 AnimatorStateMachine:
-  serializedVersion: 6
+  serializedVersion: 7
   m_ObjectHideFlags: 1
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
@@ -245,13 +245,13 @@ AnimatorStateMachine:
   m_ChildStates:
   - serializedVersion: 1
     m_State: {fileID: -7140656570579664486}
-    m_Position: {x: 0, y: 0, z: 0}
+    m_Position: {x: 270, y: 170, z: 0}
   - serializedVersion: 1
     m_State: {fileID: 8382845044424553644}
-    m_Position: {x: 0, y: 0, z: 0}
+    m_Position: {x: 460, y: -130, z: 0}
   - serializedVersion: 1
     m_State: {fileID: -4561088851409321854}
-    m_Position: {x: 0, y: 0, z: 0}
+    m_Position: {x: 750, y: -130, z: 0}
   m_ChildStateMachines: []
   m_AnyStateTransitions: []
   m_EntryTransitions: []
@@ -366,7 +366,7 @@ AnimatorController:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: LionAnimator
-  serializedVersion: 5
+  serializedVersion: 6
   m_AnimatorParameters:
   - m_Name: IsDead
     m_Type: 4
@@ -423,6 +423,7 @@ AnimatorController:
     m_IKPass: 0
     m_SyncedLayerAffectsTiming: 0
     m_Controller: {fileID: 9100000}
+  m_EvaluateTransitionsOnStart: 0
 --- !u!1101 &1818127212257105168
 AnimatorStateTransition:
   m_ObjectHideFlags: 1
@@ -737,7 +738,7 @@ AnimatorState:
   m_TimeParameter: 
 --- !u!1107 &8253532335394674606
 AnimatorStateMachine:
-  serializedVersion: 6
+  serializedVersion: 7
   m_ObjectHideFlags: 1
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}

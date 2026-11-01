@@ -5,6 +5,7 @@ using UnityEngine;
 using Arterra.Data.Material;
 using Arterra.Configuration;
 using Arterra.GamePlay.UI;
+using Arterra.GamePlay;
 
 namespace Arterra.Data.Item
 {
@@ -27,8 +28,7 @@ namespace Arterra.Data.Item
         protected static Catalogue<Authoring> ItemInfo => Config.CURRENT.Generation.Items;
         protected static Catalogue<MaterialData> MatInfo => Config.CURRENT.Generation.Materials.value.MaterialDictionary;
         protected static Catalogue<TextureContainer> TextureAtlas => Config.CURRENT.Generation.Textures;
-        [JsonIgnore]
-        public int TexIndex => TextureAtlas.RetrieveIndex(ItemInfo.Retrieve(Index).TextureName);
+        [JsonIgnore] public int TexIndex => TextureAtlas.RetrieveIndex(ItemInfo.Retrieve(Index).TextureName);
         private ArmorItemAuthoring settings => ItemInfo.Retrieve(Index) as ArmorItemAuthoring;
 
         [JsonIgnore]
@@ -53,8 +53,19 @@ namespace Arterra.Data.Item
             this.durability = settings.MaxDurability;
         }
         public void UpdateEItem() { }
-        public void OnEnter(ItemContext cxt){ this.cxt = cxt; }
-        public void OnLeave(ItemContext cxt){ this.cxt = null; }
+        public void OnEnter(ItemContext cxt) {
+            this.cxt = cxt;
+            if (!cxt.TryGetInventory(out ArmorInventory inventory)) return;
+            if (!cxt.TryGetHolder(out Entity.Entity entity) || !entity.Is(out ArmorVisuals visuals)) return;
+            visuals.Register(this, inventory, cxt.InvId);
+        }
+
+        public void OnLeave(ItemContext cxt) {
+            this.cxt = null;
+            if (!cxt.TryGetInventory(out ArmorInventory inventory)) return;
+            if (!cxt.TryGetHolder(out Entity.Entity entity) || !entity.Is(out ArmorVisuals visuals)) return;
+            visuals.Unregister(this, cxt.InvId);
+        }
         public ArmorInventory.EquipInfo GetEquipInfo() { return settings.EquipInfo; }
         public void OnDamaged(ref float dmg, ref float3 knockback, ref Entity.Entity attacker) {
             float previousDurability = durability;
@@ -63,12 +74,12 @@ namespace Arterra.Data.Item
             knockback *= 1 - settings.KnockbackReduction;
 
             if (durability > 0) {
-                if (durability != previousDurability) cxt?.SetDirty();
+                if (durability != previousDurability)
+                    cxt?.SetDirty();
                 return;
             }
             cxt.TryRemove();
         }
-        public void OnEquipped(string armorName) {}
         public void OnUnequipped(string armorName) {}
 
         protected GameObject display;

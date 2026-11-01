@@ -750,11 +750,13 @@ namespace Arterra.Data.Entity.Behavior {
 
         public void AddItem(IItem item) {
             if (item == null) return;
-            if (Primary.EntryDict.ContainsKey(item.Index)) Primary.AddStackable(item);
-            if (item.AmountRaw == 0) return;
-            Secondary.AddStackable(item);
+            if (Secondary.EntryDict.ContainsKey(item.Index)
+                && !Primary.EntryDict.ContainsKey(item.Index))
+                Secondary.AddStackable(item);
             if (item.AmountRaw == 0) return;
             Primary.AddStackable(item);
+            if (item.AmountRaw == 0) return;
+            Secondary.AddStackable(item);
             if (item.AmountRaw != 0) SpawnDrop(item, self.position);
         }
 

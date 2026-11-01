@@ -235,7 +235,7 @@ namespace Arterra.Data.Entity.Behavior {
 
         private bool TransitionTo() {
             manager.TaskDuration = (float)CustomUtility.Sample(
-                self.random, AverageFlightTime, AverageFlightVariance
+                ref self.random, AverageFlightTime, AverageFlightVariance
             );
             if (math.all(moveDirection == float3.zero))
                 moveDirection = Movement.RandomDirection(ref self.random);

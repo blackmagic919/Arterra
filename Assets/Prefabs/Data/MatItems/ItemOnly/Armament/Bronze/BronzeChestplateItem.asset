@@ -19,10 +19,12 @@ MonoBehaviour:
   TextureName: BronzeChestplate
   Description: Wearable ChestPlate Made of Bronze
   EquipInfo:
+    ModelPath: Prefabs/Player/Armor/BronzeChestplate
     Regions:
       value:
       - PlaceableSlot: Chestplate
         GroupReference: 1
+        showBaseClothing: 0
   MaxDurability: 1100
   DamageReduction: 0.3
   KnockbackReduction: 0.2

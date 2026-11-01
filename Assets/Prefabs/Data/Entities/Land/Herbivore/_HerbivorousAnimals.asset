@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2983eef72a70244a28e76d3fd1b716cd, type: 3}
   m_Name: _HerbivorousAnimals
   m_EditorClassIdentifier: Assembly-CSharp::Arterra.Data.Entity.EntityCategory
-  Name: 
+  Name: Herbivore
   Tags:
     Reg:
       value:

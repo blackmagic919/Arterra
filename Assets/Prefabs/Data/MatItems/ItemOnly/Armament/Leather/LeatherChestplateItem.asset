@@ -19,10 +19,12 @@ MonoBehaviour:
   TextureName: LeatherChestplate
   Description: Wearable ChestPlate Made of Leather
   EquipInfo:
+    ModelPath: Prefabs/Player/Armor/LeatherChestplate
     Regions:
       value:
       - PlaceableSlot: Chestplate
         GroupReference: 1
+        showBaseClothing: 0
   MaxDurability: 800
   DamageReduction: 0.2
   KnockbackReduction: 0.1

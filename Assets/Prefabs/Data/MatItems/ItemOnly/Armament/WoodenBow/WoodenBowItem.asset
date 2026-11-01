@@ -26,7 +26,7 @@ MonoBehaviour:
   ArrowItemTag: 10000
   Model:
     Enabled: 1
-    Value: {fileID: 6080310472489319789, guid: e34e851d2c1f2419ba0c91564dd9e755, type: 3}
+    Value: Prefabs/Player/Weapons/WoodenBow
   references:
     version: 2
     RefIds: []

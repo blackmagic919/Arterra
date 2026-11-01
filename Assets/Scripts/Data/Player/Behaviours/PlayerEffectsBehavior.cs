@@ -10,6 +10,7 @@ using Unity.Mathematics;
 using UnityEngine;
 using Arterra.Engine.Audio;
 using Arterra.Core.Network;
+using Arterra.Utils;
 
 namespace Arterra.Data.Entity.Behavior {
     /// <summary>
@@ -20,6 +21,8 @@ namespace Arterra.Data.Entity.Behavior {
         ///<summary>Name of settings object in UI generation</summary>
         [JsonIgnore] public static string Name => "Animator";
         public string AnimatorPath = "Player";
+        public float AverageBlinkTime = 3.0f;
+        public float BlinkVariance = 0.5f;
 
         public object Clone() {
             return new PlayerEffectsSettings {
@@ -40,9 +43,11 @@ namespace Arterra.Data.Entity.Behavior {
         private BehaviorEntity.Animal self;
         private Animator animator;
         private GameObject heldItem;
+        private double timeToBlink;
         private bool isSwimming;
         private bool isShaking;
         private FMOD.Studio.EventInstance SubmergedSound;
+        const string HANDLE_BONE_PATH = "Player/hRig/spine/spine.001/spine.002/spine.003/shoulder.L/upper_arm.L/forearm.L/hand.L/handle";
 
         public override void AddSettingsDependencies(Dictionary<Type, IBehaviorSetting> hierarchy) {
             hierarchy.TryAdd(typeof(PlayerEffectsSettings), new PlayerEffectsSettings());
@@ -58,6 +63,10 @@ namespace Arterra.Data.Entity.Behavior {
             this.self = self;
             self.Register(this);
             ResolveAnimator(self);
+            timeToBlink = CustomUtility.Sample(
+                ref self.random, settings.AverageBlinkTime,
+                settings.BlinkVariance
+            );
             isSwimming = false;
             isShaking = false;
             BindEvents(self);
@@ -93,6 +102,15 @@ namespace Arterra.Data.Entity.Behavior {
             animator.SetFloat("Speed", speed);
             float angle = Mathf.Atan2(velocity.z, velocity.x) / Mathf.PI;
             animator.SetFloat("MoveTheta", Mathf.Lerp(animator.GetFloat("MoveTheta"), angle, 0.35f));
+
+            //Blinking
+            timeToBlink -= self.ExactDeltaTime;
+            if (timeToBlink > 0) return;
+            timeToBlink = CustomUtility.Sample(
+                ref self.random, settings.AverageBlinkTime,
+                settings.BlinkVariance
+            );
+            animator.SetTrigger("Blink");
         }
 
 
@@ -130,7 +148,6 @@ namespace Arterra.Data.Entity.Behavior {
             // Keep animator states in sync with entity events raised by movement/interaction behaviors.
             Bind(GameEvent.Action_Jump, (_, _, __) => SetBool("IsJumping", true));
             Bind(GameEvent.Item_ConsumeFood, (_, _, __) => SetTrigger("Eat"));
-            Bind(GameEvent.Action_RemoveTerrain, (_, _, __) => SetTrigger("Place"));
             Bind(GameEvent.Action_PlaceTerrain, (_, _, __) => SetTrigger("Place"));
             Bind(GameEvent.Action_LookDirect, (_, _, cxt) => PlayLookDirect(cxt));
             Bind(GameEvent.System_Deserialize, PlayDeserialize);
@@ -145,7 +162,8 @@ namespace Arterra.Data.Entity.Behavior {
                 SetBool("IsSwimming", false);
             });
             Bind(GameEvent.Action_DismountRideable, (_, _, __) => SetBool("IsSitting", false));
-            Bind(GameEvent.Entity_Attack, (_, _, __) => SetTrigger(UnityEngine.Random.Range(0, 2) == 0 ? "PunchR" : "PunchL"));
+            Bind(GameEvent.Action_RemoveTerrain, (_, _, __) => SetTrigger("Punch"));
+            Bind(GameEvent.Entity_Attack, (_, _, __) => SetTrigger("Punch"));
             Bind(GameEvent.Item_HoldTool, (_, _, cxt) => PlayHoldTool(cxt));
             Bind(GameEvent.Item_UnholdTool, (_, _, __) => PlayUnholdTool());
             Bind(GameEvent.Item_UseTool, (_, _, cxt) => {
@@ -245,9 +263,11 @@ namespace Arterra.Data.Entity.Behavior {
 
         private void PlayHoldTool(object cxt) {
             if (self?.controller?.transform == null) return;
-            if (cxt is not GameObject model || model == null) return;
+            if (cxt is not string modelPath || modelPath == null) return;
+            GameObject model = Resources.Load<GameObject>(modelPath);
+            if (model == null) return;
 
-            Transform handle = self.controller.transform.Find("Player/hRig/spine/spine.001/spine.002/spine.003/shoulder.L/upper_arm.L/forearm.L/hand.L/handle");
+            Transform handle = self.controller.transform.Find(HANDLE_BONE_PATH);
             if (handle == null) return;
 
             if (heldItem != null) {

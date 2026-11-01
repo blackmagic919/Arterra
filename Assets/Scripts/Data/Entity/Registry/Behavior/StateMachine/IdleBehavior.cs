@@ -45,7 +45,8 @@ namespace Arterra.Data.Entity.Behavior {
         }
 
         private bool TransitionTo() {
-            manager.TaskDuration = (float)CustomUtility.Sample(self.random, AverageIdleTime, AverageIdleVariance);
+            manager.TaskDuration = (float)CustomUtility.Sample(
+                ref self.random, AverageIdleTime, AverageIdleVariance);
             return true;
         }
 

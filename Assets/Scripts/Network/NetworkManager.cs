@@ -108,7 +108,7 @@ namespace Arterra.Core.Network {
             void ShowDisconnectPopup(Scene scene, LoadSceneMode mode) {
                 if (scene.name != "MainMenu") return;
                 SceneManager.sceneLoaded -= ShowDisconnectPopup;
-                PopupHandler.Instance.CreatePopup(new PopupHandler.PopupConfig {
+                PopupHandler.Instance.CreatePopup(new PopupHandler.TextPopupConfig {
                     Text = message,
                     Priority = PopupPriority.High
                 });

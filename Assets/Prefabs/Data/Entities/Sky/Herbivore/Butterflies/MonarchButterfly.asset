@@ -21,7 +21,7 @@ MonoBehaviour:
           value:
             rid: -2
   Controller:
-    value: {fileID: 2213818148618205409, guid: da4bcb92b36344434bc943f301ec129f, type: 3}
+    value: Prefabs/Animals/MonarchButterfly
   Profile:
     value:
     - bounds:

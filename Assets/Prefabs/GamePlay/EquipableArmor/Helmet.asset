@@ -23,6 +23,10 @@ MonoBehaviour:
         Bone:
           BonePath: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006
         SelectRadius: 0.1
+  DefaultClothing:
+    value:
+    - value:
+        ObjectPath: Hair
   references:
     version: 2
     RefIds: []

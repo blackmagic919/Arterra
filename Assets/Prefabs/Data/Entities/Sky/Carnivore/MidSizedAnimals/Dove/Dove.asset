@@ -21,7 +21,7 @@ MonoBehaviour:
           value:
             rid: -2
   Controller:
-    value: {fileID: 7134452703683011941, guid: 2e5a7cff3da864d768cd63c711ffac61, type: 3}
+    value: Prefabs/Animals/Dove
   Profile:
     value:
     - bounds:

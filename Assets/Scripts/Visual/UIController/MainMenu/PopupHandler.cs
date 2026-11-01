@@ -84,10 +84,20 @@ namespace Arterra.GamePlay.UI {
 
         [Serializable]
         public class PopupConfig {
-            public string Text;
             // Seconds since enqueue; infinity requires explicit acknowledgment.
             public float AcknowledgeTime = float.PositiveInfinity;
             public PopupPriority Priority = PopupPriority.Medium;
+            public virtual void CreateContent(Transform slot){}
+        }
+
+        public class TextPopupConfig : PopupConfig {
+            public string Text;
+            public override void CreateContent(Transform slot) {
+                var message = Resources.Load<GameObject>(MessagePrefab);
+                message = GameObject.Instantiate(message, slot);
+                var text = message.GetComponentInChildren<TextMeshProUGUI>();
+                if (text != null) text.text = Text;
+            }
         }
 
         public class PopupData<TConfig> where TConfig : PopupConfig {
@@ -168,7 +178,7 @@ namespace Arterra.GamePlay.UI {
 
             private void SwitchDisplay() {
                 ClearContent();
-                if (ActivePopup != null) CreateContent(ActivePopup.Config);
+                if (ActivePopup != null) ActivePopup.Config.CreateContent(content);
                 SegmentedUIEditor.ForceLayoutRefresh(Slot.transform);
                 animator.SetBool("IsOpen", ActivePopup != null);
             }
@@ -178,13 +188,6 @@ namespace Arterra.GamePlay.UI {
                     child.gameObject.SetActive(false);
                     GameObject.Destroy(child.gameObject);
                 }
-            }
-
-            protected virtual void CreateContent(TConfig config){
-                    var message = Resources.Load<GameObject>(MessagePrefab);
-                    message = GameObject.Instantiate(message, content);
-                    var text = message.GetComponentInChildren<TextMeshProUGUI>();
-                    if (text != null) text.text = config.Text;
             }
         }
 

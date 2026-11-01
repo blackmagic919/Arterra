@@ -17,7 +17,7 @@ MonoBehaviour:
     Reg:
       value: []
   Controller:
-    value: {fileID: 5653881121737289674, guid: b67ed8c7396614e0082806b1792cbf68, type: 3}
+    value: Prefabs/Animals/EItem
   Profile:
     value:
     - bounds:

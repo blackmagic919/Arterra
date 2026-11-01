@@ -19,10 +19,12 @@ MonoBehaviour:
   TextureName: LeatherBoots
   Description: Wearable Boots Made of Leather
   EquipInfo:
+    ModelPath: Prefabs/Player/Armor/LeatherBoots
     Regions:
       value:
       - PlaceableSlot: Boots
         GroupReference: 1
+        showBaseClothing: 0
   MaxDurability: 800
   DamageReduction: 0.05
   KnockbackReduction: 0.1

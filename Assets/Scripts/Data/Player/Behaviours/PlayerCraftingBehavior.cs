@@ -416,7 +416,7 @@ namespace Arterra.Data.Entity.Behavior {
         for (int i = 0; i < itemCount; i++) {
             IItem item = (IItem)result.Clone();
             item.Create((int)recipe.result.Index, amount);
-            ec?.RaiseEvent(GameEvent.Action_CraftItem, ec is Arterra.Data.Entity.Entity entity ? entity.info.rtEntityId : ec, item);
+            ec?.RaiseEvent(GameEvent.Action_CraftItem, item);
             owner.AddItem(item);
 
             totalAmount -= amount;

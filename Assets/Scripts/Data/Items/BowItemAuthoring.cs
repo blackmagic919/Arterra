@@ -16,7 +16,7 @@ namespace Arterra.Data.Item{
         public float MaxLaunchSpeed = 20.0f;
         public float MinLaunchSpeed = 5.0f;
         public TagRegistry.Tags ArrowItemTag;
-        public Optional<GameObject> Model;
+        public Optional<string> Model;
     }
 
     public class BowItem : IItem {
@@ -62,7 +62,7 @@ namespace Arterra.Data.Item{
 
             if (!cxt.IsOwner || cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
             if (cxt.TryGetHolder(out IEventControlled effect) && settings.Model.Enabled)
-                effect.RaiseEvent(GameEvent.Item_HoldTool, effect is Entity.Entity ? ((Entity.Entity)effect).info.rtEntityId : effect, this, ref settings.Model.Value);
+                effect.RaiseEvent(GameEvent.Item_HoldTool, this, ref settings.Model.Value);
             InputPoller.AddBinding(new ActionBind(
                 "BowDraw", _ => cxt.RaiseEvent(GameEvent.Apply_DrawBow),
                 ActionBind.Exclusion.ExcludeLayer), "ITEM:Bow:DRW", "5.0::GamePlay");
@@ -85,11 +85,11 @@ namespace Arterra.Data.Item{
 
             if (!cxt.IsOwner || cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
             if (cxt.TryGetHolder(out IEventControlled effect) && settings.Model.Enabled) 
-                effect.RaiseEvent(GameEvent.Item_UnholdTool, effect is Entity.Entity ? ((Entity.Entity)effect).info.rtEntityId : effect, this, ref settings.Model.Value);
+                effect.RaiseEvent(GameEvent.Item_UnholdTool, this, ref settings.Model.Value);
             InputPoller.RemoveBinding("ITEM:Bow:DRW", "5.0::GamePlay");
             InputPoller.RemoveBinding("ITEM:Bow:RLS", "5.0::GamePlay");
             if (cxt.TryGetHolder(out effect))
-                effect.RaiseEvent(GameEvent.Item_ReleaseBow, effect is Entity.Entity ? ((Entity.Entity)effect).info.rtEntityId : effect, this);
+                effect.RaiseEvent(GameEvent.Item_ReleaseBow, this);
             
         }
 
@@ -100,7 +100,7 @@ namespace Arterra.Data.Item{
                 return;
             };
             if (cxt.TryGetHolder(out IEventControlled effect))
-                effect.RaiseEvent(GameEvent.Item_DrawBow, effect is Entity.Entity ? ((Entity.Entity)effect).info.rtEntityId : effect, this);
+                effect.RaiseEvent(GameEvent.Item_DrawBow, this);
             drawTime += Time.deltaTime;
         }
 

@@ -92,7 +92,7 @@ namespace Arterra.Data.Item
             cxt.RegisterEvent(this, GameEvent.Item_FishingLine, ReceiveLine, authority: false);
             if (!cxt.IsOwner || cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
             if (cxt.TryGetHolder(out IEventControlled effect) && settings.Model.Enabled) 
-                effect.RaiseEvent(GameEvent.Item_HoldTool, effect is Entity.Entity ? ((Entity.Entity)effect).info.rtEntityId : effect, this, ref settings.Model.Value);
+                effect.RaiseEvent(GameEvent.Item_HoldTool, this, ref settings.Model.Value);
             
                 InputPoller.AddBinding(new ActionBind(
                     "BowDraw", _ => cxt.RaiseEvent(GameEvent.Apply_DrawRod),
@@ -117,14 +117,14 @@ namespace Arterra.Data.Item
 
             if (!cxt.IsOwner || cxt.scenario != ItemContext.Scenario.ActivePlayerSelected) return;
             if (cxt.TryGetHolder(out IEventControlled effect) && settings.Model.Enabled)
-                effect.RaiseEvent(GameEvent.Item_UnholdTool, effect is Entity.Entity ? ((Entity.Entity)effect).info.rtEntityId : effect, this, ref settings.Model.Value);
+                effect.RaiseEvent(GameEvent.Item_UnholdTool, this, ref settings.Model.Value);
             
             InputPoller.RemoveBinding("ITEM:FishingRod:DRW", "5.0::GamePlay");
             InputPoller.RemoveBinding("ITEM:FishingRod:FIRE", "5.0::GamePlay");
             InputPoller.RemoveBinding("ITEM:FishingRod:REEL", "5.0::GamePlay");
             InputPoller.RemoveBinding("ITEM:FishingRod:RLS", "5.0::GamePlay");
             if (cxt.TryGetHolder(out effect))
-                effect.RaiseEvent(GameEvent.Item_ReleaseBow, effect is Entity.Entity ? ((Entity.Entity)effect).info.rtEntityId : effect, this);
+                effect.RaiseEvent(GameEvent.Item_ReleaseBow, this);
             
         }
 
@@ -155,7 +155,7 @@ namespace Arterra.Data.Item
             if (castPending || line != null && line.Active) return;
 
             if (cxt.TryGetHolder(out IEventControlled effect))
-                effect.RaiseEvent(GameEvent.Item_DrawRod, effect is Entity.Entity ? ((Entity.Entity)effect).info.rtEntityId : effect, this);
+                effect.RaiseEvent(GameEvent.Item_DrawRod, this);
             drawTime += Time.deltaTime;
         }
 

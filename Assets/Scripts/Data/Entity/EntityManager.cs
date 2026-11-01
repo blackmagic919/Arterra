@@ -169,7 +169,7 @@ public static class EntityManager
 
         EntityIndex.Add(nEntity.info.rtEntityId, nEntity);
         EntityReg.Add(nEntity);
-        nEntity.Initialize(authoring.Setting, authoring.Controller, GCoord);
+        nEntity.Initialize(authoring.Setting, Resources.Load<GameObject>(authoring.Controller), GCoord);
         nEntity.transform.Register(nEntity);
         ESTree.Insert(nEntity);
         InitializeLocalVisual(nEntity);
@@ -187,7 +187,7 @@ public static class EntityManager
 
         EntityIndex.Add(sEntity.info.rtEntityId, sEntity);
         EntityReg.Add(sEntity);
-        sEntity.Deserialize(authoring.Setting, authoring.Controller, out _);
+        sEntity.Deserialize(authoring.Setting, Resources.Load<GameObject>(authoring.Controller), out _);
         sEntity.transform.Register(sEntity);
         ESTree.Insert(sEntity);
         InitializeLocalVisual(sEntity);
@@ -276,7 +276,7 @@ public static class EntityManager
                 && Config.CURRENT.GamePlay.PlayerSettings.value.value != null
                 ? Config.CURRENT.GamePlay.PlayerSettings.value
                 : PlayerBehavior.DefaultPlayerAnimalSetting;
-            behaviorAuthoring.Controller.value = Resources.Load<GameObject>("Prefabs/Player/PlayerController");
+            behaviorAuthoring.Controller.value = "Prefabs/Player/PlayerController";
 
             return behaviorAuthoring;
         }

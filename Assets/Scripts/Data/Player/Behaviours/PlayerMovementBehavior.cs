@@ -556,7 +556,7 @@ namespace Arterra.Data.Entity.Behavior {
 
             public bool TryAddHandles(Entity mount) {
                 if (mount == null || !mount.active) return false;
-                if (ReferenceEquals(this.mount?.AsEntity, mount)) return true;
+                if (this.mount?.AsEntity.info.rtEntityId == mount.info.rtEntityId) return true;
                 string currentState = InputPoller.PeekTop(owner.UpdateLayer)?.Split("::").First();
                 if (owner.self.IsAuthority && !OverridableStates.Contains(currentState)) {
                     mount.eventCtrl.EnqueueEvent(GameEvent.Action_Dismounted,

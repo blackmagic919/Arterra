@@ -97,7 +97,9 @@ namespace Arterra.Data.Entity.Behavior {
             if (!self.Is(out collider)) collider = null;
 
             ConditionalTransitions = new Dictionary<EntitySMTasks, Func<bool> >();
-            TaskDuration = (float)CustomUtility.Sample(self.random, settings.AverageStartDuration, settings.AverageStartDurationVariance);
+            TaskDuration = (float)CustomUtility.Sample(
+                ref self.random, settings.AverageStartDuration,
+                settings.AverageStartDurationVariance);
             TaskIndex = settings.StartTask;
             TaskPosition = (int3)GCoord;
             TaskTarget = Guid.Empty;

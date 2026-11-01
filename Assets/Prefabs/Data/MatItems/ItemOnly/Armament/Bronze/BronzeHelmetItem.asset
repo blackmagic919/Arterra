@@ -19,10 +19,12 @@ MonoBehaviour:
   TextureName: BronzeHelmet
   Description: Wearable Helmet Made of Bronze
   EquipInfo:
+    ModelPath: Prefabs/Player/Armor/BronzeHelmet
     Regions:
       value:
       - PlaceableSlot: Helmet
         GroupReference: 1
+        showBaseClothing: 0
   MaxDurability: 1100
   DamageReduction: 0.2
   KnockbackReduction: 0.15

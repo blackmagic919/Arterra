@@ -19,10 +19,12 @@ MonoBehaviour:
   TextureName: SteelChestplate
   Description: Durable ChestPlate Made of Steel
   EquipInfo:
+    ModelPath: Prefabs/Player/Armor/SteelChestplate
     Regions:
       value:
       - PlaceableSlot: Chestplate
         GroupReference: 1
+        showBaseClothing: 0
   MaxDurability: 1500
   DamageReduction: 0.4
   KnockbackReduction: 0.25
