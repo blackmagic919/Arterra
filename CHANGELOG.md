@@ -1,5 +1,7 @@
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-01
+
 ### Added
 - Support for multiplayer via P2P connections
 - Usage of custom protocol and endpoint setup in ArterraResources
