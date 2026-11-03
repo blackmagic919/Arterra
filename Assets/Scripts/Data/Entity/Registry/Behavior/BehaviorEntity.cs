@@ -473,6 +473,7 @@ namespace Arterra.Data.Entity.Behavior {
             public override void Initialize(EntitySetting setting, GameObject Controller, float3 GCoord) {
                 settings = (AnimalSetting)setting;
                 eventCtrl.Register(this);
+
                 this.random = new Unity.Mathematics.Random((uint)GetHashCode());
                 this.controller = new AnimalController(Controller, this);
                 
@@ -487,6 +488,8 @@ namespace Arterra.Data.Entity.Behavior {
                 foreach(Behavior behavior in Behaviors) {
                     behavior.Initialize(this, settings, GCoord);
                 }
+
+                transform.Register(this);
                 //Clear constructor
                 this.Constructor = null;
                 this.eventCtrl.AddContextlessEventHandler(GameEvent.Entity_AddBehavior, AddBehaviorEvent);
@@ -517,6 +520,7 @@ namespace Arterra.Data.Entity.Behavior {
             public override void Deserialize(EntitySetting setting, GameObject Controller, out int3 GCoord) {
                 settings = (AnimalSetting)setting;
                 eventCtrl.Register(this);
+
                 if (DynamicTypes == null) BindDeserializedBehaviors();
                 this.controller = new AnimalController(Controller, this);
                 GCoord = default;
@@ -524,6 +528,7 @@ namespace Arterra.Data.Entity.Behavior {
                 foreach(Behavior behavior in Behaviors) 
                     behavior.Deserialize(this, settings, ref GCoord);
                 
+                transform.Register(this);
                 this.eventCtrl.AddContextlessEventHandler(GameEvent.Entity_AddBehavior, AddBehaviorEvent);
                 this.eventCtrl.AddContextlessEventHandler(GameEvent.Entity_RemoveBehavior, RemoveBehaviorEvent);
                 controller.Initialize(transform);

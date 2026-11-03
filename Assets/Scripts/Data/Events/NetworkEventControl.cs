@@ -45,6 +45,19 @@ namespace Arterra.Core.Events {
             networkEventStream.Fire(ev, RecieveEvent);
         }
 
+        public override void RaiseEvent(GameEvent type, object actor, object target, object ctx = null) 
+            => RaiseEvent(type, actor, target, ctx, false);
+
+        public void RaiseEvent(GameEvent type, object actor, object target, object ctx = null, bool local = false) {
+            RaisedEvent newEvent = new (type, actor, target, ctx);
+            if (remoteSubscription.TryGetValue(type, out var subscribers) && !local) {
+                var recipients = NetworkManager.IsActingServer
+                    ? subscribers
+                    : null;
+                networkEventStream.Fire(newEvent, RecieveEvent, recipients);
+            } else RecieveEvent(newEvent);
+        }
+
         // Exchange current subscriptions; gameplay events are never replayed.
         public void Sync() {
             if (!TransportManager.Instance.IsRunning) return;
@@ -84,18 +97,6 @@ namespace Arterra.Core.Events {
             if (hadHandlers) {
                 unsubscriptionStream.Fire(type);
             }
-        }
-
-        public override void RaiseEvent(GameEvent type, object actor, object target, object ctx = null) 
-            => RaiseEvent(type, actor, target, ctx, false);
-        public void RaiseEvent(GameEvent type, object actor, object target, object ctx = null, bool local = false) {
-            RaisedEvent newEvent = new (type, actor, target, ctx);
-            if (remoteSubscription.TryGetValue(type, out var subscribers) && !local) {
-                var recipients = NetworkManager.IsActingServer
-                    ? subscribers
-                    : null;
-                networkEventStream.Fire(newEvent, RecieveEvent, recipients);
-            } else RecieveEvent(newEvent);
         }
 
         public void EnqueueEvent(GameEvent type, object actor, object target, object ctx = null, bool local = false) {

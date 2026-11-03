@@ -87,7 +87,7 @@ namespace Arterra.Data.Entity.Behavior
             Transform root = self.controller.gameObject.transform;
             for(int i = 0; i < lSettings.Count; i++){
                 if(appendages[i] == null) {
-                    appendages[i] = new Leg();
+                    appendages[i] = new Leg(i);
                     appendages[i].Initialize(self, lSettings[i], root);
                 } else appendages[i].Deserialize(self, lSettings[i], root);
                 this.appendages[i].SetConstraint<TwoBoneIKConstraint>();
@@ -188,13 +188,11 @@ namespace Arterra.Data.Entity.Behavior
         private class Leg : LeadHeadBehavior.Appendage {
             private const string LegGravityStateName = "MultiPedalBehavior::Leg";
 
-            [JsonIgnore]
-            private MultiPedalBehavior mp;
-            [JsonIgnore]
-            public MultiPedalSettings.LegSettings settings;
-            [JsonProperty]
-            public float3 TargetPosition;
+            [JsonIgnore] private MultiPedalBehavior mp;
+            [JsonIgnore] public MultiPedalSettings.LegSettings settings;
+            [JsonProperty] public float3 TargetPosition;
             public StepState State;
+            [JsonProperty] private int index;
 
             [JsonIgnore] public float LegLength => collider.transform.size.y;
             [JsonIgnore] public float3 desiredBody => restPos - math.mul(mp.LeadHead.BodyCollider.transform.rotation, settings.RestOffset);
@@ -206,12 +204,14 @@ namespace Arterra.Data.Entity.Behavior
             }
             [JsonConstructor]
             public Leg() {} //Newtonsoft path
+            public Leg(int index) { this.index = index; } //Newtonsoft path
+
             public override void Initialize(BehaviorEntity.Animal self, LeadHeadBehavior.AppendageSettings settings, Transform root) {
                 this.settings = settings as MultiPedalSettings.LegSettings;
                 if(!self.Is(out mp)) throw new Exception("Entity: MultiPedalBehavior Leg expected entity to be MultiPedalBehavior");
-                this.collider = new(settings.collider, mp.LeadHead.BodyPosition + settings.RestOffset);
+                this.collider = new(settings.collider, mp.LeadHead.BodyPosition + settings.RestOffset, $"MultiPedal+{index}");
                 this.collider.SetGravityState(LegGravityStateName, TerrainCollider.GravityPriority.Override, true);
-
+                
                 base.Initialize(self, settings, root);
                 SetConstraint<TwoBoneIKConstraint>();
 

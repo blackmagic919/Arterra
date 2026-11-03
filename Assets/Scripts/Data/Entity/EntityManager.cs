@@ -170,7 +170,6 @@ public static class EntityManager
         EntityIndex.Add(nEntity.info.rtEntityId, nEntity);
         EntityReg.Add(nEntity);
         nEntity.Initialize(authoring.Setting, Resources.Load<GameObject>(authoring.Controller), GCoord);
-        nEntity.transform.Register(nEntity);
         ESTree.Insert(nEntity);
         InitializeLocalVisual(nEntity);
     }
@@ -188,12 +187,12 @@ public static class EntityManager
         EntityIndex.Add(sEntity.info.rtEntityId, sEntity);
         EntityReg.Add(sEntity);
         sEntity.Deserialize(authoring.Setting, Resources.Load<GameObject>(authoring.Controller), out _);
-        sEntity.transform.Register(sEntity);
         ESTree.Insert(sEntity);
         InitializeLocalVisual(sEntity);
     }
 
     private static void InitializeLocalVisual(Entity entity) {
+        PlayerHandler.BindViewer(entity);
         if (!entity.IsAuthority || (ChunkGenerationDriver.Local != null
             && CPUMapManager.TryGetChunkInfo(GetChunkCoordinate(entity.position), out var chunk)
             && chunk.Generation.GetDriverSet().Contains(ChunkGenerationDriver.Local)))

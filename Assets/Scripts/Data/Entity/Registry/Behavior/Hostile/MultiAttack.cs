@@ -43,14 +43,13 @@ namespace Arterra.Data.Entity.Behavior {
     public class MultiAttackBehavior : SpeciesBehavior {
         private MultiAttackSettings settings;
         private AnimatedBehavior animated;
-        private AttackBehavior attack;
         public int SelectedAttack;
-        private bool PlayingAttack;
 
         public void OnPrepareAttack(object selfId, object targetId, object cxt) {
             if (selfId is not Guid selfGuid) return;
             if (!EntityManager.TryGetEntity(selfGuid, out Entity self)) return;
             if (self is not BehaviorEntity.Animal selfAnimal) return;
+            if (!selfAnimal.IsAuthority || settings.Variants.value.Count == 0) return;
             float attackProb = selfAnimal.random.NextFloat();
 
             RefTuple<float> data = cxt as RefTuple<float>;
@@ -67,6 +66,8 @@ namespace Arterra.Data.Entity.Behavior {
             }
             SelectedAttack = left;
             data.Value = settings.Variants.value[SelectedAttack].AttackDuration;
+            // Attack preparation runs in simulation; deliver animation on the main thread.
+            self.eventCtrl.EnqueueEvent(GameEvent.Entity_PlayAttackAnimation, selfGuid, targetId, SelectedAttack);
         }
 
         public void OnAttack(object srcId, object tgtId, object cxt) {
@@ -77,16 +78,10 @@ namespace Arterra.Data.Entity.Behavior {
             SelectedAttack = -1;
         }
 
-        public override void Update(BehaviorEntity.Animal self) {
-            if (self.context != BehaviorEntity.UpdateContext.Sync) return;
-            if(animated == null || attack == null) return;
-            
-            if (!attack.AttackInProgress) PlayingAttack = false;
-            if (SelectedAttack == -1) return;
-            if (!PlayingAttack && attack.AttackInProgress) {
-                animated.SetTrigger(settings.Variants.value[SelectedAttack].TriggerAnim);
-                PlayingAttack = true;
-            }
+        private void OnPlayAttackAnimation(object source, object target, object context) {
+            if (context is not int variant || (uint)variant >= settings.Variants.value.Count) return;
+            if (animated?.animator == null) return;
+            animated.SetTrigger(settings.Variants.value[variant].TriggerAnim);
         }
 
 
@@ -98,21 +93,25 @@ namespace Arterra.Data.Entity.Behavior {
             if (!setting.Is(out settings))
                 throw new System.Exception("Entity: MultiAttack Behavior Requires AnimalSettings to have MultiAttackSettings");
             if (!self.Is(out animated)) animated = null;
-            if (!self.Is(out attack)) attack = null;
+            self.eventCtrl.AddEventHandler(GameEvent.Entity_PlayAttackAnimation, OnPlayAttackAnimation);
             if (self.IsAuthority) self.eventCtrl.AddEventHandler(GameEvent.Entity_ReadyAttack, OnPrepareAttack);
             if (self.IsAuthority) self.eventCtrl.AddEventHandler(GameEvent.Entity_Attack, OnAttack);
             SelectedAttack = -1;
-            PlayingAttack = false;
         }
 
         public override void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
             if (!setting.Is(out settings))
                 throw new System.Exception("Entity: MultiAttack Behavior Requires AnimalSettings to have MultiAttackSettings");
             if (!self.Is(out animated)) animated = null;
-            if (!self.Is(out attack)) attack = null;
+            self.eventCtrl.AddEventHandler(GameEvent.Entity_PlayAttackAnimation, OnPlayAttackAnimation);
             if (self.IsAuthority) self.eventCtrl.AddEventHandler(GameEvent.Entity_ReadyAttack, OnPrepareAttack);
             if (self.IsAuthority) self.eventCtrl.AddEventHandler(GameEvent.Entity_Attack, OnAttack);
-            PlayingAttack = false;
+        }
+
+        public override void Disable(BehaviorEntity.Animal self) {
+            self.eventCtrl.RemoveEventHandler(GameEvent.Entity_PlayAttackAnimation, OnPlayAttackAnimation);
+            self.eventCtrl.RemoveEventHandler(GameEvent.Entity_ReadyAttack, OnPrepareAttack);
+            self.eventCtrl.RemoveEventHandler(GameEvent.Entity_Attack, OnAttack);
         }
     }
 }

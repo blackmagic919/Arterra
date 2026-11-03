@@ -61,8 +61,14 @@ void CSMain (uint3 id : SV_DispatchThreadID)
 
     //Obtain random seed
     int3 chunkCoord = oCCoord - offsetCoord;
-    uint seed = (Random(chunkCoord) ^ Random(LoD)) + overlapOffset;
-    uint numPoints = uint((numPoints0 * pow(abs(LoDFalloff), -LoD)) / chunkOverlap + RandomFloat(seed)); //Random to process fractional points 
+    uint seed = (Random(chunkCoord) ^ Random(LoD));
+    uint totalPoints = uint(
+        numPoints0 * pow(abs(LoDFalloff), -LoD)
+        + RandomFloat(seed)
+    );
+    uint numPoints = totalPoints / chunkOverlap
+        + (overlapOffset < totalPoints % chunkOverlap ? 1u : 0u);
+    seed += overlapOffset;
 
     uint appendInd = 0;
     InterlockedAdd(counter[bCOUNTER], numPoints, appendInd);

@@ -35,8 +35,8 @@ MonoBehaviour:
     FireSound: 2001
   BaitTag: 10001
   Model:
-    Enabled: 0
-    Value: {fileID: 0}
+    Enabled: 1
+    Value: Prefabs/Player/Tools/FishingRod
   references:
     version: 2
     RefIds: []

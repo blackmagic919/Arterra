@@ -85,8 +85,7 @@ namespace Arterra.Data.Item
         protected GameObject display;
         public virtual void AttachDisplay(Transform parent, int itemInd)
         {
-            if (display != null)
-            {
+            if (display != null) {
                 display.transform.SetParent(parent, false);
                 return;
             }

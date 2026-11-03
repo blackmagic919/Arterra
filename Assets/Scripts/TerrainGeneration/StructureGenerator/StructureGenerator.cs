@@ -469,11 +469,11 @@ public class Creator
             prunedStart = Mathf.CeilToInt((float)StructureEndInd_W / STRUCTURE_STRIDE_WORD);
             int PrunedEndInd_W = prunedStart * STRUCTURE_STRIDE_WORD + maxStructurePoints * STRUCTURE_STRIDE_WORD;
 
-            sampleStart = Mathf.CeilToInt((float)PrunedEndInd_W / SAMPLE_STRIDE_WORD); //U for unit, W for word
+            sampleStart = Mathf.CeilToInt((float)StructureEndInd_W / SAMPLE_STRIDE_WORD); //U for unit, W for word
             int SampleEndInd_W = sampleStart * SAMPLE_STRIDE_WORD + maxStructurePoints * SAMPLE_STRIDE_WORD;
 
             //These two regions can be reused
-            checkStart = Mathf.CeilToInt((float)PrunedEndInd_W / CHECK_STRIDE_WORD);
+            checkStart = Mathf.CeilToInt((float)math.max(PrunedEndInd_W, SampleEndInd_W) / CHECK_STRIDE_WORD);
             int CheckEndInd_W = checkStart * CHECK_STRIDE_WORD + maxStructurePoints * CHECK_STRIDE_WORD;
             this.offsetEnd = math.max(CheckEndInd_W, SampleEndInd_W);
         }

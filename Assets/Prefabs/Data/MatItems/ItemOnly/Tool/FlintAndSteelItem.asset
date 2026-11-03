@@ -26,7 +26,7 @@ MonoBehaviour:
     Value: 
   Model:
     Enabled: 0
-    Value: {fileID: 0}
+    Value: 
   ConverterTag: 1000
   references:
     version: 2

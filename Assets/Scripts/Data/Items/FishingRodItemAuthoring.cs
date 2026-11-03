@@ -44,7 +44,7 @@ namespace Arterra.Data.Item
         /// <summary> If none, it will always cast Hook Entity, which can be useful
         /// if we don't want the rod to take an item from the holder's inventory and cast it </summary>
         public TagRegistry.Tags BaitTag = TagRegistry.Tags.None;
-        public Optional<GameObject> Model;
+        public Optional<string> Model;
     }
 
     [Serializable]
@@ -98,8 +98,9 @@ namespace Arterra.Data.Item
                     "BowDraw", _ => cxt.RaiseEvent(GameEvent.Apply_DrawRod),
                     ActionBind.Exclusion.ExcludeLayer), "ITEM:FishingRod:DRW", "5.0::GamePlay");
                 InputPoller.AddBinding(new ActionBind(
-                    "BowRelease", _ => cxt.RaiseEvent(GameEvent.Apply_CastRod),
-                    ActionBind.Exclusion.ExcludeLayer), "ITEM:FishingRod:FIRE", "5.0::GamePlay");
+                    "BowDraw", _ => cxt.RaiseEvent(GameEvent.Apply_CastRod),
+                    ActionBind.Exclusion.ExcludeLayer,
+                    ActionBind.Policy.Up), "ITEM:FishingRod:FIRE", "5.0::GamePlay");
                 InputPoller.AddBinding(new ActionBind("ReelLine", _ => RequestLineChange(cxt, GameEvent.Apply_ReelRod, "ReelLine")), "ITEM:FishingRod:REEL", "5.0::GamePlay");
                 InputPoller.AddBinding(new ActionBind("ReleaseLine", _ => RequestLineChange(cxt, GameEvent.Apply_ReleaseRod, "ReleaseLine")), "ITEM:FishingRod:RLS", "5.0::GamePlay");
             

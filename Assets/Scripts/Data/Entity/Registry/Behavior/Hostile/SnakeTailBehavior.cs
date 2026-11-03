@@ -94,7 +94,7 @@ namespace Arterra.Data.Entity.Behavior
             Transform root = self.controller.gameObject.transform;
             for(int i = 0; i < lSettings.Count; i++){
                 if(appendages[i] == null) {
-                    appendages[i] = new TailSegment();
+                    appendages[i] = new TailSegment(i);
                     appendages[i].Initialize(self, lSettings[i], root);
                 } else appendages[i].Deserialize(self, lSettings[i], root);
             }
@@ -175,10 +175,9 @@ namespace Arterra.Data.Entity.Behavior
         private class TailSegment : LeadHeadBehavior.Appendage {
             private const string TailGravityStateName = "SnakeTailBehavior::Tail";
 
-            [JsonIgnore]
-            private SnakeTailBehavior st;
-            [JsonIgnore]
-            public SnakeTailSettings.SegmentSettings settings;
+            [JsonIgnore] private SnakeTailBehavior st;
+            [JsonIgnore] public SnakeTailSettings.SegmentSettings settings;
+            [JsonProperty] private int index;
             //Ignored
             private TerrainCollider PrevSegment;
             private TailSegment NextSegment;
@@ -194,9 +193,10 @@ namespace Arterra.Data.Entity.Behavior
 
             [JsonConstructor]
             public TailSegment() {} //Newtonsoft path
+            public TailSegment(int index) { this.index = index; } //Newtonsoft path
             public override void Initialize(BehaviorEntity.Animal self, LeadHeadBehavior.AppendageSettings settings, Transform root) {
                 this.settings = settings as SnakeTailSettings.SegmentSettings;
-                this.collider = new TerrainCollider(settings.collider, self.position);
+                this.collider = new TerrainCollider(settings.collider, self.position, $"SnakeTail+{index}");
                 collider.SetGravityState(TailGravityStateName, TerrainCollider.GravityPriority.Override, false);
 
                 base.Initialize(self, settings, root);
@@ -209,7 +209,7 @@ namespace Arterra.Data.Entity.Behavior
             public override void Deserialize(BehaviorEntity.Animal self, LeadHeadBehavior.AppendageSettings settings, Transform root) {
                 base.Deserialize(self, settings, root);
                 SetConstraint<MultiParentConstraint>();
-
+                
                 this.settings = settings as SnakeTailSettings.SegmentSettings;
                 if(!self.Is(out st)) throw new Exception("Entity: SnakeTail expected entity to be SnakeTaileBehavior");
                 active = true;

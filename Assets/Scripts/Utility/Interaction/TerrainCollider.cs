@@ -581,8 +581,8 @@ namespace Arterra.GamePlay.Interaction {
             deltVelocity = cxt; this.transform.velocity += deltVelocity;
         }
 
-        public TerrainCollider(in Settings settings, double3 position) {
-            this.transform = new Transform(position, 0, settings.size, Quaternion.identity);
+        public TerrainCollider(in Settings settings, double3 position, string prefix = null) {
+            this.transform = new Transform(position, 0, settings.size, Quaternion.identity, prefix);
             this.gravityStack = new StateStack<bool>(true, 8);
             this.gravityStack.Set(DefaultGravityState, GravityPriority.Default, true);
         }
@@ -596,10 +596,10 @@ namespace Arterra.GamePlay.Interaction {
             [JsonIgnore] public Quaternion rotation { get => netRotation.Value; set => netRotation.Value = value; }
             [JsonIgnore] public float3 velocity { get => netVelocity.Value; set => netVelocity.Value = value; }
             public float3 size;
-            public Transform(double3 position, float3 velocity, float3 size, Quaternion rotation) {
-                netPosition = new("Position", writePerm: NetworkPermission.Owner, initialValue: position, waitForDelivery: false);
-                netRotation = new("Rotation", writePerm: NetworkPermission.Owner, initialValue: rotation, waitForDelivery: false);
-                netVelocity = new("Velocity", writePerm: NetworkPermission.Owner, initialValue: velocity);
+            public Transform(double3 position, float3 velocity, float3 size, Quaternion rotation, string prefix) {
+                netPosition = new($"{prefix}|Position", writePerm: NetworkPermission.Owner, initialValue: position, waitForDelivery: false);
+                netRotation = new($"{prefix}|Rotation", writePerm: NetworkPermission.Owner, initialValue: rotation, waitForDelivery: false);
+                netVelocity = new($"{prefix}|Velocity", writePerm: NetworkPermission.Owner, initialValue: velocity);
                 this.size = size;
             }
 

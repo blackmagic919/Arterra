@@ -9,6 +9,7 @@ using Unity.Mathematics;
 using System.Linq;
 using TerrainCollider = Arterra.GamePlay.Interaction.TerrainCollider;
 using Arterra.Core.Storage;
+using Arterra.Core.Network;
 using UnityEngine.Animations.Rigging;
 using Arterra.Data.Item;
 using Arterra.Utils;
@@ -88,7 +89,7 @@ namespace Arterra.Data.Entity.Behavior
             Transform root = self.controller.gameObject.transform;
 			for(int i = 0; i < tSettings.Count; i++) {
 				if(tentacles[i] == null) {
-					tentacles[i] = new Tentacle();
+					tentacles[i] = new Tentacle(i);
 					tentacles[i].Initialize(self, tSettings[i], root);
 				} else tentacles[i].Deserialize(self, tSettings[i], root);
 			}
@@ -115,7 +116,8 @@ namespace Arterra.Data.Entity.Behavior
 
 		public override void Update(BehaviorEntity.Animal self) {
             if (self.context == BehaviorEntity.UpdateContext.Simulation) CoreUpdate(self);
-            if (self.context == BehaviorEntity.UpdateContext.Sync) ControllerUpdate(self);
+            if (self.context == BehaviorEntity.UpdateContext.Sync) AnimationUpdate(self);
+            if (self.context == BehaviorEntity.UpdateContext.Visual) ControllerUpdate(self);
         }
 
 		public void CoreUpdate(BehaviorEntity.Animal self) {
@@ -126,6 +128,11 @@ namespace Arterra.Data.Entity.Behavior
                 else l.UpdateMovement(self);
             };
 		}
+
+        private void AnimationUpdate(BehaviorEntity.Animal self) {
+            if (self.controller.gameObject == null || animated == null) return;
+            foreach (var c in tentacles) c.UpdateAnimation();
+        }
 
 		public void ControllerUpdate(BehaviorEntity.Animal self) {
 			if (self.controller.gameObject == null) return;
@@ -156,8 +163,10 @@ namespace Arterra.Data.Entity.Behavior
 			public TentacleSettings.TentacleConfig settings;
             private Transform AnimatedTentacle;
             public TentacleState State;
+            [JsonProperty] private NetworkVariable<float> constraintWeight;
             private Guid AttackTarget;
 			private TentacleBehavior tb;
+			[JsonProperty] private int index;
             public enum TentacleState {
                 Animated,
                 BlendAttack,
@@ -168,14 +177,18 @@ namespace Arterra.Data.Entity.Behavior
 
 			[JsonConstructor]
 			public Tentacle() {}
+			public Tentacle(int index) { this.index = index; }
 
 
 			public override void Initialize(BehaviorEntity.Animal self, LeadHeadBehavior.AppendageSettings settings, Transform root) {
-            self.controller.KeepAnimatorOnDisposeVisual = true;
+            	self.controller.KeepAnimatorOnDisposeVisual = true;
 				this.settings = settings as TentacleSettings.TentacleConfig;
-				this.collider = new(this.settings.collider, self.position + settings.RestOffset);
+				this.collider = new(this.settings.collider, self.position + settings.RestOffset, $"Tentacle+{index}");
 				this.collider.SetGravityState(TentacleGravityStateName, TerrainCollider.GravityPriority.Override, false);
 
+                constraintWeight = new NetworkVariable<float>($"Tentacle+{index}|ConstraintWeight",
+                    NetworkPermission.Server, initialValue: 0f, waitForDelivery: false);
+                constraintWeight.Register(self);
                 base.Initialize(self, settings, root);
                 SetConstraint<ChainIKConstraint>();
                 AnimatedTentacle = (constraint as ChainIKConstraint).data.tip;
@@ -190,7 +203,8 @@ namespace Arterra.Data.Entity.Behavior
 			}
 
 			public override void Deserialize(BehaviorEntity.Animal self, LeadHeadBehavior.AppendageSettings settings, Transform root) {
-            self.controller.KeepAnimatorOnDisposeVisual = true;
+            	self.controller.KeepAnimatorOnDisposeVisual = true;
+                constraintWeight.Register(self);
                 base.Deserialize(self, settings, root);
                 SetConstraint<ChainIKConstraint>();
 				AnimatedTentacle = (constraint as ChainIKConstraint).data.tip;
@@ -207,27 +221,34 @@ namespace Arterra.Data.Entity.Behavior
 
 
             public override void UpdateJobSync() {
-				base.UpdateJobSync();
-				if (State == TentacleState.BlendAttack) {
-					constraint.weight = math.lerp(constraint.weight, 1, Time.deltaTime * settings.Speed);
-					if (math.abs(constraint.weight - 1f) < 0.01f) {
-						constraint.weight = 1f;
-					} return;
-				} else if (State != TentacleState.BlendAnimate && State != TentacleState.Animated)
-					return;
+                base.UpdateJobSync();
+                constraint.weight = constraintWeight.Value;
+            }
 
-                if (State == TentacleState.BlendAnimate) {
-					constraint.weight = math.lerp(constraint.weight, 0, Time.deltaTime * settings.Speed);
-					if (math.abs(constraint.weight) < 0.01f) {
-						constraint.weight = 0f;
-						State = TentacleState.Animated;
-					} 
-                }
-				float3 animatedPos = CPUMapManager.WSToGS(AnimatedTentacle.transform.position);
+            // Runs only in the authority's Sync pass, including when visuals are hidden.
+            public void UpdateAnimation() {
+                base.UpdateJobSync();
+                float weight = constraintWeight.Value;
+                float targetWeight = State == TentacleState.Animated || State == TentacleState.BlendAnimate ? 0f : 1f;
+                weight = math.lerp(weight, targetWeight, math.saturate(Time.deltaTime * settings.Speed));
+                if (math.abs(weight - targetWeight) < 0.01f) weight = targetWeight;
+                if (weight != constraintWeight.Value) constraintWeight.Value = weight;
+                constraint.weight = weight;
+
+                if (State == TentacleState.BlendAnimate && weight == 0f)
+                    State = TentacleState.Animated;
+                if (State != TentacleState.Animated && State != TentacleState.BlendAnimate) return;
+
+                float3 animatedPos = CPUMapManager.WSToGS(AnimatedTentacle.transform.position);
                 float3 direction = math.normalizesafe(animatedPos - this.position);
-                if(math.dot(collider.transform.velocity, direction) < settings.Speed)
+                if (math.dot(collider.transform.velocity, direction) < settings.Speed)
                     collider.transform.velocity += settings.Acceleration * self.DeltaTime * direction;
-			}
+            }
+
+            public override void Disable() {
+                constraintWeight?.Dispose();
+                base.Disable();
+            }
 
             public void Update(BehaviorEntity.Animal self) {
                 float3 root = self.position + math.mul(self.Rotation, settings.RestOffset);
