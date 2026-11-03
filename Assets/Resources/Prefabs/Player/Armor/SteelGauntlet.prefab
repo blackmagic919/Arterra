@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 2348668179913387903}
   - component: {fileID: 9105875557853995615}
   m_Layer: 6
-  m_Name: SteelGuantlet
+  m_Name: SteelGauntlet
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

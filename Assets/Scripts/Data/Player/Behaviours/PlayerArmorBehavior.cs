@@ -89,7 +89,8 @@ namespace Arterra.Data.Entity.Behavior {
                 settings.Variants.Construct();
                 Transform skin = player.Find(settings.PlayerSkinBasePath);
                 SkinnedMeshRenderer renderer = skin != null ? skin.GetComponent<SkinnedMeshRenderer>() : null;
-                visuals = new ArmorVisuals(player, player.Find(settings.PlayerSkinRootBone), renderer?.bones);
+                visuals = new ArmorVisuals(player, player.Find(settings.PlayerSkinRootBone), renderer?.bones,
+                    LayerMask.NameToLayer(self.IsOwner ? "Self" : "Default"));
                 self.Register(visuals);
                 Inventory.ReapplyHandles();
             }

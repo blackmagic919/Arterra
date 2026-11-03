@@ -10,6 +10,7 @@ namespace Arterra.GamePlay {
         private readonly Transform rig;
         private readonly Transform rootBone;
         private readonly Transform[] bones;
+        private readonly int layer;
         private readonly Dictionary<GameObject, ClothingState> clothing = new();
         private readonly Dictionary<ArmorInventory.IArmorItem, Visual> items = new(new ItemIdentity());
 
@@ -28,10 +29,11 @@ namespace Arterra.GamePlay {
             public int GetHashCode(ArmorInventory.IArmorItem item) => RuntimeHelpers.GetHashCode(item);
         }
 
-        public ArmorVisuals(Transform rig, Transform rootBone, Transform[] bones) {
+        public ArmorVisuals(Transform rig, Transform rootBone, Transform[] bones, int layer) {
             this.rig = rig;
             this.rootBone = rootBone;
             this.bones = bones;
+            this.layer = layer;
         }
 
         public void Register(ArmorInventory.IArmorItem item, ArmorInventory inventory, int slot) {
@@ -43,6 +45,8 @@ namespace Arterra.GamePlay {
                 if (prefab == null) return;
                 if (prefab.GetComponentsInChildren<SkinnedMeshRenderer>(true).Length == 0) return;
                 visual = new Visual { Model = UnityEngine.Object.Instantiate(prefab, rig, false) };
+                foreach (Transform child in visual.Model.GetComponentsInChildren<Transform>(true))
+                    child.gameObject.layer = layer;
                 foreach (var renderer in visual.Model.GetComponentsInChildren<SkinnedMeshRenderer>(true)) {
                     renderer.bones = bones;
                     renderer.rootBone = rootBone;

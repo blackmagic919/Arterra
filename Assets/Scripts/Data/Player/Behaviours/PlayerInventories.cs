@@ -132,24 +132,27 @@ namespace Arterra.Data.Entity.Behavior {
 
         public void InteractInventory(object source, object target, object context) {
             if (target is not InventoryKind kind || context is not InventoryInteraction request) return;
-            int slot = request.Slot;
-            if (request.CraftingTarget) {
-                bool material;
-                if (CursorState.IsHolding) {
-                    var setting = Config.CURRENT.Generation.Items.Retrieve(CursorState.Item.Index);
-                    material = setting is PlaceableItem placeable && Arterra.Configuration.Config.CURRENT.Generation.Materials.value.MaterialDictionary.Contains(placeable.MaterialName);
-                } else material = (uint)request.AlternateSlot >= Crafting.Items.Capacity
-                    || Crafting.Items.PeekItem(request.AlternateSlot) == null;
-                kind = material ? InventoryKind.CraftingMaterials : InventoryKind.CraftingItems;
-                slot = material ? request.Slot : request.AlternateSlot;
-            }
-            ApplyInteraction(GetInventory(kind), kind, request, slot);
+            ApplyInteraction(GetInventory(kind), kind, request, request.Slot);
         }
 
         public void InteractMaterial(IInventory inventory, InventoryInteraction request) =>
             ApplyInteraction(inventory, InventoryKind.Cursor, request, request.Slot);
 
         private void ApplyInteraction(IInventory inventory, InventoryKind kind, InventoryInteraction request, int slot) {
+            if (request.CraftingTarget) {
+                if (Crafting == null) return;
+                bool material;
+                if (CursorState.IsHolding) {
+                    var setting = Config.CURRENT.Generation.Items.Retrieve(CursorState.Item.Index);
+                    material = setting is PlaceableItem placeable
+                        && Config.CURRENT.Generation.Materials.value.MaterialDictionary.Contains(placeable.MaterialName);
+                } else material = (uint)request.AlternateSlot >= Crafting.Items.Capacity
+                    || Crafting.Items.PeekItem(request.AlternateSlot) == null;
+                kind = material ? InventoryKind.CraftingMaterials : InventoryKind.CraftingItems;
+                inventory = GetInventory(kind);
+                slot = material ? request.Slot : request.AlternateSlot;
+            }
+
             IItem oldItem = CursorState.Item;
             int oldAmount = oldItem?.AmountRaw ?? 0;
             bool oldVisible = CursorState.Visible;

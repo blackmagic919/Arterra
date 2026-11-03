@@ -64,6 +64,7 @@ namespace Arterra.Core.Events {
         Entity_RemoveModifier = GameEventBases.Entity_Base + 35,
         Entity_SetInventorySlot = GameEventBases.Entity_Base + 36,
         Entity_CraftInsufficient = GameEventBases.Entity_Base + 37,
+        Entity_PlayAttackAnimation = GameEventBases.Entity_Base + 38,
 
         
         Item_ConsumeFood = GameEventBases.Item_Base + 0,

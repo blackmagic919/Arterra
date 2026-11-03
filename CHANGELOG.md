@@ -1,5 +1,13 @@
 ## [Unreleased]
 
+### Added
+- Fishing rod model
+
+### Fixed
+- Armor not showing in multiplayer
+- Monster appendages detached for clients in multiplayer
+- Structures somtimes cut off
+
 ## [0.2.0] - 2026-11-01
 
 ### Added

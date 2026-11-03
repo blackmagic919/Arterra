@@ -111,7 +111,6 @@ namespace Arterra.GamePlay{
                 data = PlayerConnection.TakeInitialPlayer();
                 playerIds.Add(data.info.rtEntityId);
                 EntityManager.DeserializeEntity(data, () => {
-                    RebindPlayer(data);
                     FinishInitialize();
                 });
             }
@@ -253,7 +252,6 @@ namespace Arterra.GamePlay{
             if (data.Is(out VitalityBehavior vitality) && vitality.IsDead) return false;
             playerIds.Add(data.info.rtEntityId);
             EntityManager.DeserializeEntity(data, () => {
-                RebindPlayer(data);
                 cb?.Invoke();
             });
             return true;
@@ -345,22 +343,21 @@ namespace Arterra.GamePlay{
             playerIds.Add(data.info.rtEntityId);
             previous?.eventCtrl.RaiseEvent(GameEvent.Entity_Respawn, previous.info.rtEntityId,
                 data.info.rtEntityId, null, local: true);
-            RebindPlayer(data);
             respawning = false;
             completed?.Invoke();
         }
 
         private static void SetPlayerBindings(BehaviorEntity.Animal player, bool bind) {
+            if (bind) BindViewer(player);
             player?.eventCtrl.RaiseEvent(GameEvent.Entity_RebindPlayer,
                 player.info.rtEntityId, null, bind, local: true);
         }
 
-        private static bool RebindPlayer(Entity player) {
-            if (player.Is(out BehaviorEntity.Animal self) && self.controller != null) {
-                Viewer.SetParent(self.controller.transform, worldPositionStays: false);
-                OctreeTerrain.viewer = self.controller.transform;
-                return true;
-            } return false;
+        // Attach before visual behaviors calculate offsets in the player's hierarchy.
+        internal static void BindViewer(Entity player) {
+            if (player == null || !ReferenceEquals(player, data) || data.controller == null) return;
+            Viewer.SetParent(data.controller.transform, worldPositionStays: false);
+            OctreeTerrain.viewer = data.controller.transform;
         }
     }
 }

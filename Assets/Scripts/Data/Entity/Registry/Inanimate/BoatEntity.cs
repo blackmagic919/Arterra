@@ -130,9 +130,12 @@ public class BoatEntity : Arterra.Data.Entity.Authoring {
         public Boat() { }
         public override void Initialize(EntitySetting setting, GameObject Controller, float3 GCoord) {
             settings = (BoatSetting)setting;
+
             vitality = new MinimalVitality(settings.durability);
             tCollider = new TerrainCollider(this.settings.collider, GCoord);
             controller = new BoatController(Controller, this);
+
+            transform.Register(this);
             controller.DisposeVisual();
             RegisterEvents();
             RidableBehavior.SyncRider(this, ref localRider);
@@ -140,6 +143,8 @@ public class BoatEntity : Arterra.Data.Entity.Authoring {
 
         public override void Deserialize(EntitySetting setting, GameObject Controller, out int3 GCoord) {
             settings = (BoatSetting)setting;
+            transform.Register(this);
+
             controller = new BoatController(Controller, this);
             controller.DisposeVisual();
             RegisterEvents();

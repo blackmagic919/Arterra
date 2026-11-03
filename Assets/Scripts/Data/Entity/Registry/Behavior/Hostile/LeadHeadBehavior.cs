@@ -136,7 +136,8 @@ namespace Arterra.Data.Entity.Behavior {
         public override void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
             if (!setting.Is(out settings))
                 throw new System.Exception("Entity: LeadHead Behavior Requires AnimalSettings to have LeadHeadSettings");
-            this.HeadCollider = new TerrainCollider(settings.Collider, GCoord + settings.Offset);
+            this.HeadCollider = new TerrainCollider(settings.Collider, GCoord + settings.Offset, "Head");
+            this.HeadCollider.transform.Register(self);
             BindAfterDeserialize(self);
             HeadCollider.SetGravityState(HeadGravityStateName, TerrainCollider.GravityPriority.Override, false);
         }
@@ -144,7 +145,7 @@ namespace Arterra.Data.Entity.Behavior {
         public override void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
             if (!setting.Is(out settings))
                 throw new System.Exception("Entity: LeadHead Behavior Requires AnimalSettings to have LeadHeadSettings");
-
+            this.HeadCollider.transform.Register(self);
             HeadCollider.SetGravityState(HeadGravityStateName, TerrainCollider.GravityPriority.Override, false);
         }
 
@@ -153,6 +154,10 @@ namespace Arterra.Data.Entity.Behavior {
                 throw new Exception("Entity: LeadHead Behavior Requires AnimalSettings to have ColliderUpdateBehavior");
             BodyCollider = BodyCUpdate.collider;
             self.Register<IMultiCollider>(this);
+        }
+
+        public override void Disable(BehaviorEntity.Animal self) {
+            HeadCollider?.transform.Dispose();
         }
 
         public abstract class Appendage : Entity {
@@ -211,6 +216,8 @@ namespace Arterra.Data.Entity.Behavior {
             private void RegisterAppendage() {
                 spatialId = Guid.NewGuid();
                 info.rtEntityId = self.info.rtEntityId;
+                this.transform.Register(self);
+                
                 active = true;
                 if (!EntityManager.EntityIndex.TryAdd(spatialId, this))
                     throw new Exception("Failed to register leg for entity");
