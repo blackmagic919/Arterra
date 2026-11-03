@@ -1,5 +1,7 @@
 ## [Unreleased]
 
+## [0.2.1] - 2026-11-03
+
 ### Added
 - Fishing rod model
 
