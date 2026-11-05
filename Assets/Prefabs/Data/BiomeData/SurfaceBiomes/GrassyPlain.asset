@@ -9,9 +9,9 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 04a6111a713ec455cbfedb4173f40da6, type: 3}
+  m_Script: {fileID: 11500000, guid: 49bee82ffcb1d4036a871bcb04d33c57, type: 3}
   m_Name: GrassyPlain
-  m_EditorClassIdentifier: 
+  m_EditorClassIdentifier: Assembly-CSharp::Arterra.Data.Biome.BiomeVariety
   Name: Grassy Plain
   Tags:
     Reg:
@@ -131,21 +131,6 @@ MonoBehaviour:
         - value:
             Entity: 16
             ChancePerCoord: 0.0000025
-  BiomeConditions:
-    value:
-      TerrainStart: 0.375
-      ErosionStart: 0.55
-      SquashStart: 0
-      InfluenceStart: 0
-      InfluenceOffStart: 0
-      AtmosphereStart: 0.5
-      TerrainEnd: 1
-      ErosionEnd: 0.7
-      SquashEnd: 1
-      InfluenceEnd: 1
-      InfluenceOffEnd: 1
-      AtmosphereEnd: 0.75
-      biome: 0
   references:
     version: 2
     RefIds: []

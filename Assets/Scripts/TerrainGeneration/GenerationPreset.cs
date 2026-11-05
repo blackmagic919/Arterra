@@ -449,11 +449,11 @@ public static class GenerationPreset
         {
             GraphicsResourceContext gpuContext = GraphicsGeneration;
             Release();
-            List<CInfo<SurfaceBiome>> surface = Config.CURRENT.Generation.Biomes.value.SurfaceBiomes.Reg;
-            List<CInfo<SurfaceBiome>> seafloor = Config.CURRENT.Generation.Biomes.value.SeafloorBiomes.Reg;
-            List<CInfo<CaveBiome>> cave = Config.CURRENT.Generation.Biomes.value.CaveBiomes.Reg;
-            List<CInfo<CaveBiome>> sky = Config.CURRENT.Generation.Biomes.value.SkyBiomes.Reg;
-            List<CInfo<CaveBiome>> sea = Config.CURRENT.Generation.Biomes.value.SeaBiomes.Reg;
+            List<BiomeVariety> surface = Config.CURRENT.Generation.Biomes.value.SurfaceBiomes.varieties.Reg;
+            List<BiomeVariety> seafloor = Config.CURRENT.Generation.Biomes.value.SeafloorBiomes.varieties.Reg;
+            List<BiomeVariety> cave = Config.CURRENT.Generation.Biomes.value.CaveBiomes.varieties.Reg;
+            List<BiomeVariety> sky = Config.CURRENT.Generation.Biomes.value.SkyBiomes.varieties.Reg;
+            List<BiomeVariety> sea = Config.CURRENT.Generation.Biomes.value.SeaBiomes.varieties.Reg;
             List<Info> biomes = new List<Info>();
             biomes.AddRange(surface.Select(e => e.info.value));
             biomes.AddRange(seafloor.Select(e => e.info.value));
@@ -505,36 +505,46 @@ public static class GenerationPreset
             if(sSysGenBuffer != null) Shader.SetGlobalBuffer("_BiomeSystems", sSysGenBuffer);
             Shader.SetGlobalBuffer("_BiomePrefCount", biomePrefCountBuffer);
 
+            var settings = Config.CURRENT.Generation.Biomes.value;
+            int ignoreBiome = 1 + surface.Count + seafloor.Count + cave.Count + sky.Count + sea.Count;
             int offset = 1;
-            SurfaceBiome[] SurfTree = BDict.Create(surface, offset).FlattenTree<SurfaceBiome>(); offset += surface.Count();
-            SurfaceBiome[] SeafloorTree = BDict.Create(seafloor, offset).FlattenTree<SurfaceBiome>(); offset += seafloor.Count();
-            CaveBiome[] CaveTree = BDict.Create(cave, offset).FlattenTree<CaveBiome>(); offset += cave.Count();
-            CaveBiome[] SkyTree = BDict.Create(sky, offset).FlattenTree<CaveBiome>(); offset += sky.Count();
-            CaveBiome[] SeaTree = BDict.Create(sea, offset).FlattenTree<CaveBiome>();
+            byte[] surfaceTree = BuildBiomeTree(settings.SurfaceBiomes, 6, offset, -offset); offset += surface.Count;
+            byte[] seafloorTree = BuildBiomeTree(settings.SeafloorBiomes, 6, offset, -ignoreBiome); offset += seafloor.Count;
+            byte[] caveTree = BuildBiomeTree(settings.CaveBiomes, 4, offset, -offset); offset += cave.Count;
+            byte[] skyTree = BuildBiomeTree(settings.SkyBiomes, 4, offset, -offset); offset += sky.Count;
+            byte[] seaTree = BuildBiomeTree(settings.SeaBiomes, 4, offset, -offset);
 
-            SurfTreeBuffer = new ComputeBuffer(SurfTree.Length + SeafloorTree.Length, sizeof(float) * 6 * 2 + sizeof(int), ComputeBufferType.Structured);
-            CaveTreeBuffer = new ComputeBuffer(CaveTree.Length + SkyTree.Length + SeaTree.Length, sizeof(float) * 4 * 2 + sizeof(int), ComputeBufferType.Structured);
+            const int surfaceStride = sizeof(float) * 6 * 2 + sizeof(int);
+            const int caveStride = sizeof(float) * 4 * 2 + sizeof(int);
+            SurfTreeBuffer = new ComputeBuffer((surfaceTree.Length + seafloorTree.Length) / surfaceStride, surfaceStride, ComputeBufferType.Structured);
+            CaveTreeBuffer = new ComputeBuffer((caveTree.Length + skyTree.Length + seaTree.Length) / caveStride, caveStride, ComputeBufferType.Structured);
 
-            offset = 1;
-            SurfTree[0].biome     = -offset; offset += surface.Count();
-            SeafloorTree[0].biome = -offset; offset += seafloor.Count();
-            CaveTree[0].biome     = -offset; offset += cave.Count();
-            SkyTree[0].biome      = -offset; offset += sky.Count();
-            SeaTree[0].biome      = -offset; offset += sea.Count();
-            SeafloorTree[0].biome = -offset; //mark as special
-
-            gpuContext.SetBufferData(SurfTreeBuffer, SurfTree.Concat(SeafloorTree).ToArray());
-            gpuContext.SetBufferData(CaveTreeBuffer, CaveTree.Concat(SkyTree).Concat(SeaTree).ToArray());
+            gpuContext.SetBufferData(SurfTreeBuffer, surfaceTree.Concat(seafloorTree).ToArray());
+            gpuContext.SetBufferData(CaveTreeBuffer, caveTree.Concat(skyTree).Concat(seaTree).ToArray());
 
             Shader.SetGlobalBuffer("_BiomeSurfTree", SurfTreeBuffer);
             Shader.SetGlobalBuffer("_BiomeCaveTree", CaveTreeBuffer);
             Shader.SetGlobalInteger("_BSurfaceStart", 0);
-            Shader.SetGlobalInteger("_BSeafloorStart", SurfTree.Length);
+            Shader.SetGlobalInteger("_BSeafloorStart", surfaceTree.Length / surfaceStride);
             Shader.SetGlobalInteger("_BCaveStart", 0);
-            Shader.SetGlobalInteger("_BSkyStart", CaveTree.Length);
-            Shader.SetGlobalInteger("_BSeaStart", CaveTree.Length + SkyTree.Length);
-             //indicate ignored biome (sub 1 because we subtract 1 in sample)
-            Shader.SetGlobalInteger("_BIgnoreBiome", offset - 1);
+            Shader.SetGlobalInteger("_BSkyStart", caveTree.Length / caveStride);
+            Shader.SetGlobalInteger("_BSeaStart", (caveTree.Length + skyTree.Length) / caveStride);
+            Shader.SetGlobalInteger("_BIgnoreBiome", ignoreBiome - 1);
+        }
+
+        private static byte[] BuildBiomeTree(BiomeSelection selection, int dimensions, int offset, int fallbackIndex) {
+            if (selection.placement.numDimensions != dimensions) {
+                throw new System.ArgumentException($"Expected {dimensions} biome dimensions.");
+            }
+
+            var regions = BDict.Create(selection.placement).FlattenTree();
+            int stride = dimensions * sizeof(float) * 2 + sizeof(int);
+            var buffer = new byte[checked(regions.Count * stride)];
+            for (int index = 0; index < regions.Count; index++) {
+                var region = regions[index];
+                region.Serialize(selection.varieties, buffer, index * stride, offset, index == 0 ? fallbackIndex : (int?)null);
+            }
+            return buffer;
         }
 
         /// <summary>

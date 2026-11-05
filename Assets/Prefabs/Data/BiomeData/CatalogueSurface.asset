@@ -11,7 +11,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 35b257ac377e44f23a95112e2abceeed, type: 3}
   m_Name: CatalogueSurface
-  m_EditorClassIdentifier: 
+  m_EditorClassIdentifier: Assembly-CSharp::Arterra.Data.Biome.SelectionCategory
   Name: Root
   Tags:
     Reg:

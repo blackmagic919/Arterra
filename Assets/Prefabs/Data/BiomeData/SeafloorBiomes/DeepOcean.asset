@@ -9,9 +9,9 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 04a6111a713ec455cbfedb4173f40da6, type: 3}
+  m_Script: {fileID: 11500000, guid: 49bee82ffcb1d4036a871bcb04d33c57, type: 3}
   m_Name: DeepOcean
-  m_EditorClassIdentifier: 
+  m_EditorClassIdentifier: Assembly-CSharp::Arterra.Data.Biome.BiomeVariety
   Name: DeepOcean
   Tags:
     Reg:
@@ -105,21 +105,6 @@ MonoBehaviour:
             ChancePerCoord: 0.00005
       StructureSystems:
         value: []
-  BiomeConditions:
-    value:
-      TerrainStart: 0
-      ErosionStart: 0
-      SquashStart: 0
-      InfluenceStart: 0
-      InfluenceOffStart: 0
-      AtmosphereStart: 0
-      TerrainEnd: 0.25
-      ErosionEnd: 1
-      SquashEnd: 1
-      InfluenceEnd: 1
-      InfluenceOffEnd: 1
-      AtmosphereEnd: 1
-      biome: 0
   references:
     version: 2
     RefIds: []

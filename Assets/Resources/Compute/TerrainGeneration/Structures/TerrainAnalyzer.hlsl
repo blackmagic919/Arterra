@@ -22,7 +22,7 @@ uint SampleTerrain (float3 position)
     float2x2 warpJacobian;
     float2 warpOffset = GetDomainWarpOffset2D(position.xz, majorWarpSampler, minorWarpSampler, warpJacobian);
     float erosion = GetNoise2D(position.xz, erosionSampler);
-    float terrainHeight = GetErodedNoise2D(position.xz, erosion, warpOffset, warpJacobian, continentalSampler);
+    float terrainHeight = GetErodedNoise2D(position.xz, erosion, warpOffset, warpJacobian, continentalSampler).x;
     float squashFactor = GetNoise2D(position.xz, squashSampler) * squashHeight;
 
     terrainHeight = terrainHeight * maxTerrainHeight + heightOffset;

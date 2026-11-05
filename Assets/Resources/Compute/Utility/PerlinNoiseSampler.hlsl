@@ -176,7 +176,8 @@ float2 GetDomainWarpOffset2D(float2 id, uint majorWarp, uint minorWarp, out floa
     return float2(minorX.x, minorY.x);
 }
 
-float GetErodedNoise2D(float2 id, float erosion, float2 warpOffset, float2x2 warpJacobian, uint samplerIndex){
+// Returns interpolated height and the erosion gradient magnitude (steepness).
+float2 GetErodedNoise2D(float2 id, float erosion, float2 warpOffset, float2x2 warpJacobian, uint samplerIndex){
     NoiseSetting settings = _NoiseSettings[samplerIndex];
     float2 sPos = id * skipInc;
 
@@ -205,7 +206,7 @@ float GetErodedNoise2D(float2 id, float erosion, float2 warpOffset, float2x2 war
         frequency *= settings.lacunarity; //frequency increases -> size of noise sampling increases -> more random
     }
 
-    return interpolateValue((noiseHeight.x / maxHeight + 1) / 2.0f, samplerIndex);
+    return float2(interpolateValue((noiseHeight.x / maxHeight + 1) / 2.0f, samplerIndex), length(noiseHeight.yz));
 }
 
 

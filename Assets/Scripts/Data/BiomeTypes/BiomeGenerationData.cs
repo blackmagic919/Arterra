@@ -1,318 +1,163 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using Unity.Mathematics;
 using Arterra.Configuration;
 
 namespace Arterra.Data.Biome{
 /// <summary>
-/// A settings container identifying all biomes and biome related settings 
-/// that are used during generation. Biomes are placed depending on conditions 
-/// describing the shape of the terrain <see cref="IBiomeCondition"/> and control 
+/// A settings container identifying all biomes and biome related settings
+/// that are used during generation. Biomes are placed depending on conditions
+/// describing the shape of the terrain <see cref="BiomeRegion"/> and control
 /// aspects of the world during structure, entity, and material generation.
-/// </summary> <remarks><b> 
+/// </summary> <remarks><b>
 /// In the case that the sample space is not fully covered by the condition bounds defined within
-/// a Biome registry, the first biome within the registry will be placed if no biome can be resolved </b></remarks> 
+/// a Biome registry, the first biome within the registry will be placed if no biome can be resolved </b></remarks>
 [CreateAssetMenu(menuName = "Generation/Biomes/BiomeGenerationData")]
 public class Generation : ScriptableObject
 {
     /// <summary> The registry containing all surface biomes that can be generated.
     /// Surface biomes have their unique selection space and only need to not overlap
-    /// other surface biomes within <see cref="SurfaceBiomes"/>. <seealso cref="SBiomeInfo"/> </summary> 
+    /// other surface biomes within <see cref="SurfaceBiomes"/>. </summary>
     [SerializeField]
-    public Catalogue<CInfo<SurfaceBiome>> SurfaceBiomes;
+    public BiomeSelection SurfaceBiomes;
     /// <summary> The registry containing all seafloor biomes that can be generated.
     /// Seafloor biomes are biomes that generate on the seafloor and can pick where to generate
     /// based on the features of the seafloor. Importantly, seafloor biomes may not span all query space,
-    /// and if no seafloor biome is selected, the biome is instead decided by the <see cref="SeaBiomes"/>. </summary> 
+    /// and if no seafloor biome is selected, the biome is instead decided by the <see cref="SeaBiomes"/>. </summary>
     [SerializeField]
-    public Catalogue<CInfo<SurfaceBiome>> SeafloorBiomes;
+    public BiomeSelection SeafloorBiomes;
     /// <summary>
     /// The registry containing all cave biomes that can be generated.
     /// Cave biomes generate underneath the surface of the world and have their unique
     /// selection space. Cave biomes only need to not overlap other cave biomes within
-    /// <see cref="CaveBiomes"/>. <seealso cref="CBiomeInfo"/>
+    /// <see cref="CaveBiomes"/>.
     /// </summary> <remarks> Cave biomes can be used to create different cave formations, mineral placement,
     /// or underground biomes independent of what the surface biome is. </remarks>
     [SerializeField]
-    public Catalogue<CInfo<CaveBiome>> CaveBiomes;
+    public BiomeSelection CaveBiomes;
     /// <summary>
     /// The registry containing all sky biomes that can be generated.
     /// Sky biomes generate above the surface of the world and have their unique sample
     /// space. Sky biomes only need to not overlap other sky biomes within <see cref="SkyBiomes"/>.
-    /// </summary>  <remarks> Sky biomes can be used to create different cloud patterns, weather or effects in the 
+    /// </summary>  <remarks> Sky biomes can be used to create different cloud patterns, weather or effects in the
     /// sky independently of what the surface biome is. </remarks>
     [SerializeField]
-    public Catalogue<CInfo<CaveBiome>> SkyBiomes;
+    public BiomeSelection SkyBiomes;
     /// <summary> The registry containing all sky biomes that can be generated.
     /// Sea biomes generate only between an underwater seafloor and the ocean's
-    /// water surface. Seabiomes may be overwritten by <see cref="SeafloorBiomes"/> 
+    /// water surface. Seabiomes may be overwritten by <see cref="SeafloorBiomes"/>
     /// and only need to not overlap with other sea biomes </summary>
     [SerializeField]
-    public Catalogue<CInfo<CaveBiome>> SeaBiomes;
+    public BiomeSelection SeaBiomes;
 }
 
-/// <summary>
-/// The decision matrix constructed from a biome registry that facilitates lookup of biomes.
-/// More exactly, it is an R-Tree containing biomes within its leaf nodes that allows a 
-/// biome to be matched with a specific set of conditions in O(log(n)) time where n is
-/// the number of biomes within the registry. 
-/// </summary>
-public class BDict
-{
-    private RNode _rTree;
-    private int leafSize;
+/// <summary>A spatial lookup tree built from resolved biome placement regions.</summary>
+public class BDict {
+    private RNode root;
+    private int dimensions;
+    private int leafCount;
 
-    /// <summary> Constructs a decision matrix from a list of biome conditions. </summary>
-    /// <typeparam name="TCond">The type of biome condition used in the decision matrix. </typeparam>
-    /// <param name="biomes">The registry's biomes that define the leaf nodes of the decision matrix </param>
-    /// <param name="offset">The offset of biome indices if the biomes are not zero-indexed relative to the registry</param>
-    /// <returns>The constructed decision matrix</returns>
-    public static BDict Create<TCond>(List<CInfo<TCond>> biomes, int offset = 0) where TCond : IBiomeCondition
-    {
-        BDict nDict = new BDict();
-        List<RNode> leaves = nDict.InitializeBiomeRegions(biomes, offset);
-        nDict._rTree = nDict.ConstructRTree(leaves, biomes[0].BiomeConditions.value.GetDimensions());
-        nDict.leafSize = leaves.Count;
-        return nDict;
-    }
+    /// <summary>Builds a tree of named regions; catalogue indices are resolved during serialization.</summary>
+    public static BDict Create(BiomePlacement placement) {
+        if (placement == null) throw new ArgumentNullException(nameof(placement));
+        string error = placement.ValidationError();
+        if (error != null) throw new ArgumentException(error, nameof(placement));
 
-    /// <summary>
-    /// Obtains a flattened array of biome conditions that represents the decision matrix. Normally the decision matrix
-    /// is a reference tree splayed across memory. This method collapses the tree into a single array using binary
-    /// tree indexing to determine hierarchical relations. The size of this flattened tree is equal to 
-    /// 2^(h+1) - 1 where h is the next highest power of 2 of the number of leaf nodes in the tree.
-    /// </summary>
-    /// <typeparam name="TCond">The type of bioem condition used to flatten the tree. This should be the same as
-    /// was used when <see cref="Create">creating</see> the tree. </typeparam>
-    /// <returns>The flattened array of biome conditions representing the decision matrix</returns>
-    public TCond[] FlattenTree<TCond>() where TCond : IBiomeCondition
-    {
-        int treeSize = math.ceilpow2(math.max(leafSize, 2)) * 2 - 1;
-        TCond[] flattenedNodes = new TCond[treeSize];
-        Queue<RNode> treeNodes = new Queue<RNode>();
-        treeNodes.Enqueue(_rTree);
-
-        for(int i = 0; i < treeSize; i++){
-            RNode cur = treeNodes.Dequeue();
-            cur ??= new RNode{
-                bounds = RegionBound.GetNoSpace(flattenedNodes[i].GetDimensions()),
-                childOne = null,
-                childTwo = null,
-            };
-
-            flattenedNodes[i].SetNode(cur.bounds, cur.biome);
-            treeNodes.Enqueue(cur.childOne);
-            treeNodes.Enqueue(cur.childTwo);
+        var dictionary = new BDict { dimensions = placement.numDimensions };
+        var leaves = new List<RNode>();
+        foreach (var source in placement.Biomes) {
+            if (string.IsNullOrWhiteSpace(source.BiomeName)) continue;
+            var region = source.Copy();
+            leaves.Add(new RNode { Region = region });
         }
 
-        return flattenedNodes;
-        //Based on the nature of queues, it will be filled exactly in order of the array
+        dictionary.leafCount = leaves.Count;
+        dictionary.root = dictionary.BuildTree(leaves);
+        return dictionary;
     }
 
     /// <summary>
-    /// Queries the R-Tree for the biome that matches the given parameters. The parameters
-    /// must be given in the same order that they are <see cref="IBiomeCondition.SetNode(RegionBound, int)">
-    /// provided</see> when constructing the R-Tree.
-    /// </summary> <param name="point">A list of parameters pertaining to each respective condition</param>
-    /// <returns>The index within the registry used to construct the decision matrix of the biome. -1 if 
-    /// no biome is able to be found. </returns>
-    public int Query(float[] point)
-    {
-        RNode node = QueryNode(_rTree, ref point);
-        if (node == null)
-            return -1;
-        return node.biome;
+    /// Breadth-first heap layout: children of index i are 2*i+1 and 2*i+2.
+    /// Branches and empty slots have no biome name. Every entry owns its span array.
+    /// </summary>
+    public List<BiomeRegion> FlattenTree() {
+        int treeSize = checked(math.ceilpow2(math.max(leafCount, 2)) * 2 - 1);
+        var flattened = new List<BiomeRegion>(treeSize);
+        var pending = new Queue<RNode>();
+        pending.Enqueue(root);
+
+        for (int index = 0; index < treeSize; index++) {
+            var node = pending.Dequeue();
+            flattened.Add(node == null ? BiomeRegion.CreateEmpty(dimensions) : node.Region.Copy());
+            pending.Enqueue(node?.FirstChild);
+            pending.Enqueue(node?.SecondChild);
+        }
+        return flattened;
     }
 
-    RNode QueryNode(RNode node, ref float[] point)
-    {
-        RNode OUT = null;
-        if (node.IsLeaf)
-            return node;
-
-        if (node.childOne != null && node.childOne.bounds.Contains(ref point))
-            OUT = QueryNode(node.childOne, ref point);
-        if (OUT == null && node.childTwo != null && node.childTwo.bounds.Contains(ref point))
-            OUT = QueryNode(node.childTwo, ref point);
-
-        return OUT;
+    public string Query(float[] point) {
+        if (point == null || point.Length != dimensions) {
+            throw new ArgumentException("Point dimensions must match the tree.", nameof(point));
+        }
+        return QueryNode(root, point);
     }
 
-    RNode ConstructRTree(List<RNode> nodes, int dimensions)
-    {
-        int nodesInLayer = nodes.Count;
-        HashSet<int> linked = new HashSet<int>();
-        List<RNode> ret = new List<RNode>();
+    private static string QueryNode(RNode node, float[] point) {
+        if (node == null || !node.Region.Contains(point)) return null;
+        if (!string.IsNullOrWhiteSpace(node.Region.BiomeName)) return node.Region.BiomeName;
 
-        nodes.Sort((RNode a, RNode b) => a.bounds.area.CompareTo(b.bounds.area));
+        string biome = QueryNode(node.FirstChild, point);
+        return biome ?? QueryNode(node.SecondChild, point);
+    }
 
-        for (int i = 0; i < nodesInLayer; i++)
-        {
-            if (linked.Contains(i))
-                continue;
+    private RNode BuildTree(List<RNode> nodes) {
+        if (nodes.Count == 0) return null;
 
-            RNode node = new RNode();
-            node.bounds = RegionBound.GetAllSpace(dimensions);
-            node.childOne = nodes[i];
-            node.childTwo = null;
+        // Keep a branch at the root even for a single region: GPU upload stores fallback metadata there.
+        do {
+            nodes = nodes.OrderBy(node => node.Region.Volume).ToList();
+            var paired = new bool[nodes.Count];
+            var parents = new List<RNode>();
 
-            for (int u = i + 1; u < nodesInLayer; u++){
-                RNode matchNode = nodes[u];
-                if (linked.Contains(u))
-                    continue;
+            for (int index = 0; index < nodes.Count; index++) {
+                if (paired[index]) continue;
+                paired[index] = true;
+                var first = nodes[index];
+                int partner = -1;
+                BiomeRegion bounds = null;
+                double smallestVolume = double.PositiveInfinity;
 
-                RegionBound newRegion = RegionBound.mergeRegion(node.childOne.bounds, matchNode.bounds, dimensions);
-                if (newRegion.area <= node.bounds.area){
-                    node.bounds = newRegion;
-                    node.childTwo = matchNode;
-                    node.biome = u;
+                for (int candidate = index + 1; candidate < nodes.Count; candidate++) {
+                    if (paired[candidate]) continue;
+                    var merged = BiomeRegion.MergeBounds(first.Region, nodes[candidate].Region);
+                    if (merged.Volume <= smallestVolume) {
+                        partner = candidate;
+                        bounds = merged;
+                        smallestVolume = merged.Volume;
+                    }
                 }
-            }
-            if (node.childTwo == null) node.bounds = node.childOne.bounds;
-            linked.Add(node.biome);
-            node.biome = -1;
-            ret.Add(node);
-        }
 
-        if (ret.Count == 1)
-            return ret[0];
-        return ConstructRTree(ret, dimensions);
+                if (partner >= 0) paired[partner] = true;
+                bounds ??= first.Region.Copy();
+                bounds.BiomeName = null;
+                parents.Add(new RNode {
+                    Region = bounds,
+                    FirstChild = first,
+                    SecondChild = partner >= 0 ? nodes[partner] : null
+                });
+            }
+            nodes = parents;
+        } while (nodes.Count > 1);
+
+        return nodes[0];
     }
 
-    List<RNode> InitializeBiomeRegions<TCond>(List<CInfo<TCond>> biomes, int offset) where TCond : IBiomeCondition
-    {
-        int numOfBiomes = biomes.Count;
-        List<RNode> biomeRegions = new List<RNode>();
-        for (int i = 0; i < numOfBiomes; i++)
-        {
-            int dimensions = biomes[i].BiomeConditions.value.GetDimensions();
-            RegionBound bounds = new RegionBound(dimensions);
-            biomes[i].BiomeConditions.value.GetBoundDimension(ref bounds);
-            bounds.CalculateArea();
-
-            for (int u = i - 1; u >= 0; u--)
-            {
-                if (bounds.RegionIntersects(biomeRegions[u].bounds, dimensions))
-                    throw new ArgumentException($"Biome {biomes[i].name}'s generation intersects with {biomes[u].name}");
-            }
-
-            biomeRegions.Add(new RNode(bounds, i + offset));
-        }
-
-        return biomeRegions;
+    private class RNode {
+        public BiomeRegion Region;
+        public RNode FirstChild;
+        public RNode SecondChild;
     }
-
-    private class RNode
-    {
-        public RegionBound bounds;
-        public RNode childOne; //compiles both leaf and branch nodes
-        public RNode childTwo;
-        public int biome;
-        public bool IsLeaf => biome != -1;
-        public RNode(RegionBound bounds, int biome)
-        {
-            this.bounds = bounds;
-            this.biome = biome;
-        }
-        public RNode()
-        {
-            bounds = new RegionBound(0);
-            biome = -1;
-        }
-    }
-
-    /// <summary>
-    /// A region bound that describes a list of ranges, each representing a seperate
-    /// dimension in the sample space. It is a more generalized form of representing
-    /// conditions of a <see cref="IBiomeCondition"> concrete biome type </see> that
-    /// allows for the construction of Decision Matricies of varying dimensions.
-    /// </summary>
-    public struct RegionBound
-    {
-        /// <summary>
-        /// The maximum bound of each dimension for the region within sample space.
-        /// Equaivalently, the coordinate of the maximum corner of the cuboid region.
-        /// </summary>
-        public float[] maxCorner;
-        /// <summary>
-        /// The minimum bound of each dimension for the region within sample space.
-        /// Equaivalently, the coordinate of the minimum corner of the cuboid region.
-        /// </summary>
-        public float[] minCorner;
-        internal double area;
-
-        internal RegionBound(int dimensions)
-        {
-            maxCorner = new float[dimensions];
-            minCorner = new float[dimensions];
-            area = -1;
-        }
-
-        internal void SetBoundDimension(int dimension, float min, float max)
-        {
-            minCorner[dimension] = min;
-            maxCorner[dimension] = max;
-        }
-
-        internal void CalculateArea()
-        {
-            area = 1;
-            for (int i = 0; i < maxCorner.Length; i++)
-            {
-                area *= maxCorner[i] - minCorner[i];
-            }
-        }
-
-        internal bool Contains(ref float[] point)
-        {
-            for (int i = 0; i < maxCorner.Length; i++)
-            {
-                if (point[i] < minCorner[i] || point[i] > maxCorner[i])
-                    return false;
-            }
-            return true;
-        }
-
-        internal static RegionBound mergeRegion(RegionBound a, RegionBound b, int dimensions)
-        {
-            RegionBound ret = new RegionBound(dimensions);
-            for (int i = 0; i < dimensions; i++)
-            {
-                ret.maxCorner[i] = Mathf.Max(a.maxCorner[i], b.maxCorner[i]);
-                ret.minCorner[i] = Mathf.Min(a.minCorner[i], b.minCorner[i]);
-            }
-            ret.CalculateArea();
-            return ret;
-        }
-
-        internal static RegionBound GetAllSpace(int dimensions)
-        {
-            RegionBound ret = new RegionBound(dimensions);
-            for (int i = 0; i < dimensions; i++)
-                ret.SetBoundDimension(i, float.MinValue, float.MaxValue);
-            ret.area = float.MaxValue;
-            return ret;
-        }
-
-        internal static RegionBound GetNoSpace(int dimensions)
-        {
-            RegionBound ret = new RegionBound(dimensions);
-            for (int i = 0; i < dimensions; i++)
-                ret.SetBoundDimension(i, float.MaxValue, float.MinValue);
-            ret.area = 0;
-            return ret;
-        }
-
-        internal bool RegionIntersects(RegionBound b, int dimensions)
-        {
-            for (int i = 0; i < dimensions; i++)
-            {
-                if (maxCorner[i] <= b.minCorner[i] || minCorner[i] >= b.maxCorner[i])
-                    return false;
-            }
-            return true;
-        }
-
-    }
-}}
+}
+}

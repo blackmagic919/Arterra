@@ -9,9 +9,9 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a8f096ab7a4824b12aa37586fb102c35, type: 3}
+  m_Script: {fileID: 11500000, guid: 49bee82ffcb1d4036a871bcb04d33c57, type: 3}
   m_Name: Cumulus
-  m_EditorClassIdentifier: 
+  m_EditorClassIdentifier: Assembly-CSharp::Arterra.Data.Biome.BiomeVariety
   Name: Cumulus
   Tags:
     Reg:
@@ -61,17 +61,6 @@ MonoBehaviour:
         - value:
             Entity: 3
             ChancePerCoord: 0.00000002
-  BiomeConditions:
-    value:
-      CaveFreqStart: 0
-      CaveSizeStart: 0
-      CaveShapeStart: 0
-      HeightStart: 0.35
-      CaveFreqEnd: 1
-      CaveSizeEnd: 1
-      CaveShapeEnd: 1
-      HeightEnd: 0.6
-      biome: 0
   references:
     version: 2
     RefIds: []

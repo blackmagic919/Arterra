@@ -49,16 +49,16 @@ void CSMain (uint3 id : SV_DispatchThreadID)
     float2x2 warpJacobian;
     float2 warpOffset = GetDomainWarpOffset2D(id.xy, majorWarpSampler, minorWarpSampler, warpJacobian);
     float erosionNoise = interpolateValue(rawMaps[1], erosionSampler);
-    float terrainHeight = GetErodedNoise2D(id.xy, erosionNoise, warpOffset, warpJacobian, continentalSampler);
+    float2 terrainSample = GetErodedNoise2D(id.xy, erosionNoise, warpOffset, warpJacobian, continentalSampler);
     float squashNoise = interpolateValue(rawMaps[2], squashSampler) * squashHeight;
 
     surfData data;
-    rawMaps[0] = terrainHeight;
+    rawMaps[0] = terrainSample.x;
     data.terrain = rawMaps[0] * maxTerrainHeight + heightOffset;
     data.squash = squashNoise;
 
     rawMaps[3] = GetRawNoise2D(id.xy, InfHeightSampler);
-    rawMaps[4] = GetRawNoise2D(id.xy, InfOffsetSampler);
+    rawMaps[4] = terrainSample.y; // Steepness
     rawMaps[5] = GetRawNoise2D(id.xy, atmosphereSampler);
     
     float surfaceBase = data.terrain - data.squash;
@@ -66,7 +66,7 @@ void CSMain (uint3 id : SV_DispatchThreadID)
     data.biome = GetBiome(rawMaps, offset);
 
     float infHeight = interpolateValue(rawMaps[3], InfHeightSampler);
-    float infOffset = interpolateValue(rawMaps[4], InfOffsetSampler);
+    float infOffset = GetNoise2D(id.xy, InfOffsetSampler);
 
     data.InfMax = maxInfluenceHeight * (infHeight * (1 - infOffset));
     data.InfMin = -maxInfluenceHeight * (infHeight * infOffset);

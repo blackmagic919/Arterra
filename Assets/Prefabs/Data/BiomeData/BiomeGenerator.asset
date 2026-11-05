@@ -11,35 +11,48 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: beb15f52643eb4aa09be7f699206597b, type: 3}
   m_Name: BiomeGenerator
-  m_EditorClassIdentifier: 
+  m_EditorClassIdentifier: Assembly-CSharp::Arterra.Data.Biome.Generation
   SurfaceBiomes:
-    Category:
-      value: {fileID: 11400000, guid: dea1e6ddc41fb401c94281b532fb3351, type: 2}
-    Reg:
-    - {fileID: 11400000, guid: 051fa97817dc7468c8f3590652705fa7, type: 2}
-    - {fileID: 11400000, guid: 18db5d2080ba7454e9d9e0fbff761d5a, type: 2}
-    - {fileID: 11400000, guid: c6cf230d8776042d6941a79eea587f30, type: 2}
-    - {fileID: 11400000, guid: 8a408ddfd451d411ba7b1a63b52a456f, type: 2}
-    - {fileID: 11400000, guid: a63107e4d5f53467e9446965fa8bde8a, type: 2}
-    - {fileID: 11400000, guid: 95336cff9441e4a4d97db180d8e93a8d, type: 2}
-    - {fileID: 11400000, guid: 59b0b886c3ac5458bb3fb22ba198b268, type: 2}
+    varieties:
+      Category:
+        value: {fileID: 11400000, guid: dea1e6ddc41fb401c94281b532fb3351, type: 2}
+      Reg:
+      - {fileID: 11400000, guid: 051fa97817dc7468c8f3590652705fa7, type: 2}
+      - {fileID: 11400000, guid: 18db5d2080ba7454e9d9e0fbff761d5a, type: 2}
+      - {fileID: 11400000, guid: c6cf230d8776042d6941a79eea587f30, type: 2}
+      - {fileID: 11400000, guid: 8a408ddfd451d411ba7b1a63b52a456f, type: 2}
+      - {fileID: 11400000, guid: 59b0b886c3ac5458bb3fb22ba198b268, type: 2}
+      - {fileID: 11400000, guid: 187f9ba2856c840bb9ae4bae6c9ba949, type: 2}
+    placement: {fileID: 11400000, guid: a4afca969525494d8cd78701289b92bd, type: 2}
   SeafloorBiomes:
-    Category:
-      value: {fileID: 11400000, guid: bdb19e48df06743aa9af6d90d96c4a1c, type: 2}
-    Reg: []
+    varieties:
+      Category:
+        value: {fileID: 11400000, guid: bdb19e48df06743aa9af6d90d96c4a1c, type: 2}
+      Reg:
+      - {fileID: 11400000, guid: 369bb7b410697491093eeb866117240f, type: 2}
+      - {fileID: 11400000, guid: 3d25887fcc13b47b694934e29503c801, type: 2}
+      - {fileID: 11400000, guid: 1d89038f7fb1c478caee989e3d658100, type: 2}
+    placement: {fileID: 11400000, guid: c4a7ef08e74a4ea2a2b2fc89c940af77, type: 2}
   CaveBiomes:
-    Category:
-      value: {fileID: 11400000, guid: 85557e8811d834583aae3e1d0873d23a, type: 2}
-    Reg:
-    - {fileID: 11400000, guid: 32e03cc485a9c49d5aeee678c51604f3, type: 2}
+    varieties:
+      Category:
+        value: {fileID: 11400000, guid: 85557e8811d834583aae3e1d0873d23a, type: 2}
+      Reg:
+      - {fileID: 11400000, guid: 32e03cc485a9c49d5aeee678c51604f3, type: 2}
+    placement: {fileID: 11400000, guid: fa3721e02ffd4d4298fde1c660495495, type: 2}
   SkyBiomes:
-    Category:
-      value: {fileID: 11400000, guid: 08bb4396e93b0459fbc811b384134b72, type: 2}
-    Reg:
-    - {fileID: 11400000, guid: bd234ee071a1142cb9518121f54f22e3, type: 2}
-    - {fileID: 11400000, guid: 5dfcab867f7cf4b8e84082b6471e1709, type: 2}
-    - {fileID: 11400000, guid: 5774ff7b0116340979a377e6d8e8f9c0, type: 2}
+    varieties:
+      Category:
+        value: {fileID: 11400000, guid: 08bb4396e93b0459fbc811b384134b72, type: 2}
+      Reg:
+      - {fileID: 11400000, guid: bd234ee071a1142cb9518121f54f22e3, type: 2}
+      - {fileID: 11400000, guid: 5dfcab867f7cf4b8e84082b6471e1709, type: 2}
+      - {fileID: 11400000, guid: 5774ff7b0116340979a377e6d8e8f9c0, type: 2}
+    placement: {fileID: 11400000, guid: dca2881380864e67bd61767a0c5755cf, type: 2}
   SeaBiomes:
-    Category:
-      value: {fileID: 11400000, guid: a4d6fdc892fe6486eba4cb6f4f064017, type: 2}
-    Reg: []
+    varieties:
+      Category:
+        value: {fileID: 11400000, guid: a4d6fdc892fe6486eba4cb6f4f064017, type: 2}
+      Reg:
+      - {fileID: 11400000, guid: 85b6a70b9887f4a139f70fb5ceed4be4, type: 2}
+    placement: {fileID: 11400000, guid: 638570eb9584487f9a39c40ca2998247, type: 2}

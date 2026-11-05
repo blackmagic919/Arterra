@@ -7,22 +7,22 @@ using Arterra.Configuration;
 using Arterra.Editor;
 
 namespace Arterra.Data.Biome{
-/// <summary>
-/// A template class which defines placement conditions for a biome. Because 
-/// each biome has a different set of conditions, but also must always defines those
-/// conditions, this is just a shorthand way of guaranteeing that.
-/// </summary> <typeparam name="TCond">The set of conditions that describe the placement of the biome.
-/// See <see cref="IBiomeCondition"/> for more information. </typeparam>
-public class CInfo<TCond> : Category<CInfo<TCond>> where TCond : IBiomeCondition{
+
+[CreateAssetMenu(menuName = "Generation/Biomes/Selection")][Serializable]
+/// <summary> A catalogue of a group of biomes and their generation
+/// behavior. Note, this does not contain placement information. </summary>
+public class BiomeVariety : Category<BiomeVariety>{
     /// <summary> Generic setting shared by all biomes, see <see cref="Info"/> for more information. </summary>
     public Option<Info> info;
-    /// <summary> The conditions that define the placement of the biome. </summary>
-    public Option<TCond> BiomeConditions;
-    /// <summary> This method is called when the object is changed in Unity's editor. It ensures that the conditions
-    /// describe a valid region within the decision matrix. </summary>
-    public override void OnValidate(){ base.OnValidate(); BiomeConditions.value.Validate(); }
 }
 
+[Serializable]
+public class BiomeSelection {
+    public Catalogue<BiomeVariety> varieties;
+    /// <summary> The conditions that define the placement of the biome. </summary>
+    public BiomePlacement placement;
+}
+ 
 /// <summary>
 /// The settings detailing all generation aspects controlled by a biome. All biomes
 /// must always define these aspects as each respective system needs to know what to do
@@ -245,30 +245,4 @@ public class Info
         [Range(0,1)]
         public float ChancePerCoord;
     }
-}
-
-/// <summary>
-/// An interface for all biome conditions to easily translate it between a <see cref="CInfo{T}">concrete
-/// field </see> and a <see cref="BDict.RegionBound"> general dimension </see>. This is so the same logic
-/// can be reused to construct the decision matrix regardless of the biome conditions.
-/// </summary>
-public interface IBiomeCondition
-{
-    /// <summary> obtains the number of conditions a biome's placement requires. Equivalently, 
-    /// the number of dimensions of the sample space of the decision matrix. </summary>
-    /// <returns>The number of dimensions of the sample space</returns>
-    public abstract int GetDimensions();
-    /// <summary> Copies a biome's conditions into a more <see cref="BDict.RegionBound">general</see> dimension list. </summary>
-    /// <param name="bound">The bound that recieves the conditions of the concret biome condition</param>
-    public abstract void GetBoundDimension(ref BDict.RegionBound bound);
-    /// <summary>
-    /// Sets the concrete biome condition to the values prescribed by the region bound and the biome index.
-    /// The conditions should be retrieved from the <paramref name="bound"/> in same order they are set within <see cref="GetBoundDimension"/>.
-    /// </summary>
-    /// <param name="bound">The bound that contains a list of ranges corresponding to the biome's conditions </param>
-    /// <param name="biome">The index of the biome within the original registry used to construct the decision matrix.
-    /// This value is -1 if it is an intermediate internal node used to facilitate lookup. </param>
-    public abstract void SetNode(BDict.RegionBound bound, int biome);
-    /// <summary> Validates the biome conditions to ensure that they are valid bounds within the decision matrix. </summary>
-    public abstract void Validate();
 }}
