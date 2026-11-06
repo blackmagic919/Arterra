@@ -66,7 +66,7 @@ namespace Arterra.Data.Entity.Behavior {
         }
 
         private bool CheckEntityRayCollision(BehaviorEntity.Animal self, float3 startGS, float3 pVel) {
-            float3 endGS = startGS + pVel * EntityJob.cxt.deltaTime;
+            float3 endGS = startGS + pVel * self.DeltaTime;
             if (!EntityManager.ESTree.FindClosestAlongRay(startGS, endGS, self.info.rtEntityId, out Entity hitEntity, out _))
                 return false;
             self.eventCtrl.RaiseEvent(Core.Events.GameEvent.Entity_ProjectileHit, self.info.rtEntityId, hitEntity?.info.rtEntityId);

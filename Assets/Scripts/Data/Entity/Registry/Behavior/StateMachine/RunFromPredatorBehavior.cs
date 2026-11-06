@@ -85,11 +85,11 @@ namespace Arterra.Data.Entity.Behavior {
                 return;
             } else if (manager.TaskIndex != settings.TaskName) return;
 
-            self.PathCollider.Follow(self, Movement.StaticDirect(
-                MMove.Profile(mmove, settings.TaskName, self.settings), 
-                ref path.pathFinder, self.PathCollider,
+            Movement.FollowStatic(self, self.PathCollider, ref path.pathFinder,
+                MMove.Profile(mmove, settings.TaskName, self.settings),
+                RunSpeed, movement.rotSpeed, self.DeltaTime, GameEvent.Action_Run,
                 MMove.MovementType(mmove, settings.TaskName)
-            ), RunSpeed, movement.rotSpeed, self.DeltaTime, GameEvent.Action_Run);
+            );
             if (!path.pathFinder.hasPath) {
                 manager.Transition(settings.OnFinishRunning);
                 return;
@@ -104,7 +104,7 @@ namespace Arterra.Data.Entity.Behavior {
             float3 rayDir = self.position - predator.position;
             int3 pathOrigin = path.GetPathOrigin(settings.TaskName);
             if(!path.FindPathAlongRay(settings.TaskName, pathOrigin, ref rayDir, PathDist + 1,
-                MMove.Profile(mmove, settings.TaskName, self.settings), EntityJob.cxt, out byte[] nPath))
+                MMove.Profile(mmove, settings.TaskName, self.settings), EntityJob.cxt, out PathFinderBehavior.PathData nPath))
                 return;
             path.SetPath(pathOrigin, nPath);
             manager.TaskTarget = predator.info.rtEntityId;

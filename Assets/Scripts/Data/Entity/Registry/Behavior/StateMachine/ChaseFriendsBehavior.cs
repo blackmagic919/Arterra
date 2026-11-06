@@ -61,17 +61,17 @@ namespace Arterra.Data.Entity.Behavior {
                     return;
                 }
 
-                self.PathCollider.Follow(self, Movement.DynamicDirect(
-                    MMove.Profile(mmove, settings.TaskName, self.settings), 
-                    ref path.pathFinder, self.PathCollider, friend.origin,
+                Movement.FollowDynamic(self, self.PathCollider, ref path.pathFinder,
+                    MMove.Profile(mmove, settings.TaskName, self.settings), friend.origin,
+                    WalkSpeed, movement.rotSpeed, self.DeltaTime, GameEvent.Action_Walk,
                     MMove.MovementType(mmove, settings.TaskName)
-                ), WalkSpeed, movement.rotSpeed, self.DeltaTime, GameEvent.Action_Walk);
+                );
             } else {
-                self.PathCollider.Follow(self, Movement.StaticDirect(
-                    MMove.Profile(mmove, settings.TaskName, self.settings), 
-                    ref path.pathFinder, self.PathCollider,
+                Movement.FollowStatic(self, self.PathCollider, ref path.pathFinder,
+                    MMove.Profile(mmove, settings.TaskName, self.settings),
+                    WalkSpeed, movement.rotSpeed, self.DeltaTime, GameEvent.Action_Walk,
                     MMove.MovementType(mmove, settings.TaskName)
-                ), WalkSpeed, movement.rotSpeed, self.DeltaTime, GameEvent.Action_Walk);
+                );
             }
         }
 
@@ -97,7 +97,7 @@ namespace Arterra.Data.Entity.Behavior {
                 int3 pathOrigin = path.GetPathOrigin(settings.TaskName);
                 int3 destination = (int3)math.round(friend.origin) - pathOrigin;
                 if(!path.FindPathOrApproachTarget(settings.TaskName, pathOrigin, destination, PathDist + 1,
-                    MMove.Profile(mmove, settings.TaskName, self.settings), EntityJob.cxt, out byte[] nPath))
+                    MMove.Profile(mmove, settings.TaskName, self.settings), EntityJob.cxt, out PathFinderBehavior.PathData nPath))
                     return false;
                 path.SetPath(pathOrigin, nPath);
 
@@ -115,7 +115,7 @@ namespace Arterra.Data.Entity.Behavior {
                 int3 pathOrigin = path.GetPathOrigin(settings.TaskName);
                 float3 aim = math.normalizesafe(pathOrigin - (int3)math.round(enemy.origin));
                 if(!path.FindPathAlongRay(settings.TaskName, pathOrigin, ref aim, PathDist + 1,
-                    MMove.Profile(mmove, settings.TaskName, self.settings), EntityJob.cxt, out byte[] nPath))
+                    MMove.Profile(mmove, settings.TaskName, self.settings), EntityJob.cxt, out PathFinderBehavior.PathData nPath))
                     return false;
                 path.SetPath(pathOrigin, nPath);
                 

@@ -12,7 +12,8 @@ namespace Arterra.Data.Entity.Behavior {
         public float AverageFlightVariance = 0.1f;
         public float VerticalFlightFreedom = 0.3f;
 
-        public EntitySMTasks TaskName = EntitySMTasks.RandomPath;
+        public EntitySMTasks TaskName = EntitySMTasks.DecidePath;
+        public EntitySMTasks FollowTaskName = EntitySMTasks.RandomPath;
         public EntitySMTasks OnStopFlyTransition = EntitySMTasks.ApproachSurface;
         public Option<List<EntitySMTasks> > OnSwitchPath;
 
@@ -21,6 +22,7 @@ namespace Arterra.Data.Entity.Behavior {
                 AverageFlightTime = AverageFlightTime,
                 AverageFlightVariance = AverageFlightVariance,
                 TaskName = TaskName,
+                FollowTaskName = FollowTaskName,
                 OnStopFlyTransition = OnStopFlyTransition,
                 OnSwitchPath = OnSwitchPath
             };
@@ -38,7 +40,7 @@ namespace Arterra.Data.Entity.Behavior {
         private PathFinderBehavior path;
         private Modifier mod;
 
-        private float RunSpeed => MMove.Speed(mmove, settings.TaskName, mod, MSettings.RunSpeed, movement.runSpeed);
+        private float RunSpeed => MMove.Speed(mmove, settings.FollowTaskName, mod, MSettings.RunSpeed, movement.runSpeed);
         private float AverageFlightTime => Modifier.Get(mod, MSettings.AverageFlightTime, settings.AverageFlightTime);
         private float AverageFlightVariance => Modifier.Get(mod, MSettings.AverageFlightVariance, settings.AverageFlightVariance);
         private float VerticalFlightFreedom => Modifier.Get(mod, MSettings.VerticalFlightFreedom, settings.VerticalFlightFreedom);
@@ -46,21 +48,18 @@ namespace Arterra.Data.Entity.Behavior {
         
         public override void Update(BehaviorEntity.Animal self) {
             if (self.context != BehaviorEntity.UpdateContext.Simulation) return;
-            if (manager.TaskIndex != settings.TaskName) return;
-
-            if (path.pathFinder.hasPath) {
-                self.PathCollider.Follow(self, Movement.StaticDirect(
-                    MMove.Profile(mmove, settings.TaskName, self.settings), 
-                    ref path.pathFinder, self.PathCollider,
-                    MMove.MovementType(mmove, settings.TaskName)
-                ), RunSpeed, movement.rotSpeed, self.DeltaTime, GameEvent.Action_Run);
+            if (manager.TaskIndex == settings.FollowTaskName) {
+                FollowPath();
                 return;
             }
-            
-            if (manager.TaskDuration <= 0) manager.Transition(settings.OnStopFlyTransition);
-            else if (settings.OnSwitchPath.value != null) {
-                foreach(var trans in settings.OnSwitchPath.value) 
-                    if(manager.Transition(trans)) return;
+            if (manager.TaskIndex != settings.TaskName) return;
+
+            if (manager.TaskDuration <= 0) {
+                if (manager.Transition(settings.OnStopFlyTransition)) return;
+            } else if (settings.OnSwitchPath.value != null) {
+                foreach (var transition in settings.OnSwitchPath.value) {
+                    if (manager.Transition(transition)) return;
+                }
             }
 
             float3 flightDir = math.normalizesafe(Movement.RandomDirection(ref self.random));
@@ -68,12 +67,28 @@ namespace Arterra.Data.Entity.Behavior {
 
             int3 pathOrigin = path.GetPathOrigin(settings.TaskName);
             if(!path.FindPathAlongRay(settings.TaskName, pathOrigin, ref flightDir, movement.pathDistance,
-                MMove.Profile(mmove, settings.TaskName, self.settings), EntityJob.cxt, out byte[] nPath))
+                MMove.Profile(mmove, settings.TaskName, self.settings), EntityJob.cxt, out PathFinderBehavior.PathData nPath))
                 return;
             path.SetPath(pathOrigin, nPath);
+            if (path.pathFinder.hasPath) manager.Transition(settings.FollowTaskName);
+        }
+
+        private void FollowPath() {
+            if (path.pathFinder.hasPath) {
+                Movement.FollowStatic(self, self.PathCollider, ref path.pathFinder,
+                    MMove.Profile(mmove, settings.FollowTaskName, self.settings),
+                    RunSpeed, movement.rotSpeed, self.DeltaTime, GameEvent.Action_Run,
+                    MMove.MovementType(mmove, settings.FollowTaskName)
+                );
+            }
+
+            if (!path.pathFinder.hasPath) manager.Transition(settings.TaskName);
         }
 
         private bool TransitionTo() {
+            // Switching between deciding and following keeps the same wandering interval.
+            if (manager.TaskIndex == settings.FollowTaskName || manager.TaskIndex == settings.TaskName) return true;
+            path.pathFinder.hasPath = false;
             manager.TaskDuration = (float)CustomUtility.Sample(
                 ref self.random, AverageFlightTime, AverageFlightVariance
             );
@@ -105,6 +120,7 @@ namespace Arterra.Data.Entity.Behavior {
             
             
             manager.RegisterTransition(settings.TaskName, TransitionTo);
+            manager.RegisterTransition(settings.FollowTaskName, TransitionTo);
             this.self = self;
         }
 
@@ -121,6 +137,7 @@ namespace Arterra.Data.Entity.Behavior {
             if (!self.Is(out mod)) mod = null;
             
             manager.RegisterTransition(settings.TaskName, TransitionTo);
+            manager.RegisterTransition(settings.FollowTaskName, TransitionTo);
             this.self = self;
         }
 

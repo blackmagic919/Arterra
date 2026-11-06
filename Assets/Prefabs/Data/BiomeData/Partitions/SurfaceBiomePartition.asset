@@ -39,21 +39,10 @@ MonoBehaviour:
     - Name: PalmBeach
       _value:
         value: {r: 0.25, g: 0.8, b: 0.65, a: 1}
+    - Name: Cliff
+      _value:
+        value: {r: 0.26415092, g: 0.26415092, b: 0.26415092, a: 1}
   Biomes:
-  - Spans:
-    - x: 0.375
-      y: 1
-    - x: 0
-      y: 0.5
-    - x: 0
-      y: 1
-    - x: 0
-      y: 1
-    - x: 0
-      y: 1
-    - x: 0.5
-      y: 1
-    BiomeName: Deciduous Forest
   - Spans:
     - x: 0.375
       y: 1
@@ -64,10 +53,52 @@ MonoBehaviour:
     - x: 0
       y: 1
     - x: 0
+      y: 0.75708103
+    - x: 0
+      y: 0.6889888
+    BiomeName: Desert
+  - Spans:
+    - x: 0.375
       y: 1
     - x: 0
-      y: 0.75
-    BiomeName: Desert
+      y: 0.5
+    - x: 0
+      y: 1
+    - x: 0
+      y: 1
+    - x: 0
+      y: 0.75708103
+    - x: 0.5
+      y: 1
+    BiomeName: Deciduous Forest
+  - Spans:
+    - x: 0.375
+      y: 1
+    - x: 0
+      y: 0.5
+    - x: 0
+      y: 1
+    - x: 0
+      y: 1
+    - x: 0
+      y: 0.75708103
+    - x: 0
+      y: 0.5
+    BiomeName: Tundra
+  - Spans:
+    - x: 0.375
+      y: 1
+    - x: 0
+      y: 1
+    - x: 0
+      y: 1
+    - x: 0
+      y: 1
+    - x: 0.75708103
+      y: 1
+    - x: 0
+      y: 1
+    BiomeName: Cliff
   - Spans:
     - x: 0.375
       y: 1
@@ -78,10 +109,24 @@ MonoBehaviour:
     - x: 0
       y: 1
     - x: 0
-      y: 1
-    - x: 0.75
+      y: 0.75708103
+    - x: 0.6889888
       y: 1
     BiomeName: Savanna
+  - Spans:
+    - x: 0.375
+      y: 1
+    - x: 0.5
+      y: 0.7
+    - x: 0
+      y: 1
+    - x: 0
+      y: 1
+    - x: 0
+      y: 0.75708103
+    - x: 0
+      y: 0.6889888
+    BiomeName: Grassy Plain
   - Spans:
     - x: 0
       y: 0.375
@@ -96,73 +141,3 @@ MonoBehaviour:
     - x: 0
       y: 1
     BiomeName: PalmBeach
-  - Spans:
-    - x: 0.375
-      y: 1
-    - x: 0.558533
-      y: 0.7
-    - x: 0
-      y: 1
-    - x: 0
-      y: 1
-    - x: 0
-      y: 1
-    - x: 0
-      y: 0.0001
-    BiomeName: 
-  - Spans:
-    - x: 0.375
-      y: 1
-    - x: 0.5497487
-      y: 0.55
-    - x: 0
-      y: 1
-    - x: 0
-      y: 1
-    - x: 0
-      y: 1
-    - x: 0
-      y: 0.5
-    BiomeName: 
-  - Spans:
-    - x: 0.375
-      y: 1
-    - x: 0.55
-      y: 0.558533
-    - x: 0
-      y: 1
-    - x: 0
-      y: 1
-    - x: 0
-      y: 1
-    - x: 0
-      y: 0.0001
-    BiomeName: 
-  - Spans:
-    - x: 0.375
-      y: 1
-    - x: 0
-      y: 0.5497487
-    - x: 0
-      y: 1
-    - x: 0
-      y: 1
-    - x: 0
-      y: 1
-    - x: 0
-      y: 0.5
-    BiomeName: Tundra
-  - Spans:
-    - x: 0.375
-      y: 1
-    - x: 0.55
-      y: 0.7
-    - x: 0
-      y: 1
-    - x: 0
-      y: 1
-    - x: 0
-      y: 1
-    - x: 0.0001
-      y: 0.75
-    BiomeName: Grassy Plain

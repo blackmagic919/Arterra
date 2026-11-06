@@ -73,6 +73,7 @@ MonoBehaviour:
     - value: {fileID: 11400000, guid: 31ecf97f7213c4151a08d43a0264d4e7, type: 2}
     - value: {fileID: 11400000, guid: 8955b69172d2b4feb98c9a2d158c442c, type: 2}
     - value: {fileID: 11400000, guid: d1bf7b029e23a49ec887f5d4c446e16d, type: 2}
+    - value: {fileID: 11400000, guid: 0671176a03f36484eab65bf9f2ea7629, type: 2}
   references:
     version: 2
     RefIds:
@@ -106,8 +107,8 @@ MonoBehaviour:
         Tooltips:
           value:
           - AcknowledgeTime: 300
-            AcknowledgeEvent: -1
             Priority: 0
+            AcknowledgeEvent: -1
             TriggerEvent: 19
             TriggerTime: 2.5
             PrefabPath: Prefabs/GameUI/Popups/ToolTips/ToolTip2/Display

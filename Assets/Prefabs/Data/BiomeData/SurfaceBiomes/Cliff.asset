@@ -1,0 +1,124 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 49bee82ffcb1d4036a871bcb04d33c57, type: 3}
+  m_Name: Cliff
+  m_EditorClassIdentifier: Assembly-CSharp::Arterra.Data.Biome.BiomeVariety
+  Name: Cliff
+  Tags:
+    Reg:
+      value: []
+  info:
+    value:
+      Names:
+        value:
+        - Stone
+        - Bedrock
+        - Limestone
+        - Air
+        - Water
+        - Snow
+        - Boulder01
+        - Boulder02
+        - Boulder03
+        - Boulder04
+        - Boulder05
+        - Boulder06
+        - RockGolem
+        - Boulder09
+        - Boulder10
+        - Ice
+        - Boulder13
+        - Boulder14
+        - Dirt
+        - Gravel
+        - Goat
+      GroundMaterials:
+        value:
+        - value:
+            Material: 5
+            genSize: 0.376
+            genShape: 0.812
+            frequency: 1
+            height: 0
+        - value:
+            Material: 19
+            genSize: 0.221
+            genShape: 0.491
+            frequency: 0.8
+            height: 0
+        - value:
+            Material: 1
+            genSize: 0.205
+            genShape: 0.449
+            frequency: 0.8
+            height: 0.25
+        - value:
+            Material: 0
+            genSize: 0.526
+            genShape: 0.809
+            frequency: 0.7
+            height: 0.25
+      SurfaceMaterials:
+        value:
+        - value:
+            Material: 3
+            genSize: 0.312
+            genShape: 0.512
+            frequency: 1
+            height: 0
+      LiquidMaterials:
+        value:
+        - value:
+            Material: 4
+            genSize: 0
+            genShape: 0
+            frequency: 1
+            height: 0
+      Structures:
+        value:
+        - value:
+            ChancePerStructurePoint: 1
+            Structure: 14
+        - value:
+            ChancePerStructurePoint: 0.5
+            Structure: 13
+        - value:
+            ChancePerStructurePoint: 0.33333334
+            Structure: 11
+        - value:
+            ChancePerStructurePoint: 0.25
+            Structure: 10
+        - value:
+            ChancePerStructurePoint: 0.2
+            Structure: 9
+        - value:
+            ChancePerStructurePoint: 0.16666667
+            Structure: 8
+        - value:
+            ChancePerStructurePoint: 0.14285715
+            Structure: 7
+        - value:
+            ChancePerStructurePoint: 0.125
+            Structure: 6
+      Entities:
+        value:
+        - value:
+            Entity: 12
+            ChancePerCoord: 0.000025
+        - value:
+            Entity: 20
+            ChancePerCoord: 0.0005
+      StructureSystems:
+        value: []
+  references:
+    version: 2
+    RefIds: []

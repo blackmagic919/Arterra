@@ -28,7 +28,7 @@ MonoBehaviour:
   MinLaunchSpeed: 5
   ReelSpeed: 0.5
   HookEntity: LassoHoop
-  HookEntityEvent: 3
+  HookEntityEvent: 17
   HookProjectile:
     LaunchSpeedMultiplier: 1
     FireSound: 2001

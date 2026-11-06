@@ -359,6 +359,7 @@ namespace Arterra.Configuration {
             { Tags.Organic, null },
             { Tags.Coral, null }, { Tags.Coral1, null }, { Tags.Coral2, null },
             { Tags.Grassy, null }, { Tags.Flowering, null }, { Tags.Leafy, null },
+            { Tags.PlainStone, null }, { Tags.PlainIcy, null },
             { Tags.Meat, null }, { Tags.CookedMeat, null },
             { Tags.Aquatic, null }, { Tags.Terrestrial, null }, { Tags.Aerial, null },
             { Tags.GargantuanAnimal, null }, { Tags.LargeAnimal, null }, { Tags.MidSizedAnimal, null },
@@ -391,7 +392,7 @@ namespace Arterra.Configuration {
             //Groups
             Soft = 5000, 
             Organic = 6001, Coral = 6050, Coral1 = 6051, Coral2 = 6052, Grassy = 6053,
-            Flowering = 6054, Leafy = 6055,
+            Flowering = 6054, Leafy = 6055, PlainStone = 6056, PlainIcy = 6057,
             Meat = 6100, CookedMeat = 6101,
             Aquatic = 6150, Terrestrial = 6151, Aerial = 6152, 
             //MidSizedAnimal -> Large Dog Size

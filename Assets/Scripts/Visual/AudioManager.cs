@@ -67,6 +67,10 @@ namespace Arterra.Engine.Audio {
         Entity_ZebraMate = AudioEventsBase.SFXEntity + 182,
         Entity_ZebraAttack = AudioEventsBase.SFXEntity + 183,
 
+        Entity_GoatBleat = AudioEventsBase.SFXEntity + 190,
+        Entity_GoatHurt = AudioEventsBase.SFXEntity + 191,
+        Entity_GoatMate = AudioEventsBase.SFXEntity + 192,
+
         Entity_WhaleSong = AudioEventsBase.SFXEntity + 200,
         Entity_WhaleHurt = AudioEventsBase.SFXEntity + 201,
         Entity_WhaleMate = AudioEventsBase.SFXEntity + 202,

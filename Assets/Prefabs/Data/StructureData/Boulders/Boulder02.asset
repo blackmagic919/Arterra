@@ -1,0 +1,473 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a0ed4b06c60c74eb3a1638cff170e3f8, type: 3}
+  m_Name: Boulder02
+  m_EditorClassIdentifier: Assembly-CSharp::Arterra.Data.Structure.StructureData
+  Name: Boulder02
+  Tags:
+    Reg:
+      value: []
+  settings:
+    value:
+      GridSize:
+        x: 10
+        y: 6
+        z: 7
+      matSetStart: 0
+      config: 1
+  Names:
+    value:
+    - T:PlainStone
+  map:
+    value:
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 14649
+    - data: 31611
+    - data: 23901
+    - data: 16191
+    - data: 8481
+    - data: 0
+    - data: 0
+    - data: 7453
+    - data: 41120
+    - data: 53199
+    - data: 53199
+    - data: 50629
+    - data: 0
+    - data: 0
+    - data: 514
+    - data: 34181
+    - data: 53199
+    - data: 53199
+    - data: 30840
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 27242
+    - data: 47288
+    - data: 53199
+    - data: 10794
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 44204
+    - data: 36494
+    - data: 28784
+    - data: 21074
+    - data: 13107
+    - data: 0
+    - data: 0
+    - data: 42662
+    - data: 65535
+    - data: 65535
+    - data: 65535
+    - data: 50629
+    - data: 0
+    - data: 0
+    - data: 35466
+    - data: 65535
+    - data: 65535
+    - data: 65535
+    - data: 30840
+    - data: 0
+    - data: 0
+    - data: 19789
+    - data: 29298
+    - data: 38807
+    - data: 48316
+    - data: 10794
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 49087
+    - data: 41377
+    - data: 33667
+    - data: 25700
+    - data: 17990
+    - data: 0
+    - data: 0
+    - data: 65535
+    - data: 65535
+    - data: 65535
+    - data: 65535
+    - data: 50629
+    - data: 0
+    - data: 0
+    - data: 65535
+    - data: 65535
+    - data: 65535
+    - data: 65535
+    - data: 30840
+    - data: 0
+    - data: 0
+    - data: 11051
+    - data: 20560
+    - data: 30069
+    - data: 39578
+    - data: 10794
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 53970
+    - data: 46260
+    - data: 38293
+    - data: 30583
+    - data: 22873
+    - data: 0
+    - data: 0
+    - data: 65535
+    - data: 65535
+    - data: 65535
+    - data: 65535
+    - data: 50629
+    - data: 0
+    - data: 0
+    - data: 65535
+    - data: 65535
+    - data: 65535
+    - data: 65535
+    - data: 30840
+    - data: 0
+    - data: 0
+    - data: 2313
+    - data: 11822
+    - data: 21331
+    - data: 30840
+    - data: 10794
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 58853
+    - data: 51143
+    - data: 43176
+    - data: 35466
+    - data: 27756
+    - data: 0
+    - data: 0
+    - data: 65535
+    - data: 65535
+    - data: 65535
+    - data: 65535
+    - data: 50629
+    - data: 0
+    - data: 0
+    - data: 65535
+    - data: 65535
+    - data: 65535
+    - data: 65535
+    - data: 30840
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 3084
+    - data: 12593
+    - data: 22102
+    - data: 10794
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 63736
+    - data: 55769
+    - data: 48059
+    - data: 40349
+    - data: 32639
+    - data: 0
+    - data: 0
+    - data: 65535
+    - data: 65535
+    - data: 65535
+    - data: 65535
+    - data: 50629
+    - data: 0
+    - data: 0
+    - data: 63993
+    - data: 65535
+    - data: 65535
+    - data: 65535
+    - data: 30840
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 3855
+    - data: 13364
+    - data: 10794
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 65535
+    - data: 60652
+    - data: 52942
+    - data: 45232
+    - data: 37522
+    - data: 0
+    - data: 0
+    - data: 65535
+    - data: 65535
+    - data: 65535
+    - data: 65535
+    - data: 33410
+    - data: 0
+    - data: 0
+    - data: 55255
+    - data: 64764
+    - data: 65535
+    - data: 54998
+    - data: 19789
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 4626
+    - data: 6425
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 53199
+    - data: 53199
+    - data: 53199
+    - data: 48316
+    - data: 13107
+    - data: 0
+    - data: 0
+    - data: 53199
+    - data: 53199
+    - data: 53199
+    - data: 34695
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 46517
+    - data: 53199
+    - data: 53199
+    - data: 21331
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+  checks:
+    value:
+    - position:
+        x: 3
+        y: 1
+        z: 3
+      checkInfo:
+        data: 4286611200
+    - position:
+        x: 6
+        y: 1
+        z: 3
+      checkInfo:
+        data: 4286611200
+  Enhancements:
+    Entities:
+      value: []
+    MapMetaData:
+      value: []
+  references:
+    version: 2
+    RefIds: []

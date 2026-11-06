@@ -15,7 +15,11 @@ MonoBehaviour:
   Name: Stone
   Tags:
     Reg:
-      value: []
+      value:
+      - Tag: 6056
+        value:
+          value:
+            rid: -2
   Names:
     value:
     - Stone:Solid
@@ -41,7 +45,7 @@ MonoBehaviour:
     waveScale: {x: 0, y: 0}
     waveSpeed: {x: 0, y: 0}
   Roughness: 0.2
-  Logic: {fileID: 11400000, guid: 8955b69172d2b4feb98c9a2d158c442c, type: 2}
+  Logic: {fileID: 0}
   looter:
     SolidLootTable:
       value: []
@@ -55,4 +59,6 @@ MonoBehaviour:
       DropMultiplier: 1
   references:
     version: 2
-    RefIds: []
+    RefIds:
+    - rid: -2
+      type: {class: , ns: , asm: }

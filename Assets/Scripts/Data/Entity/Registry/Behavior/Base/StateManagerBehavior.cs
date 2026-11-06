@@ -37,7 +37,7 @@ namespace Arterra.Data.Entity.Behavior {
 
         Idle = EntitySMBase.Wander + 0, 
         RandomPath = EntitySMBase.Wander + 100, 
-        FollowPath = EntitySMBase.Wander + 200,
+        DecidePath = EntitySMBase.Wander + 200,
         ChaseFriends = EntitySMBase.Wander + 300,
         ApproachSurface = EntitySMBase.Wander + 400,
         ApproachSurface2 = EntitySMBase.Wander + 405,

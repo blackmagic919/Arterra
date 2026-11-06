@@ -87,6 +87,7 @@ namespace Arterra.Data.Entity.Behavior {
         Attack = BehaviorTypes.Creature + 1,
         Genetics = BehaviorTypes.Creature + 2,
         Pathfinding = BehaviorTypes.Creature + 3,
+        TransitionPathfinding = BehaviorTypes.Creature + 20,
         Reproduction = BehaviorTypes.Creature + 4,
         Vitality = BehaviorTypes.Creature + 5,
         Feedable = BehaviorTypes.Creature + 6,
@@ -178,6 +179,7 @@ namespace Arterra.Data.Entity.Behavior {
             { Behaviors.Attack, () => new AttackBehavior()},
             { Behaviors.Genetics, () => new Genetics()},
             { Behaviors.Pathfinding, () => new PathFinderBehavior()},
+            { Behaviors.TransitionPathfinding, () => new TransitionPathfinderBehavior()},
             { Behaviors.Reproduction, () => new ReproductionBehavior()},
             { Behaviors.Vitality, () => new VitalityBehavior()},
             { Behaviors.Feedable, () => new FeedableBehavior()},
@@ -266,6 +268,7 @@ namespace Arterra.Data.Entity.Behavior {
                 typeof(EntityItemDisplaySettings),
                 typeof(ProjectileTerrainSettings),
                 typeof(ProjectileFlightSettings),
+                typeof(TransitionPathfinderSettings),
                 typeof(ProjectileEffectsSettings),
                 typeof(TestMergeSettings),
                 typeof(TimedDecaySettings),
@@ -346,6 +349,14 @@ namespace Arterra.Data.Entity.Behavior {
                     if (behavior is SpeciesBehavior species)
                         species.AddBehaviorDependencies(BehaviorHeirarchy);
                     BehaviorHeirarchy.TryAdd(name, BehaviorHeirarchy.Count);
+                }
+
+                // Configurable pathfinding replaces the dependency requested by existing AI tasks.
+                if (BehaviorHeirarchy.ContainsKey(Behaviors.TransitionPathfinding)
+                    && BehaviorHeirarchy.TryGetValue(Behaviors.Pathfinding, out int pathOrder)) {
+                    BehaviorHeirarchy[Behaviors.TransitionPathfinding] = Math.Min(
+                        BehaviorHeirarchy[Behaviors.TransitionPathfinding], pathOrder);
+                    BehaviorHeirarchy.Remove(Behaviors.Pathfinding);
                 }
 
                 var SortingList = BehaviorHeirarchy.ToList();
@@ -451,9 +462,15 @@ namespace Arterra.Data.Entity.Behavior {
                 if (type == typeof(IMultiCollider))
                     colliderInfo = instance as IMultiCollider;
                 DynamicTypes[type] = instance;
+                if (instance is PathFinderBehavior pathfinder)
+                    DynamicTypes[typeof(PathFinderBehavior)] = pathfinder;
             }
 
             public void Unregister(Type type) {
+                if (DynamicTypes.TryGetValue(type, out object instance) && instance is PathFinderBehavior
+                    && DynamicTypes.TryGetValue(typeof(PathFinderBehavior), out object pathfinder)
+                    && ReferenceEquals(instance, pathfinder))
+                    DynamicTypes.Remove(typeof(PathFinderBehavior));
                 if (DynamicTypes.ContainsKey(type))
                     DynamicTypes.Remove(type);
             }

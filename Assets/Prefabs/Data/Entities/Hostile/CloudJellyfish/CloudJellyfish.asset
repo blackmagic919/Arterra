@@ -919,7 +919,8 @@ MonoBehaviour:
       data:
         AverageWalkTime: 10
         AveragWalkVariance: 0
-        TaskName: 100
+        TaskName: 200
+        FollowTaskName: 100
         OnStopWalkTransition: 400
         OnSwitchPath:
           value: 5c760000
@@ -1276,6 +1277,13 @@ MonoBehaviour:
               enabled: 0
               value: 0
           - state: 100
+            movement: 1
+            ProfileIndex: 0
+            useGravity: 0
+            CustomSpeed:
+              enabled: 0
+              value: 0
+          - state: 200
             movement: 1
             ProfileIndex: 0
             useGravity: 0

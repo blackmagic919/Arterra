@@ -152,11 +152,11 @@ namespace Arterra.Data.Entity.Behavior {
                 return;
             }
             
-            self.PathCollider.Follow(self, Movement.DynamicDirect(
-                MMove.Profile(mmove, settings.TaskName, self.settings),
-                ref path.pathFinder, self.PathCollider, Enemy.origin,
+            Movement.FollowDynamic(self, self.PathCollider, ref path.pathFinder,
+                MMove.Profile(mmove, settings.TaskName, self.settings), Enemy.origin,
+                RunSpeed, movement.rotSpeed, self.DeltaTime, GameEvent.Action_Run,
                 MMove.MovementType(mmove, settings.TaskName)
-            ), RunSpeed, movement.rotSpeed, self.DeltaTime, GameEvent.Action_Run);
+            );
             
             float EnemyDist = ColliderUpdateBehavior.GetColliderDist(self, Enemy);
             if (EnemyDist < manager.settings.ContactDistance && manager.Transition(settings.OnReachEnemyTransition)) {
@@ -176,7 +176,7 @@ namespace Arterra.Data.Entity.Behavior {
             int3 pathOrigin = path.GetPathOrigin(settings.TaskName);
             int3 destination = (int3)math.round(Enemy.origin) - pathOrigin;
             if(!path.FindPathOrApproachTarget(settings.TaskName, pathOrigin, destination, PathDist + 1,
-                MMove.Profile(mmove, settings.TaskName, self.settings), EntityJob.cxt, out byte[] nPath))
+                MMove.Profile(mmove, settings.TaskName, self.settings), EntityJob.cxt, out PathFinderBehavior.PathData nPath))
                 return false;
             path.SetPath(pathOrigin, nPath);
             float dist = ColliderUpdateBehavior.GetColliderDist(self, Enemy);

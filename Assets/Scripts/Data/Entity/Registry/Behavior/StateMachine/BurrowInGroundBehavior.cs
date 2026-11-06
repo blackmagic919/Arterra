@@ -115,10 +115,11 @@ namespace Arterra.Data.Entity.Behavior{
         private void BurrowUnderground(BehaviorEntity.Animal self) {
             if (path.pathFinder.hasPath) {
                 float speed = WalkSpeed(settings.Task1Name);
-                self.PathCollider.Follow(self, Movement.StaticDirect(
-                    settings.paths.BurrowProfile, settings.paths.BurrowBounds, ref path.pathFinder, self.PathCollider,
+                Movement.FollowStatic(self, self.PathCollider, ref path.pathFinder,
+                    settings.paths.BurrowProfile, settings.paths.BurrowBounds,
+                    speed, movement.rotSpeed, self.DeltaTime, GameEvent.Entity_Burrow,
                     MMove.MovementType(mmove, settings.Task1Name)
-                ), speed, movement.rotSpeed, self.DeltaTime, GameEvent.Entity_Burrow);
+                );
                 return;
             }
 
@@ -158,10 +159,11 @@ namespace Arterra.Data.Entity.Behavior{
             }
 
             float speed = WalkSpeed(settings.Task3Name);
-            self.PathCollider.Follow(self, Movement.StaticDirect(
-                settings.paths.BurrowProfile, settings.paths.BurrowBounds, ref path.pathFinder, self.PathCollider,
+            Movement.FollowStatic(self, self.PathCollider, ref path.pathFinder,
+                settings.paths.BurrowProfile, settings.paths.BurrowBounds,
+                speed, movement.rotSpeed, self.DeltaTime, GameEvent.Entity_Unburrow,
                 MMove.MovementType(mmove, settings.Task3Name)
-            ), speed, movement.rotSpeed, self.DeltaTime, GameEvent.Entity_Unburrow);
+            );
         }
 
         private void FindPathOut() {
@@ -169,7 +171,7 @@ namespace Arterra.Data.Entity.Behavior{
              if(!path.FindMatchAlongRay(settings.Task3Name, pathOrigin, (float3)Vector3.up, movement.pathDistance,
                 settings.paths.BurrowBounds, settings.paths.BurrowProfile,
                 settings.paths.SurfBounds, settings.paths.SurfProfile,
-                out foundSurface, out byte[] nPath)) return;
+                out foundSurface, out PathFinderBehavior.PathData nPath)) return;
             path.SetPath(pathOrigin, nPath);
         }
 
@@ -189,12 +191,12 @@ namespace Arterra.Data.Entity.Behavior{
             int pathLength = (int)DigDist;
 
             if(!path.FindPathAlongRay(settings.Task1Name, (int3)origin, ref digDir, pathLength, 
-                settings.paths.BurrowBounds, settings.paths.BurrowProfile, out byte[] nPath)) 
+                settings.paths.BurrowBounds, settings.paths.BurrowProfile, out PathFinderBehavior.PathData nPath))
                 return false;
             int3 pathOrigin = path.GetPathOrigin(settings.Task1Name);
-            byte[] toStart = PathFinderBehavior.GetStraightLinePath(pathOrigin, (int3)origin);
+            PathFinderBehavior.PathData toStart = PathFinderBehavior.GetStraightLinePath(pathOrigin, (int3)origin);
             if (nPath.Length < pathLength) return false;
-            path.SetPath(pathOrigin, toStart.Concat(nPath).ToArray());
+            path.SetPath(pathOrigin, toStart.Concat(nPath));
             return true;
         }
  

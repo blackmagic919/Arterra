@@ -69,17 +69,17 @@ namespace Arterra.Data.Entity.Behavior {
                 int3 pathOrigin = path.GetPathOrigin(settings.TaskName);
                 int3 destination = (int3)math.round(target.origin) - pathOrigin;
                 if(!path.FindPathOrApproachTarget(settings.TaskName, pathOrigin, destination, PathDist + 1,
-                    MMove.Profile(mmove, manager.TaskIndex, self.settings), EntityJob.cxt, out byte[] nPath)) {
+                    MMove.Profile(mmove, manager.TaskIndex, self.settings), EntityJob.cxt, out PathFinderBehavior.PathData nPath)) {
                     return; // Search is throttled; this is not an unreachable result.
                 }
                 path.SetPath(pathOrigin, nPath);
             }
 
-            self.PathCollider.Follow(self, Movement.DynamicDirect(
-                MMove.Profile(mmove, settings.TaskName, self.settings), 
-                ref path.pathFinder, self.PathCollider, target.origin,
+            Movement.FollowDynamic(self, self.PathCollider, ref path.pathFinder,
+                MMove.Profile(mmove, settings.TaskName, self.settings), target.origin,
+                RunSpeed, movement.rotSpeed, self.DeltaTime, GameEvent.Action_Run,
                 MMove.MovementType(mmove, settings.TaskName)
-            ), RunSpeed, movement.rotSpeed, self.DeltaTime, GameEvent.Action_Run);
+            );
         }
 
         private void RespondToAttack(object clrId, object atkrId) {

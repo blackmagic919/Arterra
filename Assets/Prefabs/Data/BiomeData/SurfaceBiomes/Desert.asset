@@ -68,23 +68,23 @@ MonoBehaviour:
       Structures:
         value:
         - value:
-            ChancePerStructurePoint: 0.002
-            Structure: 0
+            ChancePerStructurePoint: 0.005
+            Structure: 2
         - value:
             ChancePerStructurePoint: 0.004
             Structure: 1
         - value:
-            ChancePerStructurePoint: 0.005
-            Structure: 2
+            ChancePerStructurePoint: 0.002
+            Structure: 0
         - value:
             ChancePerStructurePoint: 0.0005
-            Structure: 12
+            Structure: 14
         - value:
             ChancePerStructurePoint: 0.0005
             Structure: 13
         - value:
             ChancePerStructurePoint: 0.0005
-            Structure: 14
+            Structure: 12
       Entities:
         value:
         - value:
@@ -99,9 +99,8 @@ MonoBehaviour:
         - value:
             Entity: 10
             ChancePerCoord: 0.000005
-        - value:
-            Entity: 11
-            ChancePerCoord: 0.0000025
+      StructureSystems:
+        value: []
   references:
     version: 2
     RefIds: []

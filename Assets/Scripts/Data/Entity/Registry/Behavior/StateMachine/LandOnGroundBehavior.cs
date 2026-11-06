@@ -55,11 +55,11 @@ namespace Arterra.Data.Entity.Behavior{
             if (manager.TaskIndex != settings.TaskName) return;
             
             if (path.pathFinder.hasPath) {
-                self.PathCollider.Follow(self, Movement.StaticDirect(
-                    MMove.Profile(mmove, settings.TaskName, self.settings), 
-                    ref path.pathFinder, self.PathCollider,
+                Movement.FollowStatic(self, self.PathCollider, ref path.pathFinder,
+                    MMove.Profile(mmove, settings.TaskName, self.settings),
+                    RunSpeed, movement.rotSpeed, self.DeltaTime, GameEvent.Action_Run,
                     MMove.MovementType(mmove, settings.TaskName)
-                ), RunSpeed, movement.rotSpeed, self.DeltaTime, GameEvent.Action_Run);
+                );
                 return;
             } if (foundGround) manager.Transition(settings.OnReachGround);
 
@@ -82,7 +82,7 @@ namespace Arterra.Data.Entity.Behavior{
                 pathOrigin, flightTarget, movement.pathDistance + 1,
                 MMove.Profile(mmove, settings.TaskName, self.settings),
                 MMove.Profile(mmove, settings.OnReachGround, self.settings),
-                EntityJob.cxt, out foundGround, out byte[] nPath)) return;
+                EntityJob.cxt, out foundGround, out PathFinderBehavior.PathData nPath)) return;
             path.SetPath(pathOrigin, nPath);
         }
 

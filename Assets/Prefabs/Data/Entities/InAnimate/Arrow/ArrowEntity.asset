@@ -65,7 +65,7 @@ MonoBehaviour:
     - rid: 5778504888424333508
       type: {class: ColliderUpdateSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
-        interactType: 0
+        interactType: 1
         UseGravity: 1
     - rid: 5778504888424333509
       type: {class: ProjectileFlightSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}

@@ -22,7 +22,7 @@ int SampleBiome (float3 position)
     float2 terrainSample = GetErodedNoise2D(position.xz, erosionNoise, warpOffset, warpJacobian, continentalSampler);
     surfData[0] = terrainSample.x;
     surfData[3] = GetRawNoise2D(position.xz, InfHeightSampler);
-    surfData[4] = terrainSample.y; // Steepness
+    surfData[4] = SlopeToSteepness(terrainSample.y * abs(maxTerrainHeight));
     surfData[5] = GetRawNoise2D(position.xz, atmosphereSampler);
 
     float infHeight = interpolateValue(surfData[3], InfHeightSampler);

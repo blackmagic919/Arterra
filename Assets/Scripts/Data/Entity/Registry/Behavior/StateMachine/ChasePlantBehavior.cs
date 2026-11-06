@@ -48,11 +48,11 @@ namespace Arterra.Data.Entity.Behavior {
             if (self.context != BehaviorEntity.UpdateContext.Simulation) return;
             if (manager.TaskIndex != settings.TaskName) return;
             
-            self.PathCollider.Follow(self, Movement.StaticDirect(
-                MMove.Profile(mmove, settings.TaskName, self.settings), 
-                ref path.pathFinder, self.PathCollider,
+            Movement.FollowStatic(self, self.PathCollider, ref path.pathFinder,
+                MMove.Profile(mmove, settings.TaskName, self.settings),
+                WalkSpeed, movement.rotSpeed, self.DeltaTime, GameEvent.Action_Walk,
                 MMove.MovementType(mmove, settings.TaskName)
-            ), WalkSpeed, movement.rotSpeed, self.DeltaTime, GameEvent.Action_Walk);
+            );
             if (path.pathFinder.hasPath) return;
 
             if (findPlant.FindPreferredPreyPlant((int3)math.round(self.position), SearchPlantDist, out int3 preyPos)
@@ -79,7 +79,7 @@ namespace Arterra.Data.Entity.Behavior {
             int3 pathOrigin = path.GetPathOrigin(settings.TaskName);
             if(path.FindPathOrApproachTarget(settings.TaskName, pathOrigin, preyPos - pathOrigin, movement.pathDistance,
                 MMove.Profile(mmove, settings.TaskName, self.settings),
-                EntityJob.cxt, out byte[] nPath)) {
+                EntityJob.cxt, out PathFinderBehavior.PathData nPath)) {
                 path.SetPath(pathOrigin, nPath);
                 LockedOn = true;
             } else return true;

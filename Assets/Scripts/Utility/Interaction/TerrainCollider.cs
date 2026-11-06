@@ -566,21 +566,6 @@ namespace Arterra.GamePlay.Interaction {
             }
         }
 
-        const float AccelTime = 0.075f;
-        public void Follow(Entity self, (Quaternion r, float3 v) delta,
-            float moveSpeed, float rotSpeed, float timeStep, GameEvent moveType) {
-            float acceleration = moveSpeed / AccelTime;
-            this.transform.rotation = Quaternion.RotateTowards(this.transform.rotation, delta.r, rotSpeed * timeStep);
-
-            if (math.length(this.transform.velocity) >= moveSpeed) return;
-            float3 deltVelocity = acceleration * timeStep * delta.v;
-            if (math.all(deltVelocity == 0)) return;
-
-            RefTuple<float3> cxt = new RefTuple<float3>(deltVelocity);
-            self.eventCtrl.RaiseEvent(moveType, self.info.rtEntityId, null, cxt);
-            deltVelocity = cxt; this.transform.velocity += deltVelocity;
-        }
-
         public TerrainCollider(in Settings settings, double3 position, string prefix = null) {
             this.transform = new Transform(position, 0, settings.size, Quaternion.identity, prefix);
             this.gravityStack = new StateStack<bool>(true, 8);

@@ -470,7 +470,7 @@ MonoBehaviour:
           - task: 100
             Animation: IsSwimming
           - task: 200
-            Animation: IsSwimming
+            Animation: IsIdling
           - task: 300
             Animation: IsSwimming
           - task: 20000
@@ -516,6 +516,13 @@ MonoBehaviour:
         movements:
           value:
           - state: 100
+            movement: 2
+            ProfileIndex: 0
+            useGravity: 0
+            CustomSpeed:
+              enabled: 0
+              value: 0
+          - state: 200
             movement: 2
             ProfileIndex: 0
             useGravity: 0
@@ -633,7 +640,8 @@ MonoBehaviour:
       data:
         AverageWalkTime: 15
         AveragWalkVariance: 0.1
-        TaskName: 100
+        TaskName: 200
+        FollowTaskName: 100
         OnStopWalkTransition: 0
         OnSwitchPath:
           value: 

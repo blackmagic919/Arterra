@@ -15,6 +15,7 @@ namespace Arterra.Core.Events {
         private readonly ControlStream<GameEvent> unsubscriptionStream;
         private readonly ControlStream<bool> syncStream;
         private readonly ConcurrentDictionary<GameEvent, HashSet<NetPeer>> remoteSubscription = new();
+        private bool disposed;
 
         public NetworkEventControl() {
             networkEventStream = new NetEventStream<RaisedEvent>("EventControl:Events",
@@ -86,7 +87,7 @@ namespace Arterra.Core.Events {
         public override void RemoveEventHandler(GameEvent type, RefEventHandler handler) {
             bool hadHandlers = events.ContainsKey((int)type);
             base.RemoveEventHandler(type, handler);
-            if (hadHandlers && !events.ContainsKey((int)type)) {
+            if (!disposed && hadHandlers && !events.ContainsKey((int)type)) {
                 unsubscriptionStream.Fire(type);
             }
         }
@@ -94,7 +95,7 @@ namespace Arterra.Core.Events {
         public override void RemoveEventHandler(GameEvent type) {
             bool hadHandlers = events.ContainsKey((int)type);
             base.RemoveEventHandler(type);
-            if (hadHandlers) {
+            if (!disposed && hadHandlers) {
                 unsubscriptionStream.Fire(type);
             }
         }
@@ -153,6 +154,9 @@ namespace Arterra.Core.Events {
         }
 
         public void Dispose() {
+            if (disposed) return;
+            // Subscribers may detach after the owning entity has released its streams.
+            disposed = true;
             TransportManager.Instance.PeerDisconnected -= RemovePeer;
             networkEventStream.Dispose();
             subscriptionStream.Dispose();

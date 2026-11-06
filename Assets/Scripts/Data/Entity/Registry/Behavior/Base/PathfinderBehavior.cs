@@ -9,6 +9,8 @@ using static Arterra.Data.Entity.EntitySetting;
 using Unity.Collections.LowLevel.Unsafe;
 using Unity.Collections;
 using System.Linq;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace Arterra.Data.Entity.Behavior {
     public class PathFinderBehavior : SpeciesBehavior {
@@ -55,9 +57,7 @@ namespace Arterra.Data.Entity.Behavior {
                 var collider = self.PathCollider;
                 float3 centerOffset = collider.transform.size * 0.5f;
                 float3 position = (float3)collider.transform.position;
-                int direction = finder.path[finder.currentInd];
-                int3 next = finder.currentPos + new int3(direction / 9 - 1,
-                    direction / 3 % 3 - 1, direction % 3 - 1);
+                int3 next = finder.currentPos + finder.path[finder.currentInd].Delta;
                 Color previousColor = Gizmos.color;
                 Gizmos.color = Color.magenta;
                 Gizmos.DrawLine(CPUMapManager.GSToWS(position + centerOffset),
@@ -77,8 +77,7 @@ namespace Arterra.Data.Entity.Behavior {
             if (finder.hasPath) {
                 int ind = finder.currentInd;
                 while (ind != finder.path.Length) {
-                    int dir = finder.path[ind];
-                    int3 dest = finder.currentPos + new int3((dir / 9) - 1, (dir / 3 % 3) - 1, (dir % 3) - 1);
+                    int3 dest = finder.currentPos + finder.path[ind].Delta;
                     Gizmos.DrawLine(CPUMapManager.GSToWS(finder.currentPos),
                                     CPUMapManager.GSToWS(dest));
                     finder.currentPos = dest;
@@ -98,18 +97,20 @@ namespace Arterra.Data.Entity.Behavior {
             return origin;
         }
 
-        public void SetPath(int3 origin, byte[] path) => pathFinder = new PathInfo(origin, path);
+        public void SetPath(int3 origin, PathData path) {
+            pathFinder = new PathInfo(origin, path);
+        }
 
         public bool FindPath(
             EntitySMTasks task,
             in int3 Origin, in int3 iEnd,
             int PathDistance, in ProfileInfo info,
-            in EntityJob.Context context, out byte[] path
+            in EntityJob.Context context, out PathData path
         ) {
             path = null;
             if (TaskBouncer.TryGetValue(task, out long blockTime))
                 if (blockTime > updateCycles) return false;
-            path = FindPath(Origin, iEnd, PathDistance, info, context, out int cost);
+            path = SearchPath(Origin, iEnd, PathDistance, info, context, out int cost);
 
             int deltaTime = (int)(cost * CyclesPerNode);
             blockTime = updateCycles + deltaTime;
@@ -122,12 +123,12 @@ namespace Arterra.Data.Entity.Behavior {
             in int3 Origin, in float3 rayDir,
             int PathDistance, in ProfileInfo info,
             in ProfileInfo dest, in EntityJob.Context context,
-            out bool ReachedEnd, out byte[] path
+            out bool ReachedEnd, out PathData path
         ) {
             path = null; ReachedEnd = false;
             if (TaskBouncer.TryGetValue(task, out long blockTime))
                 if (blockTime > updateCycles) return false;
-            path = FindMatchAlongRay(Origin, rayDir, PathDistance, info, dest, context, out int cost, out ReachedEnd);
+            path = SearchMatchAlongRay(Origin, rayDir, PathDistance, info, dest, context, out int cost, out ReachedEnd);
 
             int deltaTime = (int)(cost * CyclesPerNode);
             blockTime = updateCycles + deltaTime;
@@ -139,12 +140,12 @@ namespace Arterra.Data.Entity.Behavior {
             EntitySMTasks task,
             in int3 Origin, ref float3 rayDir,
             int PathDistance, in ProfileInfo info,
-            in EntityJob.Context context, out byte[] path
+            in EntityJob.Context context, out PathData path
         ) {
             path = null;
             if (TaskBouncer.TryGetValue(task, out long blockTime))
                 if (blockTime > updateCycles) return false;
-            path = FindPathAlongRay(Origin, ref rayDir, PathDistance, info, context, out int cost);
+            path = SearchPathAlongRay(Origin, ref rayDir, PathDistance, info, context, out int cost);
 
             int deltaTime = (int)(cost * CyclesPerNode);
             blockTime = updateCycles + deltaTime;
@@ -156,12 +157,12 @@ namespace Arterra.Data.Entity.Behavior {
             EntitySMTasks task,
             in int3 Origin, in int3 iEnd,
             int PathDistance, uint3 bounds,
-            List<MatProfileE> matProfile, out byte[] path
+            List<MatProfileE> matProfile, out PathData path
         ) {
             path = null;
             if (TaskBouncer.TryGetValue(task, out long blockTime))
                 if (blockTime > updateCycles) return false;
-            path = FindPath(Origin, iEnd, PathDistance, bounds, matProfile, out int cost);
+            path = SearchPath(Origin, iEnd, PathDistance, bounds, matProfile, out int cost);
 
             int deltaTime = (int)(cost * CyclesPerNode);
             blockTime = updateCycles + deltaTime;
@@ -175,12 +176,12 @@ namespace Arterra.Data.Entity.Behavior {
             int PathDistance, uint3 mBounds,
             List<MatProfileE> mProf, uint3 dBounds,
             List<MatProfileE> destProf,
-            out bool ReachedEnd, out byte[] path
+            out bool ReachedEnd, out PathData path
         ) {
             path = null; ReachedEnd = false;
             if (TaskBouncer.TryGetValue(task, out long blockTime))
                 if (blockTime > updateCycles) return false;
-            path = FindMatchAlongRay(Origin, rayDir, PathDistance, mBounds, mProf, dBounds, destProf, out int cost, out ReachedEnd);
+            path = SearchMatchAlongRay(Origin, rayDir, PathDistance, mBounds, mProf, dBounds, destProf, out int cost, out ReachedEnd);
 
             int deltaTime = (int)(cost * CyclesPerNode);
             blockTime = updateCycles + deltaTime;
@@ -192,12 +193,12 @@ namespace Arterra.Data.Entity.Behavior {
             EntitySMTasks task,
             in int3 Origin, ref float3 rayDir,
             int PathDistance, uint3 mBounds,
-            List<MatProfileE> mProf, out byte[] path
+            List<MatProfileE> mProf, out PathData path
         ) {
             path = null;
             if (TaskBouncer.TryGetValue(task, out long blockTime))
                 if (blockTime > updateCycles) return false;
-            path = FindPathAlongRay(Origin, ref rayDir, PathDistance, mBounds, mProf, out int cost);
+            path = SearchPathAlongRay(Origin, ref rayDir, PathDistance, mBounds, mProf, out int cost);
 
             int deltaTime = (int)(cost * CyclesPerNode);
             blockTime = updateCycles + deltaTime;
@@ -209,12 +210,12 @@ namespace Arterra.Data.Entity.Behavior {
             EntitySMTasks task,
             in int3 Origin, in int3 iEnd,
             int PathDistance, in ProfileInfo info,
-            in EntityJob.Context context, out byte[] path
+            in EntityJob.Context context, out PathData path
         ) {
             path = null;
             if (TaskBouncer.TryGetValue(task, out long blockTime))
                 if (blockTime > updateCycles) return false;
-            path = FindPathOrApproachTarget(Origin, iEnd, PathDistance, info, context, out int cost);
+            path = SearchPathOrApproachTarget(Origin, iEnd, PathDistance, info, context, out int cost);
 
             int deltaTime = (int)(cost * CyclesPerNode);
             blockTime = updateCycles + deltaTime;
@@ -226,12 +227,12 @@ namespace Arterra.Data.Entity.Behavior {
             EntitySMTasks task,
             in int3 Origin, in int3 iEnd,
             int PathDistance, uint3 mBounds,
-            List<MatProfileE> mProf, out byte[] path
+            List<MatProfileE> mProf, out PathData path
         ) {
             path = null;
             if (TaskBouncer.TryGetValue(task, out long blockTime))
                 if (blockTime > updateCycles) return false;
-            path = FindPathOrApproachTarget(Origin, iEnd, PathDistance, mBounds, mProf, out int pathLength);
+            path = SearchPathOrApproachTarget(Origin, iEnd, PathDistance, mBounds, mProf, out int pathLength);
 
             int deltaTime = (int)(pathLength * CyclesPerNode);
             blockTime = updateCycles + deltaTime;
@@ -239,8 +240,32 @@ namespace Arterra.Data.Entity.Behavior {
             return true;
         }
 
-        public static byte[] GetStraightLinePath(int3 p1, int3 p2) {
-            if (p1.Equals(p2)) return Array.Empty<byte>();
+        protected virtual PathData SearchPath(in int3 origin, in int3 end, int distance, in ProfileInfo profile, in EntityJob.Context context, out int cost)
+            => FindPath(origin, end, distance, profile, context, out cost);
+
+        protected virtual PathData SearchPath(in int3 origin, in int3 end, int distance, uint3 bounds, List<MatProfileE> profile, out int cost)
+            => FindPath(origin, end, distance, bounds, profile, out cost);
+
+        protected virtual PathData SearchMatchAlongRay(in int3 origin, in float3 direction, int distance, in ProfileInfo profile, in ProfileInfo target, in EntityJob.Context context, out int cost, out bool reached)
+            => FindMatchAlongRay(origin, direction, distance, profile, target, context, out cost, out reached);
+
+        protected virtual PathData SearchMatchAlongRay(in int3 origin, in float3 direction, int distance, uint3 bounds, List<MatProfileE> profile, uint3 targetBounds, List<MatProfileE> target, out int cost, out bool reached)
+            => FindMatchAlongRay(origin, direction, distance, bounds, profile, targetBounds, target, out cost, out reached);
+
+        protected virtual PathData SearchPathAlongRay(in int3 origin, ref float3 direction, int distance, in ProfileInfo profile, in EntityJob.Context context, out int cost)
+            => FindPathAlongRay(origin, ref direction, distance, profile, context, out cost);
+
+        protected virtual PathData SearchPathAlongRay(in int3 origin, ref float3 direction, int distance, uint3 bounds, List<MatProfileE> profile, out int cost)
+            => FindPathAlongRay(origin, ref direction, distance, bounds, profile, out cost);
+
+        protected virtual PathData SearchPathOrApproachTarget(in int3 origin, in int3 end, int distance, in ProfileInfo profile, in EntityJob.Context context, out int cost)
+            => FindPathOrApproachTarget(origin, end, distance, profile, context, out cost);
+
+        protected virtual PathData SearchPathOrApproachTarget(in int3 origin, in int3 end, int distance, uint3 bounds, List<MatProfileE> profile, out int cost)
+            => FindPathOrApproachTarget(origin, end, distance, bounds, profile, out cost);
+
+        public static PathData GetStraightLinePath(int3 p1, int3 p2) {
+            if (p1.Equals(p2)) return PathData.Empty;
 
             int3 cur = p1;
             List<byte> path = new ();
@@ -252,7 +277,7 @@ namespace Arterra.Data.Entity.Behavior {
                 cur += step;
             }
 
-            return path.ToArray();
+            return new VoxelPath(path.ToArray());
         }
 
         [Serializable]
@@ -272,27 +297,119 @@ namespace Arterra.Data.Entity.Behavior {
             }
         }
 
+        [Serializable]
+        public struct PathStep {
+            public int3 Delta;
+            // -1 identifies a step produced by the original adjacent-voxel pathfinder.
+            public int Group;
+            public int TransitionIndex;
+            public int NextGroup;
+            public Optional<TransitionCheck> Check;
+            public Optional<TransitionMovement> Movement;
+
+            public static PathStep FromDirection(byte direction) => new PathStep {
+                Delta = new int3(direction / 9 - 1, direction / 3 % 3 - 1, direction % 3 - 1),
+                Group = -1,
+                TransitionIndex = -1,
+                NextGroup = -1
+            };
+        }
+
         public struct PathInfo{
             public int3 currentPos; 
             public int3 destination;
             public float stepDuration;
+            public byte recoveryAttempts;
             public int currentInd;
-            public byte[] path;
+            [JsonConverter(typeof(PathDataConverter))]
+            public PathData path;
             public bool hasPath; //Resource isn't bound
-            public PathInfo(int3 currentPos, byte[] path){
+            public PathInfo(int3 currentPos, PathData path){
                 this.currentPos = currentPos;
                 this.currentInd = 0;
                 this.stepDuration = 0;
+                this.recoveryAttempts = 0;
                 hasPath = true;
                 int pathLength = path == null ? 0 : path.Length;
 
-                this.path = new byte[pathLength];
+                this.path = path?.Clone() ?? PathData.Empty;
                 destination = currentPos;
                 for(int i = 0; i < pathLength; i++){
-                    this.path[i] = path[i];
-                    destination += new int3((path[i] / 9) - 1, 
-                    (path[i] / 3 % 3) - 1, (path[i] % 3) - 1);
+                    destination += path[i].Delta;
                 } 
+            }
+        }
+
+        /// <summary>Shared path access; storage remains specific to the pathfinder.</summary>
+        [JsonConverter(typeof(PathDataConverter))]
+        public abstract class PathData {
+            public static readonly PathData Empty = new VoxelPath(Array.Empty<byte>());
+            public abstract int Length { get; }
+            public abstract PathStep this[int index] { get; }
+            public abstract PathData Clone();
+
+            public PathData Concat(PathData other) {
+                if (other == null) throw new ArgumentNullException(nameof(other));
+                if (this is VoxelPath first && other is VoxelPath second) {
+                    byte[] directions = new byte[Length + other.Length];
+                    Array.Copy(first.Directions, directions, Length);
+                    Array.Copy(second.Directions, 0, directions, Length, other.Length);
+                    return new VoxelPath(directions);
+                }
+
+                PathStep[] steps = new PathStep[Length + other.Length];
+                for (int i = 0; i < Length; i++) steps[i] = this[i];
+                for (int i = 0; i < other.Length; i++) steps[Length + i] = other[i];
+                return new TransitionPath(steps);
+            }
+        }
+
+        /// <summary>Ordinary paths retain one encoded byte per edge.</summary>
+        public sealed class VoxelPath : PathData {
+            internal readonly byte[] Directions;
+            public VoxelPath(byte[] directions) => Directions = directions ?? throw new ArgumentNullException(nameof(directions));
+            public override int Length => Directions.Length;
+            // Decode one value on demand; no expanded array or per-step allocation.
+            public override PathStep this[int index] => PathStep.FromDirection(Directions[index]);
+            public override PathData Clone() => new VoxelPath((byte[])Directions.Clone());
+        }
+
+        public sealed class TransitionPath : PathData {
+            internal readonly PathStep[] Steps;
+            public TransitionPath(PathStep[] steps) => Steps = steps ?? throw new ArgumentNullException(nameof(steps));
+            public override int Length => Steps.Length;
+            public override PathStep this[int index] => Steps[index];
+            public override PathData Clone() => new TransitionPath((PathStep[])Steps.Clone());
+        }
+
+        // Preserve the original compact base64 save format, and read the previous
+        // expanded-array format as well as paths produced by the transition finder.
+        public sealed class PathDataConverter : JsonConverter {
+            public override bool CanConvert(Type type) => typeof(PathData).IsAssignableFrom(type);
+
+            public override object ReadJson(JsonReader reader, Type type, object existing, JsonSerializer serializer) {
+                if (reader.TokenType == JsonToken.Null) return null;
+                if (reader.TokenType == JsonToken.String)
+                    return new VoxelPath(Convert.FromBase64String((string)reader.Value));
+
+                JArray values = JArray.Load(reader);
+                if (values.All(value => value.Type == JTokenType.Integer))
+                    return new VoxelPath(values.Select(value => value.Value<byte>()).ToArray());
+
+                PathStep[] steps = values.Select(value => value.Type == JTokenType.Integer
+                    ? PathStep.FromDirection(value.Value<byte>())
+                    : value.ToObject<PathStep>(serializer)).ToArray();
+                if (steps.All(step => step.Group < 0 && !step.Movement.Enabled && math.all(math.abs(step.Delta) <= 1))) {
+                    return new VoxelPath(steps.Select(step => (byte)((step.Delta.x + 1) * 9
+                        + (step.Delta.y + 1) * 3 + step.Delta.z + 1)).ToArray());
+                }
+                return new TransitionPath(steps);
+            }
+
+            public override void WriteJson(JsonWriter writer, object value, JsonSerializer serializer) {
+                if (value is VoxelPath voxel) writer.WriteValue(Convert.ToBase64String(voxel.Directions));
+                else if (value is TransitionPath transition) serializer.Serialize(writer, transition.Steps);
+                else throw new JsonSerializationException("Unsupported path storage type.");
             }
         }
 
@@ -374,11 +491,11 @@ namespace Arterra.Data.Entity.Behavior {
             }
         }
 
-        public unsafe static bool VerifyProfile(in int3 GCoord, in ProfileInfo info, in EntityJob.Context context, bool UseExFlag = true){
+        public unsafe static bool VerifyProfile(in int3 GCoord, in ProfileInfo info, in EntityJob.Context context, bool UseExFlag = true, bool bodyOnly = false){
             bool allC = true; bool anyC = false; bool any0 = false;
             uint3 dC = new (0);
             for(dC.x = 0; dC.x < info.bounds.x; dC.x++){
-                for(dC.y = 0; dC.y < info.bounds.y; dC.y++){
+                for(dC.y = bodyOnly ? 1u : 0u; dC.y < info.bounds.y; dC.y++){
                     for(dC.z = 0; dC.z < info.bounds.z; dC.z++){
                         uint index = dC.x * info.bounds.y * info.bounds.z + dC.y * info.bounds.z + dC.z;
                         ProfileE profile = context.Profile[index + info.profileStart];
@@ -394,13 +511,13 @@ namespace Arterra.Data.Entity.Behavior {
             else return false;
         }
 
-        public static bool VerifyMatProfile(in int3 GCoord, in uint3 bounds, in List<MatProfileE> Profile, bool UseExFlag = true){
+        public static bool VerifyMatProfile(in int3 GCoord, in uint3 bounds, in List<MatProfileE> Profile, bool UseExFlag = true, bool bodyOnly = false){
             if (Profile == null) return true;
             var mReg = Config.CURRENT.Generation.Materials.value.MaterialDictionary;
             bool allC = true; bool anyC = false; bool any0 = false;
             uint3 dC = new (0);
             for(dC.x = 0; dC.x < bounds.x; dC.x++){
-                for(dC.y = 0; dC.y < bounds.y; dC.y++){
+                for(dC.y = bodyOnly ? 1u : 0u; dC.y < bounds.y; dC.y++){
                     for(dC.z = 0; dC.z < bounds.z; dC.z++){
                         uint index = dC.x * bounds.y * bounds.z + dC.y * bounds.z + dC.z;
                         MatProfileE matCheck = Profile[(int)index];
@@ -453,7 +570,7 @@ namespace Arterra.Data.Entity.Behavior {
             new (1, 1, -1, 17),
         };
 
-        private static int Get3DDistance(in int3 dist)
+        protected internal static int Get3DDistance(in int3 dist)
         {
             int minDist = math.min(dist.x, math.min(dist.y, dist.z));
             int maxDist = math.max(dist.x, math.max(dist.y, dist.z));
@@ -468,7 +585,7 @@ namespace Arterra.Data.Entity.Behavior {
             //This norm guarantees the vector will be on the edge of a cube
         }
 
-        private static unsafe byte[] RetracePath(ref PathFinder finder, int dest, int start){
+        private static unsafe PathData RetracePath(ref PathFinder finder, int dest, int start){
             int PathLength = 0;
             int currentInd = dest;
             while(currentInd != start){ 
@@ -491,7 +608,7 @@ namespace Arterra.Data.Entity.Behavior {
             //This is so a path is always returned(i.e. path = null is impossible)
             //path[0] = 13; //13 i.e. 0, 0, 0
 
-            return path;
+            return new VoxelPath(path);
         }
 
         //Simplified A* algorithm for maximum performance
@@ -508,7 +625,7 @@ namespace Arterra.Data.Entity.Behavior {
         |    |____|____|____| 
         +--------------------> x
         */
-        private static byte[] FindPath(in int3 Origin, in int3 iEnd, int PathDistance, in ProfileInfo info, in EntityJob.Context context, out int Cost){
+        private static PathData FindPath(in int3 Origin, in int3 iEnd, int PathDistance, in ProfileInfo info, in EntityJob.Context context, out int Cost){
             PathFinder finder = new (PathDistance);
             int3 End = math.clamp(iEnd + PathDistance, 0, finder.PathMapSize-1); //We add the distance to make it relative to the start
             int pathEndInd = End.x * finder.PathMapSize * finder.PathMapSize + End.y * finder.PathMapSize + End.z;
@@ -548,13 +665,13 @@ namespace Arterra.Data.Entity.Behavior {
                 }
             }
 
-            byte[] path = RetracePath(ref finder, bestEnd.x, startInd);
+            PathData path = RetracePath(ref finder, bestEnd.x, startInd);
             finder.Release();
             return path;
         }
 
         //Find point that matches raw-profile along the path to destination
-        private static byte[] FindMatchAlongRay(in int3 Origin, in float3 rayDir, int PathDistance, in ProfileInfo info, in ProfileInfo dest, in EntityJob.Context context, out int Cost, out bool ReachedEnd){
+        private static PathData FindMatchAlongRay(in int3 Origin, in float3 rayDir, int PathDistance, in ProfileInfo info, in ProfileInfo dest, in EntityJob.Context context, out int Cost, out bool ReachedEnd){
             PathFinder finder = new (PathDistance);
             int3 End = math.clamp((int3)(CubicNorm(rayDir) * PathDistance) + PathDistance, 0, finder.PathMapSize-1); //We add the distance to make it relative to the start
             int pathEndInd = End.x * finder.PathMapSize * finder.PathMapSize + End.y * finder.PathMapSize + End.z;
@@ -599,13 +716,13 @@ namespace Arterra.Data.Entity.Behavior {
                 }
             }
 
-            byte[] path = RetracePath(ref finder, bestEnd.x, startInd);
+            PathData path = RetracePath(ref finder, bestEnd.x, startInd);
             finder.Release();
             return path;
         }
 
         //Find point that matches raw-profile along the path to destination with the closest distance to the desired path distance
-        private static byte[] FindPathAlongRay(in int3 Origin, ref float3 rayDir, int PathDistance, in ProfileInfo info, in EntityJob.Context context, out int Cost){
+        private static PathData FindPathAlongRay(in int3 Origin, ref float3 rayDir, int PathDistance, in ProfileInfo info, in EntityJob.Context context, out int Cost){
             PathFinder finder = new (PathDistance);
             int3 End = math.clamp((int3)(CubicNorm(rayDir) * PathDistance) + PathDistance, 0, finder.PathMapSize-1); //We add the distance to make it relative to the start
 
@@ -645,7 +762,7 @@ namespace Arterra.Data.Entity.Behavior {
                 }
             }
 
-            byte[] path = RetracePath(ref finder, bestEnd, startInd);
+            PathData path = RetracePath(ref finder, bestEnd, startInd);
             finder.Release();
             return path;
         }
@@ -664,7 +781,7 @@ namespace Arterra.Data.Entity.Behavior {
         /// <param name="PathDistance"></param>
         /// <param name="info"></param>
         /// <param name="context"></param>
-        public static byte[] FindPathOrApproachTarget(in int3 Origin, in int3 iEnd, int PathDistance, in ProfileInfo info, in EntityJob.Context context, out int Cost){
+        public static PathData FindPathOrApproachTarget(in int3 Origin, in int3 iEnd, int PathDistance, in ProfileInfo info, in EntityJob.Context context, out int Cost){
             int3 dGC = Origin + iEnd;
             if(VerifyProfile(dGC, info, context)){
                 return FindPath(Origin, iEnd, PathDistance, info, context, out Cost);
@@ -676,7 +793,7 @@ namespace Arterra.Data.Entity.Behavior {
         }
 
 
-        private static byte[] FindPath(in int3 Origin, in int3 iEnd, int PathDistance, uint3 bounds, List<MatProfileE> matProfile, out int Cost){
+        private static PathData FindPath(in int3 Origin, in int3 iEnd, int PathDistance, uint3 bounds, List<MatProfileE> matProfile, out int Cost){
             PathFinder finder = new (PathDistance);
             int3 End = math.clamp(iEnd + PathDistance, 0, finder.PathMapSize-1); //We add the distance to make it relative to the start
             int pathEndInd = End.x * finder.PathMapSize * finder.PathMapSize + End.y * finder.PathMapSize + End.z;
@@ -716,13 +833,13 @@ namespace Arterra.Data.Entity.Behavior {
                 }
             }
 
-            byte[] path = RetracePath(ref finder, bestEnd.x, startInd);
+            PathData path = RetracePath(ref finder, bestEnd.x, startInd);
             finder.Release();
             return path;
         }
 
         //Find point that matches raw-profile along the path to destination
-        private static byte[] FindMatchAlongRay(in int3 Origin, in float3 rayDir, int PathDistance, uint3 mBounds, List<MatProfileE> mProf, uint3 dBounds, List<MatProfileE> destProf, out int Cost, out bool ReachedEnd){
+        private static PathData FindMatchAlongRay(in int3 Origin, in float3 rayDir, int PathDistance, uint3 mBounds, List<MatProfileE> mProf, uint3 dBounds, List<MatProfileE> destProf, out int Cost, out bool ReachedEnd){
             PathFinder finder = new (PathDistance);
             int3 End = math.clamp((int3)(CubicNorm(rayDir) * PathDistance) + PathDistance, 0, finder.PathMapSize-1); //We add the distance to make it relative to the start
             int pathEndInd = End.x * finder.PathMapSize * finder.PathMapSize + End.y * finder.PathMapSize + End.z;
@@ -767,13 +884,13 @@ namespace Arterra.Data.Entity.Behavior {
                 }
             }
 
-            byte[] path = RetracePath(ref finder, bestEnd.x, startInd);
+            PathData path = RetracePath(ref finder, bestEnd.x, startInd);
             finder.Release();
             return path;
         }
 
         //Find point that matches raw-profile along the path to destination with the closest distance to the desired path distance
-        private static byte[] FindPathAlongRay(in int3 Origin, ref float3 rayDir, int PathDistance, uint3 mBounds, List<MatProfileE> mProf, out int Cost){
+        private static PathData FindPathAlongRay(in int3 Origin, ref float3 rayDir, int PathDistance, uint3 mBounds, List<MatProfileE> mProf, out int Cost){
             PathFinder finder = new (PathDistance);
             int3 End = math.clamp((int3)(CubicNorm(rayDir) * PathDistance) + PathDistance, 0, finder.PathMapSize-1); //We add the distance to make it relative to the start
 
@@ -813,7 +930,7 @@ namespace Arterra.Data.Entity.Behavior {
                 }
             }
 
-            byte[] path = RetracePath(ref finder, bestEnd, startInd);
+            PathData path = RetracePath(ref finder, bestEnd, startInd);
             finder.Release();
             return path;
         }
@@ -831,7 +948,7 @@ namespace Arterra.Data.Entity.Behavior {
         /// <param name="mBounds"></param>
         /// <param name="mProf"></param>
         /// <param name="PathLength"></param>
-        public static byte[] FindPathOrApproachTarget(in int3 Origin, in int3 iEnd, int PathDistance, uint3 mBounds, List<MatProfileE> mProf, out int PathLength){
+        public static PathData FindPathOrApproachTarget(in int3 Origin, in int3 iEnd, int PathDistance, uint3 mBounds, List<MatProfileE> mProf, out int PathLength){
             int3 dGC = Origin + iEnd;
             if(VerifyMatProfile(dGC, mBounds, mProf)){
                 return FindPath(Origin, iEnd, PathDistance, mBounds, mProf, out PathLength);

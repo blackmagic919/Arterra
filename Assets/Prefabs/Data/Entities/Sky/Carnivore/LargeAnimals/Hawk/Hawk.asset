@@ -479,7 +479,7 @@ MonoBehaviour:
           - task: 100
             Animation: IsFlying
           - task: 200
-            Animation: IsFlying
+            Animation: IsIdling
           - task: 300
             Animation: IsFlying
           - task: 20000
@@ -525,6 +525,13 @@ MonoBehaviour:
         movements:
           value:
           - state: 100
+            movement: 2
+            ProfileIndex: 1
+            useGravity: 0
+            CustomSpeed:
+              enabled: 1
+              value: 0
+          - state: 200
             movement: 2
             ProfileIndex: 1
             useGravity: 0
@@ -618,7 +625,8 @@ MonoBehaviour:
         AverageFlightTime: 75
         AverageFlightVariance: 0.1
         VerticalFlightFreedom: 0.3
-        TaskName: 100
+        TaskName: 200
+        FollowTaskName: 100
         OnStopFlyTransition: 400
         OnSwitchPath:
           value: 2c0100005c7600009a010000

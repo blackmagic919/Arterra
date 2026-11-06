@@ -78,11 +78,11 @@ MonoBehaviour:
       Structures:
         value:
         - value:
-            ChancePerStructurePoint: 0.5
-            Structure: 0
-        - value:
             ChancePerStructurePoint: 0.7
             Structure: 1
+        - value:
+            ChancePerStructurePoint: 0.5
+            Structure: 0
       Entities:
         value:
         - value:

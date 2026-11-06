@@ -12,5 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d60a39b1e4df74ed3aaaa1cb0087049e, type: 3}
   m_Name: IceT
   m_EditorClassIdentifier: 
-  Name: Void
+  Name: Ice
+  Tags:
+    Reg:
+      value: []
   self: {fileID: 21300000, guid: e8434094c2f95444eb74292ba282ae0f, type: 3}
+  references:
+    version: 2
+    RefIds: []

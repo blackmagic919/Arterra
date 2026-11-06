@@ -58,7 +58,7 @@ void CSMain (uint3 id : SV_DispatchThreadID)
     data.squash = squashNoise;
 
     rawMaps[3] = GetRawNoise2D(id.xy, InfHeightSampler);
-    rawMaps[4] = terrainSample.y; // Steepness
+    rawMaps[4] = SlopeToSteepness(terrainSample.y * abs(maxTerrainHeight));
     rawMaps[5] = GetRawNoise2D(id.xy, atmosphereSampler);
     
     float surfaceBase = data.terrain - data.squash;

@@ -90,8 +90,9 @@ float GetNoiseCentered(float val, float center, float bottom, float top){
     : smoothstep(bottom, center, clamped);
 }
 
-int BinSearchStructures(uint startIndex, uint arraySize, uint searchLoD) //Returns smallest LoD structure closest to it
+int BinSearchStructures(uint startIndex, uint arraySize, uint searchLoD) // Last eligible entry; selection cascades backwards.
 {
+    if (arraySize == 0) return -1;
     int low = startIndex;
     int high = startIndex + (arraySize - 1);
     int ret = -1; //Not found yet
@@ -101,9 +102,7 @@ int BinSearchStructures(uint startIndex, uint arraySize, uint searchLoD) //Retur
         int mid = ((uint)low + (uint)high) / 2; //so it stops complaining about int division
         uint structLoD = MinimumLoD(_StructureSettings[_BiomeStructureData[mid].structIndex].config);
 
-        if (structLoD == searchLoD)
-            return mid;
-        else if (structLoD < searchLoD)
+        if (structLoD <= searchLoD)
         {
             ret = mid;
             low = mid + 1;
@@ -215,16 +214,16 @@ void Check (uint3 id : SV_DispatchThreadID)
     uint3 rot = GetRot(structure.meta); 
     settings structureSettings = _StructureSettings[structureIndex];
 
-    //Origin is always located at the least point, so there is one consistent direction of generation
+    // Match StructureChunkGenerator: samples span [0, size - 1], and placement floors its origin.
     float3x3 rotMatrix = RotationLookupTable[rot.y][rot.x][rot.z];
-    float3 length = mul(rotMatrix, structureSettings.size);
+    float3 length = mul(rotMatrix, float3(structureSettings.size) - 1.0f);
     float3 newOrigin = min(length, 0);
 
     checkData data = _StructureChecks[check.checkIndex];
     float3 rotatedPos = mul(rotMatrix, data.position);
     float3 transformedPos = rotatedPos - newOrigin;
 
-    float3 checkPosition = transformedPos + structure.structurePos;
+    float3 checkPosition = transformedPos + floor(structure.structurePos);
     if(!InBounds(SampleTerrain(checkPosition), data.bounds)) 
         genStructures[check.structureIndex + bSTART_struct].meta = asuint(-1);
 }

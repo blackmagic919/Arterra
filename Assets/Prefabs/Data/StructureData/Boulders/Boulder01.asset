@@ -1,0 +1,293 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a0ed4b06c60c74eb3a1638cff170e3f8, type: 3}
+  m_Name: Boulder01
+  m_EditorClassIdentifier: Assembly-CSharp::Arterra.Data.Structure.StructureData
+  Name: Boulder01
+  Tags:
+    Reg:
+      value: []
+  settings:
+    value:
+      GridSize:
+        x: 8
+        y: 6
+        z: 5
+      matSetStart: 0
+      config: 1
+  Names:
+    value:
+    - T:PlainStone
+  map:
+    value:
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 26728
+    - data: 18761
+    - data: 10794
+    - data: 0
+    - data: 0
+    - data: 53199
+    - data: 53199
+    - data: 19789
+    - data: 0
+    - data: 0
+    - data: 53199
+    - data: 53199
+    - data: 10023
+    - data: 0
+    - data: 0
+    - data: 53199
+    - data: 46260
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 34695
+    - data: 26728
+    - data: 18761
+    - data: 0
+    - data: 0
+    - data: 65535
+    - data: 65535
+    - data: 52942
+    - data: 0
+    - data: 0
+    - data: 65535
+    - data: 65535
+    - data: 42919
+    - data: 0
+    - data: 0
+    - data: 57568
+    - data: 50629
+    - data: 33153
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 42662
+    - data: 34695
+    - data: 26728
+    - data: 0
+    - data: 0
+    - data: 65535
+    - data: 65535
+    - data: 65535
+    - data: 0
+    - data: 0
+    - data: 65535
+    - data: 65535
+    - data: 65535
+    - data: 0
+    - data: 0
+    - data: 36494
+    - data: 29555
+    - data: 22616
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 50629
+    - data: 42662
+    - data: 34695
+    - data: 0
+    - data: 0
+    - data: 65535
+    - data: 65535
+    - data: 65535
+    - data: 0
+    - data: 0
+    - data: 65535
+    - data: 61166
+    - data: 54227
+    - data: 0
+    - data: 0
+    - data: 15677
+    - data: 8738
+    - data: 1542
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 50886
+    - data: 50629
+    - data: 42662
+    - data: 0
+    - data: 0
+    - data: 46517
+    - data: 65535
+    - data: 65535
+    - data: 0
+    - data: 0
+    - data: 42148
+    - data: 40092
+    - data: 33153
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 21845
+    - data: 53199
+    - data: 50629
+    - data: 0
+    - data: 0
+    - data: 17476
+    - data: 53199
+    - data: 53199
+    - data: 0
+    - data: 0
+    - data: 13364
+    - data: 19018
+    - data: 12079
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+    - data: 0
+  checks:
+    value:
+    - position:
+        x: 2
+        y: 2
+        z: 2
+      checkInfo:
+        data: 4286611200
+    - position:
+        x: 5
+        y: 1
+        z: 2
+      checkInfo:
+        data: 4286611200
+  Enhancements:
+    Entities:
+      value: []
+    MapMetaData:
+      value: []
+  references:
+    version: 2
+    RefIds: []

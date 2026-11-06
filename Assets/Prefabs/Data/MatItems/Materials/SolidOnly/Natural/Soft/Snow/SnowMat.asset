@@ -20,6 +20,10 @@ MonoBehaviour:
         value:
           value:
             rid: 5295427349367226536
+      - Tag: 6057
+        value:
+          value:
+            rid: -2
   Names:
     value:
     - Snow:Solid
@@ -62,6 +66,8 @@ MonoBehaviour:
   references:
     version: 2
     RefIds:
+    - rid: -2
+      type: {class: , ns: , asm: }
     - rid: 5295427349367226536
       type: {class: ContactSoundTag, ns: Arterra.Configuration, asm: Assembly-CSharp}
       data:

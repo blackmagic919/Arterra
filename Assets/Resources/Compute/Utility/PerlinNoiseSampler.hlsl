@@ -176,7 +176,14 @@ float2 GetDomainWarpOffset2D(float2 id, uint majorWarp, uint minorWarp, out floa
     return float2(minorX.x, minorY.x);
 }
 
-// Returns interpolated height and the erosion gradient magnitude (steepness).
+// Maps nonnegative slope to biome steepness; the reference slope maps to 0.5.
+float SlopeToSteepness(float slope) {
+    const float referenceSlope = 0.25f;
+    return slope / (slope + referenceSlope);
+}
+
+// Returns interpolated height and its approximate slope per base grid unit.
+// Treats the spatially varying erosion weights as constant when differentiating.
 float2 GetErodedNoise2D(float2 id, float erosion, float2 warpOffset, float2x2 warpJacobian, uint samplerIndex){
     NoiseSetting settings = _NoiseSettings[samplerIndex];
     float2 sPos = id * skipInc;
@@ -185,6 +192,7 @@ float2 GetErodedNoise2D(float2 id, float erosion, float2 warpOffset, float2x2 wa
     float frequency = 1;
     float maxHeight = 0;
     float3 noiseHeight = 0;
+    float2 heightGradient = 0;
     for(uint i = _NoiseIndexes[samplerIndex].x; i < _NoiseIndexes[samplerIndex + 1].x; i++) {
         float2 sample = (sPos + _NoiseOffsets[i].xy + sOffset.xz) / settings.noiseScale * frequency + warpOffset;
         float3 simplexValue = SampleDerivNoise2D(sample);
@@ -197,7 +205,9 @@ float2 GetErodedNoise2D(float2 id, float erosion, float2 warpOffset, float2x2 wa
         float scale = frequency / settings.noiseScale;
         float2 erosionGradient = simplexValue.yz + mul(simplexValue.yz, warpJacobian) / scale;
         float octaveAmplitude = amplitude / (1 + dot(noiseHeight.yz, noiseHeight.yz) * erosion);
-        
+
+        // Restore world-space frequency scaling without changing the erosion accumulator.
+        heightGradient += erosionGradient * (scale * octaveAmplitude);
         noiseHeight.yz += erosionGradient * octaveAmplitude;
         noiseHeight.x += simplexValue.x * octaveAmplitude;
         maxHeight += amplitude;
@@ -206,7 +216,10 @@ float2 GetErodedNoise2D(float2 id, float erosion, float2 warpOffset, float2x2 wa
         frequency *= settings.lacunarity; //frequency increases -> size of noise sampling increases -> more random
     }
 
-    return float2(interpolateValue((noiseHeight.x / maxHeight + 1) / 2.0f, samplerIndex), length(noiseHeight.yz));
+    float normalizedHeight = (noiseHeight.x / maxHeight + 1) / 2.0f;
+    heightGradient /= 2.0f * maxHeight;
+    heightGradient *= interpolateDerivative(normalizedHeight, samplerIndex);
+    return float2(interpolateValue(normalizedHeight, samplerIndex), length(heightGradient));
 }
 
 
