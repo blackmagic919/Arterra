@@ -402,6 +402,7 @@ public static class EntityManager
         //Every unique bound must have a unique ID, but they can be associated to the same
         //Entity under EntityIndex
         public void AssertEntityLocation(Guid entityId, Bounds bounds){
+            ValidateBounds(entityId, bounds);
             if(!SpatialIndex.TryGetValue(entityId, out uint index)) return;
             ref TreeNode node = ref tree[index];
             if(Contains(tree[node.Parent].bounds, bounds)){
@@ -419,6 +420,7 @@ public static class EntityManager
         }
 
         public void Insert(Bounds bounds, Guid eId){
+            ValidateBounds(eId, bounds);
             if(length+1 >= tree.Length) Resize();
             SpatialIndex[eId] = length;
             length++;
@@ -426,6 +428,15 @@ public static class EntityManager
             tree[length - 1] = new TreeNode(bounds, eId);
             if(length == 2) Root = 1;
             else RecursiveInsert(bounds, Root);
+        }
+
+        private static void ValidateBounds(Guid entityId, Bounds bounds) {
+            if (!math.all(math.isfinite((float3)bounds.center))
+                || !math.all(math.isfinite((float3)bounds.extents))
+                || math.any((float3)bounds.extents < 0)
+                || !math.all(math.isfinite((float3)bounds.min))
+                || !math.all(math.isfinite((float3)bounds.max)))
+                throw new InvalidOperationException($"Invalid entity bounds: entity={entityId}, center={bounds.center}, extents={bounds.extents}");
         }
 
         private void RecursiveInsert(Bounds bounds, uint current){

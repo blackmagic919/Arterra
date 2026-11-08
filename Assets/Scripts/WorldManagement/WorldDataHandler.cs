@@ -207,13 +207,14 @@ public static class WorldDataHandler
 
     private static void UpdateFlareBrightnessFromHeadLuminance()
     {
-        if (PlayerHandler.data == null || Sun == null || Moon == null)
+        var player = PlayerHandler.data;
+        if (!PlayerHandler.active || player == null || !player.active || Sun == null || Moon == null)
             return;
 
         bool sunDominant = Sun.intensity >= Moon.intensity;
         Vector3 lightDirection = sunDominant ? -Sun.transform.forward : -Moon.transform.forward;
 
-        Vector3 headWS = PlayerHandler.data.head;
+        Vector3 headWS = player.head;
         if (!AtmospherePass.TrySampleSingleOriginLuminance(headWS, lightDirection, out Vector3 sampledLuminance))
             return;
         //Standard Luminance(Y) Coeffs
@@ -228,15 +229,13 @@ public static class WorldDataHandler
         //These settings are volatile
         TimeSpan sunriseTime = TimeSpan.FromHours(settings.sunriseHour);
         TimeSpan sunsetTime = TimeSpan.FromHours(settings.sunsetHour);
-        if (TimeOfDay > sunriseTime && TimeOfDay < sunsetTime)
-        {
+        if (TimeOfDay > sunriseTime && TimeOfDay < sunsetTime) {
             TimeSpan dayDuration = CalculateTimeDiff(sunriseTime, sunsetTime);
             TimeSpan timeSinceSunrise = CalculateTimeDiff(sunriseTime, TimeOfDay);
 
             return Mathf.Lerp(0, 0.5f, (float)(timeSinceSunrise.TotalSeconds / dayDuration.TotalSeconds));
         }
-        else
-        {
+        else {
             TimeSpan nightDuration = CalculateTimeDiff(sunsetTime, sunriseTime);
             TimeSpan timeSinceSunset = CalculateTimeDiff(sunsetTime, TimeOfDay);
 

@@ -145,6 +145,9 @@ namespace Arterra.Data.Entity.Behavior {
         }
 
         public bool RayTestSolid<T>(T entity, float reach, out float3 hitPt) where T : Entity {
+            hitPt = default;
+            if (entity == null) return false;
+
             static uint RaySolid(int3 GCoord) {
                 MapData pointInfo = CPUMapManager.SampleMap(GCoord);
                 return (uint)pointInfo.viscosity;
@@ -154,6 +157,9 @@ namespace Arterra.Data.Entity.Behavior {
         }
 
         public bool RayTestLiquid<T>(T entity, float reach, out float3 hitPt) where T : Entity {
+            hitPt = default;
+            if (entity == null) return false;
+
             static uint RayLiquid(int3 GCoord) {
                 MapData pointInfo = CPUMapManager.SampleMap(GCoord);
                 return (uint)Mathf.Max(pointInfo.viscosity, pointInfo.density - pointInfo.viscosity);
@@ -162,6 +168,9 @@ namespace Arterra.Data.Entity.Behavior {
         }
 
         public bool CylinderTestSolid<T>(T entity, float reach, float radius, out float3 hitPt) where T : Entity {
+            hitPt = default;
+            if (entity == null) return false;
+
             static uint CylinderSolid(int3 GCoord) {
                 MapData pointInfo = CPUMapManager.SampleMap(GCoord);
                 return (uint)pointInfo.viscosity;
@@ -225,7 +234,7 @@ namespace Arterra.Data.Entity.Behavior {
                 return;
             }
 
-            float3 knockback = math.normalize(entity.position - self.head) * KnockBackStrength;
+            float3 knockback = math.normalizesafe(entity.position - self.head) * KnockBackStrength;
             float damage = AttackDamage;
 
             RefTuple<(float, float3)> cxt = (damage, knockback);

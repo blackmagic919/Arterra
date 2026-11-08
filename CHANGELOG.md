@@ -1,4 +1,17 @@
 ## [Unreleased]
+### Added
+- Goat animal with jumping
+- Unified editor for biome placement
+- Cliff biome
+
+### Changed
+- Surface Biomes use steepness now not influence offset
+- Changed sizes of certain biomes
+- Entities will try to jump when path is obstructed instead of immediately giving up.
+
+### Fixed
+- NaN position causing unrecoverable entity errors
+- Missing null checks for player loading for multiplayer clients
 
 ## [0.2.1] - 2026-11-03
 

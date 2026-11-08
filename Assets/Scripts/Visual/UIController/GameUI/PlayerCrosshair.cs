@@ -60,8 +60,9 @@ namespace Arterra.GamePlay.UI {
 
 
         public static void Update(MonoBehaviour mono) {
+            if (!PlayerHandler.active) return;
             BehaviorEntity.Animal player = PlayerHandler.data;
-            if (!player.active) return;
+            if (player == null || !player.active) return;
             
             float3 hitPt = player.head
                     + player.Forward

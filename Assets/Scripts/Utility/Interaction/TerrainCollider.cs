@@ -407,6 +407,7 @@ namespace Arterra.GamePlay.Interaction {
 
 
         public static float3 CancelVel(in float3 vel, in float3 norm) {
+            if (math.lengthsq(norm) < 1E-10f) return vel;
             float3 dir = math.normalize(-norm);
             //So surface animals don't get stuck when only edge/face collision
             if (dir.y == 0) dir -= VerticalCollisionBias;
@@ -492,11 +493,11 @@ namespace Arterra.GamePlay.Interaction {
         }
 
         public void Update(BehaviorEntity.Animal self, float baseFriction = BaseFriction, bool tangible = true) {
-            Update(self.ExactDeltaTime, self, baseFriction, tangible);
+            Update(self.DeltaTime, self, baseFriction, tangible);
         }
 
         public void Update(Entity self = null, float baseFriction = BaseFriction, bool tangible = true) {
-            Update(cxt.totDeltaTime, self, baseFriction, tangible);
+            Update(cxt.deltaTime, self, baseFriction, tangible);
         }
         private void Update(float timeStep, Entity self = null, float baseFriction = BaseFriction, bool tangible = true) {
             float3 deltaPosition = transform.velocity * timeStep;
@@ -511,7 +512,7 @@ namespace Arterra.GamePlay.Interaction {
             if (useGravityNow) transform.velocity *= new float3(1 - friction, 1, 1 - friction);
             else transform.velocity *= 1 - friction;
 
-            if (useGravityNow) transform.velocity += cxt.gravity * timeStep;
+            if (useGravityNow) transform.velocity += cxt.gravity * math.min(timeStep, 0.25f);
         }
 
 
@@ -577,9 +578,23 @@ namespace Arterra.GamePlay.Interaction {
             [JsonProperty] private NetworkVariable<double3> netPosition;
             [JsonProperty] private NetworkVariable<Quaternion> netRotation;
             [JsonProperty] private NetworkVariable<float3> netVelocity;
-            [JsonIgnore] public double3 position { get => netPosition.Value; set => netPosition.Value = value; }
+            [JsonIgnore] public double3 position {
+                get => netPosition.Value;
+                set {
+                    if (!math.all(math.isfinite(value)))
+                        throw new InvalidOperationException($"Non-finite collider position {value}; reference={netPosition.ReferenceId}");
+                    netPosition.Value = value;
+                }
+            }
             [JsonIgnore] public Quaternion rotation { get => netRotation.Value; set => netRotation.Value = value; }
-            [JsonIgnore] public float3 velocity { get => netVelocity.Value; set => netVelocity.Value = value; }
+            [JsonIgnore] public float3 velocity {
+                get => netVelocity.Value;
+                set {
+                    if (!math.all(math.isfinite(value)))
+                        throw new InvalidOperationException($"Non-finite collider velocity {value}; reference={netVelocity.ReferenceId}");
+                    netVelocity.Value = value;
+                }
+            }
             public float3 size;
             public Transform(double3 position, float3 velocity, float3 size, Quaternion rotation, string prefix) {
                 netPosition = new($"{prefix}|Position", writePerm: NetworkPermission.Owner, initialValue: position, waitForDelivery: false);

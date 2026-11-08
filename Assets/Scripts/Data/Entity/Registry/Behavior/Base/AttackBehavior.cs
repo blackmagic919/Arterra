@@ -69,7 +69,7 @@ namespace Arterra.Data.Entity.Behavior {
                 > Modifier.Get(mods, MSettings.AttackDistance, settings.AttackDistance))
                 return;
             float damage = Modifier.Get(mods, MSettings.AttackDamage, settings.AttackDamage);
-            float3 knockback = math.normalize(target.position - self.position) 
+            float3 knockback = math.normalizesafe(target.position - self.position)
                 * Modifier.Get(mods, MSettings.KBStrength, settings.KBStrength);
             RealAttack(self, target, damage, knockback);
         }
