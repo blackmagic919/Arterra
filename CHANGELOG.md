@@ -1,4 +1,6 @@
 ## [Unreleased]
+
+## [0.2.2] - 2026-11-08
 ### Added
 - Goat animal with jumping
 - Unified editor for biome placement
