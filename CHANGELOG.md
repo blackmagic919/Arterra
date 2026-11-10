@@ -1,5 +1,7 @@
 ## [Unreleased]
 
+## [0.2.3] - 2026-11-10
+
 ### Added
 - Custom model mesh generation
 - Torch material
