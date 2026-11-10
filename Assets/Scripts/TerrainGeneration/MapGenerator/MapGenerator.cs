@@ -194,11 +194,19 @@ public class Creator
         public int baseTriCounter;
         /// <summary>The location storing the amount of liquid terrain triangles in the generated mesh. </summary>
         public int waterTriCounter;
-        /// <summary> The location storing the <see cref="CompressMap(int)">uncompressed</see> map data for the chunk.
-        /// This is never used simultaneously with the compressed map data stored in at <see cref="rawMapStart"/> and thus
-        /// can occupy the same region. </summary>
+        public int modelTriCounter;
+        /// <summary>The number of model instances collected for indirect geometry emission.</summary>
+        public int modelCounter;
+        /// <summary>The compact model instance list, in uint2 entries (map index, render info).</summary>
+        public int modelStart;
+        /// <summary>Model metadata lookup; separate from the dictionary still needed during triangle offload.</summary>
+        public int modelLutStart;
+        /// <summary>Model triangles retained alongside terrain and water triangles until offload.</summary>
+        public int modelTriStart;
+        /// <summary>The packed map used by mesh generation. Compression reads the raw map and writes
+        /// this region simultaneously, so their storage must remain separate.</summary>
         public int mapStart;
-        /// <summary> The location storing the compressed map data for the chunk. This is the map data recognized by most systems. </summary>
+        /// <summary>The uncompressed, three-word map used during terrain and structure generation.</summary>
         public int rawMapStart;
         /// <summary> The location storing the biome map data for the chunk when the biome map is <see cref="PopulateBiomes(float3, uint, int, int)">explicitly queried</see>. </summary>
         public int biomeMapStart;
@@ -237,9 +245,10 @@ public class Creator
         /// <param name="bufferStart">The start of the region within working memory the structure generator may utilize. See
         /// <see cref="BufferOffsets.bufferStart"/> for more info. </param>
         /// <param name="VertexStride">The size of the vertex data for one vertex, in units of 4-bytes.</param>
-        public GeoGenOffsets(int3 GridSize, int chunkBalance, int bufferStart, int VertexStride = VERTEX_STRIDE_WORD){
+        public GeoGenOffsets(int3 GridSize, int chunkBalance, int bufferStart, int VertexStride = VERTEX_STRIDE_WORD, int customVertices = 0, int customTriangles = 0){
             this.offsetStart = bufferStart;
-            vertexCounter = bufferStart; baseTriCounter = bufferStart + 1; waterTriCounter = bufferStart + 2;
+            vertexCounter = bufferStart; baseTriCounter = bufferStart + 1; waterTriCounter = bufferStart + 2; modelTriCounter = bufferStart + 3;
+            modelCounter = bufferStart + 4;
             int numOfPoints = GridSize.x * GridSize.y * GridSize.z;
             int numOfPointsDict = (GridSize.x + 1) * (GridSize.y + 1) * (GridSize.z + 1);
             int numOfPointsOOB = (GridSize.x + 3) * (GridSize.y + 3) * (GridSize.z + 3);
@@ -249,7 +258,7 @@ public class Creator
 
             //This is cached map, only used for visual chunks, real chunks
             //have their maps stored in the GPUMapManager
-            mapStart = bufferStart + 3;
+            mapStart = bufferStart + 5;
             int mapEnd_W = mapStart + numOfPointsOOB;
             rawMapStart = Mathf.CeilToInt((float)mapEnd_W / RAW_MAP_WORD);
             biomeMapStart = (rawMapStart + numOfPointsOOB) * RAW_MAP_WORD;
@@ -258,8 +267,12 @@ public class Creator
             dictStart = mapEnd_W;
             int dictEnd_W = dictStart + numOfPointsDict * TRI_STRIDE_WORD;
 
-            vertStart = Mathf.CeilToInt((float)dictEnd_W / VertexStride);
-            int vertexEnd_W = vertStart * VertexStride + (numOfPoints * 3) * VertexStride;
+            modelLutStart = dictEnd_W;
+            int modelLutEnd = modelLutStart + numOfPoints;
+            modelStart = Mathf.CeilToInt((float)modelLutEnd / 2);
+            int modelEnd_W = (modelStart + numOfPoints) * 2;
+            vertStart = Mathf.CeilToInt((float)modelEnd_W / VertexStride);
+            int vertexEnd_W = vertStart * VertexStride + (numOfPoints * 3 + customVertices) * VertexStride;
 
             baseTriStart = Mathf.CeilToInt((float)vertexEnd_W / TRI_STRIDE_WORD);
             int baseTriEnd_W = baseTriStart * TRI_STRIDE_WORD + numOfTris * TRI_STRIDE_WORD;
@@ -267,7 +280,9 @@ public class Creator
             waterTriStart = Mathf.CeilToInt((float)baseTriEnd_W / TRI_STRIDE_WORD);
             int waterTriEnd_W = waterTriStart * TRI_STRIDE_WORD + numOfTris * TRI_STRIDE_WORD;
 
-            this.offsetEnd = math.max(waterTriEnd_W, biomeMapEnd);
+            modelTriStart = Mathf.CeilToInt((float)waterTriEnd_W / TRI_STRIDE_WORD);
+            int modelTriEnd = (modelTriStart + math.max(numOfTris, customTriangles)) * TRI_STRIDE_WORD;
+            this.offsetEnd = math.max(modelTriEnd, biomeMapEnd);
         }
     }
 }}

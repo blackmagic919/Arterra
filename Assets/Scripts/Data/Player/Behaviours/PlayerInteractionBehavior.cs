@@ -310,7 +310,7 @@ namespace Arterra.Data.Entity.Behavior {
                 GCoord => context is bool bypass && bypass ? false : CallOnMapRemoving(GCoord));
         }
 
-        private bool CanPlaceSolid(IItem selected, MapData pointInfo, out int matIndex) {
+        private bool CanPlaceSolid(IItem selected, MapData pointInfo, out int matIndex, int materialOverride = -1) {
             matIndex = 0;
             if (selected == null) return false;
             ItemAuthoring setting = itemInfo.Retrieve(selected.Index);
@@ -318,7 +318,7 @@ namespace Arterra.Data.Entity.Behavior {
             if (!mSettings.IsSolid || !matInfo.Contains(mSettings.MaterialName)) return false;
 
             int solidDensity = pointInfo.SolidDensity;
-            matIndex = matInfo.RetrieveIndex(mSettings.MaterialName);
+            matIndex = materialOverride >= 0 ? materialOverride : matInfo.RetrieveIndex(mSettings.MaterialName);
             if (solidDensity >= CPUMapManager.IsoValue && pointInfo.material != matIndex)
                 return false;
             if (solidDensity == MapData.MaxViscosity)
@@ -342,11 +342,11 @@ namespace Arterra.Data.Entity.Behavior {
             return true;
         }
 
-        public bool HandleAddSolidInternal(IItem matItem, int3 GCoord, float brushStrength, out MapData pointInfo) {
+        public bool HandleAddSolidInternal(IItem matItem, int3 GCoord, float brushStrength, out MapData pointInfo, int materialOverride = -1) {
             pointInfo = CPUMapManager.SampleMap(GCoord);
             brushStrength *= self.DeltaTime;
             if (brushStrength == 0) return false;
-            if (!CanPlaceSolid(matItem, pointInfo, out int selected)) return false;
+            if (!CanPlaceSolid(matItem, pointInfo, out int selected, materialOverride)) return false;
 
             int solidDensity = pointInfo.SolidDensity;
             // If adding solid density, overflow into/replace existing liquid density.
@@ -468,8 +468,8 @@ namespace Arterra.Data.Entity.Behavior {
             return mat.Retrieve(map.material).OnRemoving(GCoord, self);
         }
 
-        public bool HandleAddSolid(IItem matItem, int3 GCoord, float brushStrength, out MapData pointInfo) {
-            return HandleAddSolidInternal(matItem, GCoord, brushStrength, out pointInfo);
+        public bool HandleAddSolid(IItem matItem, int3 GCoord, float brushStrength, out MapData pointInfo, int materialOverride = -1) {
+            return HandleAddSolidInternal(matItem, GCoord, brushStrength, out pointInfo, materialOverride);
         }
 
         public bool HandleAddLiquid(IItem matItem, int3 GCoord, float brushStrength, out MapData pointInfo) {

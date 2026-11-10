@@ -1,4 +1,9 @@
 #pragma kernel March
+#include "Assets/Resources/Compute/TerrainGeneration/BaseGeneration/CustomModelDensity.hlsl"
+
+struct matTerrain { int textureIndex; float baseTextureScale; uint modelIndex; uint geoShaderInd; };
+StructuredBuffer<matTerrain> _MatTerrainData;
+uint numMaterials;
 
 #include "Assets/Resources/Compute/Utility/GetIndex.hlsl"
 #include "Assets/Resources/Compute/TerrainGeneration/BaseGeneration/MarchingTables.hlsl"
@@ -98,12 +103,16 @@ MarchCube ReadCube(int3 coord){
     [unroll]for(uint i = 0; i < 8; i++){
         CubeCorner corner;
 
-        int rIndex = indexFromCoordIrregular(coord + positionFromIndex[i], GridSize.yz);
+        int3 sampleCoord = clamp(coord + positionFromIndex[i], 0, (int3)GridSize - 1);
+        int rIndex = indexFromCoordIrregular(sampleCoord, GridSize.yz);
         uint mapData = MapInfo[rIndex];
         float density = ((mapData & 0xFF) / 255.0f);
         float viscosity = ((mapData >> 8) & 0xFF) / 255.0f;
 
-        corner.density[0] = viscosity;
+        uint materialIndex = (mapData >> 16) & 0x7FFF;
+        uint modelIndex = 0;
+        if (materialIndex < numMaterials) modelIndex = _MatTerrainData[materialIndex].modelIndex;
+        corner.density[0] = modelIndex > 1 ? CustomModelDensity(viscosity, IsoLevel) : viscosity;
         corner.density[1] = density - viscosity;
         corner.material = ((mapData  >> 16) & 0x7FFF);
         cube.corners[i] = corner;

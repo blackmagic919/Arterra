@@ -14,13 +14,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Names:
     value:
-    - OakLeaves
-    - InsetQuad
-    - Void
-    - OakLeaves:Solid
-    - Embers
-    - InsetQuad
-    - DeciduousLeaves
   SourceMaterial: Wood
   MaxSourceDistance: 10
   SelfCondition:

@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 191eaa8500fe424c8699afc470a95fa5, type: 3}
+  m_Name: CatalogueModels
+  m_EditorClassIdentifier: 
+  Name: CatalogueModels
+  Tags:
+    Reg:
+      value: []
+  Children:
+    value:
+    - value: {fileID: 11400000, guid: 0ed6cbd42e8447bf936f2ab9e4cf8daf, type: 2}
+    - value: {fileID: 11400000, guid: 754374ee6be046a091117167032287bf, type: 2}
+    - value: {fileID: 11400000, guid: 2c3dc5eca5a342cfbb905bb3fd1c8a79, type: 2}
+    - value: {fileID: 11400000, guid: fe00ad040cf34060b7e07c404ac3c246, type: 2}
+    - value: {fileID: 11400000, guid: dca7da63461b4ce5877403451d32f3ab, type: 2}
+    - value: {fileID: 11400000, guid: 34da60905d834c569800f41600e2fcd7, type: 2}
+    - value: {fileID: 11400000, guid: f2940c40717c4af0ba5938d8d77c1d04, type: 2}
+  references:
+    version: 2
+    RefIds: []

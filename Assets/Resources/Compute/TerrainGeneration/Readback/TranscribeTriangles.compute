@@ -9,6 +9,7 @@ StructuredBuffer<uint> counter;
 uint bCOUNT_Tri;
 uint bSTART_Tri;
 uint bSTART_Dict;
+uint directIndices;
 //
 RWStructuredBuffer<uint3> _MemoryBuffer;
 StructuredBuffer<uint2> _AddressDict;
@@ -25,6 +26,11 @@ void Transcribe (uint3 id : SV_DispatchThreadID)
     uint writeAddress = _AddressDict[triAddress].y + id.x;
     uint3 baseTri = BaseTriangles[bSTART_Tri + id.x];
     
+    if (directIndices != 0) {
+        _MemoryBuffer[writeAddress] = baseTri;
+        return;
+    }
+
     uint3 tri;
     tri.x = triDict[baseTri.x + bSTART_Dict];
     tri.y = triDict[baseTri.y + bSTART_Dict];

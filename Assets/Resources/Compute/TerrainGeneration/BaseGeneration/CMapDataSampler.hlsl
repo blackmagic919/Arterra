@@ -1,3 +1,4 @@
+#include "Assets/Resources/Compute/TerrainGeneration/BaseGeneration/CustomModelDensity.hlsl"
 #include "Assets/Resources/Compute/Utility/GetIndex.hlsl"
 #define SAMPLE_TERRAIN 0
 #define SAMPLE_WATER 1
@@ -8,13 +9,14 @@ StructuredBuffer<uint> MapData;
 uint bSTART_map;
 int numCubesPerAxis;
 float IsoLevel;
+uint renderCustomModels;
 
 
 //MapInfo
 struct matTerrain{
     int textureIndex;
     float baseTextureScale;
-    uint flipStateRendering;
+    uint modelIndex;
     uint geoShaderInd;
 };
 
@@ -42,12 +44,13 @@ Corner SampleStateInfo(uint mapData){
     Corner o;
 
     o.material = ((mapData >> 16) & 0x7FFF);
-    if(_MatTerrainData[o.material].flipStateRendering){
+    if(_MatTerrainData[o.material].modelIndex == 1){
         o.density[0] = max(density - viscosity, triLerp(viscosity, IsoLevel) * (IsoLevel - Epsilon.x));
         o.density[1] = max(density - viscosity, viscosity);
         o.density[2] = viscosity;
     } else {
-        o.density[0] = viscosity;
+        o.density[0] = renderCustomModels != 0 && _MatTerrainData[o.material].modelIndex > 1
+            ? CustomModelDensity(viscosity, IsoLevel) : viscosity;
         o.density[1] = density - viscosity;
         o.density[2] = triLerp(viscosity, IsoLevel) * (IsoLevel - Epsilon.x);
     }

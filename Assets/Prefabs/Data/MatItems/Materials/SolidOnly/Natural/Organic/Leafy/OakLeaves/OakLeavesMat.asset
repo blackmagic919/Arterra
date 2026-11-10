@@ -22,13 +22,6 @@ MonoBehaviour:
             rid: 583317785937444936
   Names:
     value:
-    - OakLeaves
-    - InsetQuad
-    - Void
-    - OakLeaves:Solid
-    - Embers
-    - InsetQuad
-    - DeciduousLeaves
   terrainData:
     Texture: 0
     textureScale: 2

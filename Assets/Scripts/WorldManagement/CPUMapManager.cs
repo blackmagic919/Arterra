@@ -327,10 +327,9 @@ namespace Arterra.Core.Storage {
         }
 
         /// <summary> Obtains the metadata of type <i>TMeta</i> at the location. If the metadata at this location
-        /// does not exist or is not of type <i>TMeta</i>, this call will discard the previous information
-        /// and return a new default <i>TMeta</i> object which is now stored at this location. </summary>
-        /// <typeparam name="TMeta">The type of object to obtain; will delete any object not of 
-        /// the requested type and replace it with a new default instance.</typeparam>
+        /// does not exist, this call preserves other types
+        /// and returns a new default <i>TMeta</i> object which is now stored at this location. </summary>
+        /// <typeparam name="TMeta">The type of object to obtain or create.</typeparam>
         /// <param name="GCoord">The coordinate in grid space of the map entry whose meta data is being queried</param>
         /// <param name="GetDefault">The callback to acquire a default instance of the object being stored if it does not
         /// currently exist at the requested location </param>
@@ -350,24 +349,13 @@ namespace Arterra.Core.Storage {
             uint PIndex = (uint)(MCoord.x * mapChunkSize * mapChunkSize +
                                  MCoord.y * mapChunkSize + MCoord.z);
             
-            if (!mapInfo.MapMetaData.TryGetValue(PIndex, out object value)) {
-                if (!NetworkManager.IsActingServer) return false;
-                ret = GetDefault();
-                InstallMetadata(mapInfo, PIndex, ret);
-                ChunkFlags[(uint)mapInfo.FlagIndex] = ChunkMapInfo.Flags.Dirty;
-                MapChanges.TrackMetadata(CCoord, PIndex, ret);
-                return true;
-            }
+            mapInfo.MapMetaData.TryGetValue(PIndex, out var entries);
+            if (entries.TryGet(out ret)) return true;
+            if (!NetworkManager.IsActingServer) return false;
 
-            if (value is TMeta tVal)
-                ret = tVal;
-            else {
-                if (!NetworkManager.IsActingServer) return false;
-                ret = GetDefault();
-                InstallMetadata(mapInfo, PIndex, ret);
-                ChunkFlags[(uint)mapInfo.FlagIndex] = ChunkMapInfo.Flags.Dirty;
-                MapChanges.TrackMetadata(CCoord, PIndex, ret);
-            }
+            ret = GetDefault();
+            InstallMetadata(mapInfo, PIndex, entries.Set(ret));
+            PublishMetadata(mapInfo, PIndex, entries);
             return true;
         }
 
@@ -390,19 +378,15 @@ namespace Arterra.Core.Storage {
             uint PIndex = (uint)(MCoord.x * mapChunkSize * mapChunkSize +
                                  MCoord.y * mapChunkSize + MCoord.z);
 
-            if (!mapInfo.MapMetaData.TryGetValue(PIndex, out object value))
-                return false;
-            if (value is TMeta tVal)
-                ret = tVal;
-            else return false;
-            return true;
+            return mapInfo.MapMetaData.TryGetValue(PIndex, out var entries)
+                && entries.TryGet(out ret);
         }
 
         /// <summary>Sets the metadata for a certain location or clears it. </summary>
         /// <typeparam name="TMeta">The type of object to set</typeparam>
         /// <param name="GCoord">The coordinate in grid space of the map entry whose meta data is being set</param>
         /// <param name="value">The meta data to set to this location. If this value is null, any existing
-        /// metadata at this location will be removed.</param>
+        /// metadata of the requested type will be removed. Use object to clear every type.</param>
         /// <returns>If setting, whether the value was successfully set. If removing, whether any value
         /// was successfully removed</returns>
         public static bool SetExistingMapMeta<TMeta>(int3 GCoord, TMeta value) {
@@ -417,12 +401,11 @@ namespace Arterra.Core.Storage {
             ChunkFlags[(uint)mapInfo.FlagIndex] = ChunkMapInfo.Flags.Dirty;
             uint PIndex = (uint)(MCoord.x * mapChunkSize * mapChunkSize +
                                  MCoord.y * mapChunkSize + MCoord.z);
-            if (value == null) {
-                if (!mapInfo.MapMetaData.TryRemove(PIndex, out var removed)) return false;
-                ReleaseMetadata(removed);
-            } else InstallMetadata(mapInfo, PIndex, value);
-
-            MapChanges.TrackMetadata(CCoord, PIndex, value);
+            mapInfo.MapMetaData.TryGetValue(PIndex, out var entries);
+            if (value == null && !entries.TryGet<TMeta>(out _)) return false;
+            var replacement = entries.Set(value);
+            InstallMetadata(mapInfo, PIndex, replacement);
+            PublishMetadata(mapInfo, PIndex, entries);
             return true;
         }
 
@@ -455,25 +438,47 @@ namespace Arterra.Core.Storage {
         }
 
 
+        private static void PublishMetadata(ChunkMapInfo chunk, uint index, MapMetadata previous) {
+            ChunkFlags[(uint)chunk.FlagIndex] = ChunkMapInfo.Flags.Dirty;
+            chunk.MapMetaData.TryGetValue(index, out var entries);
+            MapChanges.TrackMetadata(chunk.CCoord, index, entries.Count == 0 ? null : entries.Entries);
+            bool hadModel = previous.TryGet(out Arterra.Data.Models.ModelRenderInfo before);
+            bool hasModel = entries.TryGet(out Arterra.Data.Models.ModelRenderInfo after);
+            // An unchanged voxel still invalidates local and remote meshes when only facing or the model variant changed.
+            if (hadModel != hasModel || (hasModel && before.Data != after.Data))
+                MapChanges.TrackChange(chunk.CCoord, index, chunk.ChunkData[chunk.Offset + (int)index]);
+        }
+
         internal static void InstallMetadata(ChunkMapInfo chunk, uint index, object value) {
-            if (chunk.MapMetaData.TryGetValue(index, out var previous)) {
-                if (ReferenceEquals(previous, value)) return;
-                // Lifecycle announcements can trail initial loading or the open response.
-                // A live instance's slots are synchronized by its own ordered controller.
-                if (previous is MaterialInstance oldInstance && value is MaterialInstance newInstance
-                    && oldInstance.Id == newInstance.Id) return;
-                ReleaseMetadata(previous);
+            var installed = MapMetadata.Normalize(value);
+            chunk.MapMetaData.TryGetValue(index, out var previous);
+            previous.TryGet(out MaterialInstance oldInstance);
+            installed.TryGet(out MaterialInstance newInstance);
+
+            // Keep the live material instance; its inventory is synchronized independently.
+            if (oldInstance != null && newInstance != null && oldInstance.Id == newInstance.Id) {
+                installed = installed.Remove<MaterialInstance>().Set(oldInstance);
+                newInstance = oldInstance;
             }
-            chunk.MapMetaData[index] = value;
-            if (value is MaterialInstance instance) {
-                instance.Initialize();
-                MetadataInstalled?.Invoke(instance);
+
+            bool instanceChanged = !ReferenceEquals(oldInstance, newInstance);
+            if (instanceChanged) oldInstance?.Dispose();
+
+            if (installed.Count == 0) chunk.MapMetaData.TryRemove(index, out _);
+            else chunk.MapMetaData[index] = installed;
+
+            if (instanceChanged && newInstance != null) {
+                newInstance.Initialize();
+                MetadataInstalled?.Invoke(newInstance);
             }
         }
 
         private static void ReleaseMetadata(object metadata) {
-            if (metadata is MaterialInstance instance)
-                instance.Dispose();
+            if (metadata is MapMetadata values) {
+                foreach (var entry in values.Entries) ReleaseMetadata(entry.Value);
+            } else if (metadata is MapMetadata.Entry[] entries) {
+                foreach (var entry in entries) ReleaseMetadata(entry.Value);
+            } else if (metadata is MaterialInstance instance) instance.Dispose();
         }
 
         public static void AddOnCreateChunk(Action<int3> callback) => OnCreateChunk += callback;
@@ -514,7 +519,7 @@ namespace Arterra.Core.Storage {
             public readonly bool HasGraphicsMap => Generation?.Pipeline?.IsReady == true && Generation.Pipeline.HasRetainedMap && MapFlags == Flags.Clean;
             public readonly bool HasEntities => EntityProgress == State.Finished;
             public readonly Task Ready => Generation.Ready;
-            public readonly ConcurrentDictionary<uint, object> MapMetaData => Generation.MapMetaData;
+            public readonly ConcurrentDictionary<uint, MapMetadata> MapMetaData => Generation.MapMetaData;
 
             public ChunkMapInfo(int3 CCoord, int flagIndex, int length, Allocator allocator = Allocator.Persistent,
                 NativeArrayOptions options = NativeArrayOptions.UninitializedMemory) {

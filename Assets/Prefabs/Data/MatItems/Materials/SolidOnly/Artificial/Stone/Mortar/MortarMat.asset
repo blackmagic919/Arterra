@@ -21,104 +21,57 @@ MonoBehaviour:
     - Mortar
     - Bedrock
     - 
-  Structure:
-    value:
-    - check:
-        bounds:
-          data: 4286611200
-        flags: 1
-      _material: 2147483652
-      _offset: 537395712
-    - check:
-        bounds:
-          data: 4286611200
-        flags: 1
-      _material: 2147483653
-      _offset: 538444288
-    - check:
-        bounds:
-          data: 4286611200
-        flags: 1
-      _material: 2147483653
-      _offset: 536347136
-    - check:
-        bounds:
-          data: 4286611200
-        flags: 1
-      _material: 2147483653
-      _offset: 537395713
-    - check:
-        bounds:
-          data: 4286611200
-        flags: 1
-      _material: 2147483653
-      _offset: 537395711
-    - check:
-        bounds:
-          data: 4286611200
-        flags: 1
-      _material: 2147483653
-      _offset: 536348159
-    - check:
-        bounds:
-          data: 4286611200
-        flags: 1
-      _material: 2147483653
-      _offset: 536348160
-    - check:
-        bounds:
-          data: 4286611200
-        flags: 1
-      _material: 2147483653
-      _offset: 536348161
-    - check:
-        bounds:
-          data: 4286611200
-        flags: 1
-      _material: 2147483653
-      _offset: 537396735
-    - check:
-        bounds:
-          data: 4286611200
-        flags: 1
-      _material: 2147483653
-      _offset: 537396737
-    - check:
-        bounds:
-          data: 4286611200
-        flags: 1
-      _material: 2147483653
-      _offset: 538445311
-    - check:
-        bounds:
-          data: 4286611200
-        flags: 1
-      _material: 2147483653
-      _offset: 538445312
-    - check:
-        bounds:
-          data: 4286611200
-        flags: 1
-      _material: 2147483653
-      _offset: 538445313
-    - check:
-        bounds:
-          data: 1677754112
-        flags: 1
-      _material: 1
-      _offset: 537396736
-  SelfIndex: 0
-  randYRot: 1
-  randXRot: 0
-  randZRot: 0
+  Layout:
+    Structure:
+      - map:
+          check:
+            bounds:
+              data: 4294967040
+            flags: 1
+          _material: 2147483652
+          _offset: 538444289
+        modelInfo:
+          Enabled: 1
+          Value:
+            Data: 0
+      - map:
+          check:
+            bounds:
+              data: 4294967040
+            flags: 1
+          _material: 2147483652
+          _offset: 537395713
+        modelInfo:
+          Enabled: 1
+          Value:
+            Data: 256
+      - map:
+          check:
+            bounds:
+              data: 4294967040
+            flags: 1
+          _material: 2147483652
+          _offset: 538444288
+        modelInfo:
+          Enabled: 1
+          Value:
+            Data: 512
+      - map:
+          check:
+            bounds:
+              data: 4294967040
+            flags: 1
+          _material: 2147483652
+          _offset: 537395712
+        modelInfo:
+          Enabled: 1
+          Value:
+            Data: 768
+    SelfIndex: 0
+    randYRot: 1
+    randXRot: 0
+    randZRot: 0
   DisplayIcon: 3
   MaxSlotCount: 10
   MaxRecipeSlotCount: 20
   OpenEvent: 3013
-  MaterialDrops:
-    SolidItem:
-      DropItem: 1
-      DropMultiplier: 1
-    LiquidItem:
-      DropItem: 6
-      DropMultiplier: 0

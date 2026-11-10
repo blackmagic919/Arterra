@@ -1,5 +1,18 @@
 ## [Unreleased]
 
+### Added
+- Custom model mesh generation
+- Torch material
+
+### Changed
+- Chests now use custom model
+- Furnaces now use custom model
+- Pestles now use custom model
+- A Voxel's Metadata now holds a set of objects
+
+### Removed
+- Ember material
+
 ## [0.2.2] - 2026-11-08
 ### Added
 - Goat animal with jumping

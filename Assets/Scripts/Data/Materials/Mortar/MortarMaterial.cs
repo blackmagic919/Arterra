@@ -22,7 +22,7 @@ namespace Arterra.Data.Material
     /// <summary> A mortar material which can crush items put into it to produced
     /// crushed variants. </summary>
     [CreateAssetMenu(menuName = "Generation/MaterialData/Behaviors/MortarMat")]
-    public class MortarMaterial : PlaceableStructureMat {
+    public class MortarMaterial : SingleLayoutStructureMat {
         /// <summary> The index within the <see cref="MaterialData.Names"> name registry </see> of the 
         /// texture within the texture registry of the icon displayed on the <see cref="PanelNavbarManager">Navbar</see>
         /// referring to the Container.  </summary>
@@ -35,10 +35,6 @@ namespace Arterra.Data.Material
         /// <summary>The event that is triggered when this mortar is opened.</summary>
         public Core.Events.GameEvent OpenEvent = Core.Events.GameEvent.Action_OpenMortar;
 
-        public override void Preset(MaterialData materialData) {
-            materialData.Register(typeof(PlaceableStructureMat), this);
-        }
-
         /// <summary>Returns a mortar inventory created using the meta constructor.</summary>
         /// <param name="GCoord">The coordinate in grid space of the material</param>
         /// <param name="constructor">The constructor used to populate the inventory</param>
@@ -50,9 +46,10 @@ namespace Arterra.Data.Material
 
         public override bool OnRemoving(int3 GCoord, Entity.Entity caller) {
             if (!NetworkManager.IsActingServer || caller == null || !caller.Is(out PlayerInventoriesBehavior player)) return false;
+            if (!TryGetKeystone(ref GCoord)) return false;
             MapData info = CPUMapManager.SampleMap(GCoord);
             if (info.IsNull || !info.IsSolid) return false;
-            if (!VerifyStructurePlaceement(GCoord)) { DropInventoryContent(GCoord); return false; }
+            if (!VerifyStructurePlacement(GCoord)) { DropInventoryContent(GCoord); return false; }
             if (!CPUMapManager.GetOrCreateMapMeta(GCoord, () => new MortarInventory(GCoord, MaxSlotCount), out var inventory)) return false;
             player.OpenMaterial(inventory);
             return true;
@@ -69,7 +66,7 @@ namespace Arterra.Data.Material
             if (!info.IsSolid) return null;
 
             int SolidDensity = info.SolidDensity - amount.SolidDensity;
-            if (!VerifyStructurePlaceement(GCoord) || SolidDensity < CPUMapManager.IsoValue)
+            if (!VerifyStructurePlacement(GCoord) || SolidDensity < CPUMapManager.IsoValue)
                 DropInventoryContent(GCoord);
 
             return null;
@@ -80,7 +77,7 @@ namespace Arterra.Data.Material
                 return;
             foreach (IItem item in cont.Inventory.Info)
                 PlayerInventoriesBehavior.SpawnDrop(item, GCoord);
-            CPUMapManager.SetExistingMapMeta<object>(GCoord, null);
+            CPUMapManager.SetExistingMapMeta<MortarInventory>(GCoord, null);
         }
 
 

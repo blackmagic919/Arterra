@@ -337,7 +337,6 @@ public static class Generator {
         gpuContext.SetInt(StructurePostProcess, "bSTART_maxDepths", offsets.maxDepthsStart);
         gpuContext.SetInt(StructurePostProcess, "bSTART_danglingDepths", offsets.danglingDepthsStart);
         structureCreator.SetStructIDSettings(StructurePostProcess);
-        Shader.SetGlobalInt("_StructTestDot", Config.CURRENT.Generation.Structures.value.StructureDictionary.RetrieveIndex("Dot"));
     }
 
     public static bool PlanStructureSystems(int chunkSize, int depth, int3 CCoord) {

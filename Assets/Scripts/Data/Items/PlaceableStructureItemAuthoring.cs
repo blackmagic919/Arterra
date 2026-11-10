@@ -105,6 +105,8 @@ namespace Arterra.Data.Item {
             private PlaceableStructureItem item;
             private RegionReconstructor display;
             private int3 Location;
+            private int3 Rotation;
+            private int LayoutIndex;
             private bool IsLocked;
 
             public static InteractionHandler Create(PlaceableStructureItem item, ItemContext cxt) {
@@ -117,96 +119,147 @@ namespace Arterra.Data.Item {
                 h.active = true;
                 ArterraRuntime.MainLoopUpdateTasks.Enqueue(h);
                 
-                    InputPoller.AddBinding(new ActionBind("Place", h.PlaceStructure, ActionBind.Exclusion.ExcludeLayer),
-                    "ITEM::PlaceableStct:PL", "5.0::GamePlay");
-                    InputPoller.AddBinding(new ActionBind("Place", (_) => h.IsLocked = false,
-                        ActionBind.Exclusion.ExcludeLayer, ActionBind.Policy.Up),
-                    "ITEM::PlaceableStct:FP", "5.0::GamePlay");
-                
+                InputPoller.AddBinding(new ActionBind("Place", h.PlaceStructure, ActionBind.Exclusion.ExcludeLayer),
+                "ITEM::PlaceableStct:PL", "5.0::GamePlay");
+                InputPoller.AddBinding(new ActionBind("Place", (_) => h.IsLocked = false,
+                    ActionBind.Exclusion.ExcludeLayer, ActionBind.Policy.Up),
+                "ITEM::PlaceableStct:FP", "5.0::GamePlay");            
                 return h;
             }
             public void Release() {
                 active = false;
                 item = null;
                 display.Release();
-                
-                    InputPoller.RemoveBinding("ITEM::PlaceableStct:PL", "5.0::GamePlay");
-                    InputPoller.RemoveBinding("ITEM::PlaceableStct:FP", "5.0::GamePlay");
+                InputPoller.RemoveBinding("ITEM::PlaceableStct:PL", "5.0::GamePlay");
+                InputPoller.RemoveBinding("ITEM::PlaceableStct:FP", "5.0::GamePlay");
                 
             }
 
             public void Update(MonoBehaviour _) {
                 if (!cxt.TryGetHolder(out BehaviorEntity.Animal player)) return;
                 if (!player.Is(out PlayerInteractionBehavior interact)) return;
-                if (!interact.RayTestSolid(out float3 hitPt)) return;
-                
-                if (!IsLocked) Location = (int3)math.round(hitPt);
-                else if (math.cmax(math.abs(Location - hitPt)) >
-                    PlayerInteractionSettings.GetSingleton().TerraformRadius + math.cmax(GetSize())) {
-                    IsLocked = false;
+                if (IsLocked) {
+                    display.ReflectMesh(DeserializeStruct(), Location, Rotation);
+                    return;
                 }
 
-                display.ReflectMesh(DeserializeStruct(), Location, GetRotation(player.head - Location));
+                if (!FindTargetPoint(player, interact, out float3 hitPt, out int3 rotation, out int layout)) {
+                    display.ClearMesh();
+                    return;
+                }
+
+                SetTarget(hitPt, rotation, layout);
+                display.ReflectMesh(DeserializeStruct(), Location, Rotation);
             }
 
             private void PlaceStructure(float _) {
                 if (!cxt.TryGetHolder(out BehaviorEntity.Animal player)) return;
                 if (!player.Is(out PlayerInteractionBehavior interact)) return;
                 if (!IsLocked) {
-                    if (!interact.RayTestSolid(out float3 hitPt)) return;
-                    Location = (int3)math.round(hitPt);
+                    if (!FindTargetPoint(player, interact, out float3 hitPt, out int3 rotation, out int layout)) return;
+                    SetTarget(hitPt, rotation, layout);
                     IsLocked = true;
                 }
 
-                cxt.RaiseEvent(GameEvent.Apply_PlaceStructure, (Location, GetRotation(player.head - Location)));
+                cxt.RaiseEvent(GameEvent.Apply_PlaceStructure, (Location, Rotation, LayoutIndex));
+            }
+
+            private void SetTarget(float3 hitPt, int3 rotation, int layout) {
+                MatInfo.Retrieve(item.settings.MaterialName).Is(out PlaceableStructureMat structure);
+                var placement = structure.GetLayout(layout);
+                LayoutIndex = layout;
+                Rotation = rotation;
+                Location = placement.GetOrigin((int3)math.round(hitPt), rotation);
+            }
+
+            private bool FindTargetPoint(BehaviorEntity.Animal player, PlayerInteractionBehavior interact,
+                out float3 hitPt, out int3 rotation, out int layout) {
+                layout = 0;
+                rotation = int3.zero;
+                if (!interact.RayTestSolid(out hitPt)) return false;
+                int material = MatInfo.RetrieveIndex(item.settings.MaterialName);
+                if (!MatInfo.Retrieve(material).Is(out PlaceableStructureMat structure)) return false;
+
+                int3 target = (int3)math.round(hitPt);
+                int3 targetRotation = structure.GetLayout(0).GetRotation(player.head - target);
+                int targetLayout = 0;
+                bool snapped = Terraforming.FindTerraformable(hitPt, PlayerInteractionSettings.GetSingleton().TerraformRadius, coord => {
+                    MapData sample = CPUMapManager.SampleMap(coord);
+                    if (sample.IsNull || sample.SolidDensity == 0) return false;
+                    if (sample.material != material) {
+                        if (!CPUMapManager.TryGetExistingMapMeta(coord, out StructureLayoutInfo _)) return false;
+                        if (!MatInfo.Retrieve(sample.material).Is(out PlaceableStructureMat member) || member != structure) return false;
+                    }
+
+                    int3 keystone = coord;
+                    int3 candidateRotation = targetRotation;
+                    if (CPUMapManager.TryGetExistingMapMeta(coord, out StructurePartInfo part)) {
+                        keystone += part.Delta;
+                        candidateRotation = part.Rotation;
+                    }
+
+                    PlaceableStructureMat owner = structure;
+                    MapData keystoneSample = CPUMapManager.SampleMap(keystone);
+                    if (!keystoneSample.IsNull && keystoneSample.SolidDensity > 0
+                        && MatInfo.Retrieve(keystoneSample.material).Is(out PlaceableStructureMat keystoneStructure))
+                        owner = keystoneStructure;
+                    if (owner.VerifyStructurePlacement(coord)) return false;
+
+                    target = keystone;
+                    targetRotation = candidateRotation;
+                    targetLayout = structure.GetPlacedLayout(coord);
+                    return true;
+                }, out _);
+
+                if (!snapped) {
+                    if (!Terraforming.FindTerraformable(hitPt, PlayerInteractionSettings.GetSingleton().TerraformRadius, coord => {
+                        if (!structure.TryResolveLayout(coord, player.head - coord,
+                            out int3 candidateRotation, out int candidateLayout)) return false;
+                        target = coord;
+                        targetRotation = candidateRotation;
+                        targetLayout = candidateLayout;
+                        return true;
+                    }, out _)) return false;
+                }
+
+                if (targetLayout < 0 || targetLayout >= structure.LayoutCount) return false;
+                var placement = structure.GetLayout(targetLayout);
+                int3 origin = placement.GetOrigin(target, targetRotation);
+                if (!structure.CanPlaceLayout(origin, targetRotation, targetLayout)) return false;
+
+                hitPt = target;
+                rotation = targetRotation;
+                layout = targetLayout;
+                return true;
             }
 
             public static void Apply(PlaceableStructureItem item, ItemContext context, object argument) {
-                if (argument is not ValueTuple<int3, int3> placement) return;
+                if (argument is not ValueTuple<int3, int3, int> placement) return;
                 if (!context.TryGetHolder(out BehaviorEntity.Animal player)) return;
                 int3 rotation = placement.Item2;
                 if (math.any(rotation < 0) || math.any(rotation > 3)) return;
-                var operation = new InteractionHandler { item = item, cxt = context };
-                List<MapSamplePoint> edit = operation.DeserializeStruct();
+                if (!MatInfo.Retrieve(item.settings.MaterialName).Is(out PlaceableStructureMat structure)) return;
+                if (placement.Item3 < 0 || placement.Item3 >= structure.LayoutCount) return;
+                if (!structure.CanPlaceLayout(placement.Item1, rotation, placement.Item3)) return;
+                var operation = new InteractionHandler { item = item, cxt = context, LayoutIndex = placement.Item3 };
+                List<MapPlacement> edit = operation.DeserializeStruct();
                 if (edit == null) return;
                 if (operation.RemoveConflictMats(player, edit, placement.Item1, rotation)) return;
                 operation.PlaceNewMats(player, edit, placement.Item1, rotation);
             }
 
-            private int3 GetRotation(float3 direction) {
-                MaterialData placeMat = MatInfo.Retrieve(item.settings.MaterialName);
-                if (!placeMat.Is(out PlaceableStructureMat mat)) return int3.zero;
-                float3 angleRot = Quaternion.LookRotation(direction).eulerAngles;
-                //clamp to 360 via modulo
-                angleRot = (angleRot % 360 + 360) % 360; int3 rot = int3.zero; 
-                if (mat.randYRot) rot.y = Mathf.FloorToInt(angleRot.y / 90.0f);
-                if (mat.randXRot) rot.x = Mathf.FloorToInt(angleRot.x / 90.0f);
-                if (mat.randZRot) rot.z = Mathf.FloorToInt(angleRot.z / 90.0f);
-                return rot;
-            }
-
-            private List<MapSamplePoint> DeserializeStruct() {
+            private List<MapPlacement> DeserializeStruct() {
                 MaterialData placeMat = MatInfo.Retrieve(item.settings.MaterialName);
                 if (!placeMat.Is(out PlaceableStructureMat key)) return null;
-                return key.Structure.value.Select(s => {
-                    if (s.HasMaterialCheck) s.material = (uint)MatInfo.RetrieveIndex(
-                        key.RetrieveKey((int)s.material));
+                return key.GetLayout(LayoutIndex).Structure.Select(s => {
+                    if (s.map.HasMaterialCheck) s.map.material = (uint)MatInfo.RetrieveIndex(
+                        key.RetrieveKey((int)s.map.material));
                     return s;
                 }).ToList();
             }
 
-            private int3 GetSize() {
-                MaterialData placeMat = MatInfo.Retrieve(item.settings.MaterialName);
-                if (!placeMat.Is(out PlaceableStructureMat key)) return int3.zero;
-                int3 max = new (int.MinValue); int3 min = new (int.MaxValue);
-                foreach(var mat in key.Structure.value) {
-                    max = math.max(mat.Offset, max);
-                    min = math.min(mat.Offset, min);
-                }
-                return key.Structure.value.Count <= 0 ? int3.zero : max - min;
-            }
-            private delegate bool CheckIterate(MapSamplePoint check, MapData sample, MapData delta, int3 GCoord);
-            private bool RemoveConflictMats(Entity.Entity holder, List<MapSamplePoint> edit, int3 GCoord, int3 rot) {
+            private delegate bool CheckIterate(MapPlacement check, MapData sample, MapData delta, int3 GCoord);
+            private bool RemoveConflictMats(Entity.Entity holder, List<MapPlacement> edit, int3 GCoord, int3 rot) {
                 if (!holder.Is(out PlayerInteractionBehavior interact)) interact = null;
                 int totalRemAmount = 0; int totalSolidAmt = 0;
                 if (!IterateStructRemove(edit, GCoord, rot, (c, s, d, gc) => {
@@ -238,21 +291,24 @@ namespace Arterra.Data.Item {
                 return totalSolidAmt > 0;
             }
 
-            private bool PlaceNewMats(Entity.Entity holder, List<MapSamplePoint> edit, int3 GCoord, int3 rot) {
+            private bool PlaceNewMats(Entity.Entity holder, List<MapPlacement> edit, int3 GCoord, int3 rot) {
                 if (!holder.Is(out PlayerInteractionBehavior interact)) return false;
                 int totPlaceAmt = 0; int selfPlaceAmt = 0; bool PlaceSelf = true;
-                int self = MatInfo.RetrieveIndex(item.settings.MaterialName);
+                if (!MatInfo.Retrieve(item.settings.MaterialName).Is(out PlaceableStructureMat structure)) return false;
+                MapSamplePoint keystone = edit[structure.GetLayout(LayoutIndex).SelfIndex].map;
+                int self = (int)keystone.material;
+                int3 keystonePosition = GCoord + math.mul(CustomUtility.RotationLookupTable[rot.y, rot.x, rot.z], keystone.Offset);
                 if (!IterateStructPlace(edit, GCoord, rot, (c, s, d, gc) => {
                     int placeMaterial = -1;
                     if (!s.IsGaseous) placeMaterial = s.material;
-                    if (c.HasMaterialCheck) placeMaterial = (int)c.material;
+                    if (c.map.HasMaterialCheck) placeMaterial = (int)c.map.material;
 
-                    if (placeMaterial == self) {
+                    if (structure.GetPlacementItemMaterial(placeMaterial, LayoutIndex) == self) {
                         selfPlaceAmt += d.density;
                     } else {
                         totPlaceAmt += d.density;
-                        if (s.LiquidDensity < c.check.bounds.MinLiquid) PlaceSelf = false;
-                        if (s.SolidDensity < c.check.bounds.MinSolid) PlaceSelf = false;
+                        if (s.LiquidDensity < c.map.check.bounds.MinLiquid) PlaceSelf = false;
+                        if (s.SolidDensity < c.map.check.bounds.MinSolid) PlaceSelf = false;
                     }
                     //We have to fulfill this contract as we will be placing it
                     return MatInfo.Retrieve(s.material).OnPlacing(gc, holder);
@@ -267,12 +323,18 @@ namespace Arterra.Data.Item {
 
                     int placeMaterial = -1; //Allow any material of same state to be chosen
                     if (!s.IsGaseous) placeMaterial = s.material; //Must be same as existing material
-                    if (c.HasMaterialCheck) placeMaterial = (int)c.material;
+                    if (c.map.HasMaterialCheck) placeMaterial = (int)c.map.material;
                     if (placeMaterial == self && !PlaceSelf) return false;
 
-                    if (d.viscosity > 0 && FindNextMatIndex(out IItem nextSlot, placeMaterial, PlaceableItem.State.Solid)) {
+                    if (d.viscosity > 0 && FindNextMatIndex(out IItem nextSlot, structure.GetPlacementItemMaterial(placeMaterial, LayoutIndex), PlaceableItem.State.Solid)) {
                         float strength = math.pow((float)d.viscosity / totPlaceAmt, 0.5f);
-                        interact.HandleAddSolid(nextSlot, gc, strength * placeSpeed, out _);
+                        if (interact.HandleAddSolid(nextSlot, gc, strength * placeSpeed, out MapData placed, placeMaterial)
+                            && placed.SolidDensity > s.SolidDensity) {
+                            if (placed.material == self || structure.LinksAllMembers)
+                                structure.InstallPlacementMetadata(gc, keystonePosition, rot, LayoutIndex);
+                            if (c.modelInfo.Enabled)
+                                CPUMapManager.SetExistingMapMeta(gc, c.modelInfo.Value.Rotate(rot));
+                        }
                         d.density -= d.viscosity; d.viscosity = 0;
                     }
                     if (d.density > 0 && FindNextMatIndex(out nextSlot, placeMaterial, PlaceableItem.State.Liquid)) {
@@ -284,10 +346,10 @@ namespace Arterra.Data.Item {
 
             }
 
-            private bool IterateStructRemove(List<MapSamplePoint> edit, int3 GCoord, int3 rot, CheckIterate OnRemove) {
+            private bool IterateStructRemove(List<MapPlacement> edit, int3 GCoord, int3 rot, CheckIterate OnRemove) {
                 bool any0 = false;
                 for (int i = 0; i < edit.Count; i++) {
-                    Material.MapSamplePoint pt = edit[i];
+                    MapSamplePoint pt = edit[i].map;
                     if (pt.check.OrFlag) { //Only fill first or flag
                         if (any0) continue;
                         else any0 = true;
@@ -308,16 +370,16 @@ namespace Arterra.Data.Item {
                     if (pt.check.bounds.MaxLiquid < sample.LiquidDensity)
                         remAmount.density = math.max(remAmount.density, sample.LiquidDensity - (int)pt.check.bounds.MaxLiquid);
                     if (remAmount.density <= 0) continue;
-                    if (OnRemove.Invoke(pt, sample, remAmount, sCoord)) return false;
+                    if (OnRemove.Invoke(edit[i], sample, remAmount, sCoord)) return false;
                 }
                 return true;
             }
 
 
-            private bool IterateStructPlace(List<MapSamplePoint> edit, int3 GCoord, int3 rot, CheckIterate OnAdd) {
+            private bool IterateStructPlace(List<MapPlacement> edit, int3 GCoord, int3 rot, CheckIterate OnAdd) {
                 bool any0 = false;
                 for (int i = 0; i < edit.Count; i++) {
-                    MapSamplePoint pt = edit[i];
+                    MapSamplePoint pt = edit[i].map;
                     if (pt.check.OrFlag) { //Only fill first or flag
                         if (any0) continue;
                         else any0 = true;
@@ -336,7 +398,7 @@ namespace Arterra.Data.Item {
                     if (targetSolid > sample.SolidDensity)
                         addAmt.viscosity = (int)targetSolid - sample.SolidDensity;
                     if (addAmt.density == 0) continue;
-                    if (OnAdd.Invoke(pt, sample, addAmt, sCoord)) return false;
+                    if (OnAdd.Invoke(edit[i], sample, addAmt, sCoord)) return false;
                 }
                 return true;
             }

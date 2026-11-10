@@ -13,14 +13,7 @@ MonoBehaviour:
   m_Name: AcaciaLeavesMat
   m_EditorClassIdentifier: 
   Names:
-    value:
-    - OakLeaves
-    - InsetQuad
-    - Void
-    - OakLeaves:Solid
-    - Embers
-    - InsetQuad
-    - DeciduousLeaves
+    value: []
   SourceMaterial: Wood
   MaxSourceDistance: 13
   SelfCondition:

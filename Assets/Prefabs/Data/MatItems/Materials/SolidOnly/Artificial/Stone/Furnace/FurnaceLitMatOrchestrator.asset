@@ -30,7 +30,7 @@ MonoBehaviour:
   terrainData:
     Texture: 8
     textureScale: 1
-    FlipStateRendering: 0
+    ModelIndex: 5
     GeoShaderIndex:
       data: 2147811334
   AtmosphereScatter:

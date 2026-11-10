@@ -55,7 +55,7 @@ public class AsyncMeshReadback
     public static void PresetData(){
         GraphicsResourceContext gpuContext = GraphicsRendering;
         settings = Configuration.Config.CURRENT.System.ReadBack.value;
-        numMeshes = (uint)settings.indirectTerrainMats.Length;
+        numMeshes = (uint)settings.TerrainMats.Count;
         meshDrawArgsCreator = Resources.Load<ComputeShader>("Compute/TerrainGeneration/Readback/MeshDrawArgs");
         triangleTranscriber = Resources.Load<ComputeShader>("Compute/TerrainGeneration/Readback/TranscribeTriangles");
         vertexTranscriber = Resources.Load<ComputeShader>("Compute/TerrainGeneration/Readback/TranscribeVertices");
@@ -322,6 +322,7 @@ public class AsyncMeshReadback
         gpuContext.SetBuffer(triangleTranscriber, kernel, ShaderIDProps.MemoryBuffer, source);
         gpuContext.SetInt(triangleTranscriber, ShaderIDProps.CountTri, triCounter);
         gpuContext.SetInt(triangleTranscriber, ShaderIDProps.StartTri, triStart);
+        gpuContext.SetInt(triangleTranscriber, ShaderIDProps.DirectIndices, triCounter == Map.Creator.bufferOffsets.modelTriCounter ? 1 : 0);
         gpuContext.SetInt(triangleTranscriber, ShaderIDProps.TriAddress, addressIndex);
 
         gpuContext.DispatchIndirect(triangleTranscriber, kernel, args);
@@ -336,6 +337,7 @@ public enum ReadbackMaterial{
     terrain = 0,
     /// <summary> The index of the material used for liquid geometry. </summary>
     water = 1,
+    customModel = 2,
 }
 
 /// <summary> A handle to geometry that is stored in <see cref="GenerationPreset.MemoryHandle._GPUMemorySource"> long term GPU storage </see>.

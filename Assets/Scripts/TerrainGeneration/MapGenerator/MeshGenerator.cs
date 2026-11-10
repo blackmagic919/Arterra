@@ -12,6 +12,8 @@ namespace Arterra.Engine.Terrain.MeshGeneration {
 public class Creator {
     public GraphicsContextId GraphicsContext;
 
+    private readonly CustomModelRenderer customModels = new();
+
     static ComputeShader dMeshGenerator;
     static ComputeShader transVoxelGenerator;
     static ComputeShader meshInfoCollector;
@@ -42,8 +44,8 @@ public class Creator {
     public void GenerateRealMesh(int3 CCoord, float IsoLevel, int chunkSize, uint neighborDepths){
         CollectRealMap(CCoord, chunkSize);
         GenerateMesh(chunkSize, IsoLevel);
-        if(neighborDepths == 0) return;
-        GenerateTransition(neighborDepths, chunkSize, IsoLevel);
+        if (neighborDepths != 0) GenerateTransition(neighborDepths, chunkSize, IsoLevel);
+        GenerateModels(chunkSize, CCoord);
     }
     /// <summary> Generates the mesh for a <see cref="TerrainChunk.VisualChunk"><b>normal</b> visual chunk </see> at the specified location. Normal
     /// visual chunks have stored map information through <see cref="GPUMapManager.RegisterChunkVisual(int3, int, ComputeBuffer, int)"/>, but
@@ -62,9 +64,8 @@ public class Creator {
     /// for more info. </param>
     public void GenerateVisualMesh(int3 CCoord, int defAddress, float IsoLevel, int chunkSize, int depth, uint neighborDepths){
         CollectVisualMap(CCoord, defAddress, chunkSize, depth);
-        GenerateMesh(chunkSize, IsoLevel);
-        if(neighborDepths == 0) return;
-        GenerateTransition(neighborDepths, chunkSize, IsoLevel);
+        GenerateMesh(chunkSize, IsoLevel, false);
+        if (neighborDepths != 0) GenerateTransition(neighborDepths, chunkSize, IsoLevel);
     }
     public static void PresetData(GraphicsContextId graphicsContext = GraphicsContextId.Rendering) {
         GraphicsResourceContext gpuContext = Graphics(graphicsContext);
@@ -111,6 +112,7 @@ public class Creator {
         gpuContext.SetBuffer(meshInfoCollector, kernel, "_DirectAddress", GPUMapManager.DirectAddress);
         gpuContext.SetInt(meshInfoCollector, "bSTART_map", bufferOffsets.mapStart);
 
+        CustomModelRenderer.PresetData(graphicsContext);
     }
     /// <summary> Collects the map data for a <see cref="TerrainChunk.RealChunk">real chunk</see>. Retrieves the map data stored in a hashmap by <see cref="GPUMapManager"/>
     /// and copies it into <see cref="GraphicsGeneration.Work.Scratch">working memory</see> where it can be accessed easier.
@@ -163,18 +165,23 @@ public class Creator {
         gpuContext.Dispatch(meshInfoCollector, kernel, numThreadsAxis, numThreadsAxis, numThreadsAxis);
     }
 
+    public void GenerateModels(int chunkSize, int3? chunkCoord = null) =>
+        customModels.Generate(GetGraphicsContext(), chunkSize, chunkCoord);
+
     /// <summary> Generates the visual mesh for a chunk based off the map data stored in the <see cref="GraphicsGeneration.Work.Scratch">working buffer</see>.
     /// The mesh is generated using the marching cubes algorithm and is stored in a distributed form within the buffer in a way that avoids
-    /// duplicated vertex information. Two seperate meshes are created for every chunk, one for the base terrain and one for liquids. </summary>
+    /// duplicated vertex information. Terrain and liquid triangles are generated here; custom model geometry is appended afterward. </summary>
     /// <remarks>See <see href="https://paulbourke.net/geometry/polygonise/">here</see> to learn about marching cubes. </remarks>
     /// <param name="chunkSize">The resolution of the mesh generated for the chunk; the amount of cubes marched per axis of the chunk.</param>
     /// <param name="IsoLevel">The density of the surface of the terrain. See <see cref="Quality.Terrain.IsoLevel"/> for more info.</param>
-    public void GenerateMesh(int chunkSize, float IsoLevel)
+    public void GenerateMesh(int chunkSize, float IsoLevel, bool customModels = true)
     {
         GraphicsResourceContext gpuContext = GetGraphicsContext();
         int numCubesAxes = chunkSize;
         int numPointsAxes = numCubesAxes + 1;
-        gpuContext.Work.ClearRange(gpuContext.Work.Scratch, 3, 0);
+        gpuContext.Work.ClearRange(gpuContext.Work.Scratch, 5, 0);
+        gpuContext.SetInt(dMeshGenerator, ShaderIDProps.RenderCustomModels, customModels ? 1 : 0);
+        gpuContext.SetInt(transVoxelGenerator, ShaderIDProps.RenderCustomModels, customModels ? 1 : 0);
 
         gpuContext.SetFloat(dMeshGenerator, ShaderIDProps.IsoLevel, IsoLevel);
         gpuContext.SetInt(dMeshGenerator, ShaderIDProps.NumCubesPerAxis, numCubesAxes);

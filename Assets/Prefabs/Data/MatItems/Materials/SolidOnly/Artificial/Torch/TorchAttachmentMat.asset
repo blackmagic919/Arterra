@@ -1,0 +1,68 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d03b92fbd1ad4146ac8b015dab60460e, type: 3}
+  m_Name: TorchAttachmentMat
+  m_EditorClassIdentifier: 
+  Names:
+    value:
+    - Torch
+  Attachments:
+  - Name: Upright
+    Checks:
+    - check:
+        bounds:
+          data: 4286643968
+        flags: 1
+      _material: 0
+      _offset: 537394688
+    Layout:
+      Structure:
+      - map:
+          check:
+            bounds:
+              data: 4294967040
+            flags: 1
+          _material: 2147483648
+          _offset: 537395712
+        modelInfo:
+          Enabled: 1
+          Value:
+            Data: 0
+      SelfIndex: 0
+      randYRot: 1
+      randXRot: 0
+      randZRot: 0
+  - Name: Side
+    Checks:
+    - check:
+        bounds:
+          data: 4286643968
+        flags: 1
+      _material: 0
+      _offset: 537395713
+    Layout:
+      Structure:
+      - map:
+          check:
+            bounds:
+              data: 4294967040
+            flags: 1
+          _material: 2147483648
+          _offset: 537395712
+        modelInfo:
+          Enabled: 1
+          Value:
+            Data: 256
+      SelfIndex: 0
+      randYRot: 1
+      randXRot: 0
+      randZRot: 0

@@ -18,7 +18,7 @@ struct SourceVertex{
 struct matTerrain{
     int textureIndex;
     float baseTextureScale;
-    uint flipStateRendering;
+    uint modelIndex;
     uint geoShaderInd;
 };
 

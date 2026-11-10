@@ -25,7 +25,7 @@ namespace Arterra.Data.Material
     /// and is accessible to users who click on the item. 
     /// A furnace is a type of container that can burn fuel items to smelt items and store the resulting output items. </summary>
     [CreateAssetMenu(menuName = "Generation/MaterialData/Behaviors/FurnaceMat")]
-    public class FurnaceMaterial : PlaceableStructureMat {
+    public class FurnaceMaterial : SingleLayoutStructureMat {
         /// <summary> The index within the <see cref="MaterialData.Names"> name registry </see> of the 
         /// texture within the texture registry of the icon displayed on the <see cref="PanelNavbarManager">Navbar</see>
         /// referring to the Container.  </summary>
@@ -62,15 +62,15 @@ namespace Arterra.Data.Material
             return new FurnaceInventory(constructor, GCoord, MaxInputSlotCount, MaxOutputSlotCount, MaxFuelSlotCount);
         }
 
-        public override void Preset(MaterialData materialData) {
-            materialData.Register(typeof(PlaceableStructureMat), this);
-        }
-
         public override bool OnRemoving(int3 GCoord, Entity.Entity caller) {
             if (!NetworkManager.IsActingServer || caller == null || !caller.Is(out PlayerInventoriesBehavior player)) return false;
+            int3 partCoord = GCoord;
+            if (!TryGetKeystone(ref GCoord)) return false;
             MapData info = CPUMapManager.SampleMap(GCoord);
+            if (math.any(partCoord != GCoord))
+                return Config.CURRENT.Generation.Materials.value.MaterialDictionary.Retrieve(info.material).OnRemoving(GCoord, caller);
             if (info.IsNull || !info.IsSolid) return false;
-            if (!VerifyStructurePlaceement(GCoord)) { DropInventoryContent(GCoord); return false; }
+            if (!VerifyStructurePlacement(GCoord)) { DropInventoryContent(GCoord); return false; }
             if (!CPUMapManager.GetOrCreateMapMeta(GCoord, () => new FurnaceInventory(GCoord, MaxInputSlotCount, MaxOutputSlotCount, MaxFuelSlotCount), out var inventory)) return false;
             player.OpenMaterial(inventory);
             return true;
@@ -87,7 +87,7 @@ namespace Arterra.Data.Material
             if (!info.IsSolid) return null;
 
             int SolidDensity = info.SolidDensity - amount.SolidDensity;
-            if (!VerifyStructurePlaceement(GCoord) || SolidDensity < CPUMapManager.IsoValue)
+            if (!VerifyStructurePlacement(GCoord) || SolidDensity < CPUMapManager.IsoValue)
                 DropInventoryContent(GCoord);
 
             return null;
@@ -102,7 +102,7 @@ namespace Arterra.Data.Material
                 PlayerInventoriesBehavior.SpawnDrop(item, GCoord);
             foreach (IItem item in cont.OutputInventory.Info)
                 PlayerInventoriesBehavior.SpawnDrop(item, GCoord);
-            CPUMapManager.SetExistingMapMeta<object>(GCoord, null);
+            CPUMapManager.SetExistingMapMeta<FurnaceInventory>(GCoord, null);
         }
 
 

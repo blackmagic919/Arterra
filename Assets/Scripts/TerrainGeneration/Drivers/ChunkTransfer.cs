@@ -24,7 +24,7 @@ namespace Arterra.Core.Storage {
                 MapData = mapData,
                 EntityData = EntityManager.GetChunkEntities(chunk.CCoord)
                     .Select(entity => new Registerable<Entity>(entity)).ToList(),
-                MapMetadata = chunk.MapMetaData.ToArray(),
+                MapMetadata = chunk.MapMetaData.Select(entry => new KeyValuePair<uint, object>(entry.Key, entry.Value.Entries)).ToArray(),
             };
         }
 

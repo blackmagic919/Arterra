@@ -165,8 +165,10 @@ namespace Arterra.Engine.Terrain{
 
             public GeneratorInfo(TerrainChunk chunk) {
                 MeshCreator = new MeshGenerator();
-                MeshReadback = new AsyncMeshReadback(chunk.meshObject.transform,
-                    chunk.GetRelativeBoundsOS(chunk.origin, chunk.size));
+                Bounds bounds = chunk.GetRelativeBoundsOS(chunk.origin, chunk.size);
+                // Models are centered on voxel samples and can extend half a voxel past the chunk origin.
+                if (chunk.depth == 0) bounds.Expand(1.0f);
+                MeshReadback = new AsyncMeshReadback(chunk.meshObject.transform, bounds);
                 Pipeline = chunk.depth == 0 ? null : MapGenerationPipeline.Build(chunk.origin, chunk.depth, true);
             }
         }
@@ -441,6 +443,7 @@ namespace Arterra.Engine.Terrain{
                 Generator.MeshReadback.OffloadVerticesToGPU(bufferOffsets.vertexCounter);
                 Generator.MeshReadback.OffloadTrisToGPU(bufferOffsets.baseTriCounter, bufferOffsets.baseTriStart, (int)ReadbackMaterial.terrain);
                 Generator.MeshReadback.OffloadTrisToGPU(bufferOffsets.waterTriCounter, bufferOffsets.waterTriStart, (int)ReadbackMaterial.water);
+                Generator.MeshReadback.OffloadTrisToGPU(bufferOffsets.modelTriCounter, bufferOffsets.modelTriStart, (int)ReadbackMaterial.customModel);
 
                 if (depth <= Config.CURRENT.Quality.GeoShaders.value.MaxGeoShaderDepth)
                     GeoShaders.ComputeGeoShaderGeometry(Generator.MeshReadback.vertexHandle, Generator.MeshReadback.triHandles[(int)ReadbackMaterial.terrain]);
@@ -639,7 +642,7 @@ namespace Arterra.Engine.Terrain{
                         fakeOffsets.mapStart))
                         return;
 
-                    Generator.MeshCreator.GenerateMesh(mapChunkSize, IsoLevel);
+                    Generator.MeshCreator.GenerateMesh(mapChunkSize, IsoLevel, false);
                     if (neighborDepth != 0)
                         Generator.MeshCreator.GenerateTransition(neighborDepth, mapChunkSize, IsoLevel);
                     unmanagedMap.Release(meshContext.id);
@@ -666,6 +669,7 @@ namespace Arterra.Engine.Terrain{
                 Generator.MeshReadback.OffloadVerticesToGPU(bufferOffsets.vertexCounter);
                 Generator.MeshReadback.OffloadTrisToGPU(bufferOffsets.baseTriCounter, bufferOffsets.baseTriStart, (int)ReadbackMaterial.terrain);
                 Generator.MeshReadback.OffloadTrisToGPU(bufferOffsets.waterTriCounter, bufferOffsets.waterTriStart, (int)ReadbackMaterial.water);
+                Generator.MeshReadback.OffloadTrisToGPU(bufferOffsets.modelTriCounter, bufferOffsets.modelTriStart, (int)ReadbackMaterial.customModel);
 
                 if (depth <= Config.CURRENT.Quality.GeoShaders.value.MaxGeoShaderDepth)
                     GeoShaders.ComputeGeoShaderGeometry(Generator.MeshReadback.vertexHandle, Generator.MeshReadback.triHandles[(int)ReadbackMaterial.terrain]);

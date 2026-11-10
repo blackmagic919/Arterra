@@ -281,13 +281,15 @@ namespace Arterra.GamePlay.UI {
                 chunk = CustomUtility.RescaleLinearMap(chunk, rSettings.mapChunkSize, 2, 1);
                 Transform model = ChunkDisplay.transform.Find("Model");
                 model.position -= (Vector3)(float3)chunkSize / 2.0f;
+                const int customModelCapacity = 1_000_000;
                 ChunkModel = new ModelManager(
                     chunkSize, model,
                     rSettings.IsoLevel, gpuContext.Work.Transfer,
-                    gpuContext.Work.Scratch, ChunkGrid.offsets.bufferEnd
+                    gpuContext.Work.Scratch, ChunkGrid.offsets.bufferEnd,
+                    customVertexCapacity: customModelCapacity, customTriangleCapacity: customModelCapacity
                 );
 
-                gpuContext.SetBufferData(gpuContext.Work.Transfer, chunk);
+                ChunkModel.SetModelData(null, chunk);
                 ChunkModel.GenerateModel();
             }
 

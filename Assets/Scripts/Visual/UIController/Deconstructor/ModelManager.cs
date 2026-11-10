@@ -1,6 +1,11 @@
+using System.Collections.Generic;
+using Arterra.Configuration;
+using Arterra.Data.Models;
+using System.Linq;
 using Unity.Mathematics;
 using UnityEngine;
 using Arterra.Utils;
+using Arterra.Engine.Terrain.MeshGeneration;
 using Arterra.Core.Storage;
 using static Arterra.Core.Storage.SharedResourceManager;
 
@@ -9,6 +14,8 @@ namespace Arterra.Editor {
         private ComputeBuffer MapBuffer;
         private ComputeBuffer GeoBuffer;
         private ComputeShader ModelConstructor;
+        private CustomModelRenderer modelRenderer;
+        private List<uint> modelMetadata = new();
         private ComputeShader IndexLinker;
         private ComputeShader DrawArgsConstructor;
         public Engine.Terrain.Map.Creator.GeoGenOffsets offsets;
@@ -17,14 +24,15 @@ namespace Arterra.Editor {
 
         private Transform transform;
         private Material[] ModelMaterial =
-        new Material[2];
+        new Material[3];
         private Engine.Terrain.Readback.GeometryHandle[] GeoHandles =
-        new Engine.Terrain.Readback.GeometryHandle[2];
+        new Engine.Terrain.Readback.GeometryHandle[3];
 
         public const int VERTEX_STRIDE_WORD = 3 + 2;
         public const int TRI_STRIDE_WORD = 3;
 
-        public ModelManager(uint3 GridSize, Transform transform, float IsoLevel, ComputeBuffer MapBuffer, ComputeBuffer GeoBuffer, int bufferStart) {
+        public ModelManager(uint3 GridSize, Transform transform, float IsoLevel, ComputeBuffer MapBuffer, ComputeBuffer GeoBuffer, int bufferStart,
+            int customVertexCapacity, int customTriangleCapacity) {
             this.ModelConstructor = Resources.Load<ComputeShader>("Compute/CGeometry/Deconstructor/ModelConstructor");
             this.IndexLinker = Resources.Load<ComputeShader>("Compute/CGeometry/Deconstructor/ModelIndexLinker");
             this.DrawArgsConstructor = Resources.Load<ComputeShader>("Compute/TerrainGeneration/Readback/MeshDrawArgs");
@@ -34,26 +42,33 @@ namespace Arterra.Editor {
             this.IsoLevel = IsoLevel;
             this.transform = transform;
 
-            this.offsets = new Arterra.Engine.Terrain.Map.Creator.GeoGenOffsets(new int3(GridSize), 0, bufferStart, VERTEX_STRIDE_WORD);
+            this.offsets = new Arterra.Engine.Terrain.Map.Creator.GeoGenOffsets(new int3(GridSize), 0, bufferStart,
+                VERTEX_STRIDE_WORD, customVertexCapacity, customTriangleCapacity);
             PresetData();
         }
 
         ~ModelManager() { Release(); }
 
         public void Release() {
-            for (int i = 0; i < 2; i++) { GameObject.DestroyImmediate(ModelMaterial[i]); }
+            for (int i = 0; i < 3; i++) { GameObject.DestroyImmediate(ModelMaterial[i]); }
             ReleaseHandles();
+            modelRenderer?.Release();
         }
 
-        void ReleaseHandles() { for (int i = 0; i < 2; i++) { GeoHandles[i]?.Release(); } }
+        void ReleaseHandles() { for (int i = 0; i < 3; i++) { GeoHandles[i]?.Release(); } }
 
-        public void Render() { for (int i = 0; i < 2; i++) { GeoHandles[i]?.Update(); } }
+        public void Render() { for (int i = 0; i < 3; i++) { GeoHandles[i]?.Update(); } }
 
 
         public void GenerateModel(Camera camera = null) {
             ConstructModel();
             SetupRenderParams(camera);
             Render(); //Render to apply immediately
+        }
+
+        public void SetModelData(Dictionary<uint, ModelRenderInfo> metadata, MapData[] map) {
+            GraphicsGeneration.SetBufferData(MapBuffer, map);
+            modelMetadata = metadata?.SelectMany(pair => new[] { pair.Key, pair.Value.Data }).ToList() ?? new();
         }
 
         void SetupRenderParams(Camera camera) {
@@ -66,12 +81,14 @@ namespace Arterra.Editor {
             GeoHandles[0] = SetupGeoHandle(camera, offsets.vertStart, offsets.baseTriStart, offsets.baseTriCounter, 0);
             GeoHandles[1]?.Release();
             GeoHandles[1] = SetupGeoHandle(camera, offsets.vertStart, offsets.waterTriStart, offsets.waterTriCounter, 1);
+            GeoHandles[2]?.Release();
+            GeoHandles[2] = SetupGeoHandle(camera, offsets.vertStart, offsets.modelTriStart, offsets.modelTriCounter, 2);
         }
 
         void ConstructModel() {
             GraphicsResourceContext gpuContext = GraphicsGeneration;
             //Construct Vertices
-            gpuContext.Work.ClearRange(this.GeoBuffer, 3, offsets.bufferStart);
+            gpuContext.Work.ClearRange(this.GeoBuffer, 5, offsets.bufferStart);
             int kernel = ModelConstructor.FindKernel("March");
 
             uint3 threadsPerAxis;
@@ -85,6 +102,7 @@ namespace Arterra.Editor {
             gpuContext.Dispatch(ModelConstructor, kernel, (int)threadsPerAxis.x, (int)threadsPerAxis.y, (int)threadsPerAxis.z);
             LinkTriangles(offsets.baseTriStart, offsets.baseTriCounter);
             LinkTriangles(offsets.waterTriStart, offsets.waterTriCounter);
+            modelRenderer.GenerateRegion(gpuContext, (int3)GridSize, modelMetadata);
         }
 
         void LinkTriangles(int start, int counter) {
@@ -108,7 +126,7 @@ namespace Arterra.Editor {
             gpuContext.Dispatch(DrawArgsConstructor, kernel, 1, 1, 1);
 
             Vector3 size = new Vector3(GridSize.x, GridSize.y, GridSize.z);
-            Bounds BoundsWS = CustomUtility.TransformBounds(transform, new Bounds(size / 2f, size));
+            Bounds BoundsWS = CustomUtility.TransformBounds(transform, new Bounds((size - Vector3.one) / 2f, size));
 
             RenderParams rp = new RenderParams(this.ModelMaterial[matInd]) {
                 worldBounds = BoundsWS,
@@ -131,8 +149,12 @@ namespace Arterra.Editor {
             GraphicsResourceContext gpuContext = GraphicsGeneration;
             this.ModelMaterial[0] = new Material(Shader.Find("Unlit/ModelTerrain"));
             this.ModelMaterial[1] = new Material(Shader.Find("Unlit/ModelLiquid"));
+            this.ModelMaterial[2] = new Material(Shader.Find("Unlit/ModelCustom"));
+            int metadataStart = ((int)(GridSize.x * GridSize.y * GridSize.z) + 1) / 2;
+            modelRenderer = new CustomModelRenderer(gpuContext, offsets, this.MapBuffer, 0, metadataStart, compactVertices: true, isoLevel: IsoLevel);
 
             int kernel = ModelConstructor.FindKernel("March");
+            gpuContext.SetInt(ModelConstructor, "numMaterials", Config.CURRENT.Generation.Materials.value.MaterialDictionary.Count());
             gpuContext.SetBuffer(ModelConstructor, kernel, "MapInfo", this.MapBuffer);
             gpuContext.SetBuffer(ModelConstructor, kernel, "vertexes", this.GeoBuffer);
             gpuContext.SetBuffer(ModelConstructor, kernel, "triangles", this.GeoBuffer);

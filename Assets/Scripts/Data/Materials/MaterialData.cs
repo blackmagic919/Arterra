@@ -212,13 +212,11 @@ namespace Arterra.Data.Material
             /// the UV space of the texture when it is being sampled. A larger value will result in a larger texture on the terrain.
             /// </summary>
             public float textureScale;
-            /// <summary>
-            /// Determines whether or not to reverse the rendering material for solids and liquids. If true(not 0)
-            /// the material as a liquid will be rendered using opaque shading using settings from <see cref="TerrainData"/>
-            /// and the material as a solid will be rendered using transparent shading using settings from <see cref="LiquidData"/>.
-            /// This is especially useful for transparent geometry(like glass).
-            /// </summary>
-            public uint FlipStateRendering;
+            /// <summary>Index in the separate model catalogue. Slots 0 and 1 retain regular and
+            /// flipped terrain rendering; subsequent slots select a custom voxel mesh.</summary>
+            [Tooltip("Index in the model catalogue: 0 = regular terrain, 1 = flipped terrain, 2+ = custom mesh.")]
+            [RegistryReference("Models")]
+            public uint ModelIndex;
             /// <summary> The information describing what type of <see cref="Quality.GeoShader"/> to render the current 
             /// material with if it is responsible for creating a mesh triangle. See <see cref="GeoShaderInfo"/> for more info.</summary>
             public GeoShaderInfo GeoShaderIndex;
@@ -387,6 +385,7 @@ namespace Arterra.Data.Material
             public int3 offset;
             /// <summary>The table consistenting of items to supply as map data.</summary>
             public Option<List<MultiLooter.LootInfo>> LootTable;
+            public Optional<Models.ModelRenderInfo> ModelData;
             /// <summary> Other config information that may be used depending on the type of meta data the <see cref="Material"/> expects. </summary>
             public Option<List<string>> ConfigSettings;
         }

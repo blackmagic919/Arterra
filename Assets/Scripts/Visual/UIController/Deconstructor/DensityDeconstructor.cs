@@ -7,6 +7,7 @@ using UnityEditor;
 using Arterra.Utils;
 using System.Linq;
 using Arterra.Data.Structure;
+using Arterra.Data.Models;
 using Arterra.Configuration;
 using Arterra.Core.Storage;
 using Arterra.Engine.Terrain;
@@ -171,7 +172,10 @@ namespace Arterra.Editor {
             Selected = new Queue<uint>();
 
             gridManager = new GridManager(GridSize, this.gameObject.transform, gpuContext.Work.Scratch, numPoints, 0);
-            modelManager = new ModelManager(GridSize, this.gameObject.transform, IsoLevel, gpuContext.Work.Transfer, gpuContext.Work.Scratch, gridManager.offsets.bufferEnd);
+            const int customModelCapacity = 1_000_000;
+            modelManager = new ModelManager(GridSize, this.gameObject.transform, IsoLevel,
+                gpuContext.Work.Transfer, gpuContext.Work.Scratch, gridManager.offsets.bufferEnd,
+                customVertexCapacity: customModelCapacity, customTriangleCapacity: customModelCapacity);
             gridManager.GenerateModel();
 
             initialized = true;
@@ -283,12 +287,27 @@ namespace Arterra.Editor {
         }
 
         public void UpdateMapData() {
-            GraphicsResourceContext gpuContext = GraphicsGeneration;
             if (currentState.MapData == null) return;
 
-            StructureData.PointInfo[] gpuMap = BuildGpuMapData(currentState.MapData);
-            gpuContext.SetBufferData(gpuContext.Work.Transfer, gpuMap);
+            MapData[] gpuMap = BuildGpuMapData(currentState.MapData)
+                .Select(point => new MapData { data = point.data }).ToArray();
+            modelManager.SetModelData(BuildModelMetadata(gpuMap), gpuMap);
         }
+        private Dictionary<uint, ModelRenderInfo> BuildModelMetadata(MapData[] map) {
+            var metadata = new Dictionary<uint, ModelRenderInfo>();
+            if (!Structure.settings.value.IsEnhanced || Structure.Enhancements?.MapMetaData.value == null)
+                return metadata;
+
+            var materials = Config.CURRENT.Generation.Materials.value.MaterialDictionary;
+            foreach (var entry in Structure.Enhancements.MapMetaData.value) {
+                if (!entry.ModelData.Enabled || math.any(entry.offset < 0) || math.any(entry.offset >= (int3)GridSize)) continue;
+                uint index = (uint)CustomUtility.irregularIndexFromCoord(entry.offset, (int2)GridSize.yz);
+                if (!materials.Contains(entry.Material) || map[index].material != materials.RetrieveIndex(entry.Material)) continue;
+                metadata[index] = entry.ModelData.Value;
+            }
+            return metadata;
+        }
+
         public void OnSceneGUI(SceneView sceneView) {
             if (!initialized) return;
 

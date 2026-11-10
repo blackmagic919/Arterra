@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -8,6 +9,8 @@ using Arterra.Configuration;
 using System.Collections.Generic;
 using Arterra.Data.Material;
 using Arterra.Utils;
+using Arterra.Data.Models;
+using Arterra.Engine.Terrain.MeshGeneration;
 using Arterra.Core.Storage;
 using static Arterra.Core.Storage.SharedResourceManager;
 
@@ -16,13 +19,15 @@ public class RegionReconstructor{
     private static RegionOffsets bufferOffsets;
     private static Material EditTerrainMat;
     private static Material EditLiquidMat;
+    private static Material EditModelMat;
+    private static CustomModelRenderer modelRenderer;
     private AsyncMeshReadback meshHandler;
     private GameObject regionObj;
 
     public static void PresetData() {
-        GraphicsResourceContext gpuContext = GraphicsGeneration;
+        GraphicsResourceContext gpuContext = GraphicsRendering;
         MarchRegion = Resources.Load<ComputeShader>("Compute/CGeometry/RegionMarch/MarchingCubes");
-        bufferOffsets = new RegionOffsets(Config.CURRENT.Quality.Terrain.value.mapChunkSize/2, 0);
+        bufferOffsets = new RegionOffsets(Config.CURRENT.Quality.Terrain.value.mapChunkSize + 1, 0);
         Arterra.Engine.Terrain.Map.Creator.GeoGenOffsets wOffsets = Arterra.Engine.Terrain.Map.Creator.bufferOffsets;
         gpuContext.SetBuffer(MarchRegion, 0, "MapData", gpuContext.Work.Transfer);
         gpuContext.SetBuffer(MarchRegion, 0, "MapFlags", gpuContext.Work.Transfer);
@@ -40,6 +45,14 @@ public class RegionReconstructor{
         gpuContext.SetInt(MarchRegion, "bSTART_baseT", wOffsets.baseTriStart);
         gpuContext.SetInt(MarchRegion, "bSTART_waterT", wOffsets.waterTriStart);
 
+        modelRenderer?.Release();
+        modelRenderer = new CustomModelRenderer(gpuContext, wOffsets, gpuContext.Work.Transfer,
+            bufferOffsets.regionMapStart, bufferOffsets.modelMetadataStart, flagsStart: bufferOffsets.mapFlagStart);
+        if (EditModelMat == null) {
+            EditModelMat = CoreUtils.CreateEngineMaterial("Arterra/Custom Model Preview");
+            EditModelMat.EnableKeyword("INDIRECT");
+        }
+
         if(EditTerrainMat == null) EditTerrainMat = CoreUtils.CreateEngineMaterial("Unlit/EditTerrain");
         if (EditLiquidMat == null) EditLiquidMat = CoreUtils.CreateEngineMaterial("Unlit/EditLiquid");
 
@@ -49,16 +62,21 @@ public class RegionReconstructor{
         regionObj = new GameObject("EditRegion");
     }
 
+    public void ClearMesh() => meshHandler?.ReleaseAllGeometry();
+
     public void Release() {
-        meshHandler?.ReleaseAllGeometry();
+        ClearMesh();
         GameObject.Destroy(regionObj);
     }
 
-    public void ReflectMesh(List<MapSamplePoint> change, int3 GCoord, int3 rot) {
-        GraphicsResourceContext gpuContext = GraphicsGeneration;
+    // Metadata keys index the reconstructed map relative to cMin, after placement rotation.
+    public void ReflectMesh(List<MapPlacement> change, int3 GCoord, int3 rot,
+        Dictionary<uint, ModelRenderInfo> metadata = null) {
+        GraphicsResourceContext gpuContext = GraphicsRendering;
         int3 cMin; int3 cMax; (cMin, cMax) = FindModificationMinMax(change, GCoord, rot);
         int3 cAxis = cMax - cMin; MapData[] map = CaptureBaseMap(cMin, cMax);
-        uint[] flags = ApplyModificationToMap(change, map, GCoord, rot, cMax, cMin);
+        metadata = metadata == null ? new() : new(metadata);
+        uint[] flags = ApplyModificationToMap(change, map, metadata, GCoord, rot, cMax, cMin);
         gpuContext.SetBufferData(gpuContext.Work.Transfer, map, 0, bufferOffsets.regionMapStart, map.Length);
         gpuContext.SetBufferData(gpuContext.Work.Transfer, flags, 0, bufferOffsets.mapFlagStart, flags.Length);
 
@@ -67,8 +85,9 @@ public class RegionReconstructor{
         regionObj.transform.position = CPUMapManager.GSToWS(cMin);
 
         GenerateRegionMesh(cAxis, rSettings.IsoLevel);
+        modelRenderer.GenerateRegion(gpuContext, cAxis + 1, FlattenModelMetadata(metadata));
         meshHandler?.ReleaseAllGeometry();
-        Bounds boundsOS = new((float3)cAxis / 2.0f, (float3)cAxis);
+        Bounds boundsOS = new((float3)cAxis / 2.0f, (float3)cAxis + 1);
         meshHandler = new AsyncMeshReadback(regionObj.transform, boundsOS);
         var wOffsets = Arterra.Engine.Terrain.Map.Creator.bufferOffsets;
         meshHandler.OffloadVerticesToGPU(wOffsets.vertexCounter);
@@ -76,20 +95,26 @@ public class RegionReconstructor{
         meshHandler.OffloadTrisToGPUNoRender(wOffsets.waterTriCounter, wOffsets.waterTriStart, (int)ReadbackMaterial.water);
         meshHandler.CreateRenderParamsForMaterial(wOffsets.baseTriCounter, (int)ReadbackMaterial.terrain, EditTerrainMat);
         meshHandler.CreateRenderParamsForMaterial(wOffsets.waterTriCounter, (int)ReadbackMaterial.water, EditLiquidMat);
+        meshHandler.OffloadTrisToGPUNoRender(wOffsets.modelTriCounter, wOffsets.modelTriStart, (int)ReadbackMaterial.customModel);
+        meshHandler.CreateRenderParamsForMaterial(wOffsets.modelTriCounter, (int)ReadbackMaterial.customModel, EditModelMat);
     }
 
-    public void ReflectChunk(MapData[] map, int3 cSize, int3 GCoord) {
-        GraphicsResourceContext gpuContext = GraphicsGeneration;
+    // Metadata keys index the supplied map, before its border padding is added.
+    public void ReflectChunk(MapData[] map, int3 cSize, int3 GCoord,
+        Dictionary<uint, ModelRenderInfo> metadata = null) {
+        GraphicsResourceContext gpuContext = GraphicsRendering;
         map = CustomUtility.RescaleLinearMap(map, cSize, 2, 1); //Rescale so edges are gas
         cSize += 2;
 
         gpuContext.SetBufferData(gpuContext.Work.Transfer, map, 0, bufferOffsets.regionMapStart, map.Length);
         Arterra.Configuration.Quality.Terrain rSettings = Config.CURRENT.Quality.Terrain;
-        GenerateRegionMesh(cSize, rSettings.IsoLevel);
+        gpuContext.Work.ClearRange(gpuContext.Work.Transfer, Mathf.CeilToInt(map.Length / 4.0f), bufferOffsets.mapFlagStart);
+        GenerateRegionMesh(cSize - 1, rSettings.IsoLevel);
+        modelRenderer.GenerateRegion(gpuContext, cSize - 2, FlattenModelMetadata(metadata), cSize, new int3(1));
         meshHandler?.ReleaseAllGeometry();
 
         regionObj.transform.localScale = Vector3.one * rSettings.lerpScale;
-        regionObj.transform.position = CPUMapManager.GSToWS(GCoord);
+        regionObj.transform.position = CPUMapManager.GSToWS(GCoord - 1);
 
         Bounds boundsOS = new((float3)cSize / 2.0f, (float3)cSize);
         meshHandler = new AsyncMeshReadback(regionObj.transform, boundsOS);
@@ -97,6 +122,7 @@ public class RegionReconstructor{
         meshHandler.OffloadVerticesToGPU(wOffsets.vertexCounter);
         meshHandler.OffloadTrisToGPU(wOffsets.baseTriCounter, wOffsets.baseTriStart, (int)ReadbackMaterial.terrain);
         meshHandler.OffloadTrisToGPU(wOffsets.waterTriCounter, wOffsets.waterTriStart, (int)ReadbackMaterial.water);
+        meshHandler.OffloadTrisToGPU(wOffsets.modelTriCounter, wOffsets.modelTriStart, (int)ReadbackMaterial.customModel);
     }
 
     public void BeginMeshReadback(Action<ReadbackTask<TVert>.SharedMeshInfo> cb) {
@@ -104,11 +130,11 @@ public class RegionReconstructor{
         meshHandler.BeginMeshReadback(cb);
     }
 
-    private static (int3, int3) FindModificationMinMax(List<MapSamplePoint> change, int3 GCoord, int3 rot) {
+    private static (int3, int3) FindModificationMinMax(List<MapPlacement> change, int3 GCoord, int3 rot) {
         int3 min = int3.zero; int3 max = int3.zero;
-        foreach (MapSamplePoint pt in change) {
-            min = math.min(pt.Offset, min);
-            max = math.max(pt.Offset, max);
+        foreach (MapPlacement pt in change) {
+            min = math.min(pt.map.Offset, min);
+            max = math.max(pt.map.Offset, max);
         }
         int3 c1 = GCoord + math.mul(CustomUtility.RotationLookupTable[rot.y, rot.x, rot.z], min);
         int3 c2 = GCoord + math.mul(CustomUtility.RotationLookupTable[rot.y, rot.x, rot.z], max);
@@ -118,21 +144,22 @@ public class RegionReconstructor{
     private static MapData[] CaptureBaseMap(int3 cMin, int3 cMax) {
         int3 cAxis = cMax - cMin + 1; int3 GCoord;
         MapData[] map = new MapData[cAxis.x * cAxis.y * cAxis.z];
-        for (GCoord.x = cMin.x + 1; GCoord.x < cMax.x - 1; GCoord.x++) {
-            for (GCoord.y = cMin.y + 1; GCoord.y < cMax.y - 1; GCoord.y++) {
-                for (GCoord.z = cMin.z + 1; GCoord.z < cMax.z - 1; GCoord.z++) {
+        for (GCoord.x = cMin.x + 1; GCoord.x < cMax.x; GCoord.x++) {
+            for (GCoord.y = cMin.y + 1; GCoord.y < cMax.y; GCoord.y++) {
+                for (GCoord.z = cMin.z + 1; GCoord.z < cMax.z; GCoord.z++) {
                     int index = CustomUtility.irregularIndexFromCoord(GCoord - cMin, cAxis.yz);
                     map[index] = CPUMapManager.SampleMap(GCoord);
                 } } }
         return map;
     }
 
-    private static uint[] ApplyModificationToMap(List<MapSamplePoint> change, MapData[] map, int3 GCoord, int3 rot, int3 cMax, int3 cMin) {
+    private static uint[] ApplyModificationToMap(List<MapPlacement> change, MapData[] map, Dictionary<uint, ModelRenderInfo> metadata, int3 GCoord, int3 rot, int3 cMax, int3 cMin) {
         bool any0 = false;
         int3 cAxis = cMax - cMin + 1;
         int numPoints = Mathf.CeilToInt(cAxis.x * cAxis.y * cAxis.z / 4.0f);
         uint[] flags = new uint[numPoints];
-        foreach (MapSamplePoint pt in change) {
+        foreach (MapPlacement placement in change) {
+            MapSamplePoint pt = placement.map;
             int3 sCoord = GCoord + math.mul(CustomUtility.RotationLookupTable[rot.y, rot.x, rot.z], pt.Offset);
             int index = CustomUtility.irregularIndexFromCoord(sCoord - cMin, cAxis.yz);
             if (pt.check.OrFlag) {
@@ -157,16 +184,22 @@ public class RegionReconstructor{
                     density = (int)math.min(MapData.MaxDensity, targetSolid + targetLiquid)
                 };
             };
+            if (placement.modelInfo.Enabled && (flag & 1) != 0 && map[index].SolidDensity > sample.SolidDensity)
+                metadata[(uint)index] = placement.modelInfo.Value.Rotate(rot);
             flags[index / 4] |= ((uint)flag & 0xFF) << ((index % 4) * 8);
         }
         return flags;
     }
 
+    private static List<uint> FlattenModelMetadata(Dictionary<uint, ModelRenderInfo> metadata) {
+        return metadata?.SelectMany(pair => new[] { pair.Key, pair.Value.Data }).ToList();
+    }
+
     private static void GenerateRegionMesh(int3 regionSize, float IsoLevel) {
-        GraphicsResourceContext gpuContext = GraphicsGeneration;
-        gpuContext.Work.ClearRange(gpuContext.Work.Scratch, 3, 0);
-        gpuContext.SetInts(MarchRegion, "numCubesPerAxis", new int[] { regionSize.x, regionSize.y, regionSize.z });
-        gpuContext.SetFloat(MarchRegion, "IsoLevel", IsoLevel);
+        GraphicsResourceContext gpuContext = GraphicsRendering;
+        gpuContext.Work.ClearRange(gpuContext.Work.Scratch, 5, 0);
+        gpuContext.SetInts(MarchRegion, ShaderIDProps.NumCubesPerAxis, new int[] { regionSize.x, regionSize.y, regionSize.z });
+        gpuContext.SetFloat(MarchRegion, ShaderIDProps.IsoLevel, IsoLevel);
 
         MarchRegion.GetKernelThreadGroupSizes(0, out uint tGSx, out uint tGSy, out uint tGSz);
         int3 numThreadsPerAxis = (int3)math.ceil((float3)(regionSize+1) / new float3(tGSx, tGSy, tGSz));
@@ -176,6 +209,7 @@ public class RegionReconstructor{
     public struct RegionOffsets : BufferOffsets {
         public int regionMapStart;
         public int mapFlagStart;
+        public int modelMetadataStart;
         private int offsetStart; private int offsetEnd;
         /// <summary> The start of the buffer region that is used by the Regional Mesh generator.
         /// See <see cref="BufferOffsets.bufferStart"/> for more info. </summary>
@@ -188,7 +222,8 @@ public class RegionReconstructor{
             this.offsetStart = bufferStart;
             this.regionMapStart = bufferStart;
             this.mapFlagStart = regionMapStart + numOfPoints;
-            this.offsetEnd = mapFlagStart + Mathf.CeilToInt(numOfPoints / 4.0f);
+            modelMetadataStart = (mapFlagStart + Mathf.CeilToInt(numOfPoints / 4.0f) + 1) / 2;
+            this.offsetEnd = (modelMetadataStart + numOfPoints) * 2;
         }
     }
 }

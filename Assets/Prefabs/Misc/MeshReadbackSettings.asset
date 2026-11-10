@@ -15,6 +15,7 @@ MonoBehaviour:
   TerrainMats:
   - {fileID: 2100000, guid: 3b9db681500dd456cae8fe982fec0395, type: 2}
   - {fileID: 2100000, guid: d4da0f12dd5cc4020945038b6bc3566c, type: 2}
+  - {fileID: 2100000, guid: b8ebcae3d04748079c35300f82f7048c, type: 2}
   LitShadedMats:
   - {fileID: 2100000, guid: 07dbbc9f04818457a8ed51ec5730951e, type: 2}
   - {fileID: 2100000, guid: eae5cc3a9fe3b448c939aaf17fc62ff7, type: 2}

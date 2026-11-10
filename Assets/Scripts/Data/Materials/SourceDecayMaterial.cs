@@ -113,17 +113,5 @@ namespace Arterra.Data.Material{
             return delta - extents;
         }
         
-        /// <summary> See <see cref="MaterialData.OnRemoved"/> for more information. </summary>
-        /// <param name="amount">The map data indicating the amount of material removed
-        /// and the state it was removed as</param>
-        /// <param name="GCoord">The location of the map information being</param>
-        /// <returns>The item to give.</returns>
-        public override Item.IItem OnRemoved(int3 GCoord, in MapData amount) {
-            MapData info = CPUMapManager.SampleMap(GCoord);
-            int SolidDensity = info.SolidDensity - amount.SolidDensity;
-            if (SolidDensity < CPUMapManager.IsoValue)
-                CPUMapManager.SetExistingMapMeta<object>(GCoord, null);
-            return null;
-        }
     }
 }

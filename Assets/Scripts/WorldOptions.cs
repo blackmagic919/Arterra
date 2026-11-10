@@ -184,6 +184,7 @@ namespace Arterra.Configuration {
             /// <summary> A registry containing all textures used within the game. Similar to a texture 
             /// atlas, this registry is copied to the GPU and to be referenced by shaders. </summary>
             public Catalogue<TextureContainer> Textures;
+            public Catalogue<Data.Models.CustomModel> Models;
         }
 
         /// <summary>

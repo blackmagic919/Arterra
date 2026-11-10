@@ -1,4 +1,6 @@
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
+using Arterra.Data.Models;
 using System.Threading.Tasks;
 using Arterra.Core;
 using System.Linq;
@@ -216,6 +218,7 @@ public static class SystemProtocol{
 public static class GenerationPreset
 {
     private static MaterialHandle materialHandle;
+    private static ModelHandle modelHandle;
     private static NoiseHandle noiseHandle;
     private static BiomeHandle biomeHandle;
     private static StructHandle structHandle;
@@ -228,6 +231,7 @@ public static class GenerationPreset
     /// </summary>
     public static void Initialize(){
         materialHandle.Initialize();
+        modelHandle.Initialize();
         noiseHandle.Initialize();
         biomeHandle.Initialize();
         structHandle.Initialize();
@@ -240,12 +244,14 @@ public static class GenerationPreset
     /// </summary>
     public static void MinimalInitialize() {
         materialHandle.Initialize();
+        modelHandle.Initialize();
     }
 
     /// <summary> Releases the minimum amount of resources to display
     /// materials and process compute geometry in the same way </summary>
     public static void MinimalRelease() {
         materialHandle.Release();
+        modelHandle.Release();
     }
 
     /// <summary>
@@ -254,10 +260,117 @@ public static class GenerationPreset
     /// </summary>
     public static void Release(){
         materialHandle.Release();
+        modelHandle.Release();
         noiseHandle.Release();
         biomeHandle.Release();
         structHandle.Release();
         entityHandle.Release();
+    }
+
+    /// <summary>Uploads model collections, submodel offsets, and source geometry as global GPU buffers.</summary>
+    public struct ModelHandle {
+        private ComputeBuffer vertices;
+        private ComputeBuffer indices;
+        private ComputeBuffer models;
+        private ComputeBuffer submodels;
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct ModelVertex {
+            public Vector3 Position;
+            public Vector3 Normal;
+            public uint Color;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct ModelDescriptor {
+            public uint ModelsStart, ModelsCount, DefaultRenderInfo;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct SubmodelDescriptor {
+            public uint VertexStart, VertexCount, IndexStart, IndexCount;
+        }
+
+        public void Initialize() {
+            GraphicsResourceContext gpuContext = GraphicsGeneration;
+            Release();
+            var catalogue = Config.CURRENT.Generation.Models.Reg;
+            if (catalogue.Count < 2 || catalogue[0].Name != "Regular" || catalogue[1].Name != "Flipped")
+                throw new System.InvalidOperationException("Model catalogue slots 0 and 1 must be Regular and Flipped.");
+
+            var sourceVertices = new List<ModelVertex>();
+            var sourceIndices = new List<uint>();
+            var descriptors = new ModelDescriptor[catalogue.Count];
+            var submodelDescriptors = new List<SubmodelDescriptor>();
+            for (int i = 2; i < catalogue.Count; i++) {
+                CustomModel model = catalogue[i];
+                model.DefaultRenderInfo.Validate(model.Models.Count);
+                descriptors[i] = new ModelDescriptor {
+                    ModelsStart = (uint)submodelDescriptors.Count,
+                    ModelsCount = (uint)model.Models.Count,
+                    DefaultRenderInfo = model.DefaultRenderInfo.Data
+                };
+
+                foreach (var submodel in model.Models)
+                    AppendSubmodel(
+                        submodel,
+                        model.Name,
+                        sourceVertices,
+                        sourceIndices,
+                        submodelDescriptors
+                    );
+            }
+
+            int modelCount = catalogue.Count;
+            vertices = new ComputeBuffer(System.Math.Max(1, sourceVertices.Count), 28);
+            indices = new ComputeBuffer(System.Math.Max(1, sourceIndices.Count), 4);
+            models = new ComputeBuffer(modelCount, 12);
+            submodels = new ComputeBuffer(System.Math.Max(1, submodelDescriptors.Count), 16);
+            // Upload catalogue data through the generation context, as with the other preset handles.
+            if (sourceVertices.Count != 0) gpuContext.SetBufferData(vertices, sourceVertices);
+            if (sourceIndices.Count != 0) gpuContext.SetBufferData(indices, sourceIndices);
+            gpuContext.SetBufferData(models, descriptors);
+            if (submodelDescriptors.Count != 0) gpuContext.SetBufferData(submodels, submodelDescriptors);
+            Shader.SetGlobalBuffer("_ModelVertices", vertices);
+            Shader.SetGlobalBuffer("_ModelIndices", indices);
+            Shader.SetGlobalBuffer("_ModelInfo", models);
+            Shader.SetGlobalBuffer("_SubmodelInfo", submodels);
+        }
+
+        private static void AppendSubmodel(CustomModel.ModelData model, string collectionName,
+            List<ModelVertex> sourceVertices, List<uint> sourceIndices, List<SubmodelDescriptor> descriptors) {
+            Mesh mesh = Resources.Load<Mesh>(model.MeshPath);
+            if (mesh == null || !mesh.isReadable)
+                throw new System.InvalidOperationException($"Custom model {collectionName} requires a readable Mesh at Resources/{model.MeshPath}.");
+
+            var positions = mesh.vertices;
+            var normals = mesh.normals;
+            var colors = mesh.colors32;
+            var triangles = mesh.triangles;
+            if (normals.Length != positions.Length)
+                throw new System.InvalidOperationException($"Custom model {collectionName} at {model.MeshPath} requires vertex normals.");
+
+            descriptors.Add(new SubmodelDescriptor {
+                VertexStart = (uint)sourceVertices.Count, VertexCount = (uint)positions.Length,
+                IndexStart = (uint)sourceIndices.Count, IndexCount = (uint)triangles.Length
+            });
+            for (int v = 0; v < positions.Length; v++) {
+                Color32 color = colors.Length == positions.Length ? colors[v] : new Color32(255, 255, 255, 255);
+                sourceVertices.Add(new ModelVertex {
+                    Position = positions[v], Normal = normals[v],
+                    Color = (uint)(color.r | color.g << 8 | color.b << 16 | color.a << 24)
+                });
+            }
+            foreach (int index in triangles) sourceIndices.Add((uint)index);
+        }
+
+        public void Release() {
+            vertices?.Release(); vertices = null;
+            indices?.Release(); indices = null;
+            models?.Release(); models = null;
+            submodels?.Release(); submodels = null;
+        }
+
     }
 
     /// <summary>Responsible for deserializing all material display information as well as copying all textures to the GPU.
@@ -296,6 +409,7 @@ public static class GenerationPreset
                 Release();
                 Material.Generation matInfo = Config.CURRENT.Generation.Materials.value;
                 Catalogue<TextureContainer> textureInfo = Config.CURRENT.Generation.Textures;
+                Catalogue<CustomModel> modelInfo = Config.CURRENT.Generation.Models;
                 List<MaterialData> MaterialDictionary = matInfo.MaterialDictionary.Reg;
                 MaterialData.TerrainData[] MaterialTerrain = new MaterialData.TerrainData[MaterialDictionary.Count];
 
@@ -308,8 +422,9 @@ public static class GenerationPreset
                     MaterialData material = MaterialDictionary[i];
                     MaterialData.TerrainData terrain = material.terrainData;
                     string Key = material.RetrieveKey(terrain.Texture);
-
                     if (textureInfo.Contains(Key)) terrain.Texture = textureInfo.RetrieveIndex(Key);
+                    Key = material.RetrieveKey((int)terrain.ModelIndex);
+                    if (modelInfo.Contains(Key)) terrain.ModelIndex = (uint)modelInfo.RetrieveIndex(Key);
                     SerializeGeoShader(material, ref terrain);
                     material.Preset(material);
 

@@ -159,9 +159,9 @@ namespace Arterra.Core.Storage {
         /// metadata or subscriptions never requires replacing the dictionary's struct value.
         /// </summary>
         public sealed class GenerationState {
-            public readonly System.Collections.Concurrent.ConcurrentDictionary<uint, object> MapMetaData;
+            public readonly System.Collections.Concurrent.ConcurrentDictionary<uint, MapMetadata> MapMetaData;
 
-            internal GenerationState(System.Collections.Concurrent.ConcurrentDictionary<uint, object> metadata = null) {
+            internal GenerationState(System.Collections.Concurrent.ConcurrentDictionary<uint, MapMetadata> metadata = null) {
                 MapMetaData = metadata ?? new();
             }
 

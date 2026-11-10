@@ -52,6 +52,14 @@ namespace Arterra.Utils {
         //Nosie sample data
         public static readonly int SampleOffset = Shader.PropertyToID("sOffset");
         public static readonly int SkipInc = Shader.PropertyToID("skipInc");
+        // Custom models
+        public static readonly int ModelPositionOffset = Shader.PropertyToID("modelPositionOffset");
+        public static readonly int ModelGridSize = Shader.PropertyToID("modelGridSize");
+        public static readonly int ModelMapSize = Shader.PropertyToID("modelMapSize");
+        public static readonly int ModelMapOffset = Shader.PropertyToID("modelMapOffset");
+        public static readonly int MetadataCount = Shader.PropertyToID("metadataCount");
+        public static readonly int RenderCustomModels = Shader.PropertyToID("renderCustomModels");
+        public static readonly int DirectIndices = Shader.PropertyToID("directIndices");
         //Map Generator
         public static readonly int CCoord = Shader.PropertyToID("CCoord");
         public static readonly int NumPointsPerAxis = Shader.PropertyToID("numPointsPerAxis");

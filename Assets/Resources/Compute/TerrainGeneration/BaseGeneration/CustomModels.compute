@@ -1,0 +1,6 @@
+#pragma kernel ScatterMetadata
+#pragma kernel CollectModels
+#pragma kernel EmitModels
+#pragma multi_compile _ COMPACT_MODEL_VERTICES
+
+#include "Assets/Resources/Compute/TerrainGeneration/BaseGeneration/CustomModelGeneration.hlsl"

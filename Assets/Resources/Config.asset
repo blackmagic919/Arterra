@@ -635,6 +635,9 @@ MonoBehaviour:
           - {fileID: 11400000, guid: 361af8bab3f604237a3584478ad35be1, type: 2}
           - {fileID: 11400000, guid: d50918b4c8efe4f69949df7a4934ab37, type: 2}
           - {fileID: 11400000, guid: c7060d0b13520428cacb37fbd9ccc6fb, type: 2}
+        Models:
+          Category:
+            value: {fileID: 11400000, guid: 5c1a39d4c22f4fe9a58e3123bb450b2b, type: 2}
         Textures:
           Category:
             value: {fileID: 11400000, guid: 1029725a4bcd94359824a099055020ea, type: 2}

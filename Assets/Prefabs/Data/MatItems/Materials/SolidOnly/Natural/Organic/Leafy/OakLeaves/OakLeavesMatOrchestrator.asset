@@ -26,15 +26,13 @@ MonoBehaviour:
     - InsetQuad
     - Void
     - OakLeaves:Solid
-    - Embers
     - InsetQuad
-    - DeciduousLeaves
   terrainData:
     Texture: 0
     textureScale: 2
-    FlipStateRendering: 0
+    ModelIndex: 0
     GeoShaderIndex:
-      data: 2147811328
+      data: 2147549184
   AtmosphereScatter:
     InScatterCoeffs: {x: 0, y: 0, z: 0}
     OutScatterCoeffs: {x: 0, y: 0, z: 0}

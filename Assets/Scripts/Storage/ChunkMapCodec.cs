@@ -21,7 +21,7 @@ namespace Arterra.Core.Storage {
             NativeArray<MapData>.Copy(chunk.ChunkData, chunk.Offset, map, 0, map.Length);
 
             WriteMap(destination, map, includeResolutions,
-                includeMetadata ? chunk.MapMetaData.ToArray() : null);
+                includeMetadata ? chunk.MapMetaData.Select(entry => new KeyValuePair<uint, object>(entry.Key, entry.Value.Entries)).ToArray() : null);
         }
 
         public static void Write(Stream destination, MapData[] map) =>

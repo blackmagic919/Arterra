@@ -19,14 +19,12 @@ MonoBehaviour:
   Names:
     value:
     - Void
-    - Embers
-    - Embers:Solid
     - Glass:Solid
     - Glass
   terrainData:
-    Texture: 4
+    Texture: 2
     textureScale: 2
-    FlipStateRendering: 1
+    ModelIndex: 0
     GeoShaderIndex:
       data: 0
   AtmosphereScatter:
@@ -43,12 +41,12 @@ MonoBehaviour:
     waveScale: {x: 1, y: 1}
     waveSpeed: {x: 0, y: 0}
   Roughness: 0.1
-  Logic: {fileID: 11400000, guid: beccafbf2bab14c2ca8dae9bd42a0d2c, type: 2}
+  Logic: {fileID: 0}
   looter:
     SolidLootTable:
       value: []
     DefaultSolidLoot:
-      DropItem: 3
+      DropItem: 1
       DropMultiplier: 1
     LiquidLootTable:
       value: []
