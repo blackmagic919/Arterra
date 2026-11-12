@@ -279,7 +279,7 @@ namespace Arterra.Data.Entity.Behavior {
         private static Steering StaticDirect(EntitySetting.ProfileInfo profile, ref PathInfo finder, TerrainCollider tCollider, FollowType movement = FollowType.Planar) {
             //Entity has fallen off path
             finder.stepDuration++;
-            if (IsOffPath(finder, (float3)tCollider.transform.position, profile.bounds)) finder.hasPath = false;
+            if (IsOffPath(finder, tCollider, profile.bounds, movement)) finder.hasPath = false;
             if (finder.path == null || finder.currentInd >= finder.path.Length) finder.hasPath = false;
             if (finder.stepDuration > pathPersistence) { finder.hasPath = false; }
             if (!finder.hasPath) return IdleSteering(tCollider);
@@ -320,8 +320,13 @@ namespace Arterra.Data.Entity.Behavior {
             return new Steering(rot, aim, followType: movement);
         }
 
-        private static bool IsOffPath(PathInfo finder, float3 position, uint3 bounds) {
+        private static bool IsOffPath(PathInfo finder, TerrainCollider tCollider, uint3 bounds, FollowType movement) {
             if (finder.path == null || finder.currentInd >= finder.path.Length) return true;
+            float3 position = (float3)tCollider.transform.position;
+            // Planar paths use the ground shadow as their origin. Compare in that
+            // same space so the collider's height above the ground is not path error.
+            if (movement == FollowType.Planar && TryGetShadowOrigin(tCollider, -1, out float shadowY))
+                position.y = shadowY;
             PathStep step = finder.path[finder.currentInd];
             float3 start = finder.currentPos;
             if (step.Group < 0) return math.any(math.abs(position - start) > bounds);
@@ -359,7 +364,7 @@ namespace Arterra.Data.Entity.Behavior {
 
         private static Steering DynamicDirect(EntitySetting.ProfileInfo profile, ref PathInfo finder, TerrainCollider tCollider, float3 target, FollowType movement = FollowType.Planar) {
             finder.stepDuration++;
-            if (IsOffPath(finder, (float3)tCollider.transform.position, profile.bounds))
+            if (IsOffPath(finder, tCollider, profile.bounds, movement))
                 finder.hasPath = false;
             if (finder.path == null || finder.currentInd >= finder.path.Length) finder.hasPath = false;
             if (finder.stepDuration > pathPersistence) finder.hasPath = false;
@@ -412,7 +417,7 @@ namespace Arterra.Data.Entity.Behavior {
         private static Steering StaticDirect(List<MatProfileE> profile, uint3 bounds, ref PathInfo finder, TerrainCollider tCollider, FollowType movement = FollowType.Planar) {
             //Entity has fallen off path
             finder.stepDuration++;
-            if (IsOffPath(finder, (float3)tCollider.transform.position, bounds)) finder.hasPath = false;
+            if (IsOffPath(finder, tCollider, bounds, movement)) finder.hasPath = false;
             if (finder.path == null || finder.currentInd >= finder.path.Length) finder.hasPath = false;
             if (finder.stepDuration > pathPersistence) { finder.hasPath = false; }
             if (!finder.hasPath) return IdleSteering(tCollider);

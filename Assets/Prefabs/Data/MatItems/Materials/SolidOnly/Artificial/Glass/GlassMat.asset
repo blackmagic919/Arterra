@@ -21,10 +21,11 @@ MonoBehaviour:
     - Void
     - Glass:Solid
     - Glass
+    - Flipped
   terrainData:
     Texture: 2
     textureScale: 2
-    ModelIndex: 0
+    ModelIndex: 3
     GeoShaderIndex:
       data: 0
   AtmosphereScatter:
@@ -35,9 +36,9 @@ MonoBehaviour:
   liquidData:
     shallowCol: {r: 1, g: 1, b: 1, a: 0.039215688}
     deepCol: {r: 0.47378963, g: 0.6603051, b: 0.8584906, a: 1}
-    colFalloff: 0.001
+    colFalloff: 0.0005
     waveBlend: 0.216
-    waveStrength: 0.025
+    waveStrength: 0.02
     waveScale: {x: 1, y: 1}
     waveSpeed: {x: 0, y: 0}
   Roughness: 0.1

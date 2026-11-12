@@ -370,6 +370,8 @@ MonoBehaviour:
             Animation: IsEating
           - task: 60000
             Animation: IsDead
+        EventAnims:
+          value: []
     - rid: 5205636866482634847
       type: {class: ColliderUpdateSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
@@ -394,7 +396,7 @@ MonoBehaviour:
         Variants:
           value:
           - TriggerAnim: AttackR
-            AttackChance: 0.009259266
+            AttackChance: 0.007936511
             AttackDuration: 0.25
             AttackDamage: 6
             Knockback: 10
@@ -408,7 +410,7 @@ MonoBehaviour:
       data:
         Offset:
           x: 0
-          y: 4.5
+          y: 4
           z: 0
         Collider:
           size:

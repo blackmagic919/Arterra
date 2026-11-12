@@ -12,10 +12,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2cb3c737a29ce4a28ae2d74f4ff5e31d, type: 3}
   m_Name: StaghornCoralMat
   m_EditorClassIdentifier: Assembly-CSharp::Arterra.Data.Material.FireMaterial
-  Name: StaghornCoral
-  Tags:
-    Reg:
-      value: []
   Names:
     value:
     - PlantMatter
@@ -23,26 +19,6 @@ MonoBehaviour:
     - Minimesh
     - StaghornCoral
     - Void
-  terrainData:
-    Texture: 1
-    textureScale: 2
-    FlipStateRendering: 0
-    GeoShaderIndex:
-      data: 2147614723
-  AtmosphereScatter:
-    InScatterCoeffs: {x: 0, y: 0, z: 0}
-    OutScatterCoeffs: {x: 0, y: 0, z: 0}
-    GroundExtinction: {x: 0, y: 0, z: 0}
-    LightIntensity: 0
-  liquidData:
-    shallowCol: {r: 0, g: 0, b: 0, a: 0}
-    deepCol: {r: 0, g: 0, b: 0, a: 0}
-    colFalloff: 0
-    waveBlend: 0
-    waveStrength: 0
-    waveScale: {x: 0, y: 0}
-    waveSpeed: {x: 0, y: 0}
-  Roughness: 0.2
   SelfCondition:
     data: 4278222592
   NeighborCondition:
@@ -53,13 +29,14 @@ MonoBehaviour:
     check:
       bounds:
         data: 4278255360
-      flags: 0
+      flags: 4
     _material: 2147483648
     _offset: 537395712
   DecayChance: 0.25
   SpreadChance: 0.5
   SpreadTag: 2001
-  ContactDamage: 0
+  ContactEffects:
+    value: []
   references:
     version: 2
     RefIds: []

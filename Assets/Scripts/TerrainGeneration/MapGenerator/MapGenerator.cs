@@ -118,6 +118,8 @@ public class Creator
         gpuContext.SetInt(biomeGenCompute, "caveSizeSampler", mesh.CaveSizeIndex);
         gpuContext.SetInt(biomeGenCompute, "caveShapeSampler", mesh.CaveShapeIndex);
         gpuContext.SetInt(biomeGenCompute, "caveFreqSampler", mesh.CaveFrequencyIndex);
+        // Entity planning rebuilds biomes separately; use the same height normalization as terrain.
+        gpuContext.SetFloat(biomeGenCompute, "heightSFalloff", mesh.heightFalloff);
 
         gpuContext.SetBuffer(biomeGenCompute, 0, "BiomeMap", gpuContext.Work.Scratch);
         gpuContext.SetInt(biomeGenCompute, "bSTART_biome", bufferOffsets.biomeMapStart);

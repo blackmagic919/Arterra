@@ -61,6 +61,8 @@ MonoBehaviour:
         - value:
             Entity: 3
             ChancePerCoord: 0.00000002
+      StructureSystems:
+        value: []
   references:
     version: 2
     RefIds: []

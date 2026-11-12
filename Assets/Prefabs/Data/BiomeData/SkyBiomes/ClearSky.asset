@@ -25,6 +25,7 @@ MonoBehaviour:
         - Air
         - Test
         - Labyrinth
+        - CloudJellyfish
       GroundMaterials:
         value:
         - value:
