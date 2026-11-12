@@ -1,4 +1,6 @@
 ## [Unreleased]
+
+## [0.2.5] - 2026-11-12
 ## Fixed
 - Bug with missing binding causing missing surface and cave biome entities
 - Fixed bug with coral decaying into gas
