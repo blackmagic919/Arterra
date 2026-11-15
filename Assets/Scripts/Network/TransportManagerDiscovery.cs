@@ -11,6 +11,10 @@ using UnityEngine;
 
 namespace Arterra.Core.Network {
     public sealed partial class TransportManager {
+        // Set before hosting/joining; null or whitespace keeps automatic address selection.
+        // Only changes the advertised local address, not routing or socket binding.
+        public string LocalAddressOverride { get; set; }
+
         private NetPeer discoveryPeer;
         private Guid discoverySession;
         private string discoveryTicket;
@@ -36,9 +40,12 @@ namespace Arterra.Core.Network {
         }
 
         private void AuthenticateDiscovery() {
+            string localIp = string.IsNullOrWhiteSpace(LocalAddressOverride)
+                ? NetUtils.GetLocalIp(LocalAddrType.IPv4)
+                : LocalAddressOverride;
             SendDiscovery(new {
                 type = "authenticate", ticket = discoveryTicket,
-                localEndpoint = new { host = NetUtils.GetLocalIp(LocalAddrType.IPv4), port = driver.LocalPort }
+                localEndpoint = new { host = localIp, port = driver.LocalPort }
             });
             discoveryTicket = null; // Single-use credential; never send it to a game peer.
         }

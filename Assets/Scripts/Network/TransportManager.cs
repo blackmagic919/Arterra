@@ -64,6 +64,8 @@ namespace Arterra.Core.Network {
             try {
                 if (!driver.Start()) throw new IOException("Could not bind the game UDP socket.");
                 Application.quitting += OnQuit;
+                // Uncomment and replace with this machine's Meshnet IPv4 address to override automatic selection.
+                // LocalAddressOverride = "100.x.x.x";
                 BeginDiscovery(sessionId, ticket);
                 using var timeout = CancellationTokenSource.CreateLinkedTokenSource(token);
                 timeout.CancelAfter(TimeSpan.FromSeconds(30));
