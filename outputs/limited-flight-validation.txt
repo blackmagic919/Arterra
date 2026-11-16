@@ -1,0 +1,1 @@
+PASS: disabled/enabled limits and boundaries, settings cloning, distance/time JSON round-trip, SonicWave registration and configured limits.

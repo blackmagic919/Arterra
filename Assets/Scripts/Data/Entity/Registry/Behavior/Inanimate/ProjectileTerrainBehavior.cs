@@ -56,14 +56,12 @@ namespace Arterra.Data.Entity.Behavior {
                 return false;
 
             float3 forward = math.normalizesafe(-gDir, math.forward(self.transform.rotation));
-            if (math.lengthsq(forward) < 1e-8f) return false;
-
             switch (settings.terrainInteraction) {
                 case ProjectileTerrainSettings.GroundInteraction.Flop:
-                    self.transform.rotation = Quaternion.LookRotation(forward, math.up());
+                    if (math.lengthsq(forward) >= 1e-8f) self.transform.rotation = Quaternion.LookRotation(forward, math.up());
                     break;
                 case ProjectileTerrainSettings.GroundInteraction.Stick:
-                    self.transform.rotation = Quaternion.LookRotation(forward, math.up());
+                    if (math.lengthsq(forward) >= 1e-8f) self.transform.rotation = Quaternion.LookRotation(forward, math.up());
                     self.velocity = 0;
                     break;
                 case ProjectileTerrainSettings.GroundInteraction.Destroy:

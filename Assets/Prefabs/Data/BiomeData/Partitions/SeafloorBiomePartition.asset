@@ -21,6 +21,9 @@ MonoBehaviour:
   - "Atmosphere"
   BiomeColors:
     Reg:
+    - Name: "OceanFloor"
+      _value:
+        value: {r: 0.25, g: 0.5, b: 0.7, a: 1}
     - Name: "PalmBeach"
       _value:
         value: {r: 0.25, g: 0.8, b: 0.65, a: 1}
@@ -73,3 +76,31 @@ MonoBehaviour:
     - x: 0
       y: 1
     BiomeName: "CoralReef"
+  - Spans:
+    - x: 0.25
+      y: 0.275
+    - x: 0
+      y: 1
+    - x: 0
+      y: 1
+    - x: 0
+      y: 1
+    - x: 0
+      y: 1
+    - x: 0
+      y: 1
+    BiomeName: "OceanFloor"
+  - Spans:
+    - x: 0.275
+      y: 0.35
+    - x: 0.6
+      y: 1
+    - x: 0
+      y: 1
+    - x: 0
+      y: 1
+    - x: 0
+      y: 1
+    - x: 0
+      y: 1
+    BiomeName: "OceanFloor"

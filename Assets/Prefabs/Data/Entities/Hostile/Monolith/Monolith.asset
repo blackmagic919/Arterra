@@ -396,7 +396,7 @@ MonoBehaviour:
         Variants:
           value:
           - TriggerAnim: AttackR
-            AttackChance: 0.007936511
+            AttackChance: 0.007812504
             AttackDuration: 0.25
             AttackDamage: 6
             Knockback: 10
@@ -518,7 +518,11 @@ MonoBehaviour:
       type: {class: ProjectileFireSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
         AttackingStates:
-          value: b4c300005c760000
+          value:
+          - State: 50100
+            DirectRotation: 0
+          - State: 30300
+            DirectRotation: 0
         Projectile:
           ShotDelay: 0.25
           CheckSightline: 1
@@ -528,6 +532,7 @@ MonoBehaviour:
             FireSound: 2001
             ProjectileEntity: StoneHorn
           HasRangedAttack: 1
+          MaxTargetAngle: 20
         BlindDist: 3
     - rid: 5205636903624769610
       type: {class: StepBackSetting, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}

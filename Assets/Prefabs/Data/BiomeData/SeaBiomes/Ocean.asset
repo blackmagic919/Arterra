@@ -35,6 +35,7 @@ MonoBehaviour:
         - LeviathanEel
         - Seabass
         - Jellyfish
+        - Tholechos
       GroundMaterials:
         value:
         - value:
@@ -79,15 +80,15 @@ MonoBehaviour:
         value:
         - value:
             Material: 5
-            genSize: 0.305
-            genShape: 0.63
+            genSize: 0.2
+            genShape: 0.6
             frequency: 1
             height: 0.5
         - value:
             Material: 6
             genSize: 0.5
             genShape: 0.2
-            frequency: 0.1
+            frequency: 0.01
             height: 0.5
       Structures:
         value: []
@@ -114,6 +115,9 @@ MonoBehaviour:
         - value:
             Entity: 12
             ChancePerCoord: 0.00000002
+        - value:
+            Entity: 15
+            ChancePerCoord: 0.0002
       StructureSystems:
         value: []
   references:

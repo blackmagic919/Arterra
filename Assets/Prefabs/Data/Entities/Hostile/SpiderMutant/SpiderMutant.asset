@@ -477,6 +477,8 @@ MonoBehaviour:
             Animation: IsEating
           - task: 60000
             Animation: IsDead
+        EventAnims:
+          value: []
     - rid: 5205636866482634847
       type: {class: ColliderUpdateSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
@@ -501,12 +503,12 @@ MonoBehaviour:
         Variants:
           value:
           - TriggerAnim: AttackR
-            AttackChance: 0.0068965564
+            AttackChance: 0.0068027247
             AttackDuration: 0.25
             AttackDamage: 7.5
             Knockback: 10
           - TriggerAnim: AttackL
-            AttackChance: 1.0000001
+            AttackChance: 1
             AttackDuration: 0.25
             AttackDamage: 7.5
             Knockback: 10
@@ -703,7 +705,11 @@ MonoBehaviour:
       type: {class: ProjectileFireSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
         AttackingStates:
-          value: b4c300005c760000
+          value:
+          - State: 50100
+            DirectRotation: 0
+          - State: 30300
+            DirectRotation: 0
         Projectile:
           ShotDelay: 0.25
           CheckSightline: 1
@@ -713,6 +719,7 @@ MonoBehaviour:
             FireSound: 2001
             ProjectileEntity: SpiderWeb
           HasRangedAttack: 1
+          MaxTargetAngle: 20
         BlindDist: 3
     - rid: 5205636903624769610
       type: {class: StepBackSetting, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}

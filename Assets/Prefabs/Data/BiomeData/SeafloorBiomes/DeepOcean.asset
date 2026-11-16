@@ -71,10 +71,10 @@ MonoBehaviour:
         value:
         - value:
             Material: 5
-            genSize: 0.305
-            genShape: 0.63
+            genSize: 0.2
+            genShape: 0.6
             frequency: 1
-            height: 0
+            height: 0.5
         - value:
             Material: 6
             genSize: 0.5

@@ -624,7 +624,7 @@ public static class GenerationPreset
             int ignoreBiome = 1 + surface.Count + seafloor.Count + cave.Count + sky.Count + sea.Count;
             int offset = 1;
             byte[] surfaceTree = BuildBiomeTree(settings.SurfaceBiomes, 6, offset, -offset); offset += surface.Count;
-            byte[] seafloorTree = BuildBiomeTree(settings.SeafloorBiomes, 6, offset, -ignoreBiome); offset += seafloor.Count;
+            byte[] seafloorTree = BuildBiomeTree(settings.SeafloorBiomes, 6, offset, -offset); offset += seafloor.Count;
             byte[] caveTree = BuildBiomeTree(settings.CaveBiomes, 4, offset, -offset); offset += cave.Count;
             byte[] skyTree = BuildBiomeTree(settings.SkyBiomes, 4, offset, -offset); offset += sky.Count;
             byte[] seaTree = BuildBiomeTree(settings.SeaBiomes, 4, offset, -offset);

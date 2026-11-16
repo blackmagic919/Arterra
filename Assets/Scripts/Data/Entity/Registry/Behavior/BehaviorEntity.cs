@@ -104,6 +104,7 @@ namespace Arterra.Data.Entity.Behavior {
         TestMerge = BehaviorTypes.Creature + 17,
         TimedDecay = BehaviorTypes.Creature + 18,
         ExplodedDecay = BehaviorTypes.Creature + 19,
+        LimitedFlight = BehaviorTypes.Creature + 21,
 
         ChaseEnemy = BehaviorTypes.Hostile + 0,
         LeadHead = BehaviorTypes.Hostile + 1,
@@ -112,6 +113,7 @@ namespace Arterra.Data.Entity.Behavior {
         MultiPedal = BehaviorTypes.Hostile + 4,
         SnakeTail = BehaviorTypes.Hostile + 5,
         Tentacles = BehaviorTypes.Hostile + 6,
+        AnimatedHitboxes = BehaviorTypes.Hostile + 7,
 
         IdleState = BehaviorTypes.StateMachine + 0,
         RandomWalkState = BehaviorTypes.StateMachine + 10,
@@ -192,6 +194,7 @@ namespace Arterra.Data.Entity.Behavior {
             { Behaviors.EntityItemDisplay, () => new EntityItemDisplayBehavior()},
             { Behaviors.ProjectileTerrain, () => new ProjectileTerrainBehavior()},
             { Behaviors.ProjectileFlight, () => new ProjectileFlightBehavior()},
+            { Behaviors.LimitedFlight, () => new LimitedFlightBehavior()},
             { Behaviors.ProjectileEffects, () => new ProjectileEffectsBehavior()},
             { Behaviors.TestMerge, () => new TestMergeBehavior()},
             { Behaviors.TimedDecay, () => new TimedDecayBehavior()},
@@ -204,6 +207,7 @@ namespace Arterra.Data.Entity.Behavior {
             { Behaviors.MultiPedal, () => new MultiPedalBehavior()},
             { Behaviors.SnakeTail, () => new SnakeTailBehavior()},
             { Behaviors.Tentacles, () => new TentacleBehavior()},
+            { Behaviors.AnimatedHitboxes, () => new AnimatedHitboxesBehavior()},
 
             { Behaviors.IdleState, () => new IdleStateBehavior()},
             { Behaviors.RandomWalkState, () => new RandomWalkBehavior()},
@@ -268,6 +272,8 @@ namespace Arterra.Data.Entity.Behavior {
                 typeof(EntityItemDisplaySettings),
                 typeof(ProjectileTerrainSettings),
                 typeof(ProjectileFlightSettings),
+                typeof(LimitedFlightSettings),
+                typeof(AnimatedHitboxesSettings),
                 typeof(TransitionPathfinderSettings),
                 typeof(ProjectileEffectsSettings),
                 typeof(TestMergeSettings),

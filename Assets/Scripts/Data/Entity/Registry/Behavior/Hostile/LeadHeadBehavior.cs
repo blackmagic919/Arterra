@@ -221,23 +221,30 @@ namespace Arterra.Data.Entity.Behavior {
                 active = true;
                 if (!EntityManager.EntityIndex.TryAdd(spatialId, this))
                     throw new Exception("Failed to register leg for entity");
-                Bounds bounds = new ((float3)collider.transform.position, collider.transform.size);
+                Bounds bounds = SpatialBounds;
                 EntityManager.ESTree.Insert(bounds, spatialId);
             }
 
             public override void Update() {
+                if (!active || self == null) return;
+                UpdateSpatialBounds();
+                this.collider.Update(self);
+                this.collider.EntityCollisionUpdate(self);
+            }
+
+            protected void UpdateSpatialBounds() {
                 if (!active || self == null) return;
                 Guid registrationId = spatialId;
                 EntityManager.AddHandlerEvent(() => {
                     // Disable/rebind can run before this deferred spatial update.
                     // Never read a disposed transform or update a later registration.
                     if (!active || self == null || spatialId != registrationId) return;
-                    Bounds bounds = new Bounds((float3)collider.transform.position, collider.transform.size);
+                    Bounds bounds = SpatialBounds;
                     EntityManager.ESTree.AssertEntityLocation(registrationId, bounds);
                 });
-                this.collider.Update(self);
-                this.collider.EntityCollisionUpdate(self);
             }
+
+            protected virtual Bounds SpatialBounds => new Bounds((float3)collider.transform.position, collider.transform.size);
 
             public void SetConstraint<TConstraint>() => this.constraint = Controller.transform.parent.GetComponent(typeof(TConstraint)) as IRigConstraint;
             public override void UpdateJobSync() {

@@ -9,17 +9,23 @@ using UnityEngine;
 
 namespace Arterra.Data.Entity.Behavior {
     public class ProjectileFireSettings : IBehaviorSetting {
-        public Option<List<EntitySMTasks>> AttackingStates = new () {value = new () {
-            EntitySMTasks.ChaseTarget,
-            EntitySMTasks.ChasePreyEntity
+        public Option<List<AttackingState>> AttackingStates = new () {value = new () {
+            new() { State = EntitySMTasks.ChaseTarget },
+            new() { State = EntitySMTasks.ChasePreyEntity }
         }};
+
+        [Serializable]
+        public struct AttackingState {
+            public EntitySMTasks State;
+            public bool DirectRotation;
+        }
 
         public Stats Projectile;
         public float BlindDist = 3;
         [JsonIgnore]
         [UIHidden]
         [HideInInspector]
-        public HashSet<EntitySMTasks> AttackStates;
+        public Dictionary<EntitySMTasks, bool> AttackStates;
 
         [Serializable]
         public class Stats {
@@ -28,10 +34,14 @@ namespace Arterra.Data.Entity.Behavior {
             public float ChargeTime = 5;
             public ProjectileTag Projectile;
             public bool HasRangedAttack = true;
+            public float MaxTargetAngle = 360f; // Degrees.
         }
 
         public void Preset(uint entityType, BehaviorEntity.AnimalSetting settings) {
-            AttackStates = new HashSet<EntitySMTasks>(AttackingStates.value);
+            AttackStates = new Dictionary<EntitySMTasks, bool>();
+            if (AttackingStates.value == null) return;
+            foreach (var state in AttackingStates.value)
+                AttackStates[state.State] = state.DirectRotation;
         }
 
         public object Clone() {
@@ -47,6 +57,7 @@ namespace Arterra.Data.Entity.Behavior {
         private ProjectileFireSettings settings;
         private StateMachineManagerBehavior manager;
         private AnimatedBehavior animated;
+        private Movement movement;
         [JsonIgnore] private Modifier mod;
 
         private float3 fireDirection;
@@ -66,8 +77,14 @@ namespace Arterra.Data.Entity.Behavior {
 
         public void CoreUpdate(BehaviorEntity.Animal self) {
             UpdateFire(self);
-            if(!settings.AttackStates.Contains(manager.TaskIndex)) return;
+            if (!settings.AttackStates.TryGetValue(manager.TaskIndex, out bool directRotation)) return;
             if (!EntityManager.TryGetEntity(manager.TaskTarget, out Entity entity)) return;
+            if (directRotation && settings.Projectile.HasRangedAttack) {
+                float3 direction = entity.head - self.position;
+                if (math.lengthsq(direction) > 1E-10f)
+                    self.Rotation = Quaternion.RotateTowards(self.Rotation,
+                        Quaternion.LookRotation(math.normalizesafe(direction)), movement.rotSpeed * self.DeltaTime);
+            }
             Fire(entity.head, self);
         }
 
@@ -84,6 +101,8 @@ namespace Arterra.Data.Entity.Behavior {
             if (chargeCooldown > 0) return false;
             fireDirection = target - self.position;
             if (math.length(fireDirection) < BlindDist) return false;
+            if (Vector3.Angle(self.Forward, fireDirection) > settings.Projectile.MaxTargetAngle)
+                return false;
             
             if (settings.Projectile.CheckSightline) {
                 if (Terraforming.RayCastTerrain(self.head, math.normalizesafe(fireDirection), 
@@ -111,12 +130,15 @@ namespace Arterra.Data.Entity.Behavior {
 
         public override void AddSettingsDependencies(Dictionary<Type, IBehaviorSetting> heirarchy) {
             heirarchy.TryAdd(typeof(ProjectileFireSettings), new ProjectileFireSettings());
+            heirarchy.TryAdd(typeof(Movement), new Movement());
         }
 
 
          public override void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
             if (!setting.Is(out settings))
                 throw new System.Exception("Entity: ProjectileFire Behavior Requires AnimalSettings to have ProjectileFireSettings");
+            if (!setting.Is(out movement))
+                throw new System.Exception("Entity: ProjectileFire Behavior Requires AnimalSettings to have Movement");
             if (!self.Is(out manager))
                 throw new System.Exception("Entity: ProjectileFire Behavior Requires AnimalInstance to have StateMachineManager");
             if (!self.Is(out animated)) animated = null;
@@ -129,6 +151,8 @@ namespace Arterra.Data.Entity.Behavior {
         public override void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
             if (!setting.Is(out settings))
                 throw new System.Exception("Entity: ProjectileFire Behavior Requires AnimalSettings to have ProjectileFireSettings");
+            if (!setting.Is(out movement))
+                throw new System.Exception("Entity: ProjectileFire Behavior Requires AnimalSettings to have Movement");
             if (!self.Is(out manager))
                 throw new System.Exception("Entity: ProjectileFire Behavior Requires AnimalInstance to have StateMachineManager");
             if (!self.Is(out animated)) animated = null;

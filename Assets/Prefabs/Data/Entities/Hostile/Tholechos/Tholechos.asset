@@ -1,0 +1,824 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0ee3f1559d5714294a36c8deb28652c1, type: 3}
+  m_Name: Tholechos
+  m_EditorClassIdentifier: Assembly-CSharp::Arterra.Data.Entity.Behavior.BehaviorEntity
+  Name: Tholechos
+  Tags:
+    Reg:
+      value: []
+  Controller:
+    value: Prefabs/Animals/Tholechos
+  Profile:
+    value:
+    - bounds:
+        data: 4286643968
+      flags: 2
+    - bounds:
+        data: 4286643968
+      flags: 2
+    - bounds:
+        data: 4286643968
+      flags: 2
+    - bounds:
+        data: 4286643968
+      flags: 2
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 4286643968
+      flags: 2
+    - bounds:
+        data: 4286643968
+      flags: 2
+    - bounds:
+        data: 4286643968
+      flags: 2
+    - bounds:
+        data: 4286643968
+      flags: 2
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 4286643968
+      flags: 2
+    - bounds:
+        data: 4286643968
+      flags: 2
+    - bounds:
+        data: 4286643968
+      flags: 2
+    - bounds:
+        data: 4286643968
+      flags: 2
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 4286643968
+      flags: 2
+    - bounds:
+        data: 4286643968
+      flags: 2
+    - bounds:
+        data: 4286643968
+      flags: 2
+    - bounds:
+        data: 4286643968
+      flags: 2
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+    - bounds:
+        data: 2130771840
+      flags: 1
+  _Setting:
+    value:
+      profile:
+        bounds:
+          x: 4
+          y: 4
+          z: 4
+      collider:
+        size:
+          x: 3.5
+          y: 3.5
+          z: 3.5
+      BehaviorList:
+        value: 050000000000000003000000ed03000001000000e8030000e9030000eb030000102700001a27000043270000602700006a2700007e270000882700008f1300008b13000020270000
+      Settings:
+        value:
+          value:
+          - value:
+              value:
+                rid: 5205636866482634847
+          - value:
+              value:
+                rid: 3097084098772992145
+          - value:
+              value:
+                rid: 3097083922518114515
+          - value:
+              value:
+                rid: 3097084037468258397
+          - value:
+              value:
+                rid: 3097083922518114516
+          - value:
+              value:
+                rid: 3097083922518114517
+          - value:
+              value:
+                rid: 3097083922518114518
+          - value:
+              value:
+                rid: 3097083922518114520
+          - value:
+              value:
+                rid: 3097083922518114521
+          - value:
+              value:
+                rid: 3097083922518114639
+          - value:
+              value:
+                rid: 5205636866482634848
+          - value:
+              value:
+                rid: 3097083922518114530
+          - value:
+              value:
+                rid: 3097083922518114531
+          - value:
+              value:
+                rid: 3097083922518114534
+          - value:
+              value:
+                rid: 3097083922518114533
+          - value:
+              value:
+                rid: 3097083922518114535
+          - value:
+              value:
+                rid: 7000000000000000021
+          - value:
+              value:
+                rid: 7000000000000000022
+          - value:
+              value:
+                rid: 7000000000000000023
+          - value:
+              value:
+                rid: 5205636930575269967
+      _prevBehaviorCount: 18
+  references:
+    version: 2
+    RefIds:
+    - rid: 3097083922518114515
+      type: {class: PhysicalitySetting, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        weight: 5000
+        StartHealthPercent: 1
+        StartHealthVariance: 0
+        MaxHealth: 100
+        NaturalRegen: 0.025
+        InvincTime: 0.25
+    - rid: 3097083922518114516
+      type: {class: MapInteractorSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        interactType: 1
+        HoldBreathTime: 10
+        Bouyancy: -0.1
+        UseFallDamage: 0
+    - rid: 3097083922518114517
+      type: {class: StateMachineManagerSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        StartTask: 400
+        AverageStartDuration: 3
+        AverageStartDurationVariance: 0
+        ContactDistance: 25
+    - rid: 3097083922518114518
+      type: {class: AttackStats, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        AttackDistance: 0
+        AttackDamage: 4
+        AttackCooldown: 1
+        KBStrength: 4
+        AttackDuration: 0.5
+    - rid: 3097083922518114520
+      type: {class: IdleStateSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        AverageIdleTime: Infinity
+        AverageIdleVariance: 0
+        TaskName: 0
+        OnCompleteTransition: 100
+        CheckTransitions:
+          value: 5c760000
+    - rid: 3097083922518114521
+      type: {class: RandomWalkStateSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        AverageWalkTime: 10
+        AveragWalkVariance: 0
+        TaskName: 200
+        FollowTaskName: 100
+        OnStopWalkTransition: 400
+        OnSwitchPath:
+          value: 5c760000
+    - rid: 3097083922518114530
+      type: {class: AttackTargetSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        TaskName: 30600
+        OnTargetPreyDeath: 100
+        OnTargetDeath: 100
+        OnSeperateTarget: 50100
+        OnLostTarget: 100
+    - rid: 3097083922518114531
+      type: {class: ChaseAttackerSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        TaskName: 50100
+        OnLostAttacker: 100
+        OnReachAttacker: 30600
+        ChaseDistance: 40
+    - rid: 3097083922518114533
+      type: {class: FleeBehaviorSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        fleeDist: 5
+        detectDist: 18
+        FightAggressor: 1
+    - rid: 3097083922518114534
+      type: {class: RunFromAttackerSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        TaskName: 50000
+        OnLostAttacker: 100
+    - rid: 3097083922518114535
+      type: {class: DeathSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        TaskName: 60000
+        OnReviveTask: 400
+        DecompositionTime: 300
+    - rid: 3097083922518114639
+      type: {class: Movement, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        walkSpeed: 6
+        runSpeed: 10
+        pathDistance: 32
+        rotSpeed: 80
+    - rid: 3097084037468258397
+      type: {class: Decomposition, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        LootTable:
+          value:
+          - ItemName: Stone:Solid
+            DropAmount: 0.1
+    - rid: 3097084098772992145
+      type: {class: AnimatedSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        AnimatorPath: Tholechos
+        StateAnimations:
+          value:
+          - task: 0
+            Animation: IsIdling
+          - task: 400
+            Animation: IsSwimming
+          - task: 100
+            Animation: IsSwimming
+          - task: 30300
+            Animation: IsSwimming
+          - task: 50100
+            Animation: IsSwimming
+          - task: 50000
+            Animation: IsSwimming
+          - task: 30600
+            Animation: IsAttacking
+          - task: 60000
+            Animation: IsDead
+        EventAnims:
+          value: []
+    - rid: 5205636866482634847
+      type: {class: ColliderUpdateSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        interactType: 0
+        UseGravity: 0
+    - rid: 5205636866482634848
+      type: {class: ChaseEnemySettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        TaskName: 30300
+        OnNotFoundTransition: 100
+        OnReachEnemyTransition: 30600
+        SearchChances:
+          value:
+          - SourceState: 0
+            SearchChance: 0.25
+        SearchDistance: 32
+        DesiredEnemyState: 1
+        Enemy:
+          value:
+          - EntityType: Player
+    - rid: 5205636930575269967
+      type: {class: MMove, ns: , asm: Assembly-CSharp}
+      data:
+        movements:
+          value:
+          - state: 0
+            movement: 0
+            ProfileIndex: 0
+            useGravity: 1
+            CustomSpeed:
+              enabled: 0
+              value: 0
+          - state: 100
+            movement: 1
+            ProfileIndex: 1
+            useGravity: 0
+            CustomSpeed:
+              enabled: 0
+              value: 0
+          - state: 200
+            movement: 1
+            ProfileIndex: 1
+            useGravity: 0
+            CustomSpeed:
+              enabled: 0
+              value: 0
+          - state: 30300
+            movement: 1
+            ProfileIndex: 1
+            useGravity: 0
+            CustomSpeed:
+              enabled: 0
+              value: 0
+          - state: 50100
+            movement: 1
+            ProfileIndex: 1
+            useGravity: 0
+            CustomSpeed:
+              enabled: 0
+              value: 0
+          - state: 50000
+            movement: 1
+            ProfileIndex: 1
+            useGravity: 0
+            CustomSpeed:
+              enabled: 0
+              value: 0
+          - state: 30600
+            movement: 1
+            ProfileIndex: 1
+            useGravity: 0
+            CustomSpeed:
+              enabled: 0
+              value: 0
+          - state: 60000
+            movement: 1
+            ProfileIndex: 1
+            useGravity: 0
+            CustomSpeed:
+              enabled: 0
+              value: 0
+          - state: 400
+            movement: 1
+            ProfileIndex: 1
+            useGravity: 0
+            CustomSpeed:
+              enabled: 0
+              value: 0
+        profiles:
+          value:
+          - bounds:
+              x: 4
+              y: 4
+              z: 4
+            offset: 0
+          - bounds:
+              x: 4
+              y: 4
+              z: 4
+            offset: 64
+        customSpeeds:
+          value: []
+    - rid: 7000000000000000021
+      type: {class: AnimatedHitboxesSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        Hitboxes:
+          value:
+          - collider:
+              size:
+                x: 1
+                y: 1
+                z: 1
+            BoneOffset:
+              x: 0
+              y: 2
+              z: 0
+            BonePath: Tholechos/Pillar.001
+          - collider:
+              size:
+                x: 1
+                y: 1
+                z: 1
+            BoneOffset:
+              x: 0
+              y: 2
+              z: 0
+            BonePath: Tholechos/Pillar.002
+          - collider:
+              size:
+                x: 1
+                y: 1
+                z: 1
+            BoneOffset:
+              x: 0
+              y: 2
+              z: 0
+            BonePath: Tholechos/Pillar.003
+          - collider:
+              size:
+                x: 1
+                y: 1
+                z: 1
+            BoneOffset:
+              x: 0
+              y: 2
+              z: 0
+            BonePath: Tholechos/Pillar.004
+          - collider:
+              size:
+                x: 1
+                y: 1
+                z: 1
+            BoneOffset:
+              x: 0
+              y: 2
+              z: 0
+            BonePath: Tholechos/Pillar.006
+          - collider:
+              size:
+                x: 1
+                y: 1
+                z: 1
+            BoneOffset:
+              x: 0
+              y: 2
+              z: 0
+            BonePath: Tholechos/Pillar.009
+          - collider:
+              size:
+                x: 1
+                y: 1
+                z: 1
+            BoneOffset:
+              x: 0
+              y: 2
+              z: 0
+            BonePath: Tholechos/Pillar.010
+          - collider:
+              size:
+                x: 1
+                y: 1
+                z: 1
+            BoneOffset:
+              x: 0
+              y: 2
+              z: 0
+            BonePath: Tholechos/Pillar.011
+    - rid: 7000000000000000022
+      type: {class: ProjectileFireSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        AttackingStates:
+          value:
+          - State: 30600
+            DirectRotation: 1
+          - State: 50100
+            DirectRotation: 0
+        Projectile:
+          ShotDelay: 0.1
+          CheckSightline: 1
+          ChargeTime: 1.3
+          Projectile:
+            LaunchSpeedMultiplier: 10
+            FireSound: 2001
+            ProjectileEntity: SonicWave
+          HasRangedAttack: 1
+          MaxTargetAngle: 15
+        BlindDist: 0
+    - rid: 7000000000000000023
+      type: {class: LandOnGroundSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        TaskName: 400
+        OnReachGround: 0
+        ProxyTestName: 410
+        ProxyTestTransitions:
+          value: 
+        LandAngleMax: 0.85
+        LandAngleFalloff: 0.5

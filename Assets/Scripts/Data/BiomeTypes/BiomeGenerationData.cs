@@ -24,8 +24,8 @@ public class Generation : ScriptableObject
     public BiomeSelection SurfaceBiomes;
     /// <summary> The registry containing all seafloor biomes that can be generated.
     /// Seafloor biomes are biomes that generate on the seafloor and can pick where to generate
-    /// based on the features of the seafloor. Importantly, seafloor biomes may not span all query space,
-    /// and if no seafloor biome is selected, the biome is instead decided by the <see cref="SeaBiomes"/>. </summary>
+    /// based on the features of the seafloor. If no placement region matches,
+    /// the first biome in the seafloor registry is used. </summary>
     [SerializeField]
     public BiomeSelection SeafloorBiomes;
     /// <summary>

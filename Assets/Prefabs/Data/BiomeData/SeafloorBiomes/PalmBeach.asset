@@ -29,6 +29,7 @@ MonoBehaviour:
         - PalmTree3
         - Crab
         - Seagull
+        - Tholechos
       GroundMaterials:
         value:
         - value:

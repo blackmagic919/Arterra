@@ -113,4 +113,5 @@ ArterraAudioFMOD/*.user
 ArterraAudioFMOD/*.lock
 ArterraAudioFMOD/Autosave/
 ArterraAudioFMOD/Backup/
+tools/
 fmod_editor.log

@@ -10,8 +10,10 @@ namespace Arterra.Data.Entity.Behavior {
     [Serializable]
     public class ProjectileFlightSettings : IBehaviorSetting {
         public float MinDamagingSpeed;
+        // With UseFixedImpact these are absolute damage / knockback, otherwise per-speed multipliers.
         public float DamageMultiplier;
         public float KnockbackMultiplier;
+        public bool UseFixedImpact;
         [Range(0, 1)]
         public float FrictionReduction = 1f;
         public EntityInteraction entityInteraction;
@@ -21,6 +23,7 @@ namespace Arterra.Data.Entity.Behavior {
                 MinDamagingSpeed = MinDamagingSpeed,
                 DamageMultiplier = DamageMultiplier,
                 KnockbackMultiplier = KnockbackMultiplier,
+                UseFixedImpact = UseFixedImpact,
                 entityInteraction = entityInteraction,
                 FrictionReduction = FrictionReduction,
             };
@@ -69,11 +72,17 @@ namespace Arterra.Data.Entity.Behavior {
             float3 endGS = startGS + pVel * self.DeltaTime;
             if (!EntityManager.ESTree.FindClosestAlongRay(startGS, endGS, self.info.rtEntityId, out Entity hitEntity, out _))
                 return false;
+            // Appendages share their owner's ID; a shot can pass through its own animated limbs.
+            if (hitEntity.info.rtEntityId == ParentId) return false;
             self.eventCtrl.RaiseEvent(Core.Events.GameEvent.Entity_ProjectileHit, self.info.rtEntityId, hitEntity?.info.rtEntityId);
 
             float speed = math.length(pVel);
             float damage = speed * settings.DamageMultiplier;
             float3 knockback = self.velocity * settings.KnockbackMultiplier;
+            if (settings.UseFixedImpact) {
+                damage = settings.DamageMultiplier;
+                knockback = math.normalizesafe(pVel) * settings.KnockbackMultiplier;
+            }
 
             if (!EntityManager.TryGetEntity(ParentId, out Entity attacker))
                 EntityManager.TryGetEntity(self.info.rtEntityId, out attacker);

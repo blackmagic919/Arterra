@@ -83,8 +83,8 @@ namespace Arterra.Core.Storage {
         /// </summary>
         public static void Release() {
             if (pendingReleases.Count != 0 || ChunkData.Values.Any(info => info.Generation.Ready != null && !info.Generation.Ready.IsCompleted))
-                throw new InvalidOperationException("Await CPUMapManager.ReleaseAsync before shutting down graphics.");
-            ReleaseAsync().GetAwaiter().GetResult();
+                Debug.Log("Skipping Release due to detected pending releases: Call CPUMapManager.ReleaseAsync before shutting down graphics.");
+            else ReleaseAsync().GetAwaiter().GetResult();
         }
 
         /// <summary>Stop accepting chunks and cancel every pending load before releasing GPU pipelines.</summary>
