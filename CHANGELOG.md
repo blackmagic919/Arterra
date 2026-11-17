@@ -1,4 +1,14 @@
 ## [Unreleased]
+## Added
+- New underwater mecha monster, Tholechos
+- Proper projectile sounds to every non-arrow projectile
+
+## Fixed
+- Atmospheric edge bleeding due to remainder depth lerping
+- Projectile launch sometimes causes NaN bug
+
+## Changed
+- Materials now use only two atmospheric factors, scattering and absorption
 
 ## [0.2.5] - 2026-11-12
 ## Fixed
