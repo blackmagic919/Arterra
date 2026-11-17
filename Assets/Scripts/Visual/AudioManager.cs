@@ -17,9 +17,19 @@ namespace Arterra.Engine.Audio {
     public enum AudioEvents {
         None = 0,
         Item_PlainArrowFire = AudioEventsBase.SFXItem + 1,
+        Item_StoneHornFire = AudioEventsBase.SFXItem + 2,
+        Item_WebFire = AudioEventsBase.SFXItem + 3,
+        Item_SonicWaveFire = AudioEventsBase.SFXItem + 4,
 
         Entity_PlainArrowFlyby = AudioEventsBase.SFXEntity + 0,
         Entity_PlainArrowHit = AudioEventsBase.SFXEntity + 1,
+        Entity_StoneHornFlyby = AudioEventsBase.SFXEntity + 2,
+        Entity_StoneHornHit = AudioEventsBase.SFXEntity + 3,
+        Entity_WebFlyby = AudioEventsBase.SFXEntity + 4,
+        Entity_WebHit = AudioEventsBase.SFXEntity + 5,
+        Entity_SonicWaveFlyby = AudioEventsBase.SFXEntity + 6,
+        Entity_SonicWaveHit = AudioEventsBase.SFXEntity + 7,
+        Entity_ProjectileThud = AudioEventsBase.SFXEntity + 50,
 
         Entity_LionRoar = AudioEventsBase.SFXEntity + 100,
         Entity_LionHurt = AudioEventsBase.SFXEntity + 101,

@@ -99,14 +99,16 @@ namespace Arterra.Data.Entity.Behavior {
             if (!settings.Projectile.HasRangedAttack) return false;
             if (ShotInProgress) return false;
             if (chargeCooldown > 0) return false;
-            fireDirection = target - self.position;
-            if (math.length(fireDirection) < BlindDist) return false;
+            float3 direction = target - self.position;
+            float distance = math.length(direction);
+            if (!math.isfinite(distance) || distance <= 0f || distance < BlindDist) return false;
+            fireDirection = direction;
             if (Vector3.Angle(self.Forward, fireDirection) > settings.Projectile.MaxTargetAngle)
                 return false;
             
             if (settings.Projectile.CheckSightline) {
                 if (Terraforming.RayCastTerrain(self.head, math.normalizesafe(fireDirection), 
-                    math.length(fireDirection), Terraforming.RayTestSolid, out float3 hit))
+                    distance, Terraforming.RayTestSolid, out float3 hit))
                     return false;
             } 
             ShotInProgress = true;

@@ -25,13 +25,12 @@ MonoBehaviour:
   terrainData:
     Texture: 1
     textureScale: 2
-    FlipStateRendering: 0
+    ModelIndex: 0
     GeoShaderIndex:
       data: 0
   AtmosphereScatter:
     InScatterCoeffs: {x: 0.00025, y: 0.0005, z: 0.00025}
-    OutScatterCoeffs: {x: 0.004, y: 0.004, z: 0.004}
-    GroundExtinction: {x: 0.03, y: 0.005, z: 0.03}
+    AbsorptionCoeffs: {x: 0.00275, y: 0.00325, z: 0.00275}
     LightIntensity: 0
   liquidData:
     shallowCol: {r: 0.60784316, g: 1, b: 0.92156863, a: 0.15686275}

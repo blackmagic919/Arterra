@@ -21,9 +21,11 @@ MonoBehaviour:
             BakedTextureSizePX: 128
             InScatterDetail: 6
             NumOpticalDepthPoints: 8
+            NumRemainderOpticalDepthPoints: 4
             LuminanceTextureSizePX: 256
             LuminanceDetail: 64
             LuminanceOpticalDepthPoints: 4
+            GroundExtinctionMultiplier: 10
         Lighting:
           value:
             SubChunkDivisions: 8
@@ -357,10 +359,9 @@ MonoBehaviour:
             GridThickness: 2.5
         Network:
           value:
-            MaxPlayers: 4
-            IsPrivate: 0
-            Password: 
+            ServiceUrl: https://alpha.api.playarterra.com
             Authoritative: 0
+            MaxPlayers: 4
         ReadBack:
           value: {fileID: 11400000, guid: 96ff26c443a6549bb970c4621009f5d5, type: 2}
         Tooltips:
@@ -374,36 +375,36 @@ MonoBehaviour:
           GenericToolTipEvents:
             value:
             - AcknowledgeTime: 30
-              AcknowledgeEvent: -1
               Priority: 0
+              AcknowledgeEvent: -1
               TriggerEvent: -1
               TriggerTime: 5
               PrefabPath: Prefabs/GameUI/Popups/ToolTips/ToolTip1/Display
               BlockingTooltips: 1
             - AcknowledgeTime: 30
-              AcknowledgeEvent: -1
               Priority: 0
+              AcknowledgeEvent: -1
               TriggerEvent: -1
               TriggerTime: 40
               PrefabPath: Prefabs/GameUI/Popups/ToolTips/ToolTip5/Display
               BlockingTooltips: 1
             - AcknowledgeTime: 30
-              AcknowledgeEvent: -1
               Priority: 0
+              AcknowledgeEvent: -1
               TriggerEvent: -1
               TriggerTime: 120
               PrefabPath: Prefabs/GameUI/Popups/ToolTips/ToolTip4/Display
               BlockingTooltips: 1
             - AcknowledgeTime: 30
-              AcknowledgeEvent: -1
               Priority: 0
+              AcknowledgeEvent: -1
               TriggerEvent: 3009
               TriggerTime: 15
               PrefabPath: Prefabs/GameUI/Popups/ToolTips/ToolTip6/Display
               BlockingTooltips: 1
             - AcknowledgeTime: 30
-              AcknowledgeEvent: -1
               Priority: 0
+              AcknowledgeEvent: -1
               TriggerEvent: 3009
               TriggerTime: 2.5
               PrefabPath: Prefabs/GameUI/Popups/ToolTips/ToolTip7/Display
@@ -527,7 +528,7 @@ MonoBehaviour:
           - {fileID: 11400000, guid: a4c2c1088d7014561a762498ec205ec9, type: 2}
           - {fileID: 11400000, guid: 799801124b62142afb39063d7fdef2d0, type: 2}
           - {fileID: 11400000, guid: d6b9381607c524d0e8e9440fc45d6e5b, type: 2}
-          - {fileID: 11400000, guid: 066474d0a2bfa4600b725f5c258b274f, type: 2}
+          - {fileID: 11400000, guid: 35e03da90dd80475a9a549fabdded2ae, type: 2}
           - {fileID: 11400000, guid: 6184bc7460e7546b5bb18fb637f90ae3, type: 2}
           - {fileID: 11400000, guid: e45f50a31f6684dd19b79f52e664d6b3, type: 2}
           - {fileID: 11400000, guid: e510129eb310547729dc9e65baaed7f6, type: 2}
@@ -576,6 +577,7 @@ MonoBehaviour:
           - {fileID: 11400000, guid: 7aed9bd6aa00f40429adff01d5f23ccd, type: 2}
           - {fileID: 11400000, guid: ba8900f751a89436ca2898840a6d8739, type: 2}
           - {fileID: 11400000, guid: a641c3b918974467696f1598d7a36ec3, type: 2}
+          - {fileID: 11400000, guid: fe70bd34bd5cf4ebea0d643e2bb0ab12, type: 2}
           - {fileID: 11400000, guid: c142d2ea9973245bca8bc2632e9d4c10, type: 2}
           - {fileID: 11400000, guid: e15f85c38e5de445fafb1fd08af0d165, type: 2}
           - {fileID: 11400000, guid: b88ada38ac05747f59adaf213e589d3a, type: 2}
@@ -597,6 +599,7 @@ MonoBehaviour:
           - {fileID: 11400000, guid: 1bb2149f76a654b26a96039e740cef1c, type: 2}
           - {fileID: 11400000, guid: 5070e7358fc834c76a263f37cd130a6e, type: 2}
           - {fileID: 11400000, guid: fe332b0c55473460bb4015e82fc73e2d, type: 2}
+          - {fileID: 11400000, guid: 1d6bfdb4e3eac4c94ac4cea7a2c86a3d, type: 2}
           - {fileID: 11400000, guid: 4083fd9eb9dc64a8d99e476482b05346, type: 2}
           - {fileID: 11400000, guid: 63e362d47746645358572e7943f51163, type: 2}
           - {fileID: 11400000, guid: b0f3be4cba83d4f56bf550fc9e42cf2f, type: 2}
@@ -626,6 +629,7 @@ MonoBehaviour:
           - {fileID: 11400000, guid: fbefc0aaf31c5423588d6e239cd790ec, type: 2}
           - {fileID: 11400000, guid: 1d7a6debf646449788fd04b39ff5306e, type: 2}
           - {fileID: 11400000, guid: 9cef17ace9ac648258fea389169240c0, type: 2}
+          - {fileID: 11400000, guid: da0acbbe19cb552cab803076432d4d67, type: 2}
           - {fileID: 11400000, guid: 56baabfb38ecb41949aaf57428997cbc, type: 2}
           - {fileID: 11400000, guid: 279d62c7054754c6a91b4412bdd7699a, type: 2}
           - {fileID: 11400000, guid: fa068e762a66cb74baa6fec4c39e7823, type: 2}
@@ -635,9 +639,7 @@ MonoBehaviour:
           - {fileID: 11400000, guid: 361af8bab3f604237a3584478ad35be1, type: 2}
           - {fileID: 11400000, guid: d50918b4c8efe4f69949df7a4934ab37, type: 2}
           - {fileID: 11400000, guid: c7060d0b13520428cacb37fbd9ccc6fb, type: 2}
-        Models:
-          Category:
-            value: {fileID: 11400000, guid: 5c1a39d4c22f4fe9a58e3123bb450b2b, type: 2}
+          - {fileID: 11400000, guid: 870e24d83eb9580fa6f92388e2d5f5f2, type: 2}
         Textures:
           Category:
             value: {fileID: 11400000, guid: 1029725a4bcd94359824a099055020ea, type: 2}
@@ -837,6 +839,18 @@ MonoBehaviour:
           - {fileID: 11400000, guid: cfa110cd824654fe79f54e45ce6c8a23, type: 2}
           - {fileID: 11400000, guid: 5e9a45033d73c44a2bb7f5da0869c90d, type: 2}
           - {fileID: 11400000, guid: 226cc2d2d657749308c3f33c9f7e209b, type: 2}
+          - {fileID: 11400000, guid: 6d119bcfb14454152934d1483b07f76b, type: 2}
+        Models:
+          Category:
+            value: {fileID: 11400000, guid: 5c1a39d4c22f4fe9a58e3123bb450b2b, type: 2}
+          Reg:
+          - {fileID: 11400000, guid: 0ed6cbd42e8447bf936f2ab9e4cf8daf, type: 2}
+          - {fileID: 11400000, guid: 754374ee6be046a091117167032287bf, type: 2}
+          - {fileID: 11400000, guid: 2c3dc5eca5a342cfbb905bb3fd1c8a79, type: 2}
+          - {fileID: 11400000, guid: fe00ad040cf34060b7e07c404ac3c246, type: 2}
+          - {fileID: 11400000, guid: dca7da63461b4ce5877403451d32f3ab, type: 2}
+          - {fileID: 11400000, guid: 34da60905d834c569800f41600e2fcd7, type: 2}
+          - {fileID: 11400000, guid: f2940c40717c4af0ba5938d8d77c1d04, type: 2}
   references:
     version: 2
     RefIds:
@@ -912,6 +926,8 @@ MonoBehaviour:
       type: {class: PlayerEffectsSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
         AnimatorPath: Player
+        AverageBlinkTime: 3
+        BlinkVariance: 0.5
     - rid: 5295427305076687090
       type: {class: DizzinessEffect, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:

@@ -4,6 +4,7 @@ using Arterra.Engine.Audio;
 using FMOD.Studio;
 using Newtonsoft.Json;
 using Unity.Mathematics;
+using UnityEngine;
 
 namespace Arterra.Data.Entity.Behavior {
     [Serializable]
@@ -49,7 +50,7 @@ namespace Arterra.Data.Entity.Behavior {
             if (!active || hasCollided) return;
 
             float speed = math.length(self.velocity);
-            speed = 1.0f - math.exp(-0.1f * speed);
+            speed = math.min(1.0f - math.exp(-0.1f * speed), 0.999f);
             flybyInstance.setParameterByName("Speed", speed);
         }
 
@@ -67,7 +68,8 @@ namespace Arterra.Data.Entity.Behavior {
             if (source is not Guid sourceId) return;
             if (!EntityManager.TryGetEntity(sourceId, out Entity sourceEntity)) return;
             EntityManager.AddHandlerEvent(() => {
-                if (sourceEntity.VisualActive && sourceEntity.active) AudioManager.CreateEvent(settings.HitSound, sourceEntity.position);
+                if (sourceEntity.VisualActive && sourceEntity.active) 
+                    AudioManager.CreateEvent(settings.HitSound, sourceEntity.position);
             });
         }
     }

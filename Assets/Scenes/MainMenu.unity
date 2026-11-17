@@ -3817,7 +3817,7 @@ MonoBehaviour:
         Data2: 1225276032
         Data3: 1525825666
         Data4: 1168458264
-      Path: event:/Sound effects/Arrow/ArrowFire
+      Path: event:/Sound effects/Projectile/Arrow/ArrowFire
   - name: 3000
     reference:
       Guid:
@@ -3825,7 +3825,7 @@ MonoBehaviour:
         Data2: 1336426865
         Data3: -283943242
         Data4: -676881158
-      Path: event:/Sound effects/Arrow/ArrowFlying
+      Path: event:/Sound effects/Projectile/Arrow/ArrowFlying
   - name: 3001
     reference:
       Guid:
@@ -3833,7 +3833,7 @@ MonoBehaviour:
         Data2: 1196900726
         Data3: -88587134
         Data4: -1460235600
-      Path: event:/Sound effects/Arrow/ArrowTwang
+      Path: event:/Sound effects/Projectile/Arrow/ArrowTwang
   - name: 4001
     reference:
       Guid:
@@ -4522,6 +4522,86 @@ MonoBehaviour:
         Data3: -2092028240
         Data4: -436353260
       Path: event:/Sound effects/Animal/Goat/Mate
+  - name: 2002
+    reference:
+      Guid:
+        Data1: -1129026979
+        Data2: 1148549399
+        Data3: 592673430
+        Data4: 1345589989
+      Path: event:/Sound effects/Projectile/Boulder/BoulderLaunch
+  - name: 3002
+    reference:
+      Guid:
+        Data1: -1984007147
+        Data2: 1327730714
+        Data3: 211178650
+        Data4: -1005598386
+      Path: event:/Sound effects/Projectile/Boulder/BoulderWoosh
+  - name: 3003
+    reference:
+      Guid:
+        Data1: -1126443929
+        Data2: 1291764770
+        Data3: -924783682
+        Data4: -565595399
+      Path: event:/Sound effects/Projectile/Boulder/BoulderSmash
+  - name: 2003
+    reference:
+      Guid:
+        Data1: -885594905
+        Data2: 1256580146
+        Data3: -1557262686
+        Data4: 1631493631
+      Path: event:/Sound effects/Projectile/Web/WebSquirt
+  - name: 3004
+    reference:
+      Guid:
+        Data1: -99703821
+        Data2: 1157804949
+        Data3: 460685469
+        Data4: -1286024032
+      Path: event:/Sound effects/Projectile/Web/WebWoosh
+  - name: 3005
+    reference:
+      Guid:
+        Data1: 1665999735
+        Data2: 1254219830
+        Data3: 1150853024
+        Data4: 349694394
+      Path: event:/Sound effects/Projectile/Web/WebSplat
+  - name: 2004
+    reference:
+      Guid:
+        Data1: 1130092660
+        Data2: 1328740922
+        Data3: 90658731
+        Data4: -579597348
+      Path: event:/Sound effects/Projectile/Sonic/SonicFire
+  - name: 3006
+    reference:
+      Guid:
+        Data1: 1158903407
+        Data2: 1245318665
+        Data3: -345166158
+        Data4: -823328324
+      Path: event:/Sound effects/Projectile/Sonic/SonicWave
+  - name: 3007
+    reference:
+      Guid:
+        Data1: -23893079
+        Data2: 1086349383
+        Data3: -1275726402
+        Data4: 1033790870
+      Path: event:/Sound effects/Projectile/Sonic/SonicImpact
+  - name: 3050
+    reference:
+      Guid:
+        Data1: -1780439331
+        Data2: 1299611696
+        Data3: -828065109
+        Data4: -501847418
+      Path: event:/Sound effects/Projectile/Thud
 --- !u!4 &1543784206
 Transform:
   m_ObjectHideFlags: 0

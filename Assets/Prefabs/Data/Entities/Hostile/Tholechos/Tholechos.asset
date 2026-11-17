@@ -498,9 +498,9 @@ MonoBehaviour:
       type: {class: MapInteractorSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
         interactType: 1
-        HoldBreathTime: 10
+        HoldBreathTime: Infinity
         Bouyancy: -0.1
-        UseFallDamage: 0
+        UseFallDamage: 1
     - rid: 3097083922518114517
       type: {class: StateMachineManagerSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
@@ -638,56 +638,56 @@ MonoBehaviour:
               enabled: 0
               value: 0
           - state: 100
-            movement: 1
+            movement: 2
             ProfileIndex: 1
             useGravity: 0
             CustomSpeed:
               enabled: 0
               value: 0
           - state: 200
-            movement: 1
+            movement: 2
             ProfileIndex: 1
             useGravity: 0
             CustomSpeed:
               enabled: 0
               value: 0
           - state: 30300
-            movement: 1
+            movement: 2
             ProfileIndex: 1
             useGravity: 0
             CustomSpeed:
               enabled: 0
               value: 0
           - state: 50100
-            movement: 1
+            movement: 2
             ProfileIndex: 1
             useGravity: 0
             CustomSpeed:
               enabled: 0
               value: 0
           - state: 50000
-            movement: 1
+            movement: 2
             ProfileIndex: 1
             useGravity: 0
             CustomSpeed:
               enabled: 0
               value: 0
           - state: 30600
-            movement: 1
+            movement: 2
             ProfileIndex: 1
             useGravity: 0
             CustomSpeed:
               enabled: 0
               value: 0
           - state: 60000
-            movement: 1
+            movement: 2
             ProfileIndex: 1
             useGravity: 0
             CustomSpeed:
               enabled: 0
               value: 0
           - state: 400
-            movement: 1
+            movement: 2
             ProfileIndex: 1
             useGravity: 0
             CustomSpeed:
@@ -807,7 +807,7 @@ MonoBehaviour:
           ChargeTime: 1.3
           Projectile:
             LaunchSpeedMultiplier: 10
-            FireSound: 2001
+            FireSound: 2004
             ProjectileEntity: SonicWave
           HasRangedAttack: 1
           MaxTargetAngle: 15

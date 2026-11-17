@@ -1,94 +1,52 @@
 #pragma kernel Bake
+#pragma kernel CorrectRemainder
 #pragma multi_compile _ NO_EDITORLIGHTING
 
 #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
 #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
 
-#include "Assets/Resources/Compute/Utility/GetIndex.hlsl"
+#include "Assets/Resources/Compute/Atmosphere/TextureInterpHelper.hlsl"
 #include "Assets/Resources/Compute/MapData/WSDensitySampler.hlsl"
 #include "Assets/Resources/Compute/MapData/WSLightSampler.hlsl"
 #include "Assets/Resources/Compute/Atmosphere/FrustumLightSpace.hlsl"
 #include "Assets/Resources/Compute/Atmosphere/FrustumSunLuminance.hlsl"
 const static float StaticLightIntensity = 0.01f;
 
-struct ScatterData{
-    float3 inScatteredLight;
-    float3 extinction;
-};
-
-
 RWStructuredBuffer<ScatterData> mapData;
-uint screenHeight;
-uint screenWidth;
+RWStructuredBuffer<ScatterData> _RemainderScatter;
+Texture2D<float> _CameraDepthTexture;
 
-float _AtmosphereRadius;
-uint _NumInScatterPoints;
 uint _NumOpticalDepthPoints;
+uint _NumRemainderOpticalDepthPoints;
 
-float3 GetRayDirectionWS(uint viewX, uint viewY) {
-    float2 screenSize = float2(max(screenWidth - 1u, 1u), max(screenHeight - 1u, 1u));
-    float2 screenUV = float2(viewX, viewY) / screenSize;
-    float3 viewVectorCS = mul(unity_CameraInvProjection, float4(screenUV * 2.0 - 1.0, 0.0, -1.0)).xyz;
-    return normalize(mul(unity_CameraToWorld, float4(viewVectorCS, 0.0)).xyz);
-}
-
-ScatterData ComputeScatterDensity(float3 inScatterPoint, float3 cameraDepth, OpticalInfo opticalInfo, float4 staticLight) {
-    ScatterData scatterData = (ScatterData)0;
-
-    float3 sunDepth = SampleFrustumSunOpticalDepthAtWS(inScatterPoint);
-
-    float3 transmittance = exp(-(sunDepth + cameraDepth));
-    float3 emissionColor = _MainLightColor.xyz;
-
-    scatterData.inScatteredLight = emissionColor * opticalInfo.scatterCoeffs * transmittance * staticLight.w;
-    scatterData.inScatteredLight += staticLight.xyz * exp(-cameraDepth) * StaticLightIntensity;
-    scatterData.inScatteredLight *= opticalInfo.opticalDensity;
-    scatterData.extinction = opticalInfo.extinctionCoeff * opticalInfo.opticalDensity;
-    return scatterData;
-}
-
-void AccumulateOpticalAndStatic(float3 samplePoint, float isoScale, inout OpticalInfo opticalAccum, inout uint4 staticLightAccum) {
-    OpticalInfo mapSample = SampleMapData(samplePoint);
-    opticalAccum.opticalDensity += mapSample.opticalDensity / isoScale;
-    opticalAccum.scatterCoeffs += mapSample.scatterCoeffs;
-    opticalAccum.extinctionCoeff += mapSample.extinctionCoeff;
-
-    uint light = SampleLightFast(samplePoint);
-    staticLightAccum.x += (light & 0x3FF);
-    staticLightAccum.y += (light >> 10 & 0x3FF);
-    staticLightAccum.z += (light >> 20 & 0x3FF);
-    staticLightAccum.w += (light >> 30 & 0x3);
-}
-
-void BuildDepthSampleAverages(
-    float3 inScatterPoint,
+void AccumulateScatterSegment(
+    float3 rayOrigin,
     float3 direction,
-    float sampleStep,
-    float isoScale,
-    out OpticalInfo opticalInfo,
-    out float4 staticLight
+    float start,
+    float step,
+    uint sampleCount,
+    float invIsoScale,
+    float3 prefixExtinction,
+    inout ScatterData scatter
 ) {
-    uint sampleCount = max(_NumOpticalDepthPoints, 1u);
-    float invSampleCount = 1.0f / (float)sampleCount;
+    float opticalStep = step * invIsoScale;
+    for(uint i = 0u; i < sampleCount; i++) {
+        float3 samplePoint = rayOrigin + direction * (start + (i + 0.5f) * step);
+        OpticalInfo opticalInfo = SampleMapData(samplePoint);
+        float3 extinctionStep = opticalInfo.extinctionCoeff * opticalStep;
+        float3 viewTransmittance = exp(-(prefixExtinction + scatter.extinction + 0.5f * extinctionStep));
+        float3 sunTransmittance = exp(-SampleFrustumSunOpticalDepthAtWS(samplePoint));
 
-    OpticalInfo opticalAccum = (OpticalInfo)0;
-    uint4 staticLightAccum = 0;
+        uint light = SampleLightFast(samplePoint);
+        float3 bakedLight = float3(light & 0x3FFu, (light >> 10) & 0x3FFu, (light >> 20) & 0x3FFu) / 1023.0f;
+        float sunVisibility = 1.0f - ((light >> 30) & 0x3u) / 3.0f;
+        float3 sunScatter = _MainLightColor.xyz * sunTransmittance * sunVisibility * opticalInfo.scatterCoeffs;
+        float3 bakedScatter = bakedLight * StaticLightIntensity * opticalInfo.opticalDensity;
 
-    for(uint depthSample = 0u; depthSample < sampleCount; depthSample++) {
-        float3 samplePoint = inScatterPoint + direction * (sampleStep * depthSample);
-        AccumulateOpticalAndStatic(samplePoint, isoScale, opticalAccum, staticLightAccum);
+        scatter.inScatteredLight += (sunScatter + bakedScatter) * viewTransmittance * opticalStep;
+        scatter.extinction += extinctionStep;
     }
-
-    opticalInfo = (OpticalInfo)0;
-    opticalInfo.opticalDensity = opticalAccum.opticalDensity * invSampleCount;
-    opticalInfo.scatterCoeffs = opticalAccum.scatterCoeffs * invSampleCount;
-    opticalInfo.extinctionCoeff = opticalAccum.extinctionCoeff * invSampleCount;
-
-    staticLight = float4(staticLightAccum) * invSampleCount;
-    staticLight.xyz /= 1023.0f;
-    staticLight.w = 1.0f - (staticLight.w / 3.0f);
 }
-
 
 const static uint numThreads = 8;
 [numthreads(numThreads,numThreads,1)]
@@ -97,36 +55,71 @@ void Bake (uint3 id : SV_DispatchThreadID)
     uint viewX = id.x;
     uint viewY = id.y;
 
-    if(viewX >= screenWidth || viewY >= screenHeight || id.z > 0)
+    if(viewX >= SampleTextureWidth || viewY >= SampleTextureHeight || id.z > 0)
         return;
 
     if(_NumInScatterPoints == 0u)
         return;
 
     uint sampleCount = max(_NumOpticalDepthPoints, 1u);
-    float sampleDist = _AtmosphereRadius / max((float)(_NumInScatterPoints - 1u), 1.0f);
-    float sampleStep = sampleDist / max((float)sampleCount - 1.0f, 1.0f);
-    float3 direction = GetRayDirectionWS(viewX, viewY);
-    float isoScale = max((float)IsoLevel, 1.0f);
+    float sampleDist = GetScatterStep();
+    float sampleStep = sampleDist / (float)sampleCount;
+    float2 size = float2(max(SampleTextureWidth - 1u, 1u), max(SampleTextureHeight - 1u, 1u));
+    float3 direction = normalize(GetViewVectorWS(float2(viewX, viewY) / size));
+    float invIsoScale = rcp(max((float)IsoLevel, 1.0f));
     float3 cameraPos = _WorldSpaceCameraPos;
 
     ScatterData cumulative = (ScatterData)0;
-    float3 cameraDepth = 0;
 
     for(uint depth = 0u; depth < _NumInScatterPoints; depth++) {
-        float3 inScatterPoint = cameraPos + direction * (sampleDist * depth);
-        OpticalInfo opticalInfo = (OpticalInfo)0;
-        float4 staticLight = 0;
-        BuildDepthSampleAverages(inScatterPoint, direction, sampleStep, isoScale, opticalInfo, staticLight);
+        // Layer depth is the start of the next segment, so it stores only completed segments.
+        mapData[GetTextureIndex(id.xy, depth)] = cumulative;
+        if(depth == _NumInScatterPoints - 1u)
+            break;
 
-        ScatterData curDensity = ComputeScatterDensity(inScatterPoint, cameraDepth, opticalInfo, staticLight);
-        uint texelIndex = indexFromCoordIrregular(viewX, viewY, depth, screenHeight, _NumInScatterPoints);
-        float3 cameraDepthStep = (opticalInfo.scatterCoeffs * opticalInfo.opticalDensity) * sampleDist;
-
-        cumulative.inScatteredLight += curDensity.inScatteredLight * sampleDist;
-        cumulative.extinction += curDensity.extinction * sampleDist;
-        mapData[texelIndex] = cumulative;
-
-        cameraDepth += cameraDepthStep;
+        AccumulateScatterSegment(cameraPos, direction, sampleDist * depth, sampleStep,
+            sampleCount, invIsoScale, 0.0f, cumulative);
     }
+}
+
+[numthreads(numThreads,numThreads,1)]
+void CorrectRemainder(uint3 id : SV_DispatchThreadID) {
+    if(any(id.xy >= (uint2)_AtmospherePixelSize.xy))
+        return;
+
+    uint index = GetRemainderIndex(id.xy);
+    ScatterData remainder = (ScatterData)0;
+    float2 uv = GetAtmospherePixelUV(id.xy);
+    float3 viewVector = GetViewVectorWS(uv);
+    float rayLength = GetAtmosphereRayLength(_CameraDepthTexture.Load(int3(id.xy, 0)), viewVector);
+    float sampleDist = GetScatterStep();
+    uint layer = GetScatterLayer(rayLength, sampleDist);
+    float start = layer * sampleDist;
+    float remainderLength = layer > 0u && layer == _NumInScatterPoints - 1u ? 0.0f : rayLength - start;
+
+    if(remainderLength <= 0.0f) {
+        _RemainderScatter[index] = remainder;
+        return;
+    }
+
+    float3 prefixExtinction = 0;
+    if(layer > 0u) {
+        Influences2D blend = GetLookupBlend(uv);
+        [unroll]for(uint i = 0u; i < 4u; i++) {
+            if(blend.corner[i] == 0.0f) continue;
+
+            uint2 sampleCoord = blend.origin + uint2(i & 1u, i >> 1);
+            prefixExtinction += mapData[GetTextureIndex(sampleCoord, layer)].extinction * blend.corner[i];
+        }
+    }
+
+    float3 direction = normalize(viewVector);
+    float invIsoScale = rcp(max((float)IsoLevel, 1.0f));
+    uint sampleCount = max(_NumRemainderOpticalDepthPoints, 1u);
+    float step = remainderLength / (float)sampleCount;
+
+    AccumulateScatterSegment(_WorldSpaceCameraPos, direction, start, step,
+        sampleCount, invIsoScale, prefixExtinction, remainder);
+
+    _RemainderScatter[index] = remainder;
 }

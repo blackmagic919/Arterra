@@ -97,8 +97,8 @@ MonoBehaviour:
     - rid: 5778504888424333536
       type: {class: ProjectileEffectsSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
-        FlybySound: 3000
-        HitSound: 3001
+        FlybySound: 3006
+        HitSound: 3007
     - rid: 5778504888424333537
       type: {class: LimitedFlightSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:

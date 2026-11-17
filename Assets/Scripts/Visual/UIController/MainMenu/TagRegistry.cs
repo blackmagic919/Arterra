@@ -112,27 +112,34 @@ namespace Arterra.Configuration {
         }
 
         public virtual void LaunchProjectile(Entity entity, Entity parent, float3 velocity, Action<Entity> cb = null) {
-            float3 dir = math.normalize(velocity);
+            float3 dir = math.normalizesafe(velocity);
+            if (!math.all(math.isfinite(dir)) || !math.any(dir != 0f)) return;
+
             float3 rayOrigin = parent.position;
             float3 min = parent.origin;
             float3 max = parent.origin + parent.transform.size;
-            float3 t1 = (min - rayOrigin) / dir;
-            float3 t2 = (max - rayOrigin) / dir;
-
-            float3 tmax = math.max(t1, t2);
-            float tExit = math.cmin(tmax); // the nearest "exit" distance
-            rayOrigin += +dir * (tExit + 0.05f);
+            float3 exitFace = math.select(min, max, dir > 0f);
+            bool3 parallel = dir == 0f;
+            float3 divisor = math.select(dir, new float3(1f), parallel);
+            // Parallel axes do not constrain the exit distance, even on a collider face.
+            float3 exitDistances = math.select((exitFace - rayOrigin) / divisor, new float3(float.PositiveInfinity), parallel);
+            float tExit = math.cmin(exitDistances);
+            rayOrigin += dir * (tExit + 0.05f);
             LaunchProjectile(entity, parent, rayOrigin, velocity, cb);
         }
 
         protected void LaunchProjectile(Entity entity, Entity parent, float3 position, float3 velocity, Action<Entity> cb) {
-            var entityInfo = Config.CURRENT.Generation.Entities;
+            float3 direction = math.normalizesafe(velocity);
+            float3 launchVelocity = velocity * LaunchSpeedMultiplier;
+            if (!math.all(math.isfinite(position)) || !math.all(math.isfinite(launchVelocity)) ||
+                !math.all(math.isfinite(direction)) || !math.any(direction != 0f)) return;
+
             if(parent != null) entity.RegisterConstructor(ProjectileFlightBehavior.Build(parent.info.rtEntityId));
             EntityManager.AddHandlerEvent(() => AudioManager.CreateEvent(FireSound, position));
             EntityManager.CreateEntity(position, (uint)entity.Index, entity, () => {
                 entity.transform.position = position;
-                entity.transform.velocity = velocity * LaunchSpeedMultiplier;
-                entity.transform.rotation = Quaternion.LookRotation(math.normalize(velocity));
+                entity.transform.velocity = launchVelocity;
+                entity.transform.rotation = Quaternion.LookRotation(direction);
                 entity.position = position;
                 cb?.Invoke(entity);
             });

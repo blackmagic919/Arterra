@@ -32,6 +32,10 @@ namespace Arterra.Configuration.Quality {
         /// </summary>
         public int NumOpticalDepthPoints; // 8
         /// <summary>
+        /// The number of optical depth points used to correct each pixel of the upscaled texture.
+        /// </summary>
+        public int NumRemainderOpticalDepthPoints; // 4
+        /// <summary>
         /// The size of the luminance precompute texture in pixels.
         /// </summary>
         public int LuminanceTextureSizePX; // 128
@@ -45,19 +49,33 @@ namespace Arterra.Configuration.Quality {
         /// Higher values reduce integration error at additional compute cost.
         /// </summary>
         public int LuminanceOpticalDepthPoints; // 8
+        /// <summary>Scales optical depth when compositing fog over scene geometry.</summary>
+        [Min(0f)]
+        [System.ComponentModel.DefaultValue(10f)]
+        [Newtonsoft.Json.JsonProperty(DefaultValueHandling = Newtonsoft.Json.DefaultValueHandling.Populate)]
+        public float GroundExtinctionMultiplier;
     }
 
 }
 
 namespace Arterra.Engine.Rendering {
     public class AtmosphereBake {
+        private const int ScatterDataStride = sizeof(float) * 6;
+
         private ComputeBuffer OpticalInfo;
+        private ComputeBuffer remainderScatter;
         private ComputeBuffer sunLuminance;
         private ComputeBuffer sunRayLengths;
         private ComputeBuffer singleOriginLuminanceAccum;
 
         private ComputeShader LuminanceCompute;
         private ComputeShader OpticalDataCompute;
+        private int opticalBakeKernel;
+        private int correctRemainderKernel;
+        private int opticalBakeGroupsX;
+        private int opticalBakeGroupsY;
+        private int remainderGroupSizeX;
+        private int remainderGroupSizeY;
         private bool singleOriginReadbackPending;
         private Vector3 singleOriginLuminanceCached = Vector3.one;
         private Arterra.Configuration.Quality.Atmosphere settings;
@@ -83,13 +101,15 @@ namespace Arterra.Engine.Rendering {
             singleOriginLuminanceAccum = new ComputeBuffer(3, sizeof(uint), ComputeBufferType.Raw, ComputeBufferMode.Immutable);
 
             int numOpticalSamples = numPixels * NumInScatterPoints;
-            this.OpticalInfo = new ComputeBuffer(numOpticalSamples, sizeof(float) * (3 + 3), ComputeBufferType.Structured, ComputeBufferMode.Immutable);
+            this.OpticalInfo = new ComputeBuffer(numOpticalSamples, ScatterDataStride, ComputeBufferType.Structured, ComputeBufferMode.Immutable);
             SetupData();
         }
 
         public void ReleaseData() {
             initialized = false;
             OpticalInfo?.Release();
+            remainderScatter?.Release();
+            remainderScatter = null;
             sunLuminance?.Release();
             sunRayLengths?.Release();
             singleOriginLuminanceAccum?.Release();
@@ -121,7 +141,7 @@ namespace Arterra.Engine.Rendering {
 
             UpdateFrustumLightVolumeData(lightDirection);
 
-            ExecuteOpticalMarch(cmd);
+            cmd.DispatchCompute(OpticalDataCompute, opticalBakeKernel, opticalBakeGroupsX, opticalBakeGroupsY, 1);
         }
 
         public void SetupData() {
@@ -132,14 +152,12 @@ namespace Arterra.Engine.Rendering {
         }
 
         public void SetBakedData(Material material) {
-            InitializeTextureInterpHelper(material);
             material.SetBuffer("_OpticalInfo", OpticalInfo);
-        }
-
-        void InitializeTextureInterpHelper(Material material) {
+            material.SetFloat("_AtmosphereRadius", atmosphereRadius);
+            material.SetFloat("_GroundExtinctionMultiplier", Mathf.Max(settings.GroundExtinctionMultiplier, 0f));
+            material.SetInt("_NumInScatterPoints", NumInScatterPoints);
             material.SetInt("SampleTextureHeight", settings.BakedTextureSizePX);
             material.SetInt("SampleTextureWidth", settings.BakedTextureSizePX);
-            material.SetInt("SampleDepth", NumInScatterPoints);
         }
 
         void SetupLuminanceMarch() {
@@ -202,26 +220,54 @@ namespace Arterra.Engine.Rendering {
 
             OpticalDataCompute.SetInt("_NumInScatterPoints", NumInScatterPoints);
             OpticalDataCompute.SetInt("_NumOpticalDepthPoints", settings.NumOpticalDepthPoints);
+            OpticalDataCompute.SetInt("_NumRemainderOpticalDepthPoints", settings.NumRemainderOpticalDepthPoints);
             OpticalDataCompute.SetInt("_NumSunDepthPoints", NumLuminancePoints);
 
-            OpticalDataCompute.SetInt("screenHeight", settings.BakedTextureSizePX);
-            OpticalDataCompute.SetInt("screenWidth", settings.BakedTextureSizePX);
+            OpticalDataCompute.SetInt("SampleTextureHeight", settings.BakedTextureSizePX);
+            OpticalDataCompute.SetInt("SampleTextureWidth", settings.BakedTextureSizePX);
             OpticalDataCompute.SetInt("sunHeight", LuminanceTextureSizePX);
             OpticalDataCompute.SetInt("sunWidth", LuminanceTextureSizePX);
             OpticalDataCompute.SetInt("IsoLevel", IsoValue);
 
-            OpticalDataCompute.SetBuffer(0, "mapData", OpticalInfo);
-            OpticalDataCompute.SetBuffer(0, "sunLuminance", sunLuminance);
-            OpticalDataCompute.SetBuffer(0, "sunRayLengths", sunRayLengths);
-            GPUMapManager.SetDensitySampleData(OpticalDataCompute);
+            opticalBakeKernel = OpticalDataCompute.FindKernel("Bake");
+            correctRemainderKernel = OpticalDataCompute.FindKernel("CorrectRemainder");
+            BindOpticalKernel(opticalBakeKernel);
+            BindOpticalKernel(correctRemainderKernel);
+
+            OpticalDataCompute.GetKernelThreadGroupSizes(opticalBakeKernel, out uint bakeSizeX, out uint bakeSizeY, out _);
+            opticalBakeGroupsX = Mathf.CeilToInt(settings.BakedTextureSizePX / (float)bakeSizeX);
+            opticalBakeGroupsY = Mathf.CeilToInt(settings.BakedTextureSizePX / (float)bakeSizeY);
+
+            OpticalDataCompute.GetKernelThreadGroupSizes(correctRemainderKernel, out uint remainderSizeX, out uint remainderSizeY, out _);
+            remainderGroupSizeX = (int)remainderSizeX;
+            remainderGroupSizeY = (int)remainderSizeY;
         }
 
-        void ExecuteOpticalMarch(CommandBuffer cmd) {
+        void BindOpticalKernel(int kernel) {
+            OpticalDataCompute.SetBuffer(kernel, "mapData", OpticalInfo);
+            OpticalDataCompute.SetBuffer(kernel, "sunLuminance", sunLuminance);
+            OpticalDataCompute.SetBuffer(kernel, "sunRayLengths", sunRayLengths);
+            GPUMapManager.SetDensitySampleData(OpticalDataCompute, kernel);
+        }
 
-            OpticalDataCompute.GetKernelThreadGroupSizes(0, out uint threadGroupSize, out _, out _);
-            int numThreadsPerAxisX = Mathf.CeilToInt(settings.BakedTextureSizePX / (float)threadGroupSize);
-            int numThreadsPerAxisY = Mathf.CeilToInt(settings.BakedTextureSizePX / (float)threadGroupSize);
-            cmd.DispatchCompute(OpticalDataCompute, 0, numThreadsPerAxisX, numThreadsPerAxisY, 1);
+        public void EnsureRemainderBuffer(int width, int height, Material material) {
+            int count = width * height;
+            if (remainderScatter != null && remainderScatter.count >= count)
+                return;
+
+            var buffer = new ComputeBuffer(count, ScatterDataStride, ComputeBufferType.Structured, ComputeBufferMode.Immutable);
+            remainderScatter?.Release();
+            remainderScatter = buffer;
+            OpticalDataCompute.SetBuffer(correctRemainderKernel, "_RemainderScatter", remainderScatter);
+            material.SetBuffer("_RemainderScatter", remainderScatter);
+        }
+
+        public void ExecuteRemainder(CommandBuffer cmd, RTHandle depthTexture, int width, int height) {
+            cmd.SetGlobalVector("_AtmospherePixelSize", new Vector4(width, height, 1f / width, 1f / height));
+            cmd.SetComputeTextureParam(OpticalDataCompute, correctRemainderKernel, "_CameraDepthTexture", depthTexture);
+            int groupsX = (width + remainderGroupSizeX - 1) / remainderGroupSizeX;
+            int groupsY = (height + remainderGroupSizeY - 1) / remainderGroupSizeY;
+            cmd.DispatchCompute(OpticalDataCompute, correctRemainderKernel, groupsX, groupsY, 1);
         }
 
         void ExecuteLuminanceMarch(CommandBuffer cmd) {

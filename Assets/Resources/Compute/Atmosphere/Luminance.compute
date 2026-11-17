@@ -83,8 +83,7 @@ void Bake (uint3 id : SV_DispatchThreadID)
         for(uint opticalSample = 0u; opticalSample < opticalSampleCount; opticalSample++) {
             float intervalT = ((float)opticalSample + 0.5f) * invOpticalSampleCount;
             float3 samplePointWS = rayStartWS + rayDir * (stepSize * ((float)depth + intervalT));
-            OpticalDepth sampleData = SampleOpticalDepth(samplePointWS);
-            segmentOpticalAccum += sampleData.scatterCoeffs * (sampleData.opticalDensity / isoScale);
+            segmentOpticalAccum += SampleMapData(samplePointWS).extinctionCoeff / isoScale;
         }
 
         float3 segmentOpticalAverage = segmentOpticalAccum * invOpticalSampleCount;
@@ -123,8 +122,7 @@ void SampleSingleOrigin (uint3 id : SV_DispatchThreadID)
     for(uint opticalSample = 0u; opticalSample < opticalSampleCount; opticalSample++) {
         float intervalT = ((float)opticalSample + 0.5f) * invOpticalSampleCount;
         float3 samplePointWS = rayStartWS + rayDir * (stepSize * ((float)id.x + intervalT));
-        OpticalDepth sampleData = SampleOpticalDepth(samplePointWS);
-        segmentOpticalAccum += sampleData.scatterCoeffs * (sampleData.opticalDensity / isoScale);
+        segmentOpticalAccum += SampleMapData(samplePointWS).extinctionCoeff / isoScale;
     }
 
     float3 segmentOpticalAverage = segmentOpticalAccum * invOpticalSampleCount;

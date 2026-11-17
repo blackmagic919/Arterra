@@ -86,9 +86,6 @@
 		</relationship>
 	</object>
 	<object class="MultiSound" id="{059e263c-5220-494b-93f3-b1dae05533f7}">
-		<property name="length">
-			<value>0.40000000000000002</value>
-		</property>
 		<relationship name="sounds">
 			<destination>{c0baf3e0-ca9a-42ce-8152-080d8f38add3}</destination>
 			<destination>{c49d0971-576f-49c4-afff-3087979dbea0}</destination>

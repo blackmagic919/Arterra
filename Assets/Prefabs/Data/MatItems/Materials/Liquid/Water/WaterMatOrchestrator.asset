@@ -28,18 +28,17 @@ MonoBehaviour:
   terrainData:
     Texture: 2
     textureScale: 2
-    FlipStateRendering: 0
+    ModelIndex: 0
     GeoShaderIndex:
       data: 3
   AtmosphereScatter:
     InScatterCoeffs: {x: 0.00025, y: 0.00125, z: 0.003}
-    OutScatterCoeffs: {x: 0.005, y: 0.005, z: 0.005}
-    GroundExtinction: {x: 0.06, y: 0.012, z: 0.006}
+    AbsorptionCoeffs: {x: 0.00225, y: 0.00175, z: 0.002}
     LightIntensity: 0
   liquidData:
-    shallowCol: {r: 0.3726415, g: 0.77981764, b: 1, a: 0.09803922}
+    shallowCol: {r: 0.37254906, g: 0.6392827, b: 1, a: 0.78431374}
     deepCol: {r: 0.122641504, g: 0.20858653, b: 0.49056602, a: 1}
-    colFalloff: 0.01
+    colFalloff: 0.025
     waveBlend: 0.5
     waveStrength: 0.05
     waveScale: {x: 0.2, y: 0.045}

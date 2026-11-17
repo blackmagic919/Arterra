@@ -73,6 +73,7 @@ MonoBehaviour:
         MinDamagingSpeed: 2.5
         DamageMultiplier: 0.01
         KnockbackMultiplier: 0.0025
+        UseFixedImpact: 0
         FrictionReduction: 1
         entityInteraction: 1
     - rid: 5778504888424333510
@@ -97,7 +98,7 @@ MonoBehaviour:
       type: {class: ProjectileEffectsSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
         FlybySound: 3000
-        HitSound: 3001
+        HitSound: 3050
     - rid: 5778504888424333633
       type: {class: TimedDecaySettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:

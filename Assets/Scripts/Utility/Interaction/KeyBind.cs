@@ -423,7 +423,7 @@ namespace Arterra.GamePlay.Interaction {
                 bind.action.Invoke(0);
             }
 
-            public void RemoveStackPoll(string layer, string KeyName) {
+            public void RemoveStackPoll(string layer, string KeyName, bool invokeTop = true) {
                 if (!StackEntries.Contains(KeyName)) return;
                 if (!LayerHeads.Contains(layer)) return;
 
@@ -437,7 +437,7 @@ namespace Arterra.GamePlay.Interaction {
                 }
                 StackBinds.Remove(bindIndex);
                 StackEntries.TryRemove(KeyName);
-                if (!LayerHeads.Contains(layer)) return;
+                if (!invokeTop || !LayerHeads.Contains(layer)) return;
                 //Invoke the top bind in the stack
                 bindIndex = LayerHeads.Retrieve(layer);
                 StackBinds.Value(bindIndex).action.Invoke(0);
@@ -459,7 +459,8 @@ namespace Arterra.GamePlay.Interaction {
         public static string PeekTop(string layer) => SStack.PeekTop(layer);
         public static void InvokeStackTop(string layer) => SStack.InvokeTop(layer);
         public static void AddStackPoll(ActionBind bind, string Layer) => SStack.AddStackPoll(bind, Layer, bind.Binding);
-        public static void RemoveStackPoll(string BindName, string Layer) => SStack.RemoveStackPoll(Layer, BindName);
+        public static void RemoveStackPoll(string BindName, string Layer, bool invokeTop = true) =>
+            SStack.RemoveStackPoll(Layer, BindName, invokeTop);
     }
 
     public struct ActionBind {

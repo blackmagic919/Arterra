@@ -32,8 +32,7 @@ MonoBehaviour:
       data: 0
   AtmosphereScatter:
     InScatterCoeffs: {x: 0, y: 0, z: 0}
-    OutScatterCoeffs: {x: 0, y: 0, z: 0}
-    GroundExtinction: {x: 0, y: 0, z: 0}
+    AbsorptionCoeffs: {x: 0, y: 0, z: 0}
     LightIntensity: 0
   liquidData:
     shallowCol: {r: 0.5896226, g: 0.8089622, b: 1, a: 0.5882353}

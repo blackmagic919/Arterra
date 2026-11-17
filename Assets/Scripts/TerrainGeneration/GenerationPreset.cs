@@ -415,7 +415,7 @@ public static class GenerationPreset
 
                 int numMats = MaterialDictionary.Count;
                 terrainData = new ComputeBuffer(numMats, sizeof(float) + sizeof(int) * 3, ComputeBufferType.Structured);
-                atmosphericData = new ComputeBuffer(numMats, sizeof(float) * 9 + sizeof(uint), ComputeBufferType.Structured);
+                atmosphericData = new ComputeBuffer(numMats, sizeof(float) * 6 + sizeof(uint), ComputeBufferType.Structured);
                 liquidData = new ComputeBuffer(numMats, sizeof(float) * (4 * 2 + 2 * 2 + 3), ComputeBufferType.Structured);
 
                 for (int i = 0; i < MaterialDictionary.Count; i++) {

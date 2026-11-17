@@ -272,17 +272,8 @@ namespace Arterra.Data.Material
             /// while higher wavelengths will be more prominent with a thicker optical density.
             /// </summary> <remarks>as a percentage, between 0 and 1</remarks>
             public Vector3 InScatterCoeffs;
-            /// <summary>
-            /// How much this gaseous material reflects light traveling through it away from the viewer. The channels, ordered rgb, and each describe how 
-            /// much of that wavelength is reflected when light encounters the material.
-            /// </summary> <remarks>as a percentage, between 0 and 1</remarks>
-            public Vector3 OutScatterCoeffs;
-            /// <summary>
-            /// When light travels from a surface fragment to the camera, how quickly the light is scattered away. Deescribes 
-            /// how much of that wavelength is reflected away from the camera as light travels through it. A higher ground extinction
-            /// will result in lower visibility of distant objects. 
-            /// </summary> <remarks>as a percentage, between 0 and 1</remarks>
-            public Vector3 GroundExtinction;
+            /// <summary>RGB absorption coefficients. Extinction is absorption plus scattering.</summary>
+            public Vector3 AbsorptionCoeffs;
             /// <summary>
             /// Controls how much light is emitted from this block as both a solid and liquid.
             /// Divided into 2 15 bit sections; 0x7FFF controls light emitted as a solid; 0x7FFF0000

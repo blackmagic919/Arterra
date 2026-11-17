@@ -6,7 +6,6 @@ using UnityEngine;
 using UnityEngine.Experimental.Rendering;
 using UnityEngine.Rendering;
 using UnityEngine.Rendering.RenderGraphModule;
-using UnityEngine.Rendering.RenderGraphModule.Util;
 using UnityEngine.Rendering.Universal;
 using UnityEngine.Rendering.Universal.Internal;
 using Arterra.Configuration;
@@ -31,6 +30,11 @@ namespace Arterra.Engine.Rendering
             public AtmosphereBake atmosphereSettings;
             public Vector3 lightDirection;
             public Vector4 lightColor;
+            public TextureHandle source;
+            public TextureHandle depth;
+            public TextureHandle destination;
+            public int width;
+            public int height;
         }
 
         public AtmospherePass(AtmosphereFeature.PassSettings passSettings)
@@ -59,9 +63,6 @@ namespace Arterra.Engine.Rendering
             float atmosphereRadius = rSettings.lerpScale * rSettings.mapChunkSize * GPUMapManager.numChunksRadius;
             AtmosphereSettings = new AtmosphereBake(atmosphereRadius);
 
-            material.SetFloat("_AtmosphereRadius", atmosphereRadius);
-            material.SetInt("_NumInScatterPoints", AtmosphereSettings.NumInScatterPoints);
-            GPUMapManager.SetDensitySampleData(material);
             AtmosphereSettings.SetBakedData(material);
             initialized = true;
         }
@@ -145,6 +146,11 @@ namespace Arterra.Engine.Rendering
             {
                 UniversalLightData lightData = frameData.Get<UniversalLightData>();
                 passData.atmosphereSettings = AtmosphereSettings;
+                passData.source = colorTexture;
+                passData.depth = depthTexture;
+                passData.destination = temporaryTexture;
+                passData.width = descriptor.width;
+                passData.height = descriptor.height;
                 passData.lightDirection = Vector3.up;
                 passData.lightColor = Color.white;
                 if (lightData.mainLightIndex >= 0 && lightData.mainLightIndex < lightData.visibleLights.Length)
@@ -156,17 +162,21 @@ namespace Arterra.Engine.Rendering
 
                 builder.UseTexture(colorTexture, AccessFlags.Read);
                 builder.UseTexture(depthTexture, AccessFlags.Read);
+                builder.UseTexture(temporaryTexture, AccessFlags.Write);
                 builder.AllowGlobalStateModification(true);
                 builder.AllowPassCulling(false);
                 builder.SetRenderFunc((PassData data, UnsafeGraphContext context) =>
                 {
                     CommandBuffer cmd = CommandBufferHelpers.GetNativeCommandBuffer(context.cmd);
                     SetGlobalLightProperties(cmd, data);
+                    data.atmosphereSettings.EnsureRemainderBuffer(data.width, data.height, material);
                     data.atmosphereSettings.ExecuteOptical(cmd, data.lightDirection);
+                    data.atmosphereSettings.ExecuteRemainder(cmd, data.depth, data.width, data.height);
+                    context.cmd.SetRenderTarget(data.destination, 0, CubemapFace.Unknown, -1);
+                    Blitter.BlitTexture(cmd, data.source, new Vector4(1f, 1f, 0f, 0f), material, 0);
                 });
             }
 
-            RenderGraphUtils.AddBlitPass(renderGraph, new RenderGraphUtils.BlitMaterialParameters(colorTexture, temporaryTexture, material, 0), "Atmosphere Fog");
             resourceData.cameraColor = temporaryTexture;
         }
 

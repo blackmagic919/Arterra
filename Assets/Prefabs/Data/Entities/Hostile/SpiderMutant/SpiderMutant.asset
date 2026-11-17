@@ -716,7 +716,7 @@ MonoBehaviour:
           ChargeTime: 5
           Projectile:
             LaunchSpeedMultiplier: 5
-            FireSound: 2001
+            FireSound: 2003
             ProjectileEntity: SpiderWeb
           HasRangedAttack: 1
           MaxTargetAngle: 20

@@ -138,6 +138,7 @@ namespace Arterra.Data.Entity.Behavior {
         public override void Disable(BehaviorEntity.Animal self) {
             if (this.self == null) return;
             DisposeVisual(self);
+            // Other behaviors may already be disposed, so teardown must not resume a movement poll.
             ridePattern?.Disable();
             flightPattern?.Disable();
             swimPattern?.Disable();
@@ -318,8 +319,8 @@ namespace Arterra.Data.Entity.Behavior {
             public void UnbindInput() => InputPoller.RemoveBinding(PlayerJumpName, "4.0::Movement");
 
             public void Disable() {
-                InputPoller.RemoveStackPoll(GroundMove1Name, owner.UpdateLayer);
-                InputPoller.RemoveStackPoll(GroundMove2Name, owner.GravityLayer);
+                InputPoller.RemoveStackPoll(GroundMove1Name, owner.UpdateLayer, invokeTop: false);
+                InputPoller.RemoveStackPoll(GroundMove2Name, owner.GravityLayer, invokeTop: false);
                 owner.self.Collider.RemoveGravityState(GroundMove2Name);
                 UnbindInput();
                 owner.self.eventCtrl.RemoveEventHandler(GameEvent.Apply_Jump, Jump);
@@ -361,7 +362,7 @@ namespace Arterra.Data.Entity.Behavior {
                 isSwimming = false;
                 owner.self.eventCtrl.RemoveEventHandler(GameEvent.Entity_InLiquid, StartSwim);
                 owner.self.eventCtrl.RemoveEventHandler(GameEvent.Entity_InGas, StopSwim);
-                RemoveHandles();
+                RemoveHandles(invokeTop: false);
             }
 
             private void StartSwim(object srcId, object _, object density) {
@@ -388,9 +389,9 @@ namespace Arterra.Data.Entity.Behavior {
                 
             }
 
-            private void RemoveHandles() {
-                InputPoller.RemoveStackPoll(SwimMove1Name, owner.UpdateLayer);
-                InputPoller.RemoveStackPoll(SwimMove2Name, owner.GravityLayer);
+            private void RemoveHandles(bool invokeTop = true) {
+                InputPoller.RemoveStackPoll(SwimMove1Name, owner.UpdateLayer, invokeTop);
+                InputPoller.RemoveStackPoll(SwimMove2Name, owner.GravityLayer, invokeTop);
                 owner.self.Collider.RemoveGravityState(SwimMove2Name);
                 
             }
@@ -434,7 +435,7 @@ namespace Arterra.Data.Entity.Behavior {
                 Config.CURRENT.System.RemoveHook("Gamemode:Flight", OnFlightRuleChanged);
                 owner.self.eventCtrl.RemoveEventHandler(GameEvent.Apply_ToggleFly, ToggleFly);
                 UnbindInput();
-                RemoveHandles();
+                RemoveHandles(invokeTop: false);
             }
 
             private void OnFlightRuleChanged(ref object flightRule) {
@@ -480,10 +481,10 @@ namespace Arterra.Data.Entity.Behavior {
                 
             }
 
-            private void RemoveHandles() {
+            private void RemoveHandles(bool invokeTop = true) {
                 isFlying = false;
-                InputPoller.RemoveStackPoll(FlightMove1Name, owner.UpdateLayer);
-                InputPoller.RemoveStackPoll(FlightMove2Name, owner.GravityLayer);
+                InputPoller.RemoveStackPoll(FlightMove1Name, owner.UpdateLayer, invokeTop);
+                InputPoller.RemoveStackPoll(FlightMove2Name, owner.GravityLayer, invokeTop);
                 owner.self.Collider.RemoveGravityState(FlightMove2Name);
                 
             }
@@ -531,7 +532,7 @@ namespace Arterra.Data.Entity.Behavior {
             public void Disable() {
                 owner.self.eventCtrl.RemoveEventHandler(GameEvent.Action_Mount, Mount);
                 owner.self.eventCtrl.RemoveEventHandler(GameEvent.Action_Dismount, Dismount);
-                RemoveHandles();
+                RemoveHandles(invokeTop: false);
             }
 
             private void Mount(object riderId, object mountId, object context) {
@@ -602,11 +603,11 @@ namespace Arterra.Data.Entity.Behavior {
                     policy: ActionBind.Policy.Down), RideDismountName, "5.0::Gameplay");
             }
 
-            public void RemoveHandles() {
+            public void RemoveHandles(bool invokeTop = true) {
                 IRidable oldMount = mount;
                 if (oldMount == null) return;
-                InputPoller.RemoveStackPoll(RideMove1Name, owner.UpdateLayer);
-                InputPoller.RemoveStackPoll(RideMove2Name, owner.GravityLayer);
+                InputPoller.RemoveStackPoll(RideMove1Name, owner.UpdateLayer, invokeTop);
+                InputPoller.RemoveStackPoll(RideMove2Name, owner.GravityLayer, invokeTop);
                 owner.self.Collider.RemoveGravityState(RideMove2Name);
                 owner.self.eventCtrl.RaiseEvent(
                     GameEvent.Action_DismountRideable,
