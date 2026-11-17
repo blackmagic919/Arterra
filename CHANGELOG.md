@@ -1,4 +1,6 @@
 ## [Unreleased]
+
+## [0.2.6] - 2026-11-17
 ## Added
 - New underwater mecha monster, Tholechos
 - Proper projectile sounds to every non-arrow projectile
