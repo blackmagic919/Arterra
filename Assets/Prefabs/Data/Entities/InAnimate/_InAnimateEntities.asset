@@ -20,7 +20,6 @@ MonoBehaviour:
     value:
     - value: {fileID: 11400000, guid: 56baabfb38ecb41949aaf57428997cbc, type: 2}
     - value: {fileID: 11400000, guid: 279d62c7054754c6a91b4412bdd7699a, type: 2}
-    - value: {fileID: 11400000, guid: fa068e762a66cb74baa6fec4c39e7823, type: 2}
     - value: {fileID: 11400000, guid: 77e00515cb17c4a8199e72cc8cc3f437, type: 2}
     - value: {fileID: 11400000, guid: 922f021e7a9ae45e19e524fe784facae, type: 2}
     - value: {fileID: 11400000, guid: ba57b9e7c030f4279b1c515fe7c7c968, type: 2}
@@ -28,6 +27,7 @@ MonoBehaviour:
     - value: {fileID: 11400000, guid: d50918b4c8efe4f69949df7a4934ab37, type: 2}
     - value: {fileID: 11400000, guid: c7060d0b13520428cacb37fbd9ccc6fb, type: 2}
     - value: {fileID: 11400000, guid: 870e24d83eb9580fa6f92388e2d5f5f2, type: 2}
+    - value: {fileID: 11400000, guid: fa068e762a66cb74baa6fec4c39e7823, type: 2}
   references:
     version: 2
     RefIds: []

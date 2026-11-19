@@ -38,7 +38,7 @@ v2f vert (appdata v)
 }
 
 
-float3 frag (v2f IN) : SV_Target
+float4 frag (v2f IN) : SV_Target
 {
     float3 albedo = _Textures.Sample(sampler_Textures, float3(IN.uv, IN.texInd)).rgb;
     return LambertShade(albedo, IN.normalWS, IN.positionWS);

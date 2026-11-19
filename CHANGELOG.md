@@ -1,5 +1,11 @@
 ## [Unreleased]
 
+## Fixed
+- EItem material is not set causing missing texture
+
+## Changed
+- Boats(All Entities) are now behavior entities
+
 ## [0.2.6] - 2026-11-17
 ## Added
 - New underwater mecha monster, Tholechos

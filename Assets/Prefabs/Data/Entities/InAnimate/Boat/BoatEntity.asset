@@ -9,9 +9,9 @@ MonoBehaviour:
   m_GameObject: {fileID: 0}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c4b53420ee54bde40aee129b46811e80, type: 3}
+  m_Script: {fileID: 11500000, guid: 0ee3f1559d5714294a36c8deb28652c1, type: 3}
   m_Name: BoatEntity
-  m_EditorClassIdentifier: 
+  m_EditorClassIdentifier: Assembly-CSharp::Arterra.Data.Entity.Behavior.BehaviorEntity
   Name: Boat
   Tags:
     Reg:
@@ -32,18 +32,90 @@ MonoBehaviour:
           x: 2.5
           y: 1.5
           z: 2.5
-      rotSpeed: 180
-      MaxWaterSpeed: 10
-      MaxLandSpeed: 1
-      Acceleration: 150
-      groundStickDist: 0.1
-      durability:
+      BehaviorList:
+        value: 05000000e803000004000000fe030000ed030000fb030000ff030000
+      Settings:
+        value:
+          value:
+          - value:
+              value:
+                rid: 8100000000000000000
+          - value:
+              value:
+                rid: 8100000000000000001
+          - value:
+              value:
+                rid: 8100000000000000002
+          - value:
+              value:
+                rid: 8100000000000000003
+          - value:
+              value:
+                rid: 8100000000000000004
+          - value:
+              value:
+                rid: 8100000000000000005
+          - value:
+              value:
+                rid: 8100000000000000006
+          - value:
+              value:
+                rid: 8100000000000000007
+      _prevBehaviorCount: 7
+  references:
+    version: 2
+    RefIds:
+    - rid: 8100000000000000000
+      type: {class: ColliderUpdateSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        interactType: 0
+        UseGravity: 1
+    - rid: 8100000000000000001
+      type: {class: StateMachineManagerSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        StartTask: 0
+        AverageStartDuration: 1
+        AverageStartDurationVariance: 0
+        ContactDistance: 0.1
+    - rid: 8100000000000000002
+      type: {class: RideableSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        RideRoot: Armature/root/base
+    - rid: 8100000000000000003
+      type: {class: ContactDriveSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        GroundSpeed: 1
+        LiquidSpeed: 10
+        Acceleration: 150
+        RotationSpeed: 180
+        ContactDistance: 0.1
+        Buoyancy: 1
+    - rid: 8100000000000000004
+      type: {class: PhysicalitySetting, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
         weight: 0.05
+        StartHealthPercent: 1
+        StartHealthVariance: 0
         MaxHealth: 2
         NaturalRegen: 1
         InvincTime: 0.05
-        HoldBreathTime: Infinity
-      ItemDrop: Boat
-  references:
-    version: 2
-    RefIds: []
+    - rid: 8100000000000000005
+      type: {class: Decomposition, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        LootTable:
+          value:
+          - ItemName: Boat
+            DropAmount: 1
+    - rid: 8100000000000000006
+      type: {class: ExplodedDecaySettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        DropEntity: EntityItem
+    - rid: 8100000000000000007
+      type: {class: DriveAnimationSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        AnimatorPath:
+        MovingParameter: Paddle
+        SteeringParameter: Direction
+        MinSpeed: 0.5
+        MinSteeringAngle: -90
+        MaxSteeringAngle: 90

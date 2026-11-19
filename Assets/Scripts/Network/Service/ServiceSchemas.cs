@@ -69,4 +69,10 @@ namespace Arterra.Core.Network.Service {
         public Guid RemoteUserId;
         public bool Connected;
     }
+
+    [Serializable]
+    public sealed class PlayerProfile {
+        public Guid UserId;
+        public string DisplayName;
+    }
 }

@@ -82,6 +82,7 @@ namespace Arterra.Data.Entity.Behavior {
         PlayerBaseLogicHandler = BehaviorTypes.Base + 106,
         PlayerCrafting = BehaviorTypes.Base + 107,
         PlayerArmor = BehaviorTypes.Base + 108,
+        PlayerIdentity = BehaviorTypes.Base + 109,
 
         StateMachine = BehaviorTypes.Creature + 0,
         Attack = BehaviorTypes.Creature + 1,
@@ -105,6 +106,8 @@ namespace Arterra.Data.Entity.Behavior {
         TimedDecay = BehaviorTypes.Creature + 18,
         ExplodedDecay = BehaviorTypes.Creature + 19,
         LimitedFlight = BehaviorTypes.Creature + 21,
+        ContactDrive = BehaviorTypes.Creature + 22,
+        DriveAnimation = BehaviorTypes.Creature + 23,
 
         ChaseEnemy = BehaviorTypes.Hostile + 0,
         LeadHead = BehaviorTypes.Hostile + 1,
@@ -175,6 +178,7 @@ namespace Arterra.Data.Entity.Behavior {
             { Behaviors.PlayerInventories, () => new PlayerInventoriesBehavior() },
             { Behaviors.PlayerCrafting, () => new PlayerCraftingBehavior() },
             { Behaviors.PlayerArmor, () => new PlayerArmorBehavior() },
+            { Behaviors.PlayerIdentity, () => new PlayerIdentityBehavior() },
             { Behaviors.PlayerBaseLogicHandler, () => new PlayerBaseLogicHandler() },
 
             { Behaviors.StateMachine, () => new StateMachineManagerBehavior()},
@@ -195,6 +199,8 @@ namespace Arterra.Data.Entity.Behavior {
             { Behaviors.ProjectileTerrain, () => new ProjectileTerrainBehavior()},
             { Behaviors.ProjectileFlight, () => new ProjectileFlightBehavior()},
             { Behaviors.LimitedFlight, () => new LimitedFlightBehavior()},
+            { Behaviors.ContactDrive, () => new ContactDriveBehavior()},
+            { Behaviors.DriveAnimation, () => new DriveAnimationBehavior()},
             { Behaviors.ProjectileEffects, () => new ProjectileEffectsBehavior()},
             { Behaviors.TestMerge, () => new TestMergeBehavior()},
             { Behaviors.TimedDecay, () => new TimedDecayBehavior()},
@@ -273,6 +279,8 @@ namespace Arterra.Data.Entity.Behavior {
                 typeof(ProjectileTerrainSettings),
                 typeof(ProjectileFlightSettings),
                 typeof(LimitedFlightSettings),
+                typeof(ContactDriveSettings),
+                typeof(DriveAnimationSettings),
                 typeof(AnimatedHitboxesSettings),
                 typeof(TransitionPathfinderSettings),
                 typeof(ProjectileEffectsSettings),
@@ -545,6 +553,10 @@ namespace Arterra.Data.Entity.Behavior {
                 eventCtrl.Register(this);
 
                 if (DynamicTypes == null) BindDeserializedBehaviors();
+                // Older player saves predate replicated identity.
+                if (settings.BehaviorList.value.Contains(global::Arterra.Data.Entity.Behavior.Behaviors.PlayerIdentity)
+                    && !Is(out PlayerIdentityBehavior identity))
+                    AddBehavior(new PlayerIdentityBehavior());
                 this.controller = new AnimalController(Controller, this);
                 GCoord = default;
 

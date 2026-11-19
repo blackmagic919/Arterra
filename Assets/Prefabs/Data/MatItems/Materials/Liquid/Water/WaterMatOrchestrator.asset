@@ -32,8 +32,8 @@ MonoBehaviour:
     GeoShaderIndex:
       data: 3
   AtmosphereScatter:
-    InScatterCoeffs: {x: 0.00025, y: 0.00125, z: 0.003}
-    AbsorptionCoeffs: {x: 0.00225, y: 0.00175, z: 0.002}
+    InScatterCoeffs: {x: 0.00025, y: 0.00125, z: 0.002}
+    AbsorptionCoeffs: {x: 0.0025, y: 0.002, z: 0.001}
     LightIntensity: 0
   liquidData:
     shallowCol: {r: 0.37254906, g: 0.6392827, b: 1, a: 0.78431374}

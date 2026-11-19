@@ -5,7 +5,7 @@ Shader "Unlit/SpriteMeshShader"
     }
     SubShader
     {
-        Tags { "RenderType"="Opaque" }
+        Tags { "RenderType"="Opaque" "RenderPipeline"="UniversalPipeline" }
         LOD 100
 
         Pass
@@ -17,6 +17,7 @@ Shader "Unlit/SpriteMeshShader"
 
             HLSLPROGRAM
 
+            #pragma target 4.5
             #pragma vertex vert
             #pragma fragment frag
             #pragma multi_compile _ NO_EDITORLIGHTING

@@ -69,7 +69,7 @@ MonoBehaviour:
           y: 2
           z: 1
       BehaviorList:
-        value: 050000000600000003000000ed030000010000006a000000690000006b0000006c000000660000006500000068000000670000000200000064000000f3030000
+        value: 050000000600000003000000ed030000010000006a000000690000006b0000006c000000660000006500000068000000670000000200000064000000f30300006d000000
       Settings:
         value:
           value:
@@ -106,7 +106,7 @@ MonoBehaviour:
           - value:
               value:
                 rid: 6692795048646148287
-      _prevBehaviorCount: 16
+      _prevBehaviorCount: 17
   references:
     version: 2
     RefIds:

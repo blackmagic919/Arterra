@@ -55,6 +55,9 @@ namespace Arterra.Core.Network.Service {
         public Task DeleteAsync(Guid id, CancellationToken token = default) =>
             RequestAsync<object>(HttpMethod.Delete, $"/sessions/{id}", null, true, token);
 
+        public Task<PlayerProfile> GetPlayerProfileAsync(Guid userId, CancellationToken token) =>
+            RequestAsync<PlayerProfile>(HttpMethod.Get, $"/users/{userId:D}/player-profile", null, true, token);
+
         private async Task<LoginResponse> LoginAsync() {
             if (login != null && login.ExpiresAt > DateTimeOffset.UtcNow.AddSeconds(30)) return login;
             if (loggingIn != null && !loggingIn.IsCompleted) return await loggingIn;
