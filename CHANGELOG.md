@@ -1,5 +1,7 @@
 ## [Unreleased]
 
+## [0.2.7] - 2026-11-19
+
 ## Fixed
 - EItem material is not set causing missing texture
 
