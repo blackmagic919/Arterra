@@ -1,5 +1,7 @@
 ## [Unreleased]
 
+## [0.2.10] - 2026-11-20
+
 ## Fixed
 - Horses not generating
 
