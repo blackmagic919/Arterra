@@ -715,15 +715,17 @@ MonoBehaviour:
           - State: 30300
             DirectRotation: 0
         Projectile:
-          ShotDelay: 0.25
-          CheckSightline: 1
-          ChargeTime: 5
-          Projectile:
-            LaunchSpeedMultiplier: 5
-            FireSound: 2003
-            ProjectileEntity: SpiderWeb
-          HasRangedAttack: 1
-          MaxTargetAngle: 20
+          value:
+            ShotDelay: 0.25
+            CheckSightline: 1
+            ChargeTime: 5
+            Projectile:
+              value:
+                LaunchSpeedMultiplier: 5
+                FireSound: 2003
+                ProjectileEntity: SpiderWeb
+            HasRangedAttack: 1
+            MaxTargetAngle: 20
         BlindDist: 3
     - rid: 5205636903624769610
       type: {class: StepBackSetting, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}

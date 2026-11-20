@@ -34,6 +34,8 @@ namespace Arterra.Data.Entity.Behavior{
 
         public object Clone() {
             return new SwimToSurfaceSettings {
+                SurfaceAngleMax = SurfaceAngleMax,
+                SurfaceAngleFalloff = SurfaceAngleFalloff,
                 TaskName = TaskName,
                 OnReachSurface = OnReachSurface,
                 SurfaceProfile = SurfaceProfile,

@@ -39,6 +39,7 @@ public class MMove : IBehaviorSetting {
 
     public object Clone() {
         return new MMove {
+            customSpeeds = customSpeeds,
             movements = movements,
             profiles = profiles
         };

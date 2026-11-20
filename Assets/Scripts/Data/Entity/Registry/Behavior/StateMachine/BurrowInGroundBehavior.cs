@@ -45,6 +45,7 @@ namespace Arterra.Data.Entity.Behavior{
 
         public object Clone() {
             return new BurrowInGroundSetting {
+                EscapingTargetStates = EscapingTargetStates,
                 Task1Name = Task1Name,
                 Task2Name = Task2Name,
                 Task3Name = Task3Name,

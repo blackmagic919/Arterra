@@ -17,10 +17,10 @@ public class BiomeVariety : Category<BiomeVariety>{
 }
 
 [Serializable]
-public class BiomeSelection {
+public struct BiomeSelection {
     public Catalogue<BiomeVariety> varieties;
     /// <summary> The conditions that define the placement of the biome. </summary>
-    public BiomePlacement placement;
+    public Option<BiomePlacement> placement;
 }
  
 /// <summary>

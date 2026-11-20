@@ -13,131 +13,141 @@ MonoBehaviour:
   m_Name: SurfaceBiomePartition
   m_EditorClassIdentifier: Assembly-CSharp::Arterra.Data.Biome.BiomePlacement
   DimensionNames:
-  - Terrain
-  - Erosion
-  - Squash
-  - Influence
-  - Steepness
-  - Atmosphere
+    value:
+    - Terrain
+    - Erosion
+    - Squash
+    - Influence
+    - Steepness
+    - Atmosphere
   BiomeColors:
     Reg:
-    - Name: Deciduous Forest
-      _value:
-        value: {r: 0.15, g: 0.5, b: 0.25, a: 1}
-    - Name: Grassy Plain
-      _value:
-        value: {r: 0.5, g: 0.8, b: 0.25, a: 1}
-    - Name: Desert
-      _value:
-        value: {r: 0.95, g: 0.7, b: 0.25, a: 1}
-    - Name: Tundra
-      _value:
-        value: {r: 0.7, g: 0.85, b: 0.95, a: 1}
-    - Name: Savanna
-      _value:
-        value: {r: 0.8, g: 0.5, b: 0.15, a: 1}
-    - Name: PalmBeach
-      _value:
-        value: {r: 0.25, g: 0.8, b: 0.65, a: 1}
-    - Name: Cliff
-      _value:
-        value: {r: 0.26415092, g: 0.26415092, b: 0.26415092, a: 1}
+      value:
+      - Name: Deciduous Forest
+        _value:
+          value: {r: 0.15, g: 0.5, b: 0.25, a: 1}
+      - Name: Grassy Plain
+        _value:
+          value: {r: 0.5, g: 0.8, b: 0.25, a: 1}
+      - Name: Desert
+        _value:
+          value: {r: 0.95, g: 0.7, b: 0.25, a: 1}
+      - Name: Tundra
+        _value:
+          value: {r: 0.7, g: 0.85, b: 0.95, a: 1}
+      - Name: Savanna
+        _value:
+          value: {r: 0.8, g: 0.5, b: 0.15, a: 1}
+      - Name: PalmBeach
+        _value:
+          value: {r: 0.25, g: 0.8, b: 0.65, a: 1}
+      - Name: Cliff
+        _value:
+          value: {r: 0.26415092, g: 0.26415092, b: 0.26415092, a: 1}
   Biomes:
-  - Spans:
-    - x: 0.375
-      y: 1
-    - x: 0.7
-      y: 1
-    - x: 0
-      y: 1
-    - x: 0
-      y: 1
-    - x: 0
-      y: 0.75708103
-    - x: 0
-      y: 0.6889888
-    BiomeName: Desert
-  - Spans:
-    - x: 0.375
-      y: 1
-    - x: 0
-      y: 0.5
-    - x: 0
-      y: 1
-    - x: 0
-      y: 1
-    - x: 0
-      y: 0.75708103
-    - x: 0.5
-      y: 1
-    BiomeName: Deciduous Forest
-  - Spans:
-    - x: 0.375
-      y: 1
-    - x: 0
-      y: 0.5
-    - x: 0
-      y: 1
-    - x: 0
-      y: 1
-    - x: 0
-      y: 0.75708103
-    - x: 0
-      y: 0.5
-    BiomeName: Tundra
-  - Spans:
-    - x: 0.375
-      y: 1
-    - x: 0
-      y: 1
-    - x: 0
-      y: 1
-    - x: 0
-      y: 1
-    - x: 0.75708103
-      y: 1
-    - x: 0
-      y: 1
-    BiomeName: Cliff
-  - Spans:
-    - x: 0.375
-      y: 1
-    - x: 0.5
-      y: 1
-    - x: 0
-      y: 1
-    - x: 0
-      y: 1
-    - x: 0
-      y: 0.75708103
-    - x: 0.6889888
-      y: 1
-    BiomeName: Savanna
-  - Spans:
-    - x: 0.375
-      y: 1
-    - x: 0.5
-      y: 0.7
-    - x: 0
-      y: 1
-    - x: 0
-      y: 1
-    - x: 0
-      y: 0.75708103
-    - x: 0
-      y: 0.6889888
-    BiomeName: Grassy Plain
-  - Spans:
-    - x: 0
-      y: 0.375
-    - x: 0
-      y: 1
-    - x: 0
-      y: 1
-    - x: 0
-      y: 1
-    - x: 0
-      y: 1
-    - x: 0
-      y: 1
-    BiomeName: PalmBeach
+    value:
+    - Spans:
+        value:
+        - x: 0.375
+          y: 1
+        - x: 0.7
+          y: 1
+        - x: 0
+          y: 1
+        - x: 0
+          y: 1
+        - x: 0
+          y: 0.75708103
+        - x: 0
+          y: 0.6889888
+      BiomeName: Desert
+    - Spans:
+        value:
+        - x: 0.375
+          y: 1
+        - x: 0
+          y: 0.5
+        - x: 0
+          y: 1
+        - x: 0
+          y: 1
+        - x: 0
+          y: 0.75708103
+        - x: 0.5
+          y: 1
+      BiomeName: Deciduous Forest
+    - Spans:
+        value:
+        - x: 0.375
+          y: 1
+        - x: 0
+          y: 0.5
+        - x: 0
+          y: 1
+        - x: 0
+          y: 1
+        - x: 0
+          y: 0.75708103
+        - x: 0
+          y: 0.5
+      BiomeName: Tundra
+    - Spans:
+        value:
+        - x: 0.375
+          y: 1
+        - x: 0
+          y: 1
+        - x: 0
+          y: 1
+        - x: 0
+          y: 1
+        - x: 0.75708103
+          y: 1
+        - x: 0
+          y: 1
+      BiomeName: Cliff
+    - Spans:
+        value:
+        - x: 0.375
+          y: 1
+        - x: 0.5
+          y: 1
+        - x: 0
+          y: 1
+        - x: 0
+          y: 1
+        - x: 0
+          y: 0.75708103
+        - x: 0.6889888
+          y: 1
+      BiomeName: Savanna
+    - Spans:
+        value:
+        - x: 0.375
+          y: 1
+        - x: 0.5
+          y: 0.7
+        - x: 0
+          y: 1
+        - x: 0
+          y: 1
+        - x: 0
+          y: 0.75708103
+        - x: 0
+          y: 0.6889888
+      BiomeName: Grassy Plain
+    - Spans:
+        value:
+        - x: 0
+          y: 0.375
+        - x: 0
+          y: 1
+        - x: 0
+          y: 1
+        - x: 0
+          y: 1
+        - x: 0
+          y: 1
+        - x: 0
+          y: 1
+      BiomeName: PalmBeach

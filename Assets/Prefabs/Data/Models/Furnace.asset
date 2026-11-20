@@ -17,8 +17,9 @@ MonoBehaviour:
     Reg:
       value: []
   Models:
-  - MeshPath: Prefabs/Materials/FurnaceLeft
-  - MeshPath: Prefabs/Materials/FurnaceCenter
-  - MeshPath: Prefabs/Materials/FurnaceRight
+    value:
+    - MeshPath: Prefabs/Materials/FurnaceLeft
+    - MeshPath: Prefabs/Materials/FurnaceCenter
+    - MeshPath: Prefabs/Materials/FurnaceRight
   DefaultRenderInfo:
     Data: 256

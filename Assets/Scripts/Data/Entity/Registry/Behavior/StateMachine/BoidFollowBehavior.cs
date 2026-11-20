@@ -49,6 +49,9 @@ namespace Arterra.Data.Entity.Behavior {
         }
         public object Clone() {
             return new BoidFollowSetting {
+                FlockEntity = FlockEntity,
+                LeadTargetStates = LeadTargetStates,
+                LeadBoidStates = LeadBoidStates,
                 TaskName = TaskName,
                 OnStopWalkTransition = OnStopWalkTransition,
                 OnPackAttackTransition = OnPackAttackTransition,

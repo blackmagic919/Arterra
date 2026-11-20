@@ -31,8 +31,9 @@ MonoBehaviour:
   ItemHolderEntity: HookedItem
   HookEntityEvent: 18
   HookProjectile:
-    LaunchSpeedMultiplier: 1
-    FireSound: 2001
+    value:
+      LaunchSpeedMultiplier: 1
+      FireSound: 2001
   BaitTag: 10001
   Model:
     Enabled: 1

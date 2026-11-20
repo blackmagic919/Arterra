@@ -41,6 +41,7 @@ namespace Arterra.Data.Entity.Behavior {
 
         public object Clone() {
             return new ChasePreySettings(){
+                Prey = Prey,
                 TaskName = TaskName,
                 OnNotFoundTransition = OnNotFoundTransition,
                 OnReachPreyTransition = OnReachPreyTransition,

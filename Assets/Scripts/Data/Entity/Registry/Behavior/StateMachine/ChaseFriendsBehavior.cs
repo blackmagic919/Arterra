@@ -15,6 +15,8 @@ namespace Arterra.Data.Entity.Behavior {
         public EntitySMTasks ChaseEnemyState = EntitySMTasks.ChaseTarget;
          public object Clone() {
             return new ChaseFriendsSetting {
+                OnReachTransition = OnReachTransition,
+                ChaseEnemyState = ChaseEnemyState,
                 TaskName = TaskName,
                 ChaseFriendProbability = ChaseFriendProbability,
                 FightEnemyAffection = FightEnemyAffection

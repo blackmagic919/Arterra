@@ -19,6 +19,7 @@ namespace Arterra.Data.Entity.Behavior {
 
         public object Clone() {
             return new RandomFlyStateSettings(){
+                VerticalFlightFreedom = VerticalFlightFreedom,
                 AverageFlightTime = AverageFlightTime,
                 AverageFlightVariance = AverageFlightVariance,
                 TaskName = TaskName,

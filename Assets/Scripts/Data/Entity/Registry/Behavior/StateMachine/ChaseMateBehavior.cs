@@ -19,6 +19,7 @@ namespace Arterra.Data.Entity.Behavior {
 
         public object Clone() {
             return new ChaseMateStateSettings(){
+                MateThreshold = MateThreshold,
                 Task1Name = Task1Name,
                 Task2Name = Task2Name,
                 OnNotFoundTransition = OnNotFoundTransition,

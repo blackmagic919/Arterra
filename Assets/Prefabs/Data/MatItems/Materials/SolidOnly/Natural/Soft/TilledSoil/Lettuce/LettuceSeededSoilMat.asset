@@ -43,15 +43,16 @@ MonoBehaviour:
   Roughness: 0.2
   Behaviors:
     Reg:
-    - Name: Stage1
-      _value:
-        value: {fileID: 11400000, guid: 324edc9ab9d424fd1ad5e3244e1cf962, type: 2}
-    - Name: Stage2
-      _value:
-        value: {fileID: 11400000, guid: 730afd07d30414b49bcb4c508ebc91ce, type: 2}
-    - Name: Stage3
-      _value:
-        value: {fileID: 11400000, guid: 511f7ce548ef349c38d72079febf8748, type: 2}
+      value:
+      - Name: Stage1
+        _value:
+          value: {fileID: 11400000, guid: 324edc9ab9d424fd1ad5e3244e1cf962, type: 2}
+      - Name: Stage2
+        _value:
+          value: {fileID: 11400000, guid: 730afd07d30414b49bcb4c508ebc91ce, type: 2}
+      - Name: Stage3
+        _value:
+          value: {fileID: 11400000, guid: 511f7ce548ef349c38d72079febf8748, type: 2}
   looter:
     SolidLootTable:
       value:

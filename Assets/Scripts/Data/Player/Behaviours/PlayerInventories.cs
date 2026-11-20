@@ -45,6 +45,7 @@ namespace Arterra.Data.Entity.Behavior {
 
 		public object Clone() {
 			return new PlayerInventorySettings {
+				RecoverSpeedMultiplier = RecoverSpeedMultiplier,
 				PrimarySlotCount = PrimarySlotCount,
 				SecondarySlotCount = SecondarySlotCount,
 				SelectedColor = SelectedColor,
@@ -561,7 +562,7 @@ namespace Arterra.Data.Entity.Behavior {
             if (self.IsAuthority) replacement.PublishCursor();
         }
 
-		private float RecoverSpeedMultiplier => Modifier.GetInt(mod, MSettings.RecoverRate, settings.RecoverSpeedMultiplier);
+		private float RecoverSpeedMultiplier => Modifier.Get(mod, MSettings.RecoverRate, settings.RecoverSpeedMultiplier);
 
 		[JsonIgnore]
 		public IItem Selected {

@@ -30,8 +30,9 @@ MonoBehaviour:
   HookEntity: GrapplingHook
   HookEntityEvent: -1
   HookProjectile:
-    LaunchSpeedMultiplier: 4
-    FireSound: 2001
+    value:
+      LaunchSpeedMultiplier: 4
+      FireSound: 2001
   BaitTag: 0
   Model:
     Enabled: 0

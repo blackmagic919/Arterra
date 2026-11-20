@@ -17,8 +17,9 @@ MonoBehaviour:
     Reg:
       value: []
   Models:
-  - MeshPath: Prefabs/Materials/Torch
-  - MeshPath: Prefabs/Materials/TorchSide
+    value:
+    - MeshPath: Prefabs/Materials/Torch
+    - MeshPath: Prefabs/Materials/TorchSide
   DefaultRenderInfo:
     Data: 0
   references:

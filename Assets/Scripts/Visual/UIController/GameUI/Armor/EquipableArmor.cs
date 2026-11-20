@@ -13,8 +13,8 @@ namespace Arterra.Configuration {
         public BoneRegion Root => Bones.value[0];
 
         [Serializable]
-        public class BoneRegion {
-            public BoneBinding Bone;
+        public struct BoneRegion {
+            public Option<BoneBinding> Bone;
             public float SelectRadius;
         }
 
@@ -23,9 +23,10 @@ namespace Arterra.Configuration {
             public string ObjectPath;
         }
         [Serializable]
-        public class BoneBinding {
+        public class BoneBinding : ICloneable {
             public string BonePath;
             [UIHidden]
+            [UISetting(Defaulting = true)]
             [JsonIgnore]
             [NonSerialized]
             public Transform Transform;
@@ -34,6 +35,10 @@ namespace Arterra.Configuration {
 
             public void Bind(Transform rig) {
                 this.Transform = rig.Find(BonePath);
+            }
+
+            public object Clone() {
+                return new BoneBinding { BonePath = BonePath };
             }
         }
 

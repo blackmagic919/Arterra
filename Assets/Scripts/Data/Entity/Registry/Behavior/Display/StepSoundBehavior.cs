@@ -22,6 +22,8 @@ namespace Arterra.Data.Entity.Behavior {
 
         public object Clone() {
             return new StepSoundBehaviorSettings {
+                TouchState = TouchState,
+                entityStepSound = entityStepSound,
                 StepDistance = StepDistance,
             };
         }

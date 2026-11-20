@@ -42,12 +42,13 @@ MonoBehaviour:
   Roughness: 0.2
   Behaviors:
     Reg:
-    - Name: Damage
-      _value:
-        value: {fileID: 11400000, guid: 45ac2ede189f94c36991d7a767670165, type: 2}
-    - Name: Spread
-      _value:
-        value: {fileID: 11400000, guid: e147a9651f2c14490ac0e307fbd6d60b, type: 2}
+      value:
+      - Name: Damage
+        _value:
+          value: {fileID: 11400000, guid: 45ac2ede189f94c36991d7a767670165, type: 2}
+      - Name: Spread
+        _value:
+          value: {fileID: 11400000, guid: e147a9651f2c14490ac0e307fbd6d60b, type: 2}
   looter:
     SolidLootTable:
       value: []

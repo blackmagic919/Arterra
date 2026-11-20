@@ -46,6 +46,7 @@ namespace Arterra.Data.Entity.Behavior {
 
         public object Clone() {
             return new ChaseEnemySettings(){
+                Enemy = Enemy,
                 TaskName = TaskName,
                 OnNotFoundTransition = OnNotFoundTransition,
                 OnReachEnemyTransition = OnReachEnemyTransition,

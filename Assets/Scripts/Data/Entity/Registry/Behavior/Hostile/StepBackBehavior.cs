@@ -13,6 +13,11 @@ namespace Arterra.Data.Entity.Behavior {
         public int PathDist = 5;
         public object Clone() {
             return new StepBackSetting {
+                TestProximityState = TestProximityState,
+                OnLostTarget = OnLostTarget,
+                OnSteppedBack = OnSteppedBack,
+                BlindDist = BlindDist,
+                PathDist = PathDist,
                 TaskName = TaskName
             };
         }

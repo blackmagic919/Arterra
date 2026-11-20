@@ -754,472 +754,475 @@ MonoBehaviour:
       data:
         StartGroup: 0
         Groups:
-        - CanEndPath: 1
-          Transitions:
-          - Delta:
-              x: -1
-              y: -1
-              z: -1
-            NextGroup: 0
-            Check:
-              Enabled: 1
-              Value: 0
-            Movement:
-              Enabled: 0
-              Value: 0
-          - Delta:
-              x: -1
-              y: -1
-              z: 0
-            NextGroup: 0
-            Check:
-              Enabled: 1
-              Value: 0
-            Movement:
-              Enabled: 0
-              Value: 0
-          - Delta:
-              x: -1
-              y: -1
-              z: 1
-            NextGroup: 0
-            Check:
-              Enabled: 1
-              Value: 0
-            Movement:
-              Enabled: 0
-              Value: 0
-          - Delta:
-              x: -1
-              y: 0
-              z: -1
-            NextGroup: 0
-            Check:
-              Enabled: 1
-              Value: 0
-            Movement:
-              Enabled: 0
-              Value: 0
-          - Delta:
-              x: -1
-              y: 0
-              z: 0
-            NextGroup: 0
-            Check:
-              Enabled: 1
-              Value: 0
-            Movement:
-              Enabled: 0
-              Value: 0
-          - Delta:
-              x: -1
-              y: 0
-              z: 1
-            NextGroup: 0
-            Check:
-              Enabled: 1
-              Value: 0
-            Movement:
-              Enabled: 0
-              Value: 0
-          - Delta:
-              x: -1
-              y: 1
-              z: -1
-            NextGroup: 0
-            Check:
-              Enabled: 1
-              Value: 0
-            Movement:
-              Enabled: 0
-              Value: 0
-          - Delta:
-              x: -1
-              y: 1
-              z: 0
-            NextGroup: 0
-            Check:
-              Enabled: 1
-              Value: 0
-            Movement:
-              Enabled: 0
-              Value: 0
-          - Delta:
-              x: -1
-              y: 1
-              z: 1
-            NextGroup: 0
-            Check:
-              Enabled: 1
-              Value: 0
-            Movement:
-              Enabled: 0
-              Value: 0
-          - Delta:
-              x: 0
-              y: -1
-              z: -1
-            NextGroup: 0
-            Check:
-              Enabled: 1
-              Value: 0
-            Movement:
-              Enabled: 0
-              Value: 0
-          - Delta:
-              x: 0
-              y: -1
-              z: 0
-            NextGroup: 0
-            Check:
-              Enabled: 1
-              Value: 0
-            Movement:
-              Enabled: 0
-              Value: 0
-          - Delta:
-              x: 0
-              y: -1
-              z: 1
-            NextGroup: 0
-            Check:
-              Enabled: 1
-              Value: 0
-            Movement:
-              Enabled: 0
-              Value: 0
-          - Delta:
-              x: 0
-              y: 0
-              z: -1
-            NextGroup: 0
-            Check:
-              Enabled: 1
-              Value: 0
-            Movement:
-              Enabled: 0
-              Value: 0
-          - Delta:
-              x: 0
-              y: 0
-              z: 1
-            NextGroup: 0
-            Check:
-              Enabled: 1
-              Value: 0
-            Movement:
-              Enabled: 0
-              Value: 0
-          - Delta:
-              x: 0
-              y: 1
-              z: -1
-            NextGroup: 0
-            Check:
-              Enabled: 1
-              Value: 0
-            Movement:
-              Enabled: 0
-              Value: 0
-          - Delta:
-              x: 0
-              y: 1
-              z: 0
-            NextGroup: 0
-            Check:
-              Enabled: 1
-              Value: 0
-            Movement:
-              Enabled: 0
-              Value: 0
-          - Delta:
-              x: 0
-              y: 1
-              z: 1
-            NextGroup: 0
-            Check:
-              Enabled: 1
-              Value: 0
-            Movement:
-              Enabled: 0
-              Value: 0
-          - Delta:
-              x: 1
-              y: -1
-              z: -1
-            NextGroup: 0
-            Check:
-              Enabled: 1
-              Value: 0
-            Movement:
-              Enabled: 0
-              Value: 0
-          - Delta:
-              x: 1
-              y: -1
-              z: 0
-            NextGroup: 0
-            Check:
-              Enabled: 1
-              Value: 0
-            Movement:
-              Enabled: 0
-              Value: 0
-          - Delta:
-              x: 1
-              y: -1
-              z: 1
-            NextGroup: 0
-            Check:
-              Enabled: 1
-              Value: 0
-            Movement:
-              Enabled: 0
-              Value: 0
-          - Delta:
-              x: 1
-              y: 0
-              z: -1
-            NextGroup: 0
-            Check:
-              Enabled: 1
-              Value: 0
-            Movement:
-              Enabled: 0
-              Value: 0
-          - Delta:
-              x: 1
-              y: 0
-              z: 0
-            NextGroup: 0
-            Check:
-              Enabled: 1
-              Value: 0
-            Movement:
-              Enabled: 0
-              Value: 0
-          - Delta:
-              x: 1
-              y: 0
-              z: 1
-            NextGroup: 0
-            Check:
-              Enabled: 1
-              Value: 0
-            Movement:
-              Enabled: 0
-              Value: 0
-          - Delta:
-              x: 1
-              y: 1
-              z: -1
-            NextGroup: 0
-            Check:
-              Enabled: 1
-              Value: 0
-            Movement:
-              Enabled: 0
-              Value: 0
-          - Delta:
-              x: 1
-              y: 1
-              z: 0
-            NextGroup: 0
-            Check:
-              Enabled: 1
-              Value: 0
-            Movement:
-              Enabled: 0
-              Value: 0
-          - Delta:
-              x: 1
-              y: 1
-              z: 1
-            NextGroup: 0
-            Check:
-              Enabled: 1
-              Value: 0
-            Movement:
-              Enabled: 0
-              Value: 0
-          - Delta:
-              x: 3
-              y: 3
-              z: 0
-            NextGroup: 1
-            Check:
-              Enabled: 1
-              Value: 3
-            Movement:
-              Enabled: 1
-              Value: 0
-          - Delta:
-              x: -3
-              y: 3
-              z: 0
-            NextGroup: 1
-            Check:
-              Enabled: 1
-              Value: 3
-            Movement:
-              Enabled: 1
-              Value: 0
-          - Delta:
-              x: 0
-              y: 3
-              z: 3
-            NextGroup: 1
-            Check:
-              Enabled: 1
-              Value: 3
-            Movement:
-              Enabled: 1
-              Value: 0
-          - Delta:
-              x: 0
-              y: 3
-              z: -3
-            NextGroup: 1
-            Check:
-              Enabled: 1
-              Value: 3
-            Movement:
-              Enabled: 1
-              Value: 0
-        - CanEndPath: 0
-          Transitions:
-          - Delta:
-              x: 3
-              y: -2
-              z: 0
-            NextGroup: 0
-            Check:
-              Enabled: 1
-              Value: 4
-            Movement:
-              Enabled: 1
-              Value: 1
-          - Delta:
-              x: 3
-              y: -3
-              z: 0
-            NextGroup: 0
-            Check:
-              Enabled: 1
-              Value: 4
-            Movement:
-              Enabled: 1
-              Value: 1
-          - Delta:
-              x: 3
-              y: -4
-              z: 0
-            NextGroup: 0
-            Check:
-              Enabled: 1
-              Value: 4
-            Movement:
-              Enabled: 1
-              Value: 1
-          - Delta:
-              x: -3
-              y: -2
-              z: 0
-            NextGroup: 0
-            Check:
-              Enabled: 1
-              Value: 4
-            Movement:
-              Enabled: 1
-              Value: 1
-          - Delta:
-              x: -3
-              y: -3
-              z: 0
-            NextGroup: 0
-            Check:
-              Enabled: 1
-              Value: 4
-            Movement:
-              Enabled: 1
-              Value: 1
-          - Delta:
-              x: -3
-              y: -4
-              z: 0
-            NextGroup: 0
-            Check:
-              Enabled: 1
-              Value: 4
-            Movement:
-              Enabled: 1
-              Value: 1
-          - Delta:
-              x: 0
-              y: -2
-              z: 3
-            NextGroup: 0
-            Check:
-              Enabled: 1
-              Value: 4
-            Movement:
-              Enabled: 1
-              Value: 1
-          - Delta:
-              x: 0
-              y: -3
-              z: 3
-            NextGroup: 0
-            Check:
-              Enabled: 1
-              Value: 4
-            Movement:
-              Enabled: 1
-              Value: 1
-          - Delta:
-              x: 0
-              y: -4
-              z: 3
-            NextGroup: 0
-            Check:
-              Enabled: 1
-              Value: 4
-            Movement:
-              Enabled: 1
-              Value: 1
-          - Delta:
-              x: 0
-              y: -2
-              z: -3
-            NextGroup: 0
-            Check:
-              Enabled: 1
-              Value: 4
-            Movement:
-              Enabled: 1
-              Value: 1
-          - Delta:
-              x: 0
-              y: -3
-              z: -3
-            NextGroup: 0
-            Check:
-              Enabled: 1
-              Value: 4
-            Movement:
-              Enabled: 1
-              Value: 1
-          - Delta:
-              x: 0
-              y: -4
-              z: -3
-            NextGroup: 0
-            Check:
-              Enabled: 1
-              Value: 4
-            Movement:
-              Enabled: 1
-              Value: 1
+          value:
+          - CanEndPath: 1
+            Transitions:
+              value:
+              - Delta:
+                  x: -1
+                  y: -1
+                  z: -1
+                NextGroup: 0
+                Check:
+                  Enabled: 1
+                  Value: 0
+                Movement:
+                  Enabled: 0
+                  Value: 0
+              - Delta:
+                  x: -1
+                  y: -1
+                  z: 0
+                NextGroup: 0
+                Check:
+                  Enabled: 1
+                  Value: 0
+                Movement:
+                  Enabled: 0
+                  Value: 0
+              - Delta:
+                  x: -1
+                  y: -1
+                  z: 1
+                NextGroup: 0
+                Check:
+                  Enabled: 1
+                  Value: 0
+                Movement:
+                  Enabled: 0
+                  Value: 0
+              - Delta:
+                  x: -1
+                  y: 0
+                  z: -1
+                NextGroup: 0
+                Check:
+                  Enabled: 1
+                  Value: 0
+                Movement:
+                  Enabled: 0
+                  Value: 0
+              - Delta:
+                  x: -1
+                  y: 0
+                  z: 0
+                NextGroup: 0
+                Check:
+                  Enabled: 1
+                  Value: 0
+                Movement:
+                  Enabled: 0
+                  Value: 0
+              - Delta:
+                  x: -1
+                  y: 0
+                  z: 1
+                NextGroup: 0
+                Check:
+                  Enabled: 1
+                  Value: 0
+                Movement:
+                  Enabled: 0
+                  Value: 0
+              - Delta:
+                  x: -1
+                  y: 1
+                  z: -1
+                NextGroup: 0
+                Check:
+                  Enabled: 1
+                  Value: 0
+                Movement:
+                  Enabled: 0
+                  Value: 0
+              - Delta:
+                  x: -1
+                  y: 1
+                  z: 0
+                NextGroup: 0
+                Check:
+                  Enabled: 1
+                  Value: 0
+                Movement:
+                  Enabled: 0
+                  Value: 0
+              - Delta:
+                  x: -1
+                  y: 1
+                  z: 1
+                NextGroup: 0
+                Check:
+                  Enabled: 1
+                  Value: 0
+                Movement:
+                  Enabled: 0
+                  Value: 0
+              - Delta:
+                  x: 0
+                  y: -1
+                  z: -1
+                NextGroup: 0
+                Check:
+                  Enabled: 1
+                  Value: 0
+                Movement:
+                  Enabled: 0
+                  Value: 0
+              - Delta:
+                  x: 0
+                  y: -1
+                  z: 0
+                NextGroup: 0
+                Check:
+                  Enabled: 1
+                  Value: 0
+                Movement:
+                  Enabled: 0
+                  Value: 0
+              - Delta:
+                  x: 0
+                  y: -1
+                  z: 1
+                NextGroup: 0
+                Check:
+                  Enabled: 1
+                  Value: 0
+                Movement:
+                  Enabled: 0
+                  Value: 0
+              - Delta:
+                  x: 0
+                  y: 0
+                  z: -1
+                NextGroup: 0
+                Check:
+                  Enabled: 1
+                  Value: 0
+                Movement:
+                  Enabled: 0
+                  Value: 0
+              - Delta:
+                  x: 0
+                  y: 0
+                  z: 1
+                NextGroup: 0
+                Check:
+                  Enabled: 1
+                  Value: 0
+                Movement:
+                  Enabled: 0
+                  Value: 0
+              - Delta:
+                  x: 0
+                  y: 1
+                  z: -1
+                NextGroup: 0
+                Check:
+                  Enabled: 1
+                  Value: 0
+                Movement:
+                  Enabled: 0
+                  Value: 0
+              - Delta:
+                  x: 0
+                  y: 1
+                  z: 0
+                NextGroup: 0
+                Check:
+                  Enabled: 1
+                  Value: 0
+                Movement:
+                  Enabled: 0
+                  Value: 0
+              - Delta:
+                  x: 0
+                  y: 1
+                  z: 1
+                NextGroup: 0
+                Check:
+                  Enabled: 1
+                  Value: 0
+                Movement:
+                  Enabled: 0
+                  Value: 0
+              - Delta:
+                  x: 1
+                  y: -1
+                  z: -1
+                NextGroup: 0
+                Check:
+                  Enabled: 1
+                  Value: 0
+                Movement:
+                  Enabled: 0
+                  Value: 0
+              - Delta:
+                  x: 1
+                  y: -1
+                  z: 0
+                NextGroup: 0
+                Check:
+                  Enabled: 1
+                  Value: 0
+                Movement:
+                  Enabled: 0
+                  Value: 0
+              - Delta:
+                  x: 1
+                  y: -1
+                  z: 1
+                NextGroup: 0
+                Check:
+                  Enabled: 1
+                  Value: 0
+                Movement:
+                  Enabled: 0
+                  Value: 0
+              - Delta:
+                  x: 1
+                  y: 0
+                  z: -1
+                NextGroup: 0
+                Check:
+                  Enabled: 1
+                  Value: 0
+                Movement:
+                  Enabled: 0
+                  Value: 0
+              - Delta:
+                  x: 1
+                  y: 0
+                  z: 0
+                NextGroup: 0
+                Check:
+                  Enabled: 1
+                  Value: 0
+                Movement:
+                  Enabled: 0
+                  Value: 0
+              - Delta:
+                  x: 1
+                  y: 0
+                  z: 1
+                NextGroup: 0
+                Check:
+                  Enabled: 1
+                  Value: 0
+                Movement:
+                  Enabled: 0
+                  Value: 0
+              - Delta:
+                  x: 1
+                  y: 1
+                  z: -1
+                NextGroup: 0
+                Check:
+                  Enabled: 1
+                  Value: 0
+                Movement:
+                  Enabled: 0
+                  Value: 0
+              - Delta:
+                  x: 1
+                  y: 1
+                  z: 0
+                NextGroup: 0
+                Check:
+                  Enabled: 1
+                  Value: 0
+                Movement:
+                  Enabled: 0
+                  Value: 0
+              - Delta:
+                  x: 1
+                  y: 1
+                  z: 1
+                NextGroup: 0
+                Check:
+                  Enabled: 1
+                  Value: 0
+                Movement:
+                  Enabled: 0
+                  Value: 0
+              - Delta:
+                  x: 3
+                  y: 3
+                  z: 0
+                NextGroup: 1
+                Check:
+                  Enabled: 1
+                  Value: 3
+                Movement:
+                  Enabled: 1
+                  Value: 0
+              - Delta:
+                  x: -3
+                  y: 3
+                  z: 0
+                NextGroup: 1
+                Check:
+                  Enabled: 1
+                  Value: 3
+                Movement:
+                  Enabled: 1
+                  Value: 0
+              - Delta:
+                  x: 0
+                  y: 3
+                  z: 3
+                NextGroup: 1
+                Check:
+                  Enabled: 1
+                  Value: 3
+                Movement:
+                  Enabled: 1
+                  Value: 0
+              - Delta:
+                  x: 0
+                  y: 3
+                  z: -3
+                NextGroup: 1
+                Check:
+                  Enabled: 1
+                  Value: 3
+                Movement:
+                  Enabled: 1
+                  Value: 0
+          - CanEndPath: 0
+            Transitions:
+              value:
+              - Delta:
+                  x: 3
+                  y: -2
+                  z: 0
+                NextGroup: 0
+                Check:
+                  Enabled: 1
+                  Value: 4
+                Movement:
+                  Enabled: 1
+                  Value: 1
+              - Delta:
+                  x: 3
+                  y: -3
+                  z: 0
+                NextGroup: 0
+                Check:
+                  Enabled: 1
+                  Value: 4
+                Movement:
+                  Enabled: 1
+                  Value: 1
+              - Delta:
+                  x: 3
+                  y: -4
+                  z: 0
+                NextGroup: 0
+                Check:
+                  Enabled: 1
+                  Value: 4
+                Movement:
+                  Enabled: 1
+                  Value: 1
+              - Delta:
+                  x: -3
+                  y: -2
+                  z: 0
+                NextGroup: 0
+                Check:
+                  Enabled: 1
+                  Value: 4
+                Movement:
+                  Enabled: 1
+                  Value: 1
+              - Delta:
+                  x: -3
+                  y: -3
+                  z: 0
+                NextGroup: 0
+                Check:
+                  Enabled: 1
+                  Value: 4
+                Movement:
+                  Enabled: 1
+                  Value: 1
+              - Delta:
+                  x: -3
+                  y: -4
+                  z: 0
+                NextGroup: 0
+                Check:
+                  Enabled: 1
+                  Value: 4
+                Movement:
+                  Enabled: 1
+                  Value: 1
+              - Delta:
+                  x: 0
+                  y: -2
+                  z: 3
+                NextGroup: 0
+                Check:
+                  Enabled: 1
+                  Value: 4
+                Movement:
+                  Enabled: 1
+                  Value: 1
+              - Delta:
+                  x: 0
+                  y: -3
+                  z: 3
+                NextGroup: 0
+                Check:
+                  Enabled: 1
+                  Value: 4
+                Movement:
+                  Enabled: 1
+                  Value: 1
+              - Delta:
+                  x: 0
+                  y: -4
+                  z: 3
+                NextGroup: 0
+                Check:
+                  Enabled: 1
+                  Value: 4
+                Movement:
+                  Enabled: 1
+                  Value: 1
+              - Delta:
+                  x: 0
+                  y: -2
+                  z: -3
+                NextGroup: 0
+                Check:
+                  Enabled: 1
+                  Value: 4
+                Movement:
+                  Enabled: 1
+                  Value: 1
+              - Delta:
+                  x: 0
+                  y: -3
+                  z: -3
+                NextGroup: 0
+                Check:
+                  Enabled: 1
+                  Value: 4
+                Movement:
+                  Enabled: 1
+                  Value: 1
+              - Delta:
+                  x: 0
+                  y: -4
+                  z: -3
+                NextGroup: 0
+                Check:
+                  Enabled: 1
+                  Value: 4
+                Movement:
+                  Enabled: 1
+                  Value: 1
     - rid: 5295427382668427419
       type: {class: TimedDecaySettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:

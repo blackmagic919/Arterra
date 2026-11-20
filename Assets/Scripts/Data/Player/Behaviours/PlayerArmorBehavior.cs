@@ -129,7 +129,7 @@ namespace Arterra.Data.Entity.Behavior {
         InputPoller.AddBinding(new ActionBind("Look Vertical", CamMovement.LookY), "PlayerArmor:LV", "3.5::Window");
 
         for (int i = 0; i < Inventory.Display.Length; i++) {
-            float3 originWS = settings.Variants.Retrieve(i).Root.Bone.position;
+            float3 originWS = settings.Variants.Retrieve(i).Root.Bone.value.position;
             Inventory.Display[i].SetPosition(PositionWSToSS(originWS));
         }
     }
@@ -168,7 +168,7 @@ namespace Arterra.Data.Entity.Behavior {
             || ArmorPanel == null || !ArmorPanel.activeSelf) return;
         //Look at mouse position
         float2 mousePos = GetPositionVS(((float3)Input.mousePosition).xy);
-        float2 headVS = ((float3)Camera.WorldToViewportPoint(settings.HeadBone.position)).xy;
+        float2 headVS = ((float3)Camera.WorldToViewportPoint(settings.HeadBone.value.position)).xy;
         float2 delta = mousePos - headVS;
         float2 maxDist;
         maxDist.x = delta.x >= 0 ? 1 - headVS.x : headVS.x;
@@ -202,7 +202,7 @@ namespace Arterra.Data.Entity.Behavior {
                 ArmorSlots[i].SetScale(1);
             }
 
-            float3 originVS = Camera.WorldToViewportPoint(variant.Root.Bone.position);
+            float3 originVS = Camera.WorldToViewportPoint(variant.Root.Bone.value.position);
             float2 slotVS = GetPositionVS(ArmorSlots[i].position.xy);
             float distance = math.distance(originVS.xy, slotVS);
             float accel = (variant.TargetSlotDistance - distance) / variant.TargetSlotDistance;
@@ -220,7 +220,7 @@ namespace Arterra.Data.Entity.Behavior {
             float minDist = float.MaxValue;
             for (int i = 0; i < variant.Bones.value.Count; i++) {
                 EquipableArmor.BoneRegion reg = variant.Bones.value[i];
-                float3 edgeWS = reg.Bone.position + (float3)Camera.main.transform.right * reg.SelectRadius;
+                float3 edgeWS = reg.Bone.value.position + (float3)Camera.main.transform.right * reg.SelectRadius;
                 float3 edgeVS = (float3)Camera.WorldToViewportPoint(edgeWS);
                 float dist = math.distance(edgeVS.xy, mousePos);
                 dist = math.max(dist - reg.SelectRadius, 0);

@@ -16,6 +16,7 @@ MonoBehaviour:
   Tags:
     Reg:
       value: []
-  Models: []
+  Models:
+    value: []
   DefaultRenderInfo:
     Data: 0

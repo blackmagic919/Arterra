@@ -4,6 +4,7 @@ using Arterra.Data.Entity;
 using Newtonsoft.Json;
 using Unity.Mathematics;
 using static Arterra.Data.Entity.EntitySetting;
+using Arterra.Configuration;
 
 namespace Arterra.Data.Entity.Behavior {
     public enum TransitionCheck {
@@ -23,25 +24,25 @@ namespace Arterra.Data.Entity.Behavior {
     }
 
     [Serializable]
-    public class PathTransitionGroup {
+    public struct PathTransitionGroup {
         // Disable for intermediate states, such as the apex of a hop.
-        public bool CanEndPath = true;
-        public List<PathTransition> Transitions = new();
+        public bool CanEndPath;
+        public Option<List<PathTransition>> Transitions;
     }
 
     [Serializable]
     public class TransitionPathfinderSettings : IBehaviorSetting {
         [JsonIgnore] public static string Name => "Transition Pathfinder";
         public int StartGroup;
-        public List<PathTransitionGroup> Groups = CreateWalkingGroups();
+        public Option<List<PathTransitionGroup>> Groups = CreateWalkingGroups();
 
         private static List<PathTransitionGroup> CreateWalkingGroups() {
-            PathTransitionGroup walking = new();
+            PathTransitionGroup walking = new() { CanEndPath = true, Transitions = new List<PathTransition>() };
             for (int x = -1; x <= 1; x++) {
                 for (int y = -1; y <= 1; y++) {
                     for (int z = -1; z <= 1; z++) {
                         if (x == 0 && y == 0 && z == 0) continue;
-                        walking.Transitions.Add(new PathTransition {
+                        walking.Transitions.value.Add(new PathTransition {
                             Delta = new int3(x, y, z),
                             NextGroup = 0,
                             Check = new Optional<TransitionCheck>(TransitionCheck.DestinationProfile)
@@ -53,13 +54,16 @@ namespace Arterra.Data.Entity.Behavior {
         }
 
         public object Clone() {
-            TransitionPathfinderSettings clone = new() { StartGroup = StartGroup, Groups = new() };
-            foreach (PathTransitionGroup group in Groups) {
-                clone.Groups.Add(new PathTransitionGroup {
+            TransitionPathfinderSettings clone = new() { StartGroup = StartGroup, Groups = new List<PathTransitionGroup>() };
+            foreach (PathTransitionGroup group in Groups.value) {
+                Option<List<PathTransition>> transitions = group.Transitions;
+                transitions.value = group.Transitions.value == null ? null : new List<PathTransition>(group.Transitions.value);
+                clone.Groups.value.Add(new PathTransitionGroup {
                     CanEndPath = group.CanEndPath,
-                    Transitions = new List<PathTransition>(group.Transitions)
+                    Transitions = transitions
                 });
             }
+            clone.Groups.IsDirty = Groups.IsDirty;
             return clone;
         }
     }
@@ -87,13 +91,13 @@ namespace Arterra.Data.Entity.Behavior {
         private void BindSettings(BehaviorEntity.AnimalSetting setting) {
             if (!setting.Is(out settings))
                 throw new InvalidOperationException("Transition Pathfinder requires TransitionPathfinderSettings.");
-            if (settings.Groups == null || settings.StartGroup < 0 || settings.StartGroup >= settings.Groups.Count)
+            if (settings.Groups.value == null || settings.StartGroup < 0 || settings.StartGroup >= settings.Groups.value.Count)
                 throw new InvalidOperationException("Transition Pathfinder requires a valid starting group.");
-            foreach (PathTransitionGroup group in settings.Groups) {
-                if (group?.Transitions == null)
+            foreach (PathTransitionGroup group in settings.Groups.value) {
+                if (group.Transitions.value == null)
                     throw new InvalidOperationException("Transition Pathfinder groups cannot be null.");
-                foreach (PathTransition transition in group.Transitions) {
-                    if (transition.NextGroup < 0 || transition.NextGroup >= settings.Groups.Count)
+                foreach (PathTransition transition in group.Transitions.value) {
+                    if (transition.NextGroup < 0 || transition.NextGroup >= settings.Groups.value.Count)
                         throw new InvalidOperationException("Transition Pathfinder has an invalid destination group.");
                 }
             }
@@ -253,7 +257,7 @@ namespace Arterra.Data.Entity.Behavior {
                 expanded++;
 
                 int remaining = Get3DDistance(math.abs(destination - current.State.xyz));
-                PathTransitionGroup group = settings.Groups[current.State.w];
+                PathTransitionGroup group = settings.Groups.value[current.State.w];
 
                 if (group.CanEndPath) {
                     if (remaining < bestDistance) {
@@ -278,8 +282,8 @@ namespace Arterra.Data.Entity.Behavior {
                     }
                 }
 
-                for (int i = 0; i < group.Transitions.Count; i++) {
-                    PathTransition transition = group.Transitions[i];
+                for (int i = 0; i < group.Transitions.value.Count; i++) {
+                    PathTransition transition = group.Transitions.value[i];
                     int3 position = current.State.xyz + transition.Delta;
                     if (math.any(math.abs(position) > distance)) continue;
 

@@ -49,12 +49,12 @@ namespace Arterra.Editor {
         }
 
         private bool HasZeroVolume(BiomeRegion region) {
-            if (region?.Spans == null || region.Spans.Length != Category.numDimensions) {
+            if (region?.Spans.value == null || region.Spans.value.Count != Category.numDimensions) {
                 return false;
             }
 
             bool hasCollapsedDimension = false;
-            foreach (var span in region.Spans) {
+            foreach (var span in region.Spans.value) {
                 // Malformed bounds should remain visible to validation, not silently disappear.
                 if (float.IsNaN(span.x) || float.IsNaN(span.y) ||
                     float.IsInfinity(span.x) || float.IsInfinity(span.y) ||
@@ -69,7 +69,7 @@ namespace Arterra.Editor {
         }
 
         private void CullZeroVolumeRegions() {
-            if (!Category || Category.Biomes == null || boundaryDragUndoGroup >= 0) {
+            if (!Category || Category.Biomes.value == null || boundaryDragUndoGroup >= 0) {
                 return;
             }
 
@@ -81,15 +81,15 @@ namespace Arterra.Editor {
                 categoryStateRestoredByUndo = null;
             }
 
-            if (!Category.Biomes.Any(HasZeroVolume)) {
+            if (!Category.Biomes.value.Any(HasZeroVolume)) {
                 return;
             }
 
-            var selectedRegion = HasSelectedRegion ? Category.Biomes[selectedRegionIndex] : null;
+            var selectedRegion = HasSelectedRegion ? Category.Biomes.value[selectedRegionIndex] : null;
             Undo.RecordObject(Category, "Cull zero-volume biome regions");
-            Category.Biomes.RemoveAll(HasZeroVolume);
+            Category.Biomes.value.RemoveAll(HasZeroVolume);
 
-            selectedRegionIndex = selectedRegion == null ? -1 : Category.Biomes.IndexOf(selectedRegion);
+            selectedRegionIndex = selectedRegion == null ? -1 : Category.Biomes.value.IndexOf(selectedRegion);
             if (selectedRegionIndex < 0) {
                 hasSelectedBoundary = false;
             }
@@ -134,7 +134,7 @@ namespace Arterra.Editor {
 
                 for (int side = 0; side < 2; side++) {
                     if (i != draggedRegionIndex || side != movingSide) {
-                        targets.Add(region.Spans[dimension][side]);
+                        targets.Add(region.Spans.value[dimension][side]);
                     }
                 }
             }
@@ -143,7 +143,7 @@ namespace Arterra.Editor {
         }
 
         private float ResolveDraggedBoundaryPosition(float position, int dimension, int side) {
-            var originalSpan = regionsBeforeDrag[draggedRegionIndex].Spans[dimension];
+            var originalSpan = regionsBeforeDrag[draggedRegionIndex].Spans.value[dimension];
             float minimum = side == 0 ? 0f : originalSpan.x;
             float maximum = side == 0 ? originalSpan.y : 1f;
 
@@ -212,7 +212,7 @@ namespace Arterra.Editor {
                     continue;
                 }
 
-                var span = region.Spans[dimension];
+                var span = region.Spans.value[dimension];
                 if (sliceCoordinates[dimension] < span.x || (sliceCoordinates[dimension] >= span.y && !(sliceCoordinates[dimension] == 1 && span.y == 1))) {
                     return false;
                 }
@@ -222,7 +222,7 @@ namespace Arterra.Editor {
         }
 
         private Color GetRegionColor(BiomeRegion region) {
-            var registry = Category.BiomeColors.Reg;
+            var registry = Category.BiomeColors.Reg.value;
             if (registry != null) {
                 foreach (var pair in registry) {
                     if (pair.Name == region.BiomeName) {
@@ -252,15 +252,15 @@ namespace Arterra.Editor {
         private List<float> GetVisibleBoundaryPositions(int axis) {
             var values = new SortedSet<float>
             { 0, 1 };
-            foreach (var region in Category.Biomes.Where(IsRegionVisibleInSlice)) {
-                values.Add(region.Spans[axisDimensions[axis]].x);
-                values.Add(region.Spans[axisDimensions[axis]].y);
+            foreach (var region in Category.Biomes.value.Where(IsRegionVisibleInSlice)) {
+                values.Add(region.Spans.value[axisDimensions[axis]].x);
+                values.Add(region.Spans.value[axisDimensions[axis]].y);
             }
 
             return values.ToList();
         }
 
-        private bool HasSelectedRegion => selectedRegionIndex >= 0 && selectedRegionIndex < Category.Biomes.Count;
+        private bool HasSelectedRegion => selectedRegionIndex >= 0 && selectedRegionIndex < Category.Biomes.value.Count;
 
         private void OnSceneGUI() {
             if (!Category) {
@@ -282,11 +282,11 @@ namespace Arterra.Editor {
 
             // Revalidate externally edited data before indexing it; quadratic overlap checking is manual/Undo only.
             bool hasValidRegionDimensions = Category.numDimensions >= 3 &&
-                Category.Biomes != null &&
-                Category.Biomes.All(region => region?.Spans != null &&
-                    region.Spans.Length == Category.numDimensions);
+                Category.Biomes.value != null &&
+                Category.Biomes.value.All(region => region?.Spans.value != null &&
+                    region.Spans.value.Count == Category.numDimensions);
             if (hasValidRegionDimensions && validationError == null &&
-                HasSelectedRegion && !IsRegionVisibleInSlice(Category.Biomes[selectedRegionIndex])) {
+                HasSelectedRegion && !IsRegionVisibleInSlice(Category.Biomes.value[selectedRegionIndex])) {
                 selectedRegionIndex = -1;
                 hasSelectedBoundary = false;
             }
@@ -347,8 +347,8 @@ namespace Arterra.Editor {
         }
 
         private void DrawVisibleRegionCuboids(bool isPointerOverSidebar) {
-            for (int i = 0; i < Category.Biomes.Count; i++) {
-                var region = Category.Biomes[i];
+            for (int i = 0; i < Category.Biomes.value.Count; i++) {
+                var region = Category.Biomes.value[i];
                 if (!IsRegionVisibleInSlice(region)) {
                     continue;
                 }
@@ -356,8 +356,8 @@ namespace Arterra.Editor {
                 var minimum = new Vector3();
                 var maximum = new Vector3();
                 for (int axisIndex = 0; axisIndex < 3; axisIndex++) {
-                    minimum[axisIndex] = region.Spans[axisDimensions[axisIndex]].x;
-                    maximum[axisIndex] = region.Spans[axisDimensions[axisIndex]].y;
+                    minimum[axisIndex] = region.Spans.value[axisDimensions[axisIndex]].x;
+                    maximum[axisIndex] = region.Spans.value[axisDimensions[axisIndex]].y;
                 }
 
                 var corners = new Vector3[8];
@@ -421,8 +421,8 @@ namespace Arterra.Editor {
 
             for (int axisIndex = 0; axisIndex < 3; axisIndex++) {
                 for (int side = 0; side < 2; side++) {
-                    var region = Category.Biomes[selectedRegionIndex];
-                    float value = region.Spans[axisDimensions[axisIndex]][side];
+                    var region = Category.Biomes.value[selectedRegionIndex];
+                    float value = region.Spans.value[axisDimensions[axisIndex]][side];
                     var position = GetAxisHandleWorldPosition(axisIndex, value);
                     float size = HandleUtility.GetHandleSize(position) * 0.055f;
                     // A separate pick target allows selecting fixed endpoint handles too.
@@ -450,7 +450,7 @@ namespace Arterra.Editor {
                             Undo.IncrementCurrentGroup();
                             boundaryDragUndoGroup = Undo.GetCurrentGroup();
                             Undo.SetCurrentGroupName("Move biome boundary");
-                            regionsBeforeDrag = Category.Biomes.Select(r => r.Copy()).ToList();
+                            regionsBeforeDrag = Category.Biomes.value.Select(r => r.Copy()).ToList();
                             draggedRegionIndex = selectedRegionIndex;
                             boundarySnapTargets = CollectBoundarySnapTargets(axisIndex, side);
                         }
@@ -458,9 +458,10 @@ namespace Arterra.Editor {
                         Undo.RecordObject(Category, "Move biome boundary");
                         var replacement = regionsBeforeDrag[draggedRegionIndex].Copy();
                         float normalizedPosition = Vector3.Dot(moved - GetAxisHandleWorldPosition(axisIndex, 0), GetWorldAxisDirection(axisIndex)) / Tool.DisplaySize;
-                        replacement.Spans[axisDimensions[axisIndex]][side] =
-                            ResolveDraggedBoundaryPosition(normalizedPosition, axisDimensions[axisIndex], side);
-                        Category.Biomes = regionsBeforeDrag.Select(r => r.Copy()).ToList();
+                        var span = replacement.Spans.value[axisDimensions[axisIndex]];
+                        span[side] = ResolveDraggedBoundaryPosition(normalizedPosition, axisDimensions[axisIndex], side);
+                        replacement.Spans.value[axisDimensions[axisIndex]] = span;
+                        Category.Biomes.value = regionsBeforeDrag.Select(r => r.Copy()).ToList();
                         selectedRegionIndex = Category.ReplaceRegion(draggedRegionIndex, replacement);
                         selectedAxisIndex = axisIndex;
                         selectedBoundarySide = side;
@@ -509,8 +510,8 @@ namespace Arterra.Editor {
             var biomeNames = new List<string> {
                 ""
             };
-            if (Category.BiomeColors.Reg != null) {
-                foreach (var pair in Category.BiomeColors.Reg) {
+            if (Category.BiomeColors.Reg.value != null) {
+                foreach (var pair in Category.BiomeColors.Reg.value) {
                     if (string.IsNullOrWhiteSpace(pair.Name) || biomeNames.Contains(pair.Name)) {
                         continue;
                     }
@@ -520,7 +521,7 @@ namespace Arterra.Editor {
                 }
             }
 
-            var selectedRegion = Category.Biomes[selectedRegionIndex];
+            var selectedRegion = Category.Biomes.value[selectedRegionIndex];
             int currentBiomeIndex = biomeNames.IndexOf(selectedRegion.BiomeName ?? "");
             if (currentBiomeIndex < 0) {
                 options.Add($"Missing: {selectedRegion.BiomeName}");
@@ -543,10 +544,10 @@ namespace Arterra.Editor {
                 return -1;
             }
 
-            return Category.Biomes.FindIndex(region => {
+            return Category.Biomes.value.FindIndex(region => {
                 if (!IsRegionVisibleInSlice(region) ||
-                    region.Spans[splitDimension].x > boundary ||
-                    region.Spans[splitDimension].y < nextBoundary) {
+                    region.Spans.value[splitDimension].x > boundary ||
+                    region.Spans.value[splitDimension].y < nextBoundary) {
                     return false;
                 }
 
@@ -556,8 +557,8 @@ namespace Arterra.Editor {
                         continue;
                     }
 
-                    float center = (selectedRegion.Spans[dimension].x + selectedRegion.Spans[dimension].y) * 0.5f;
-                    if (center < region.Spans[dimension].x || center >= region.Spans[dimension].y) {
+                    float center = (selectedRegion.Spans.value[dimension].x + selectedRegion.Spans.value[dimension].y) * 0.5f;
+                    if (center < region.Spans.value[dimension].x || center >= region.Spans.value[dimension].y) {
                         return false;
                     }
                 }
@@ -572,7 +573,7 @@ namespace Arterra.Editor {
             }
 
             if (GUILayout.Button("Initialize unit cube")) {
-                if (Category.numDimensions >= 3 && (Category.Biomes == null || Category.Biomes.Count == 0 || EditorUtility.DisplayDialog("Replace partition?", "Existing regions will be replaced by one unassigned unit cuboid. Undo is available.", "Replace", "Cancel"))) {
+                if (Category.numDimensions >= 3 && (Category.Biomes.value == null || Category.Biomes.value.Count == 0 || EditorUtility.DisplayDialog("Replace partition?", "Existing regions will be replaced by one unassigned unit cuboid. Undo is available.", "Replace", "Cancel"))) {
                     Undo.RecordObject(Category, "Initialize biome partition");
                     Category.InitializePartition();
                     MarkCategoryDirtyAndRepaint();
@@ -587,7 +588,7 @@ namespace Arterra.Editor {
 
             string[] names = Enumerable.Range(0, Category.numDimensions).Select(Category.DimensionName).ToArray();
             DrawDimensionMappingAndSliceControls(names);
-            GUILayout.Label($"{Category.Biomes.Count(IsRegionVisibleInSlice)} visible / {Category.Biomes.Count} regions");
+            GUILayout.Label($"{Category.Biomes.value.Count(IsRegionVisibleInSlice)} visible / {Category.Biomes.value.Count} regions");
             EditorGUILayout.HelpBox("Click a cuboid center to assign its biome. Axis dots show this slice's boundaries; white cubes edit the selected region. Edits affect its full hidden-dimension span.", MessageType.None);
             if (!HasSelectedRegion) {
                 return;
@@ -596,14 +597,14 @@ namespace Arterra.Editor {
             GUILayout.Space(8);
             GUILayout.Label("Selected biome", EditorStyles.boldLabel);
             DrawBiomeAssignmentDropdown();
-            var selectedRegion = Category.Biomes[selectedRegionIndex];
+            var selectedRegion = Category.Biomes.value[selectedRegionIndex];
             if (!hasSelectedBoundary) {
                 GUILayout.Label("Select an axis handle's small round button.");
                 return;
             }
 
             int dimension = axisDimensions[selectedAxisIndex];
-            float boundary = selectedRegion.Spans[dimension][selectedBoundarySide];
+            float boundary = selectedRegion.Spans.value[dimension][selectedBoundarySide];
             GUILayout.Label($"{names[dimension]}: {boundary:0.####}");
             var boundaryPositions = GetVisibleBoundaryPositions(selectedAxisIndex);
             float nextBoundary = boundaryPositions.FirstOrDefault(v => v > boundary);
@@ -622,9 +623,11 @@ namespace Arterra.Editor {
                 if (GUILayout.Button("Delete boundary (expand selected)")) {
                     Undo.RecordObject(Category, "Delete biome boundary");
                     var replacement = selectedRegion.Copy();
-                    replacement.Spans[dimension][selectedBoundarySide] = selectedBoundarySide == 0
+                    var span = replacement.Spans.value[dimension];
+                    span[selectedBoundarySide] = selectedBoundarySide == 0
                         ? boundaryPositions.Last(value => value < boundary)
                         : boundaryPositions.First(value => value > boundary);
+                    replacement.Spans.value[dimension] = span;
                     selectedRegionIndex = Category.ReplaceRegion(selectedRegionIndex, replacement);
                     MarkCategoryDirtyAndRepaint();
                 }

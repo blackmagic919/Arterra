@@ -38,6 +38,10 @@ namespace Arterra.Data.Entity.Behavior
 
 		public object Clone() {
 			return new TentacleSettings {
+				MaxGrabTentacles = MaxGrabTentacles,
+				GrabBreakDist = GrabBreakDist,
+				GrabHoldPos = GrabHoldPos,
+				AttackState = AttackState,
 				Tentacles = Tentacles,
 			};
 		}

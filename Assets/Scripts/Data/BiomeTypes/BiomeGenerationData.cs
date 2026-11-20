@@ -67,7 +67,7 @@ public class BDict {
 
         var dictionary = new BDict { dimensions = placement.numDimensions };
         var leaves = new List<RNode>();
-        foreach (var source in placement.Biomes) {
+        foreach (var source in placement.Biomes.value) {
             if (string.IsNullOrWhiteSpace(source.BiomeName)) continue;
             var region = source.Copy();
             leaves.Add(new RNode { Region = region });

@@ -17,7 +17,8 @@ MonoBehaviour:
     Reg:
       value: []
   Models:
-  - MeshPath: Prefabs/Materials/ChestL
-  - MeshPath: Prefabs/Materials/ChestR
+    value:
+    - MeshPath: Prefabs/Materials/ChestL
+    - MeshPath: Prefabs/Materials/ChestR
   DefaultRenderInfo:
     Data: 0

@@ -1,5 +1,13 @@
 ## [Unreleased]
 
+## Changed
+- Increased player pickup speed
+
+## Fixed
+- Settings error due to strict value-type references rule being broken
+- Missing members when cloning updated settings
+- Collecting rates are per second
+
 ## [0.2.8] - 2026-11-20
 
 ## Added

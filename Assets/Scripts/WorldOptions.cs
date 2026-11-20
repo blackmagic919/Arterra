@@ -221,6 +221,7 @@ namespace Arterra.Configuration {
 
             public object Clone() {
                 return new GamePlaySettings {
+                    Audio = Audio,
                     Input = Input,
                     PlayerSettings = PlayerSettings,
                     Gamemodes = Gamemodes,

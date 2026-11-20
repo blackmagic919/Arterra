@@ -19,6 +19,7 @@ namespace Arterra.Data.Entity.Behavior {
 
         public object Clone() {
             return new FeedableBehaviorSettings {
+                ConsumeRate = ConsumeRate,
                 CanEat = CanEat,
             };
         }

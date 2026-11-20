@@ -251,7 +251,7 @@ namespace Arterra.Data.Item {
                 IItem ret = (IItem)item.Clone();
                 collectRate *= item.UnitSize;
                 int delta = Mathf.FloorToInt(collectRate)
-                    + (UnityEngine.Random.Range(0, 1) < math.frac(collectRate) ? 1 : 0);
+                    + (UnityEngine.Random.value < math.frac(collectRate) ? 1 : 0);
                 ret.AmountRaw = RemoveStackableSlot(firstSlot, delta);
                 return ret;
             }

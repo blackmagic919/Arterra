@@ -40,7 +40,8 @@ MonoBehaviour:
     waveScale: {x: 0, y: 0}
     waveSpeed: {x: 0, y: 0}
   Roughness: 0.2
-  Logic: {fileID: 11400000, guid: b44129df7e7c41709d8f82207ad4ba9b, type: 2}
+  Logic:
+    value: {fileID: 11400000, guid: b44129df7e7c41709d8f82207ad4ba9b, type: 2}
   looter:
     SolidLootTable:
       value: []

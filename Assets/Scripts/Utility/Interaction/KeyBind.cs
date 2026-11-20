@@ -171,7 +171,7 @@ namespace Arterra.GamePlay.Interaction {
                 Catalogue<KeyBind> NewMappings = (Catalogue<KeyBind>)nMaps;
                 NewMappings.Construct();
                 //Rebind all currently bound actions
-                foreach (Registry<uint>.Pair head in LayerHeads.Reg) {
+                foreach (Registry<uint>.Pair head in LayerHeads.Reg.value) {
                     uint current = head.Value;
                     do {
                         ref ActionBind BoundAction = ref KeyBinds.RefVal(current);
@@ -243,7 +243,7 @@ namespace Arterra.GamePlay.Interaction {
             GlobalKeyExclusion.Clear(); GlobalBindExclusion.Clear();
             LayerKeyExclusion.Clear(); LayerBindExclusion.Clear();
             static bool IsKeyBlocked(KeyCode key) => GlobalKeyExclusion.Contains(key) || LayerKeyExclusion.Contains(key);
-            foreach (Registry<uint>.Pair head in LayerHeads.Reg) {
+            foreach (Registry<uint>.Pair head in LayerHeads.Reg.value) {
                 uint current = head.Value;
                 LayerKeyExclusion.Clear();
                 LayerBindExclusion.Clear();
@@ -394,7 +394,7 @@ namespace Arterra.GamePlay.Interaction {
         private static uint AddKeyBind(ActionBind keyBind, string layer) {
             if (!LayerHeads.Contains(layer)) {
                 LayerHeads.Add(layer, KeyBinds.Enqueue(keyBind));
-                LayerHeads.Reg.Sort((a, b) => a.Name.CompareTo(b.Name));
+                LayerHeads.Reg.value.Sort((a, b) => a.Name.CompareTo(b.Name));
                 LayerHeads.Construct(); //reconstruct because sorting breaks the dictionary's values
             } else LayerHeads.TrySet(layer, KeyBinds.Enqueue(keyBind, LayerHeads.Retrieve(layer)));
             return LayerHeads.Retrieve(layer);

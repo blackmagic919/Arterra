@@ -69,56 +69,56 @@ MonoBehaviour:
           y: 2
           z: 1
       BehaviorList:
-        value: 050000000600000003000000ed0300000100000069000000fa0300006a0000006b0000006c00000066000000650000006800000067000000020000006d0000006e00000064000000f3030000
+        value: 050000000600000003000000ed03000001000000fa030000690000006a0000006b0000006c00000066000000650000006800000067000000020000006d0000006e00000064000000f3030000
       Settings:
         value:
           value:
           - value:
               value:
-                rid: 7733755232624574709
+                rid: 7733755242390749346
           - value:
               value:
-                rid: 7733755232624574710
+                rid: 7733755242390749347
           - value:
               value:
-                rid: 7733755232624574711
+                rid: 7733755242390749348
           - value:
               value:
-                rid: 7733755232624574712
+                rid: 7733755242390749349
           - value:
               value:
-                rid: 7733755232624574713
+                rid: 7733755242390749350
           - value:
               value:
-                rid: 7733755232624574721
+                rid: 7733755242390749351
           - value:
               value:
-                rid: 7733755232624574714
+                rid: 7733755242390749352
           - value:
               value:
-                rid: 7733755232624574715
+                rid: 7733755242390749353
           - value:
               value:
-                rid: 7733755232624574716
+                rid: 7733755242390749354
           - value:
               value:
-                rid: 7733755232624574717
+                rid: 7733755242390749355
           - value:
               value:
-                rid: 7733755232624574718
+                rid: 7733755242390749356
           - value:
               value:
-                rid: 7733755232624574719
+                rid: 7733755242390749357
       _prevBehaviorCount: 19
   references:
     version: 2
     RefIds:
-    - rid: 7733755232624574709
+    - rid: 7733755242390749346
       type: {class: ColliderUpdateSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
         interactType: 0
         UseGravity: 1
-    - rid: 7733755232624574710
+    - rid: 7733755242390749347
       type: {class: PhysicalitySetting, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
         weight: 50
@@ -127,27 +127,36 @@ MonoBehaviour:
         MaxHealth: 20
         NaturalRegen: 0.01
         InvincTime: 0.25
-    - rid: 7733755232624574711
+    - rid: 7733755242390749348
       type: {class: Decomposition, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
         LootTable:
-          value: []
-    - rid: 7733755232624574712
+          value:
+          - ItemName: Meat
+            DropAmount: 22.5
+            DropStdDev: 0.4
+    - rid: 7733755242390749349
       type: {class: MapInteractorSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
         interactType: 0
         HoldBreathTime: 10
         Bouyancy: -1
         UseFallDamage: 1
-    - rid: 7733755232624574713
+    - rid: 7733755242390749350
+      type: {class: TimedDecaySettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        DecayTime: 300
+        InteractEvents:
+          value: []
+    - rid: 7733755242390749351
       type: {class: PlayerInventorySettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
         PrimarySlotCount: 5
         SecondarySlotCount: 30
-        RecoverSpeedMultiplier: 25
+        RecoverSpeedMultiplier: 0
         SelectedColor: {r: 0.6792453, g: 0.5261536, b: 0.33641866, a: 0.39215687}
         BaseColor: {r: 0.6862745, g: 0.6862745, b: 0.6862745, a: 0.39215687}
-    - rid: 7733755232624574714
+    - rid: 7733755242390749352
       type: {class: PlayerCameraSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
         Sensitivity: 2
@@ -156,7 +165,7 @@ MonoBehaviour:
         MaximumX: 90
         smooth: 0
         smoothTime: 5
-    - rid: 7733755232624574715
+    - rid: 7733755242390749353
       type: {class: PlayerMovementSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
         walkSpeed: 3
@@ -164,7 +173,7 @@ MonoBehaviour:
         jumpForce: 5
         groundStickDist: 0.05
         flightSpeedMultiplier: 3
-    - rid: 7733755232624574716
+    - rid: 7733755242390749354
       type: {class: PlayerInteractionSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
         TerraformRadius: 1
@@ -175,23 +184,23 @@ MonoBehaviour:
             GivesItem: 1
         ReachDistance: 8
         CylinderRadius: 1
-        PickupRate: 1.5
+        PickupRate: 10
         AttackDamage: 2
         AttackFrequency: 0.25
         KnockBackStrength: 10
-    - rid: 7733755232624574717
+    - rid: 7733755242390749355
       type: {class: PlayerEffectsSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
         AnimatorPath: Player
         AverageBlinkTime: 3
         BlinkVariance: 0.5
-    - rid: 7733755232624574718
+    - rid: 7733755242390749356
       type: {class: StepSoundBehaviorSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
         StepDistance: 1.5
         TouchState: 0
         entityStepSound: 0
-    - rid: 7733755232624574719
+    - rid: 7733755242390749357
       type: {class: HungerSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
         MaxHungerHealthColor: {r: 1, g: 0, b: 0, a: 1}
@@ -200,62 +209,67 @@ MonoBehaviour:
           value:
           - baseValue: 0.35
             thresholds:
-            - minimumHunger: 0.2
-              value: 0.7
-            - minimumHunger: 0.5
-              value: 1
-            - minimumHunger: 1.8
-              value: 0.85
-            - minimumHunger: 1.95
-              value: 0.7
+              value:
+              - minimumHunger: 0.2
+                value: 0.7
+              - minimumHunger: 0.5
+                value: 1
+              - minimumHunger: 1.8
+                value: 0.85
+              - minimumHunger: 1.95
+                value: 0.7
             policy: 1
             setting: 1008
           - baseValue: 0.35
             thresholds:
-            - minimumHunger: 0.2
-              value: 0.7
-            - minimumHunger: 0.5
-              value: 1
-            - minimumHunger: 1.8
-              value: 0.85
-            - minimumHunger: 1.95
-              value: 0.7
+              value:
+              - minimumHunger: 0.2
+                value: 0.7
+              - minimumHunger: 0.5
+                value: 1
+              - minimumHunger: 1.8
+                value: 0.85
+              - minimumHunger: 1.95
+                value: 0.7
             policy: 1
             setting: 1009
           - baseValue: 0
             thresholds:
-            - minimumHunger: 0.3
-              value: 0.8
-            - minimumHunger: 0.7
-              value: 1
-            - minimumHunger: 1.4
-              value: 4
-            - minimumHunger: 1.85
-              value: 10
+              value:
+              - minimumHunger: 0.3
+                value: 0.8
+              - minimumHunger: 0.7
+                value: 1
+              - minimumHunger: 1.4
+                value: 4
+              - minimumHunger: 1.85
+                value: 10
             policy: 1
             setting: 1006
           - baseValue: 0.5
             thresholds:
-            - minimumHunger: 0.25
-              value: 0.6
-            - minimumHunger: 0.5
-              value: 0.75
-            - minimumHunger: 0.75
-              value: 0.9
-            - minimumHunger: 1
-              value: 1
+              value:
+              - minimumHunger: 0.25
+                value: 0.6
+              - minimumHunger: 0.5
+                value: 0.75
+              - minimumHunger: 0.75
+                value: 0.9
+              - minimumHunger: 1
+                value: 1
             policy: 1
             setting: 1001
           - baseValue: 1.25
             thresholds:
-            - minimumHunger: 0.25
-              value: 1.15
-            - minimumHunger: 0.5
-              value: 1.05
-            - minimumHunger: 0.75
-              value: 1
-            - minimumHunger: 1.85
-              value: 1.2
+              value:
+              - minimumHunger: 0.25
+                value: 1.15
+              - minimumHunger: 0.5
+                value: 1.05
+              - minimumHunger: 0.75
+                value: 1
+              - minimumHunger: 1.85
+                value: 1.2
             policy: 1
             setting: 1002
         Effects:
@@ -265,7 +279,7 @@ MonoBehaviour:
             name: 4
             behavior:
               value:
-                rid: 7733755232624574720
+                rid: 7733755242390749358
         Exercises:
           value:
           - trigger: 3017
@@ -283,13 +297,9 @@ MonoBehaviour:
         startingPercent: 1.5
         baseStarveRate: 0.0001
         feedMultiplier: 0.1
-    - rid: 7733755232624574720
+    - rid: 7733755242390749358
       type: {class: DizzinessEffect, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
         Strength: 1
         Duration: Infinity
         EffectIcon: DizzinessIcon
-    - rid: 7733755232624574721
-      type: {class: TimedDecaySettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
-      data:
-        DecayTime: 300

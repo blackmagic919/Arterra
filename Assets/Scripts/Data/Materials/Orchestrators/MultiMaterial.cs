@@ -42,59 +42,59 @@ namespace Arterra.Data.Material
             DynamicTypes ??= new Dictionary<System.Type, object>();
 
             Behaviors.Construct();
-            foreach (var material in Behaviors.Reg) {
+            foreach (var material in Behaviors.Reg.value) {
                 Register(material.Value);
                 material.Value.Preset(materialData);
             }
         }
 
         public override void PropogateMaterialUpdate(int3 GCoord, Unity.Mathematics.Random prng = default) {
-            foreach (var material in Behaviors.Reg)
+            foreach (var material in Behaviors.Reg.value)
                 material.Value.PropogateMaterialUpdate(GCoord, ref prng);
         }
 
         public override void RandomMaterialUpdate(int3 GCoord, Unity.Mathematics.Random prng = default) {
-            foreach (var material in Behaviors.Reg)
+            foreach (var material in Behaviors.Reg.value)
                 material.Value.RandomMaterialUpdate(GCoord, ref prng);
         }
 
         public override bool OnRemoving(int3 GCoord, Entity.Entity caller) {
-            foreach (var material in Behaviors.Reg)
+            foreach (var material in Behaviors.Reg.value)
                 if (material.Value.OnRemoving(GCoord, caller)) return true;
             return false;
         }
 
         public override bool OnPlacing(int3 GCoord, Entity.Entity caller) {
-            foreach (var material in Behaviors.Reg)
+            foreach (var material in Behaviors.Reg.value)
                 if (material.Value.OnPlacing(GCoord, caller)) return true;
             return false;
         }
 
         public override Item.IItem OnRemoved(int3 GCoord, in MapData amount) {
-            foreach (var material in Behaviors.Reg) {
+            foreach (var material in Behaviors.Reg.value) {
                 var item = material.Value.OnRemoved(GCoord, amount);
                 if (item != null) return item;
             } return looter.LootItem(amount, Names);;
         }
 
         public override void OnPlaced(int3 GCoord, in MapData amount) {
-            foreach (var material in Behaviors.Reg)
+            foreach (var material in Behaviors.Reg.value)
                 material.Value.OnPlaced(GCoord, amount);
         }
 
         public override void OnEntityTouchSolid(int3 GCoord, Entity.Entity entity) {
-            foreach (var material in Behaviors.Reg)
+            foreach (var material in Behaviors.Reg.value)
                 material.Value.OnEntityTouchSolid(GCoord, entity);
         }
 
         public override void OnEntityTouchLiquid(int3 GCoord, Entity.Entity entity) {
-            foreach (var material in Behaviors.Reg)
+            foreach (var material in Behaviors.Reg.value)
                 material.Value.OnEntityTouchLiquid(GCoord, entity);
         }
 
         public override object ConstructMetaData(int3 GCoord, MetaConstructor constructor) {
             object result = constructor;
-            foreach (var material in Behaviors.Reg)
+            foreach (var material in Behaviors.Reg.value)
                 result = material.Value.ConstructMetaData(GCoord, constructor);
             return result;
         }

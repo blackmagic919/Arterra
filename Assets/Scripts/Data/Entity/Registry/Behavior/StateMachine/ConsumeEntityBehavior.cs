@@ -66,7 +66,7 @@ namespace Arterra.Data.Entity.Behavior {
 
         public void ConsumeTarget(Entity target, BehaviorEntity.Animal self) {
             target.eventCtrl.EnqueueEvent(GameEvent.Apply_Collect,
-                self.info.rtEntityId, target.info.rtEntityId, consume.ConsumptionRate);
+                self.info.rtEntityId, target.info.rtEntityId, consume.ConsumptionRate * self.DeltaTime);
         }
 
         private void ReceiveItem(object source, object target, object context) {

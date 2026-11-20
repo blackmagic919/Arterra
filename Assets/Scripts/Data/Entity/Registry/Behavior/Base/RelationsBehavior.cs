@@ -44,6 +44,8 @@ namespace Arterra.Data.Entity.Behavior {
 
         public object Clone() {
             return new RelationsBehaviorSettings {
+                OnBetrayalAffection = OnBetrayalAffection,
+                OnRivalMateAffection = OnRivalMateAffection,
                 OnFedAffection = OnFedAffection,
                 OnProtectAffection = OnProtectAffection,
                 OnSaveAffection = OnSaveAffection,

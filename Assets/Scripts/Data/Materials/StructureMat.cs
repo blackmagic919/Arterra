@@ -102,7 +102,7 @@ namespace Arterra.Data.Material {
             var placement = GetLayout(layout);
             int3 origin = placement.GetOrigin(keystone, rotation);
             return CanPlaceLayout(origin, rotation, layout)
-                && VerifySampleChecks(placement.Structure.Select(p => p.map), origin, rotation);
+                && VerifySampleChecks(placement.Structure.value.Select(p => p.map), origin, rotation);
         }
 
         protected bool VerifySampleChecks(IEnumerable<MapSamplePoint> checks, int3 origin, int3 rotation,
@@ -146,8 +146,8 @@ namespace Arterra.Data.Material {
     }
 
     [Serializable]
-    public class StructureLayout {
-        public List<MapPlacement> Structure;
+    public struct StructureLayout {
+        public Option<List<MapPlacement>> Structure;
         public int SelfIndex;
         public bool randYRot;
         public bool randXRot;
@@ -158,7 +158,7 @@ namespace Arterra.Data.Material {
         public bool AllowsRotation(int3 rotation) => math.all(rotation >= 0) && math.all(rotation < RotationCount);
 
         public int3 GetOrigin(int3 keystone, int3 rotation) => keystone - math.mul(
-            CustomUtility.RotationLookupTable[rotation.y, rotation.x, rotation.z], Structure[SelfIndex].map.Offset);
+            CustomUtility.RotationLookupTable[rotation.y, rotation.x, rotation.z], Structure.value[SelfIndex].map.Offset);
 
         public int3 GetRotation(float3 direction) {
             float3 forward = math.normalizesafe(direction);

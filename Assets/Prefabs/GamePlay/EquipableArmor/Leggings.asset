@@ -21,27 +21,33 @@ MonoBehaviour:
     value:
     - value:
         Bone:
-          BonePath: hRig/spine/thigh.L/shin.L
+          value:
+            BonePath: hRig/spine/thigh.L/shin.L
         SelectRadius: 0.05
     - value:
         Bone:
-          BonePath: hRig/spine/thigh.R/shin.R
+          value:
+            BonePath: hRig/spine/thigh.R/shin.R
         SelectRadius: 0.05
     - value:
         Bone:
-          BonePath: hRig/spine/thigh.L
+          value:
+            BonePath: hRig/spine/thigh.L
         SelectRadius: 0.05
     - value:
         Bone:
-          BonePath: hRig/spine/thigh.R
+          value:
+            BonePath: hRig/spine/thigh.R
         SelectRadius: 0.05
     - value:
         Bone:
-          BonePath: hRig/spine/pelvis.L
+          value:
+            BonePath: hRig/spine/pelvis.L
         SelectRadius: 0.05
     - value:
         Bone:
-          BonePath: hRig/spine/pelvis.R
+          value:
+            BonePath: hRig/spine/pelvis.R
         SelectRadius: 0.05
   DefaultClothing:
     value:

@@ -44,27 +44,28 @@ MonoBehaviour:
   Roughness: 0.2
   Behaviors:
     Reg:
-    - Name: Decay
-      _value:
-        value: {fileID: 11400000, guid: 340742ce8f35047e4b4c842e8073a518, type: 2}
-    - Name: GrowBottom
-      _value:
-        value: {fileID: 11400000, guid: 574374931df6a467796c24eadefe5dbf, type: 2}
-    - Name: GrowTop
-      _value:
-        value: {fileID: 11400000, guid: ab48e8b39c21d45538729588532bd9ff, type: 2}
-    - Name: GrowLeft
-      _value:
-        value: {fileID: 11400000, guid: d6fd7a8489e574a819b17a64e1226952, type: 2}
-    - Name: GrowRight
-      _value:
-        value: {fileID: 11400000, guid: 09eaf016cdaf24c43b36651662a01f6f, type: 2}
-    - Name: GrowBack
-      _value:
-        value: {fileID: 11400000, guid: 7f4915f3b24584df3a6ddf55fc79a756, type: 2}
-    - Name: GrowFront
-      _value:
-        value: {fileID: 11400000, guid: 25b43352dde9b4eca9e521f7f3bd1a1c, type: 2}
+      value:
+      - Name: Decay
+        _value:
+          value: {fileID: 11400000, guid: 340742ce8f35047e4b4c842e8073a518, type: 2}
+      - Name: GrowBottom
+        _value:
+          value: {fileID: 11400000, guid: 574374931df6a467796c24eadefe5dbf, type: 2}
+      - Name: GrowTop
+        _value:
+          value: {fileID: 11400000, guid: ab48e8b39c21d45538729588532bd9ff, type: 2}
+      - Name: GrowLeft
+        _value:
+          value: {fileID: 11400000, guid: d6fd7a8489e574a819b17a64e1226952, type: 2}
+      - Name: GrowRight
+        _value:
+          value: {fileID: 11400000, guid: 09eaf016cdaf24c43b36651662a01f6f, type: 2}
+      - Name: GrowBack
+        _value:
+          value: {fileID: 11400000, guid: 7f4915f3b24584df3a6ddf55fc79a756, type: 2}
+      - Name: GrowFront
+        _value:
+          value: {fileID: 11400000, guid: 25b43352dde9b4eca9e521f7f3bd1a1c, type: 2}
   looter:
     SolidLootTable:
       value: []

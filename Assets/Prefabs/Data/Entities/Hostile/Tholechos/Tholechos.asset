@@ -805,15 +805,17 @@ MonoBehaviour:
           - State: 50100
             DirectRotation: 0
         Projectile:
-          ShotDelay: 0.1
-          CheckSightline: 1
-          ChargeTime: 1.3
-          Projectile:
-            LaunchSpeedMultiplier: 10
-            FireSound: 2004
-            ProjectileEntity: SonicWave
-          HasRangedAttack: 1
-          MaxTargetAngle: 15
+          value:
+            ShotDelay: 0.1
+            CheckSightline: 1
+            ChargeTime: 1.3
+            Projectile:
+              value:
+                LaunchSpeedMultiplier: 10
+                FireSound: 2004
+                ProjectileEntity: SonicWave
+            HasRangedAttack: 1
+            MaxTargetAngle: 15
         BlindDist: 0
     - rid: 7000000000000000023
       type: {class: LandOnGroundSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}

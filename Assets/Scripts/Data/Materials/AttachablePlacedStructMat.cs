@@ -9,33 +9,33 @@ using UnityEngine;
 namespace Arterra.Data.Material {
     [CreateAssetMenu(menuName = "Generation/MaterialData/Behaviors/AttachablePlacedStructMat")]
     public class AttachablePlacedStructMat : PlaceableStructureMat {
-        public List<Attachment> Attachments;
+        public Option<List<Attachment>> Attachments;
 
         [Serializable]
         public struct Attachment {
             public string Name;
-            public List<MapSamplePoint> Checks;
+            public Option<List<MapSamplePoint>> Checks;
             public StructureLayout Layout;
         }
 
-        public override int LayoutCount => Attachments.Count;
+        public override int LayoutCount => Attachments.value.Count;
         public override bool LinksAllMembers => true;
 
-        public override StructureLayout GetLayout(int layout = 0) => Attachments[layout].Layout;
+        public override StructureLayout GetLayout(int layout = 0) => Attachments.value[layout].Layout;
 
         public override int GetPlacementItemMaterial(int material, int layout) {
             var placement = GetLayout(layout);
             return Config.CURRENT.Generation.Materials.value.MaterialDictionary.RetrieveIndex(
-                RetrieveKey((int)placement.Structure[placement.SelfIndex].map.material));
+                RetrieveKey((int)placement.Structure.value[placement.SelfIndex].map.material));
         }
 
         public override bool CanPlaceLayout(int3 origin, int3 rotation, int layout) {
             if (!base.CanPlaceLayout(origin, rotation, layout)) return false;
-            if (!VerifySampleChecks(Attachments[layout].Checks, origin, rotation, false)) return false;
+            if (!VerifySampleChecks(Attachments.value[layout].Checks.value, origin, rotation, false)) return false;
 
             var materials = Config.CURRENT.Generation.Materials.value.MaterialDictionary;
             int3x3 transform = CustomUtility.RotationLookupTable[rotation.y, rotation.x, rotation.z];
-            foreach (MapPlacement placement in GetLayout(layout).Structure) {
+            foreach (MapPlacement placement in GetLayout(layout).Structure.value) {
                 MapData sample = CPUMapManager.SampleMap(origin + math.mul(transform, placement.map.Offset));
                 if (sample.IsNull) return false;
                 if (!sample.IsSolid) continue;

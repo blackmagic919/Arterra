@@ -21,7 +21,8 @@ MonoBehaviour:
     value:
     - value:
         Bone:
-          BonePath: hRig/spine/spine.001/spine.002/spine.003/shoulder.R/upper_arm.R/forearm.R
+          value:
+            BonePath: hRig/spine/spine.001/spine.002/spine.003/shoulder.R/upper_arm.R/forearm.R
         SelectRadius: 0.05
   DefaultClothing:
     value:

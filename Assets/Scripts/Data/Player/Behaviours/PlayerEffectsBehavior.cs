@@ -26,6 +26,8 @@ namespace Arterra.Data.Entity.Behavior {
 
         public object Clone() {
             return new PlayerEffectsSettings {
+                AverageBlinkTime = AverageBlinkTime,
+                BlinkVariance = BlinkVariance,
                 AnimatorPath = AnimatorPath,
             };
         }

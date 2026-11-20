@@ -101,7 +101,7 @@ namespace Arterra.Configuration {
         public float LaunchSpeedMultiplier = 1.0f;
         public AudioEvents FireSound;
         public virtual object Clone() {
-            return new ProjectileTag {
+            return new MinimalProjectileTag {
                 LaunchSpeedMultiplier = LaunchSpeedMultiplier,
                 FireSound = FireSound
             };
@@ -275,6 +275,7 @@ namespace Arterra.Configuration {
     public DismissTypes DismissType;
     public object Clone() {
         return new TooltipDismissorConfig {
+            DismissType = DismissType,
             DismissEvent = DismissEvent,
             PrefabPath = PrefabPath
         };

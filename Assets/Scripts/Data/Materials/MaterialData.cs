@@ -48,6 +48,7 @@ namespace Arterra.Data.Material
         /// <summary> Settings controlling the appearance of the terrain when the material is liquid. See <see cref="LiquidData"/> for more info. </summary>
         public LiquidData liquidData;
         [JsonIgnore][UISetting(Defaulting = true)]
+        [UIHidden]
         public Dictionary <Type, object> DynamicTypes;
 
         public void Register<TInterface>(TInterface instance) => DynamicTypes.TryAdd(typeof(TInterface), instance);

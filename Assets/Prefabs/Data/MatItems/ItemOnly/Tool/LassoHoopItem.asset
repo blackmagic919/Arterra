@@ -30,8 +30,9 @@ MonoBehaviour:
   HookEntity: LassoHoop
   HookEntityEvent: 17
   HookProjectile:
-    LaunchSpeedMultiplier: 1
-    FireSound: 2001
+    value:
+      LaunchSpeedMultiplier: 1
+      FireSound: 2001
   BaitTag: 0
   Model:
     Enabled: 0

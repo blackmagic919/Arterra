@@ -20,7 +20,7 @@ namespace Arterra.Data.Entity.Behavior {
             public bool DirectRotation;
         }
 
-        public Stats Projectile;
+        public Option<Stats> Projectile;
         public float BlindDist = 3;
         [JsonIgnore]
         [UIHidden]
@@ -28,13 +28,24 @@ namespace Arterra.Data.Entity.Behavior {
         public Dictionary<EntitySMTasks, bool> AttackStates;
 
         [Serializable]
-        public class Stats {
+        public class Stats : ICloneable {
             public float ShotDelay = 0.25f;
             public bool CheckSightline = true;
             public float ChargeTime = 5;
-            public ProjectileTag Projectile;
+            public Option<ProjectileTag> Projectile;
             public bool HasRangedAttack = true;
             public float MaxTargetAngle = 360f; // Degrees.
+
+            public object Clone() {
+                return new Stats {
+                    ShotDelay = ShotDelay,
+                    CheckSightline = CheckSightline,
+                    ChargeTime = ChargeTime,
+                    Projectile = Projectile,
+                    HasRangedAttack = HasRangedAttack,
+                    MaxTargetAngle = MaxTargetAngle
+                };
+            }
         }
 
         public void Preset(uint entityType, BehaviorEntity.AnimalSetting settings) {
@@ -66,7 +77,7 @@ namespace Arterra.Data.Entity.Behavior {
         public bool ShotInProgress;
 
         private float BlindDist => Modifier.Get(mod, MSettings.BlindDist, settings.BlindDist);
-        private float ChargeTime => Modifier.Get(mod, MSettings.ChargeTime, settings.Projectile.ChargeTime);
+        private float ChargeTime => Modifier.Get(mod, MSettings.ChargeTime, settings.Projectile.value.ChargeTime);
 
         public override void Update(BehaviorEntity.Animal self) {
             if (self.context == BehaviorEntity.UpdateContext.Simulation)
@@ -79,7 +90,7 @@ namespace Arterra.Data.Entity.Behavior {
             UpdateFire(self);
             if (!settings.AttackStates.TryGetValue(manager.TaskIndex, out bool directRotation)) return;
             if (!EntityManager.TryGetEntity(manager.TaskTarget, out Entity entity)) return;
-            if (directRotation && settings.Projectile.HasRangedAttack) {
+            if (directRotation && settings.Projectile.value.HasRangedAttack) {
                 float3 direction = entity.head - self.position;
                 if (math.lengthsq(direction) > 1E-10f)
                     self.Rotation = Quaternion.RotateTowards(self.Rotation,
@@ -96,23 +107,23 @@ namespace Arterra.Data.Entity.Behavior {
 
         //This is some whirly logic where if you call fire on a loop, it will
         public bool Fire(float3 target, Entity self) {
-            if (!settings.Projectile.HasRangedAttack) return false;
+            if (!settings.Projectile.value.HasRangedAttack) return false;
             if (ShotInProgress) return false;
             if (chargeCooldown > 0) return false;
             float3 direction = target - self.position;
             float distance = math.length(direction);
             if (!math.isfinite(distance) || distance <= 0f || distance < BlindDist) return false;
             fireDirection = direction;
-            if (Vector3.Angle(self.Forward, fireDirection) > settings.Projectile.MaxTargetAngle)
+            if (Vector3.Angle(self.Forward, fireDirection) > settings.Projectile.value.MaxTargetAngle)
                 return false;
             
-            if (settings.Projectile.CheckSightline) {
+            if (settings.Projectile.value.CheckSightline) {
                 if (Terraforming.RayCastTerrain(self.head, math.normalizesafe(fireDirection), 
                     distance, Terraforming.RayTestSolid, out float3 hit))
                     return false;
             } 
             ShotInProgress = true;
-            shotProgress = settings.Projectile.ShotDelay;
+            shotProgress = settings.Projectile.value.ShotDelay;
             return true;
         }
 
@@ -121,7 +132,7 @@ namespace Arterra.Data.Entity.Behavior {
             if (!ShotInProgress) return;
             shotProgress = math.max(shotProgress - parent.DeltaTime, 0);
             if (shotProgress > 0) return;
-            settings.Projectile.Projectile.LaunchProjectile(parent, fireDirection);
+            settings.Projectile.value.Projectile.value.LaunchProjectile(parent, fireDirection);
             chargeCooldown = ChargeTime;
             ShotInProgress = false;
         }

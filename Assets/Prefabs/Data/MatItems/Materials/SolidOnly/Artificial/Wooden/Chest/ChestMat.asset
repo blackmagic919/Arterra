@@ -21,28 +21,29 @@ MonoBehaviour:
     - Plank
   Layout:
     Structure:
-      - map:
-          check:
-            bounds:
-              data: 4294967040
-            flags: 1
-          _material: 2147483650
-          _offset: 537395712
-        modelInfo:
-          Enabled: 1
-          Value:
-            Data: 0
-      - map:
-          check:
-            bounds:
-              data: 4294967040
-            flags: 1
-          _material: 2147483650
-          _offset: 538444288
-        modelInfo:
-          Enabled: 1
-          Value:
-            Data: 256
+      value:
+        - map:
+            check:
+              bounds:
+                data: 4294967040
+              flags: 1
+            _material: 2147483650
+            _offset: 537395712
+          modelInfo:
+            Enabled: 1
+            Value:
+              Data: 0
+        - map:
+            check:
+              bounds:
+                data: 4294967040
+              flags: 1
+            _material: 2147483650
+            _offset: 538444288
+          modelInfo:
+            Enabled: 1
+            Value:
+              Data: 256
     SelfIndex: 0
     randYRot: 1
     randXRot: 0

@@ -13,73 +13,73 @@ namespace Arterra.Data.Material
     public class SelectMaterial : MaterialData
     {
         [Header("Updating")]
-        public MaterialBehavior PropogateMaterialUpdateBehavior;
-        public MaterialBehavior RandomMaterialUpdateBehavior;
+        public Option<MaterialBehavior> PropogateMaterialUpdateBehavior;
+        public Option<MaterialBehavior> RandomMaterialUpdateBehavior;
         [Header("Terraforming")]
-        public MaterialBehavior OnRemovingBehavior;
-        public MaterialBehavior OnRemovedBehavior;
-        public MaterialBehavior OnPlacingBehavior;
-        public MaterialBehavior OnPlacedBehavior;
+        public Option<MaterialBehavior> OnRemovingBehavior;
+        public Option<MaterialBehavior> OnRemovedBehavior;
+        public Option<MaterialBehavior> OnPlacingBehavior;
+        public Option<MaterialBehavior> OnPlacedBehavior;
         [Header("Entity")]
-        public MaterialBehavior OnEntityTouchSolidBehavior;
-        public MaterialBehavior OnEntityTouchLiquidBehavior;
+        public Option<MaterialBehavior> OnEntityTouchSolidBehavior;
+        public Option<MaterialBehavior> OnEntityTouchLiquidBehavior;
         
         [Header("Construction")]
-        public MaterialBehavior ConstructMetaDataBehavior;
+        public Option<MaterialBehavior> ConstructMetaDataBehavior;
         public MultiLooter looter;
 
         public override void Preset(MaterialData materialData) {
             DynamicTypes ??= new Dictionary<System.Type, object>();
 
-            materialData.Register(PropogateMaterialUpdateBehavior.GetType(), PropogateMaterialUpdateBehavior);
-            materialData.Register(RandomMaterialUpdateBehavior.GetType(), RandomMaterialUpdateBehavior);
-            materialData.Register(OnRemovingBehavior.GetType(), OnRemovingBehavior);
-            materialData.Register(OnPlacingBehavior.GetType(), OnPlacingBehavior);
-            materialData.Register(OnPlacingBehavior.GetType(), OnPlacingBehavior);
-            materialData.Register(OnRemovedBehavior.GetType(), OnRemovedBehavior);
-            materialData.Register(OnPlacedBehavior.GetType(), OnPlacedBehavior);
-            materialData.Register(OnEntityTouchSolidBehavior.GetType(), OnEntityTouchSolidBehavior);
-            materialData.Register(OnEntityTouchLiquidBehavior.GetType(), OnEntityTouchLiquidBehavior);
-            materialData.Register(ConstructMetaDataBehavior.GetType(), ConstructMetaDataBehavior);
+            materialData.Register(PropogateMaterialUpdateBehavior.value.GetType(), PropogateMaterialUpdateBehavior.value);
+            materialData.Register(RandomMaterialUpdateBehavior.value.GetType(), RandomMaterialUpdateBehavior.value);
+            materialData.Register(OnRemovingBehavior.value.GetType(), OnRemovingBehavior.value);
+            materialData.Register(OnPlacingBehavior.value.GetType(), OnPlacingBehavior.value);
+            materialData.Register(OnPlacingBehavior.value.GetType(), OnPlacingBehavior.value);
+            materialData.Register(OnRemovedBehavior.value.GetType(), OnRemovedBehavior.value);
+            materialData.Register(OnPlacedBehavior.value.GetType(), OnPlacedBehavior.value);
+            materialData.Register(OnEntityTouchSolidBehavior.value.GetType(), OnEntityTouchSolidBehavior.value);
+            materialData.Register(OnEntityTouchLiquidBehavior.value.GetType(), OnEntityTouchLiquidBehavior.value);
+            materialData.Register(ConstructMetaDataBehavior.value.GetType(), ConstructMetaDataBehavior.value);
             
-            PropogateMaterialUpdateBehavior?.Preset(materialData);
-            RandomMaterialUpdateBehavior?.Preset(materialData);
-            OnRemovingBehavior?.Preset(materialData);
-            OnPlacingBehavior?.Preset(materialData);
-            OnRemovedBehavior?.Preset(materialData);
-            OnPlacedBehavior?.Preset(materialData);
-            OnEntityTouchSolidBehavior?.Preset(materialData);
-            OnEntityTouchLiquidBehavior?.Preset(materialData);
-            ConstructMetaDataBehavior?.Preset(materialData);
+            PropogateMaterialUpdateBehavior.value?.Preset(materialData);
+            RandomMaterialUpdateBehavior.value?.Preset(materialData);
+            OnRemovingBehavior.value?.Preset(materialData);
+            OnPlacingBehavior.value?.Preset(materialData);
+            OnRemovedBehavior.value?.Preset(materialData);
+            OnPlacedBehavior.value?.Preset(materialData);
+            OnEntityTouchSolidBehavior.value?.Preset(materialData);
+            OnEntityTouchLiquidBehavior.value?.Preset(materialData);
+            ConstructMetaDataBehavior.value?.Preset(materialData);
         }
 
         public override void PropogateMaterialUpdate(int3 GCoord, Unity.Mathematics.Random prng = default) 
-            => PropogateMaterialUpdateBehavior?.PropogateMaterialUpdate(GCoord, ref prng);
+            => PropogateMaterialUpdateBehavior.value?.PropogateMaterialUpdate(GCoord, ref prng);
         public override void RandomMaterialUpdate(int3 GCoord, Unity.Mathematics.Random prng = default)
-            => RandomMaterialUpdateBehavior?.PropogateMaterialUpdate(GCoord, ref prng);
+            => RandomMaterialUpdateBehavior.value?.PropogateMaterialUpdate(GCoord, ref prng);
 
         public override bool OnRemoving(int3 GCoord, Entity.Entity caller) 
-            => OnRemovingBehavior?.OnRemoving(GCoord, caller) ?? false;
+            => OnRemovingBehavior.value?.OnRemoving(GCoord, caller) ?? false;
 
         public override bool OnPlacing(int3 GCoord, Entity.Entity caller)
-            => OnPlacingBehavior?.OnPlacing(GCoord, caller) ?? false;
+            => OnPlacingBehavior.value?.OnPlacing(GCoord, caller) ?? false;
 
         public override Item.IItem OnRemoved(int3 GCoord, in MapData amount) {
-            var item = OnRemovedBehavior?.OnRemoved(GCoord, amount);
+            var item = OnRemovedBehavior.value?.OnRemoved(GCoord, amount);
             if (item != null) return item;
             return looter.LootItem(amount, Names);
         }
 
         public override void OnPlaced(int3 GCoord, in MapData amount) 
-           => OnPlacedBehavior?.OnPlaced(GCoord, amount);
+           => OnPlacedBehavior.value?.OnPlaced(GCoord, amount);
 
         public override void OnEntityTouchSolid(int3 GCoord, Entity.Entity entity) 
-            => OnEntityTouchSolidBehavior?.OnEntityTouchSolid(GCoord, entity);
+            => OnEntityTouchSolidBehavior.value?.OnEntityTouchSolid(GCoord, entity);
         public override void OnEntityTouchLiquid(int3 GCoord, Entity.Entity entity)
-            => OnEntityTouchLiquidBehavior?.OnEntityTouchLiquid(GCoord, entity);
+            => OnEntityTouchLiquidBehavior.value?.OnEntityTouchLiquid(GCoord, entity);
 
         public override object ConstructMetaData(int3 GCoord, MetaConstructor constructor) 
-            => ConstructMetaDataBehavior?.ConstructMetaData(GCoord, constructor);
+            => ConstructMetaDataBehavior.value?.ConstructMetaData(GCoord, constructor);
     }
 }
 

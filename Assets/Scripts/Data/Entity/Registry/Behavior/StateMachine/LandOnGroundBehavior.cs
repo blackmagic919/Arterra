@@ -29,6 +29,8 @@ namespace Arterra.Data.Entity.Behavior{
 
         public object Clone() {
             return new LandOnGroundSettings {
+                LandAngleMax = LandAngleMax,
+                LandAngleFalloff = LandAngleFalloff,
                 TaskName = TaskName,
                 OnReachGround = OnReachGround,
                 ProxyTestName = ProxyTestName,

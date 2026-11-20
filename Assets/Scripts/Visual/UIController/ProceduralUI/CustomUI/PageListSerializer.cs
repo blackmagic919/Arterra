@@ -95,7 +95,7 @@ public class PageListSerializer : IConverter{
                 BuildOptionListElementBinding(cObject, index, OnUpdate, out field, out value, out nUpdate);
                 name = TryGetName(value);
             } 
-            else if(cObjType.IsValueType || cObjType.IsPrimitive || cObjType == typeof(string)){
+            else {
                 cObject = CreateInstance(typeof(Option<>).MakeGenericType(cObjType));
                 field = cObject.GetType().GetField("value");
                 field.SetValue(cObject, value);
@@ -110,9 +110,6 @@ public class PageListSerializer : IConverter{
                     OnUpdate(ParentReceive);
                 } nUpdate = ChildRequest;
             }
-            
-            else if(!field.FieldType.IsPrimitive && field.FieldType != typeof(string)) 
-                throw new Exception("Setting objects must contain either only value types or options");
             
             if(name != null){ elementText.text = name.ToString(); }
             else elementText.text = "Element " + i.ToString() + ": ";

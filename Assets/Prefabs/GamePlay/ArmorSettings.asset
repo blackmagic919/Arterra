@@ -15,7 +15,8 @@ MonoBehaviour:
   DisplayIcon: ChestplateIcon
   TargetSlotDistance: 0.2
   HeadBone:
-    BonePath: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006
+    value:
+      BonePath: hRig/spine/spine.001/spine.002/spine.003/spine.004/spine.005/spine.006
   Variants:
     Category:
       value: {fileID: 11400000, guid: e618b0cb29bea44f388775d42be8d859, type: 2}

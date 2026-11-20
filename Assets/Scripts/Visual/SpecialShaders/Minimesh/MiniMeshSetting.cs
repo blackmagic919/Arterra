@@ -180,6 +180,9 @@ namespace Arterra.Configuration
         public Option<List<MiniMesh>> MMeshOptions;
         [Serializable]
         public struct MiniMesh {
+            [UIHidden]
+            [UISetting(Defaulting = true)]
+            [Newtonsoft.Json.JsonIgnore]
             public Mesh mesh;
             public float probability;
         } 

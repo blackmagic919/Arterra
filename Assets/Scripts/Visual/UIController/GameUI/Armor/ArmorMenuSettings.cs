@@ -20,14 +20,14 @@ namespace Arterra.Data.Intrinsic {
         public float SeperationDistance = 0.15f;
         public Color BaseLineColor = Color.white;
         public Color HighlightLineColor = Color.yellow;
-        public EquipableArmor.BoneBinding HeadBone;
+        public Option<EquipableArmor.BoneBinding> HeadBone;
         public Catalogue<EquipableArmor> Variants;
 
         public void BindBones(Transform rig) {
-            HeadBone.Bind(rig);
+            HeadBone.value.Bind(rig);
             for (int i = 0; i < Variants.Count(); i++) {
                 foreach (EquipableArmor.BoneRegion reg in Variants.Retrieve(i).Bones.value)
-                    reg.Bone.Bind(rig);
+                    reg.Bone.value.Bind(rig);
             }
         }
     }

@@ -23,15 +23,15 @@ namespace Arterra.Data.Entity.Behavior {
         [Serializable]
         public struct Modifier {
             public float baseValue;
-            public Threshold[] thresholds;
+            public Option<List<Threshold>> thresholds;
             public SettingModifier.MType policy;
             public MSettings setting;
 
             public float Evaluate(float hunger) {
                 float value = baseValue;
                 float minimum = float.NegativeInfinity;
-                if (thresholds == null) return value;
-                foreach (var threshold in thresholds) {
+                if (thresholds.value == null) return value;
+                foreach (var threshold in thresholds.value) {
                     if (hunger < threshold.minimumHunger || threshold.minimumHunger < minimum) continue;
                     minimum = threshold.minimumHunger;
                     value = threshold.value;

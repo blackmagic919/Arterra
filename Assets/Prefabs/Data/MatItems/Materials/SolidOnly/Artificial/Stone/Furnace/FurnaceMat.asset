@@ -21,39 +21,40 @@ MonoBehaviour:
     - Stone
   Layout:
     Structure:
-      - map:
-          check:
-            bounds:
-              data: 4294967040
-            flags: 1
-          _material: 2147483651
-          _offset: 536347136
-        modelInfo:
-          Enabled: 1
-          Value:
-            Data: 0
-      - map:
-          check:
-            bounds:
-              data: 4294967040
-            flags: 1
-          _material: 2147483651
-          _offset: 537395712
-        modelInfo:
-          Enabled: 1
-          Value:
-            Data: 256
-      - map:
-          check:
-            bounds:
-              data: 4294967040
-            flags: 1
-          _material: 2147483651
-          _offset: 538444288
-        modelInfo:
-          Enabled: 1
-          Value:
-            Data: 512
+      value:
+        - map:
+            check:
+              bounds:
+                data: 4294967040
+              flags: 1
+            _material: 2147483651
+            _offset: 536347136
+          modelInfo:
+            Enabled: 1
+            Value:
+              Data: 0
+        - map:
+            check:
+              bounds:
+                data: 4294967040
+              flags: 1
+            _material: 2147483651
+            _offset: 537395712
+          modelInfo:
+            Enabled: 1
+            Value:
+              Data: 256
+        - map:
+            check:
+              bounds:
+                data: 4294967040
+              flags: 1
+            _material: 2147483651
+            _offset: 538444288
+          modelInfo:
+            Enabled: 1
+            Value:
+              Data: 512
     SelfIndex: 1
     randYRot: 1
     randXRot: 0

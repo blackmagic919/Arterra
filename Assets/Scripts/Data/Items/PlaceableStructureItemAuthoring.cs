@@ -251,7 +251,7 @@ namespace Arterra.Data.Item {
             private List<MapPlacement> DeserializeStruct() {
                 MaterialData placeMat = MatInfo.Retrieve(item.settings.MaterialName);
                 if (!placeMat.Is(out PlaceableStructureMat key)) return null;
-                return key.GetLayout(LayoutIndex).Structure.Select(s => {
+                return key.GetLayout(LayoutIndex).Structure.value.Select(s => {
                     if (s.map.HasMaterialCheck) s.map.material = (uint)MatInfo.RetrieveIndex(
                         key.RetrieveKey((int)s.map.material));
                     return s;

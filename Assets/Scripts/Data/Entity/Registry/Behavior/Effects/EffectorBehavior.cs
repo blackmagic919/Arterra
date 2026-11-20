@@ -43,7 +43,7 @@ namespace Arterra.Data.Entity.Behavior {
             public Effect effect;
         }
         [Serializable]
-        public class Effect {
+        public struct Effect {
             public Effects name;
             public Subject subject;
             public float chance;
@@ -63,6 +63,7 @@ namespace Arterra.Data.Entity.Behavior {
         }
         public Option<List<EventEffect>> Effectors;
         [UISetting(Defaulting = true)][HideInInspector]
+        [UIHidden]
         public Dictionary<GameEvent, LinkedList<Effect>> TriggerEffects;
         public object Clone() {
 
@@ -83,7 +84,9 @@ namespace Arterra.Data.Entity.Behavior {
         public void OnValidate(BehaviorEntity.AnimalSetting settings) {
             Effectors.value ??= new List<EventEffect>();
             for (int i = 0; i < Effectors.value.Count; i++) {
-                Effectors.value[i].effect.OnValidate();
+                EventEffect entry = Effectors.value[i];
+                entry.effect.OnValidate();
+                Effectors.value[i] = entry;
             }
         }
     }

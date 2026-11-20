@@ -27,6 +27,7 @@ namespace Arterra.Data.Entity.Behavior {
 
         public object Clone() {
             return new MateRecognition {
+                MateCost = MateCost,
                 Mates = Mates,
             };
         }

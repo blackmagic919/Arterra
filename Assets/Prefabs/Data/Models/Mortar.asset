@@ -17,9 +17,10 @@ MonoBehaviour:
     Reg:
       value: []
   Models:
-  - MeshPath: Prefabs/Materials/Mortar00
-  - MeshPath: Prefabs/Materials/Mortar01
-  - MeshPath: Prefabs/Materials/Mortar10
-  - MeshPath: Prefabs/Materials/Mortar11
+    value:
+    - MeshPath: Prefabs/Materials/Mortar00
+    - MeshPath: Prefabs/Materials/Mortar01
+    - MeshPath: Prefabs/Materials/Mortar10
+    - MeshPath: Prefabs/Materials/Mortar11
   DefaultRenderInfo:
     Data: 0

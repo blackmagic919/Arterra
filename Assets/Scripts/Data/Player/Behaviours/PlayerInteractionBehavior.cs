@@ -83,7 +83,7 @@ namespace Arterra.Data.Entity.Behavior {
         private int TerraformRadius => Modifier.GetInt(mod, MSettings.TerraformRadius, settings.TerraformRadius);
         private int ReachDistance => Modifier.GetInt(mod, MSettings.ReachDistance, settings?.ReachDistance ?? 8f);
         private int CylinderRadius => Modifier.GetInt(mod, MSettings.CylinderRadius, settings.CylinderRadius);
-        private float PickupRate => Modifier.GetInt(mod, MSettings.PickupRate, settings.PickupRate);
+        private float PickupRate => Modifier.Get(mod, MSettings.PickupRate, settings.PickupRate);
         private float AttackDamage => Modifier.GetInt(mod, MSettings.AttackDamage, settings.AttackDamage);
         private float AttackFrequency => Modifier.GetInt(mod, MSettings.AttackCooldown, settings.AttackFrequency);
         private float KnockBackStrength => Modifier.GetInt(mod, MSettings.KBStrength, settings.KnockBackStrength);
@@ -500,7 +500,7 @@ namespace Arterra.Data.Entity.Behavior {
                     GameEvent.Apply_Collect,
                     self.info.rtEntityId,
                     target.info.rtEntityId,
-                    PickupRate
+                    PickupRate * self.DeltaTime
                 );
             }
         }

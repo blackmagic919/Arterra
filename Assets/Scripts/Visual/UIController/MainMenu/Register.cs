@@ -164,7 +164,7 @@ public struct Catalogue<T> : ICatalgoue, ICloneable where T : Category<T>
         }
     }
 
-    public object Clone() => new Catalogue<T> { Reg = Reg };
+    public object Clone() => new Catalogue<T> { Category = Category, Reg = Reg };
 
     public int Count() => Reg.Count;
 
@@ -187,7 +187,7 @@ public struct Catalogue<T> : ICatalgoue, ICloneable where T : Category<T>
 
     [Serializable]
     public struct Registry<T> : IRegister, ICloneable {
-        public List<Pair> Reg;
+        public Option<List<Pair>> Reg;
         [HideInInspector]
         [UIHidden]
         [JsonIgnore]
@@ -195,9 +195,9 @@ public struct Catalogue<T> : ICatalgoue, ICloneable where T : Category<T>
 
         public static Registry<T> FromCatalogue<TR>(Catalogue<TR> registry) where TR : Category<TR>, T {
             Registry<T> NewRegistry = new Registry<T>();
-            NewRegistry.Reg = new List<Pair>(new Pair[registry.Count()]);
+            NewRegistry.Reg.value = new List<Pair>(new Pair[registry.Count()]);
             for (int i = 0; i < registry.Count(); i++) {
-                NewRegistry.Reg[i] = new Pair {
+                NewRegistry.Reg.value[i] = new Pair {
                     Name = registry.RetrieveName(i),
                     _value = new Option<T> { value = registry.Retrieve(i) }
                 };
@@ -207,9 +207,9 @@ public struct Catalogue<T> : ICatalgoue, ICloneable where T : Category<T>
         }
         public void Construct() {
             Index = new Dictionary<string, int>();
-            Reg ??= new List<Pair>();
-            for (int i = 0; i < Reg.Count; i++) {
-                Index.Add(Reg[i].Name, i);
+            Reg.value ??= new List<Pair>();
+            for (int i = 0; i < Reg.value.Count; i++) {
+                Index.Add(Reg.value[i].Name, i);
             }
         }
 
@@ -217,43 +217,43 @@ public struct Catalogue<T> : ICatalgoue, ICloneable where T : Category<T>
             return Index[name];
         }
         public readonly string RetrieveName(int index) {
-            return Reg[index].Name;
+            return Reg.value[index].Name;
         }
 
         public readonly T Retrieve(string name) {
-            return Reg[Index[name]].Value;
+            return Reg.value[Index[name]].Value;
         }
         public readonly T Retrieve(int index) {
-            return Reg[index].Value;
+            return Reg.value[index].Value;
         }
         public readonly bool Contains(string name) {
             if (Index == null) return false;
             return Index.ContainsKey(name);
         }
         public readonly bool Contains(int index) {
-            return index >= 0 && index < Reg.Count;
+            return index >= 0 && index < Reg.value.Count;
         }
         public void Add(string name, T value) {
-            Reg ??= new List<Pair>();
+            Reg.value ??= new List<Pair>();
             Index ??= new Dictionary<string, int>();
             
-            Reg.Add(new Pair { Name = name, _value = new Option<T> { value = value } });
-            Index.Add(name, Reg.Count - 1);
+            Reg.value.Add(new Pair { Name = name, _value = new Option<T> { value = value } });
+            Index.Add(name, Reg.value.Count - 1);
 
         }
 
         public bool TryRemove(string name) {
-            if (Reg == null || Index == null) return false;
+            if (Reg.value == null || Index == null) return false;
             if (!Index.ContainsKey(name)) return false;
 
-            Reg.RemoveAt(Index[name]);
+            Reg.value.RemoveAt(Index[name]);
             Index.Remove(name);
             Construct(); //Rebuild the index
             return true;
         }
 
         public bool TrySet(string name, T value) {
-            Reg ??= new List<Pair>();
+            Reg.value ??= new List<Pair>();
             Index ??= new Dictionary<string, int>();
             
             if (!Index.ContainsKey(name)) {
@@ -262,15 +262,15 @@ public struct Catalogue<T> : ICatalgoue, ICloneable where T : Category<T>
             }
 
             int index = Index[name];
-            var tPair = Reg[index];
+            var tPair = Reg.value[index];
             tPair._value.value = value;
-            Reg[index] = tPair;
+            Reg.value[index] = tPair;
             return true;
         }
 
         public object Clone() => new Registry<T> { Reg = Reg };
 
-        public int Count() => Reg.Count;
+        public int Count() => Reg.value.Count;
         [Serializable]
         public struct Pair : ICloneable {
             public string Name;

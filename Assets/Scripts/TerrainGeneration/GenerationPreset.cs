@@ -304,14 +304,14 @@ public static class GenerationPreset
             var submodelDescriptors = new List<SubmodelDescriptor>();
             for (int i = 2; i < catalogue.Count; i++) {
                 CustomModel model = catalogue[i];
-                model.DefaultRenderInfo.Validate(model.Models.Count);
+                model.DefaultRenderInfo.Validate(model.Models.value.Count);
                 descriptors[i] = new ModelDescriptor {
                     ModelsStart = (uint)submodelDescriptors.Count,
-                    ModelsCount = (uint)model.Models.Count,
+                    ModelsCount = (uint)model.Models.value.Count,
                     DefaultRenderInfo = model.DefaultRenderInfo.Data
                 };
 
-                foreach (var submodel in model.Models)
+                foreach (var submodel in model.Models.value)
                     AppendSubmodel(
                         submodel,
                         model.Name,
@@ -648,11 +648,11 @@ public static class GenerationPreset
         }
 
         private static byte[] BuildBiomeTree(BiomeSelection selection, int dimensions, int offset, int fallbackIndex) {
-            if (selection.placement.numDimensions != dimensions) {
+            if (selection.placement.value.numDimensions != dimensions) {
                 throw new System.ArgumentException($"Expected {dimensions} biome dimensions.");
             }
 
-            var regions = BDict.Create(selection.placement).FlattenTree();
+            var regions = BDict.Create(selection.placement.value).FlattenTree();
             int stride = dimensions * sizeof(float) * 2 + sizeof(int);
             var buffer = new byte[checked(regions.Count * stride)];
             for (int index = 0; index < regions.Count; index++) {

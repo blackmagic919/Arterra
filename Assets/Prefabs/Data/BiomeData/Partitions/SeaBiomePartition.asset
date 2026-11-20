@@ -13,23 +13,27 @@ MonoBehaviour:
   m_Name: SeaBiomePartition
   m_EditorClassIdentifier: Assembly-CSharp::Arterra.Data.Biome.BiomePlacement
   DimensionNames:
-  - "Cave Frequency"
-  - "Cave Size"
-  - "Cave Shape"
-  - "Height"
+    value:
+    - "Cave Frequency"
+    - "Cave Size"
+    - "Cave Shape"
+    - "Height"
   BiomeColors:
     Reg:
-    - Name: "Ocean"
-      _value:
-        value: {r: 0.1, g: 0.45, b: 0.8, a: 1}
+      value:
+      - Name: "Ocean"
+        _value:
+          value: {r: 0.1, g: 0.45, b: 0.8, a: 1}
   Biomes:
-  - Spans:
-    - x: 0
-      y: 1
-    - x: 0
-      y: 1
-    - x: 0
-      y: 1
-    - x: 0
-      y: 1
-    BiomeName: "Ocean"
+    value:
+    - Spans:
+        value:
+        - x: 0
+          y: 1
+        - x: 0
+          y: 1
+        - x: 0
+          y: 1
+        - x: 0
+          y: 1
+      BiomeName: "Ocean"

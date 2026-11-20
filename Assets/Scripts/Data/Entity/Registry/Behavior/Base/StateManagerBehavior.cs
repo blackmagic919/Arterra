@@ -15,6 +15,7 @@ namespace Arterra.Data.Entity.Behavior {
         public float ContactDistance = 1;
         public object Clone() {
             return new StateMachineManagerSettings {
+                AverageStartDurationVariance = AverageStartDurationVariance,
                 StartTask = StartTask,
                 ContactDistance = ContactDistance,
                 AverageStartDuration = AverageStartDuration

@@ -21,11 +21,13 @@ MonoBehaviour:
     value:
     - value:
         Bone:
-          BonePath: hRig/spine/spine.001/spine.002/spine.003
+          value:
+            BonePath: hRig/spine/spine.001/spine.002/spine.003
         SelectRadius: 0.1
     - value:
         Bone:
-          BonePath: hRig/spine/spine.001/spine.002
+          value:
+            BonePath: hRig/spine/spine.001/spine.002
         SelectRadius: 0.1
   DefaultClothing:
     value:

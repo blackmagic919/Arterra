@@ -307,7 +307,7 @@ public class StructureData : Category<StructureData>
     /// <summary>Optional features structures can specify if they have it enabled
     /// via <see cref="Settings.IsEnhanced"/> </summary>
     [System.Serializable]
-    public class EnhancedFeatures {
+    public struct EnhancedFeatures {
         /// <summary> List of entities that this structure can spawn. </summary>
         public Option<List<StructureEntity>> Entities;
         /// <summary> List of map meta data that this structure can spawn.</summary>

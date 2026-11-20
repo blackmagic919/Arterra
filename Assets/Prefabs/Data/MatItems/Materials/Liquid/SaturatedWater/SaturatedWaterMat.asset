@@ -43,12 +43,13 @@ MonoBehaviour:
   Roughness: 0.2
   Behaviors:
     Reg:
-    - Name: Liquid
-      _value:
-        value: {fileID: 11400000, guid: 5a65d31f9028747448465a0070fa69a6, type: 2}
-    - Name: Spread
-      _value:
-        value: {fileID: 11400000, guid: d2aae72b7c8e74c488b4f6d5928d6574, type: 2}
+      value:
+      - Name: Liquid
+        _value:
+          value: {fileID: 11400000, guid: 5a65d31f9028747448465a0070fa69a6, type: 2}
+      - Name: Spread
+        _value:
+          value: {fileID: 11400000, guid: d2aae72b7c8e74c488b4f6d5928d6574, type: 2}
   looter:
     SolidLootTable:
       value: []

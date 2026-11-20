@@ -9,7 +9,7 @@ namespace Arterra.Data.Models {
     [CreateAssetMenu(menuName = "Generation/Custom Model")]
     public class CustomModel : Category<CustomModel> {
         [Tooltip("Appearance variants, selected by byte 1 of ModelRenderInfo. Slots 0 and 1 of the catalogue remain reserved for regular and flipped terrain.")]
-        public List<ModelData> Models = new();
+        public Option<List<ModelData>> Models = new List<ModelData>();
         public ModelRenderInfo DefaultRenderInfo;
 
         [Serializable]

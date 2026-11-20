@@ -322,6 +322,7 @@ namespace Arterra.Data.Entity.Behavior {
             public DirtyOption<List<DirtyReferenceOption<IBehaviorSetting>>> Settings;
 
             [JsonIgnore][UISetting(Defaulting = true)]
+            [UIHidden]
             public Dictionary <Type, object> DynamicTypes;
 
             public override void Preset(uint entityType) {

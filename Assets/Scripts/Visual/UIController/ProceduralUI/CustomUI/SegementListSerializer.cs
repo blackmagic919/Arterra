@@ -114,7 +114,7 @@ public class SegmentListSerializer : IConverter{
             } 
             //You can't get a field to represent an index in a list so we create a
             //temporary option to fake a field so that the architecture is consistent
-            else if(cObjType.IsValueType || cObjType.IsPrimitive || cObjType == typeof(string)){
+            else {
                 cObject = CreateInstance(typeof(Option<>).MakeGenericType(cObjType));
                 field = cObject.GetType().GetField("value");
                 field.SetValue(cObject, value);
@@ -129,9 +129,6 @@ public class SegmentListSerializer : IConverter{
                     OnUpdate(ParentReceive);
                 } nUpdate = ChildRequest;
             }
-            
-            else if(!field.FieldType.IsPrimitive && field.FieldType != typeof(string)) 
-                throw new Exception("Setting objects must contain either only value types or options");
             
             if(name != null){ elementText.text = name.ToString(); }
             else elementText.text = "Element " + i.ToString() + ": ";

@@ -40,7 +40,7 @@ namespace Arterra.Data.Item
         [RegistryReference("Entities")]
         public string ItemHolderEntity = "EntityItem";
         public GameEvent HookEntityEvent;
-        public MinimalProjectileTag HookProjectile;
+        public Option<MinimalProjectileTag> HookProjectile;
         /// <summary> If none, it will always cast Hook Entity, which can be useful
         /// if we don't want the rod to take an item from the holder's inventory and cast it </summary>
         public TagRegistry.Tags BaitTag = TagRegistry.Tags.None;
@@ -193,7 +193,7 @@ namespace Arterra.Data.Item
             }
 
             castPending = true;
-            settings.HookProjectile.LaunchProjectile(Bait, h, h.Forward * launchSpeed, (hook) => {
+            settings.HookProjectile.value.LaunchProjectile(Bait, h, h.Forward * launchSpeed, (hook) => {
                 if (!castPending || !cxt.TryGetInventory(out IInventory inventory)
                     || !ReferenceEquals(inventory.PeekItem(cxt.InvId), this)) {
                     EntityManager.ReleaseEntity(hook.info.rtEntityId);

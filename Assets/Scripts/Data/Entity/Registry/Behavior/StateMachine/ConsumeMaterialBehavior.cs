@@ -13,7 +13,7 @@ namespace Arterra.Data.Entity.Behavior {
         public EntitySMTasks OnLostTarget = EntitySMTasks.ChasePreyPlant;
 
         public object Clone() {
-            return new ConsumeEntitySettings(){
+            return new ConsumeMaterialSettings(){
                 OnFinishedEating = OnFinishedEating,
                 OnLostTarget = OnLostTarget,
                 TaskName = TaskName,

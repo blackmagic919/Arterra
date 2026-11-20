@@ -18,6 +18,7 @@ namespace Arterra.Data.Entity.Behavior {
         public string DefaultItem;
         public object Clone() {
             return new EntityItemSettings {
+                DefaultItem = DefaultItem,
                 DecayTime = DecayTime,
                 MergeRadius = MergeRadius,
             };

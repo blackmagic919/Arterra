@@ -295,7 +295,7 @@ namespace Arterra.Editor {
         }
         private Dictionary<uint, ModelRenderInfo> BuildModelMetadata(MapData[] map) {
             var metadata = new Dictionary<uint, ModelRenderInfo>();
-            if (!Structure.settings.value.IsEnhanced || Structure.Enhancements?.MapMetaData.value == null)
+            if (!Structure.settings.value.IsEnhanced || Structure.Enhancements.MapMetaData.value == null)
                 return metadata;
 
             var materials = Config.CURRENT.Generation.Materials.value.MaterialDictionary;
