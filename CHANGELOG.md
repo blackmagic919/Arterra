@@ -1,5 +1,7 @@
 ## [Unreleased]
 
+## [0.2.8] - 2026-11-20
+
 ## Added
 - Statistic window toggled by F5 showing entity populations and coordinates
 - Safeguards along all runtime tasks to prevent errors breaking unrelated routines
