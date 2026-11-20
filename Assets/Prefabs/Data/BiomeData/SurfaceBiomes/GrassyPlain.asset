@@ -126,8 +126,8 @@ MonoBehaviour:
             Entity: 14
             ChancePerCoord: 0.00025
         - value:
-            Entity: 16
-            ChancePerCoord: 0.0000025
+            Entity: 10
+            ChancePerCoord: 0.00015
       StructureSystems:
         value: []
   references:
