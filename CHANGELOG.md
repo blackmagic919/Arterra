@@ -1,5 +1,7 @@
 ## [Unreleased]
 
+## [0.2.9] - 2026-11-20
+
 ## Changed
 - Increased player pickup speed
 
