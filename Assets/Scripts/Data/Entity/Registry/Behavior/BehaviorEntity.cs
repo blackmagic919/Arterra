@@ -83,6 +83,7 @@ namespace Arterra.Data.Entity.Behavior {
         PlayerCrafting = BehaviorTypes.Base + 107,
         PlayerArmor = BehaviorTypes.Base + 108,
         PlayerIdentity = BehaviorTypes.Base + 109,
+        PlayerStats = BehaviorTypes.Base + 110,
 
         StateMachine = BehaviorTypes.Creature + 0,
         Attack = BehaviorTypes.Creature + 1,
@@ -179,6 +180,7 @@ namespace Arterra.Data.Entity.Behavior {
             { Behaviors.PlayerCrafting, () => new PlayerCraftingBehavior() },
             { Behaviors.PlayerArmor, () => new PlayerArmorBehavior() },
             { Behaviors.PlayerIdentity, () => new PlayerIdentityBehavior() },
+            { Behaviors.PlayerStats, () => new PlayerStatsBehavior() },
             { Behaviors.PlayerBaseLogicHandler, () => new PlayerBaseLogicHandler() },
 
             { Behaviors.StateMachine, () => new StateMachineManagerBehavior()},
@@ -324,9 +326,12 @@ namespace Arterra.Data.Entity.Behavior {
 
             public override void Preset(uint entityType) {
                 DynamicTypes = new Dictionary<Type, object>();
-                foreach(DirtyReferenceOption<IBehaviorSetting> setting in Settings.Value) {
-                    setting.Value.Preset(entityType, this);
-                    Register(setting.Value.GetType(), setting.Value);
+                for (int i = 0; i < Settings.Value.Count; i++) {
+                    IBehaviorSetting setting = Settings.Value[i].Value;
+                    if (setting == null)
+                        throw new InvalidOperationException($"Entity {Config.CURRENT.Generation.Entities.RetrieveName((int)entityType)} has a null behavior setting at index {i}.");
+                    setting.Preset(entityType, this);
+                    Register(setting.GetType(), setting);
                 }
 
                 base.Preset(entityType);

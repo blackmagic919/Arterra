@@ -106,6 +106,7 @@ MonoBehaviour:
           value:
           - ItemName: Boat
             DropAmount: 1
+            DropStdDev: 0.4
     - rid: 8100000000000000006
       type: {class: ExplodedDecaySettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:

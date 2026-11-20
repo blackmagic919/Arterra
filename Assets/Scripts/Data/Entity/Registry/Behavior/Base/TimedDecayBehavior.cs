@@ -8,7 +8,7 @@ using Unity.Mathematics;
 namespace Arterra.Data.Entity.Behavior {
     [Serializable]
     public class TimedDecaySettings : IBehaviorSetting {
-        public float DecayTime = 5f;
+        public float DecayTime = 300f;
         public Option<List<InteractEvent>> InteractEvents;
 
         [Serializable]
@@ -38,15 +38,18 @@ namespace Arterra.Data.Entity.Behavior {
 
         private BehaviorEntity.Animal self;
         private VitalityBehavior vitality;
-        private float timer;
+        private Modifier mod;
+        [JsonProperty] private float timer;
+        [JsonIgnore] public Func<bool> IsDepleted;
+        [JsonIgnore] public Func<bool> CanRelease;
 
         [JsonIgnore]
-        public float DecayTime => settings.DecayTime;
+        public float DecayTime => Modifier.Get(mod, MSettings.DecompositionTime, settings.DecayTime);
 
         [JsonIgnore]
         public float DecayedDuration => timer;
 
-        public void ResetDecay() => timer = DecayTime;
+        public void ResetDecay() => timer = math.max(DecayTime, 0);
 
         private readonly List<(GameEvent evt, RefEventHandler handler)> dynamicHandlers = new();
 
@@ -59,39 +62,35 @@ namespace Arterra.Data.Entity.Behavior {
         }
 
         public override void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
-            if (!setting.Is(out settings))
-                throw new Exception("Entity: TimedDecayBehavior requires AnimalSettings to have TimedDecaySettings");
-            if (!self.Is(out vitality))
-                throw new Exception("Entity: TimedDecayBehavior requires AnimalInstance to have VitalityBehavior");
-
-            this.self = self;
+            Bind(self, setting);
             ResetDecay();
-            RegisterInteractEvents();
-            self.Register<IDecaying>(this);
         }
 
-        public override void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
+        public override void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) => Bind(self, setting);
+
+        private void Bind(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting) {
             if (!setting.Is(out settings))
                 throw new Exception("Entity: TimedDecayBehavior requires AnimalSettings to have TimedDecaySettings");
             if (!self.Is(out vitality))
                 throw new Exception("Entity: TimedDecayBehavior requires AnimalInstance to have VitalityBehavior");
+            if (!self.Is(out mod)) mod = null;
 
             this.self = self;
-            timer = timer <= 0 ? DecayTime : math.min(DecayTime, timer);
             RegisterInteractEvents();
             self.Register<IDecaying>(this);
         }
 
         public override void Update(BehaviorEntity.Animal self) {
-            if (self.context != BehaviorEntity.UpdateContext.Simulation) return;
+            if (!self.IsAuthority || self.context != BehaviorEntity.UpdateContext.Simulation) return;
 
             if (!vitality.IsDead) {
-                timer = DecayTime;
+                ResetDecay();
                 return;
             }
 
-            timer -= self.DeltaTime;
-            if (timer <= 0) EntityManager.ReleaseEntity(self.info.rtEntityId);
+            timer = math.max(timer - self.DeltaTime, 0);
+            if (CanRelease != null && !CanRelease()) return;
+            if (timer <= 0 || IsDepleted?.Invoke() == true) EntityManager.ReleaseEntity(self.info.rtEntityId);
         }
 
         public override void Disable(BehaviorEntity.Animal self) {
@@ -99,6 +98,8 @@ namespace Arterra.Data.Entity.Behavior {
                 self.eventCtrl.RemoveEventHandler(entry.evt, entry.handler);
             }
             dynamicHandlers.Clear();
+            IsDepleted = null;
+            CanRelease = null;
             self.Unregister(typeof(IDecaying));
             this.self = null;
         }

@@ -273,7 +273,7 @@ MonoBehaviour:
           y: 4.5
           z: 3.5
       BehaviorList:
-        value: 05000000000000000300000006000000ea030000ed03000001000000e8030000e9030000eb030000102700001a27000043270000602700006a270000742700007e270000882700008a1300008b130000891300008c1300006f27000002000000
+        value: 05000000000000000300000006000000ea030000ed03000001000000e8030000e9030000eb030000102700001a27000043270000602700006a270000742700007e270000fa030000882700008a1300008b130000891300008c1300006f27000002000000
       Settings:
         value:
           value:
@@ -333,6 +333,9 @@ MonoBehaviour:
                 rid: 3097083922518114535
           - value:
               value:
+                rid: 5295427349367226869
+          - value:
+              value:
                 rid: 5205636901062049865
           - value:
               value:
@@ -349,7 +352,7 @@ MonoBehaviour:
           - value:
               value:
                 rid: 5295427349367226868
-      _prevBehaviorCount: 24
+      _prevBehaviorCount: 25
   references:
     version: 2
     RefIds:
@@ -444,7 +447,6 @@ MonoBehaviour:
       data:
         TaskName: 60000
         OnReviveTask: 0
-        DecompositionTime: 375
     - rid: 3097083922518114639
       type: {class: Movement, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
@@ -458,9 +460,11 @@ MonoBehaviour:
         LootTable:
           value:
           - ItemName: BugMush
-            DropAmount: 0.06666667
+            DropAmount: 25.00000125
+            DropStdDev: 0.4
           - ItemName: String
-            DropAmount: 0.053333335
+            DropAmount: 20.000000625
+            DropStdDev: 0.4
     - rid: 3097084098772992145
       type: {class: AnimatedSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
@@ -810,3 +814,9 @@ MonoBehaviour:
         StepDistance: 5
         TouchState: 0
         entityStepSound: 0
+    - rid: 5295427349367226869
+      type: {class: TimedDecaySettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        DecayTime: 375
+        InteractEvents:
+          value: []

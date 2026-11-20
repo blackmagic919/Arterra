@@ -63,12 +63,16 @@ namespace Arterra.GamePlay.UI {
             if (!PlayerHandler.active) return;
             BehaviorEntity.Animal player = PlayerHandler.data;
             if (player == null || !player.active) return;
+            if (player.Is(out IVitality vitality) && vitality.IsDead) {
+                DisableCrosshair();
+                return;
+            }
+            if (!player.Is(out PlayerInteractionBehavior interact)) return;
             
             float3 hitPt = player.head
                     + player.Forward
                     * PlayerInteractionSettings.GetSingleton().ReachDistance;
 
-            if (!player.Is(out PlayerInteractionBehavior interact)) return;
             if (interact.RayTestSolid(out float3 terrHit)) hitPt = terrHit;
             if (!EntityManager.ESTree.FindClosestAlongRay(player.head, hitPt, player.info.rtEntityId, out _, out _))
                 Animator.SetBool("Focus", false);

@@ -37,7 +37,10 @@ namespace Arterra.Data.Entity.Behavior {
                 Behaviors.PlayerMovement,
                 Behaviors.PlayerInteraction,
                 Behaviors.PlayerEffects,
+                Behaviors.PlayerIdentity,
+                Behaviors.PlayerStats,
                 Behaviors.PlayerRoot,
+                Behaviors.TimedDecay,
                 Behaviors.PlayerBaseLogicHandler,
                 Behaviors.Modifiers,
                 Behaviors.Hunger,
@@ -63,6 +66,9 @@ namespace Arterra.Data.Entity.Behavior {
                 },
                 new() {
                     value = new PlayerInventorySettings(),
+                },
+                new() {
+                    value = new TimedDecaySettings(),
                 },
                 new() {
                     value = new PlayerCameraSettings(),
@@ -106,6 +112,8 @@ namespace Arterra.Data.Entity.Behavior {
             hierarchy.TryAdd(Behaviors.MapInteraction, hierarchy.Count);
             hierarchy.TryAdd(Behaviors.StepSound, hierarchy.Count);
             hierarchy.TryAdd(Behaviors.Vitality, hierarchy.Count);
+            hierarchy.TryAdd(Behaviors.PlayerIdentity, hierarchy.Count);
+            hierarchy.TryAdd(Behaviors.PlayerStats, hierarchy.Count);
             hierarchy.TryAdd(Behaviors.PlayerInventories, hierarchy.Count);
             hierarchy.TryAdd(Behaviors.PlayerCrafting, hierarchy.Count);
             hierarchy.TryAdd(Behaviors.PlayerArmor, hierarchy.Count);
@@ -113,6 +121,7 @@ namespace Arterra.Data.Entity.Behavior {
             hierarchy.TryAdd(Behaviors.PlayerMovement, hierarchy.Count);
             hierarchy.TryAdd(Behaviors.PlayerInteraction, hierarchy.Count);
             hierarchy.TryAdd(Behaviors.PlayerEffects, hierarchy.Count);
+            hierarchy.TryAdd(Behaviors.TimedDecay, hierarchy.Count);
             hierarchy.TryAdd(Behaviors.PlayerBaseLogicHandler, hierarchy.Count);
         }
 

@@ -1,5 +1,17 @@
 ## [Unreleased]
 
+## Added
+- Statistic window toggled by F5 showing entity populations and coordinates
+- Safeguards along all runtime tasks to prevent errors breaking unrelated routines
+
+## Changed
+- Item amount formatting to a more readable 2 decimal places
+
+## Fixed
+- Dead player entities not despawning
+- Dead player entities erroring when collected
+- Pine trees with leaves not connected to the trunk
+
 ## [0.2.7] - 2026-11-19
 
 ## Fixed

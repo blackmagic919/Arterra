@@ -44,6 +44,9 @@ MonoBehaviour:
           Category:
             value: {fileID: 11400000, guid: 280bf6dd8603344b6a47cfc48ac8b144, type: 2}
           Reg:
+          - {fileID: 11400000, guid: e1d0c87f256d4adf9a8aa142386bcf04, type: 2}
+          - {fileID: 11400000, guid: 8165a8c4a83c4c958ad8c78c2060f987, type: 2}
+          - {fileID: 11400000, guid: 636b00da9d7c496eb0a2f17351b0ff95, type: 2}
           - {fileID: 11400000, guid: 6853348a8533f47efb6d5a7ce5501b5d, type: 2}
           - {fileID: 11400000, guid: 6f6bef56a25dc4d248c00a4d355f31d8, type: 2}
           - {fileID: 11400000, guid: b90a4c9cb53fb4ac8b490825185b13d2, type: 2}
@@ -102,7 +105,7 @@ MonoBehaviour:
                   y: 2
                   z: 1
               BehaviorList:
-                value: 050000000600000003000000ed030000010000006a000000690000006b0000006c000000660000006500000068000000670000000200000064000000f3030000
+                value: 050000000600000003000000ed03000001000000fa0300006a000000690000006b0000006c000000660000006500000068000000670000000200000064000000f30300006e000000
               Settings:
                 value:
                   value:
@@ -123,6 +126,9 @@ MonoBehaviour:
                         rid: 1481107629540114719
                   - value:
                       value:
+                        rid: 1481107629540114727
+                  - value:
+                      value:
                         rid: 1481107629540114720
                   - value:
                       value:
@@ -139,7 +145,7 @@ MonoBehaviour:
                   - value:
                       value:
                         rid: 5778504564777156723
-              _prevBehaviorCount: 16
+              _prevBehaviorCount: 18
         Gamemodes:
           value:
             Flight: 0
@@ -874,7 +880,8 @@ MonoBehaviour:
         LootTable:
           value:
           - ItemName: Meat
-            DropAmount: 0.075
+            DropAmount: 22.500
+            DropStdDev: 0.4
     - rid: 1481107629540114718
       type: {class: MapInteractorSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
@@ -1032,3 +1039,7 @@ MonoBehaviour:
         StepDistance: 1.5
         TouchState: 0
         entityStepSound: 0
+    - rid: 1481107629540114727
+      type: {class: TimedDecaySettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        DecayTime: 300

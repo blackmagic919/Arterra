@@ -137,11 +137,16 @@ namespace Arterra.Data.Entity.Behavior {
         }
 
         public override void DisposeVisual(BehaviorEntity.Animal self) {
+            if (self.IsOwner) PlayerCrosshair.DisableCrosshair();
             UnbindInput();
             perspectives = null;
         }
 
         public override void Disable(BehaviorEntity.Animal self) {
+            if (self.Is(out IMultiCollider collider) && ReferenceEquals(collider, this))
+                self.Register<IMultiCollider>(baseCollider);
+            if (self.Is(out PlayerCameraBehavior camera) && ReferenceEquals(camera, this))
+                self.Unregister(typeof(PlayerCameraBehavior));
             netCameraLocalRotation.Dispose();
             this.self = null;
         }
@@ -247,7 +252,7 @@ namespace Arterra.Data.Entity.Behavior {
             if (hasBindings) return;
             hasBindings = true;
 
-            self.eventCtrl.AddContextlessEventHandler(GameEvent.Entity_Death, (_, _) => self.RemoveBehavior(Id));
+            self.eventCtrl.AddEventHandler(GameEvent.Entity_Death, OnDeath);
             InputPoller.AddBinding(new ActionBind("Look Horizontal", LookX), LookHorizontalName, "4.5::Movement");
             InputPoller.AddBinding(new ActionBind("Look Vertical", LookY), LookVerticalName, "4.5::Movement");
             InputPoller.AddBinding(new ActionBind("Toggle Perspective", TogglePerspective,
@@ -258,10 +263,13 @@ namespace Arterra.Data.Entity.Behavior {
             if (!hasBindings) return;
             hasBindings = false;
 
+            self.eventCtrl.RemoveEventHandler(GameEvent.Entity_Death, OnDeath);
             InputPoller.RemoveBinding(LookHorizontalName, "4.5::Movement");
             InputPoller.RemoveBinding(LookVerticalName, "4.5::Movement");
             InputPoller.RemoveBinding(TPerspectiveName, "2.5::Subscene");
         }
+
+        private void OnDeath(object source, object target, object context) => self.RemoveBehavior(Id);
 
         private void LookX(float x) {
             lookDelta.x = x * Sensitivity;

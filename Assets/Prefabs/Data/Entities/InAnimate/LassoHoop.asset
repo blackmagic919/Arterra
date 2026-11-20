@@ -104,6 +104,4 @@ MonoBehaviour:
       data:
         DecayTime: 25
         InteractEvents:
-          value:
-          - Event: 18
-            DeltaTime: -100
+          value: []

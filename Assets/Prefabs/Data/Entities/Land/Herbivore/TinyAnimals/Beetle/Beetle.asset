@@ -57,7 +57,7 @@ MonoBehaviour:
           y: 0.6
           z: 0.3
       BehaviorList:
-        value: 05000000000000000300000006000000ea030000ed03000001000000e8030000e9030000eb030000ec030000102700001a2700002427000038270000422700004c27000056270000602700006a270000742700007e27000088270000
+        value: 05000000000000000300000006000000ea030000ed03000001000000e8030000e9030000eb030000ec030000102700001a2700002427000038270000422700004c27000056270000602700006a270000742700007e270000fa03000088270000
       Settings:
         value:
           value:
@@ -139,7 +139,10 @@ MonoBehaviour:
           - value:
               value:
                 rid: 3097083922518114535
-      _prevBehaviorCount: 23
+          - value:
+              value:
+                rid: 5205636866482634847
+      _prevBehaviorCount: 24
   references:
     version: 2
     RefIds:
@@ -332,7 +335,6 @@ MonoBehaviour:
       data:
         TaskName: 60000
         OnReviveTask: 0
-        DecompositionTime: 90
     - rid: 3097083922518114545
       type: {class: ConsumeMaterialSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
@@ -353,7 +355,8 @@ MonoBehaviour:
         LootTable:
           value:
           - ItemName: BugMush
-            DropAmount: 0.013333334
+            DropAmount: 1.200000060
+            DropStdDev: 0.4
     - rid: 3097084098772992145
       type: {class: AnimatedSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
@@ -497,3 +500,9 @@ MonoBehaviour:
             var: 0.75
             geneWeight: 0.05
         NormalizeWeights: 1
+    - rid: 5205636866482634847
+      type: {class: TimedDecaySettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        DecayTime: 90
+        InteractEvents:
+          value: []

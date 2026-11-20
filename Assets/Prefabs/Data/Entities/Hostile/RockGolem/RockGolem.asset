@@ -168,7 +168,7 @@ MonoBehaviour:
           y: 4.5
           z: 2.5
       BehaviorList:
-        value: 05000000000000000300000006000000ea030000ed03000001000000e8030000e9030000eb030000102700001a27000043270000602700006a270000742700007e270000882700008a13000002000000
+        value: 05000000000000000300000006000000ea030000ed03000001000000e8030000e9030000eb030000102700001a27000043270000602700006a270000742700007e270000fa030000882700008a13000002000000
       Settings:
         value:
           value:
@@ -228,11 +228,14 @@ MonoBehaviour:
                 rid: 3097083922518114535
           - value:
               value:
+                rid: 5295427349367226870
+          - value:
+              value:
                 rid: 5205636901062049865
           - value:
               value:
                 rid: 5295427349367226869
-      _prevBehaviorCount: 20
+      _prevBehaviorCount: 21
   references:
     version: 2
     RefIds:
@@ -327,7 +330,6 @@ MonoBehaviour:
       data:
         TaskName: 60000
         OnReviveTask: 0
-        DecompositionTime: 450
     - rid: 3097083922518114639
       type: {class: Movement, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
@@ -341,7 +343,8 @@ MonoBehaviour:
         LootTable:
           value:
           - ItemName: Stone:Solid
-            DropAmount: 0.07777778
+            DropAmount: 35.00000100
+            DropStdDev: 0.4
     - rid: 3097084098772992145
       type: {class: AnimatedSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
@@ -480,3 +483,9 @@ MonoBehaviour:
       type: {class: StepSoundBehaviorSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
         StepDistance: 4
+    - rid: 5295427349367226870
+      type: {class: TimedDecaySettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        DecayTime: 450
+        InteractEvents:
+          value: []

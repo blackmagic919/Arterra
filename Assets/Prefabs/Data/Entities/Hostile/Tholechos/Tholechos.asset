@@ -417,7 +417,7 @@ MonoBehaviour:
           y: 3.5
           z: 3.5
       BehaviorList:
-        value: 050000000000000003000000ed03000001000000e8030000e9030000eb030000102700001a27000043270000602700006a2700007e270000882700008f1300008b13000020270000
+        value: 050000000000000003000000ed03000001000000e8030000e9030000eb030000102700001a27000043270000602700006a2700007e270000fa030000882700008f1300008b13000020270000
       Settings:
         value:
           value:
@@ -471,6 +471,9 @@ MonoBehaviour:
                 rid: 3097083922518114535
           - value:
               value:
+                rid: 7000000000000000024
+          - value:
+              value:
                 rid: 7000000000000000021
           - value:
               value:
@@ -481,7 +484,7 @@ MonoBehaviour:
           - value:
               value:
                 rid: 5205636930575269967
-      _prevBehaviorCount: 18
+      _prevBehaviorCount: 19
   references:
     version: 2
     RefIds:
@@ -566,7 +569,6 @@ MonoBehaviour:
       data:
         TaskName: 60000
         OnReviveTask: 400
-        DecompositionTime: 300
     - rid: 3097083922518114639
       type: {class: Movement, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
@@ -580,7 +582,8 @@ MonoBehaviour:
         LootTable:
           value:
           - ItemName: Stone:Solid
-            DropAmount: 0.1
+            DropAmount: 30.0
+            DropStdDev: 0.4
     - rid: 3097084098772992145
       type: {class: AnimatedSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
@@ -822,3 +825,9 @@ MonoBehaviour:
           value: 
         LandAngleMax: 0.85
         LandAngleFalloff: 0.5
+    - rid: 7000000000000000024
+      type: {class: TimedDecaySettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        DecayTime: 300
+        InteractEvents:
+          value: []

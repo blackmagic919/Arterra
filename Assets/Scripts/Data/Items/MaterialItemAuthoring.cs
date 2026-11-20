@@ -1,3 +1,4 @@
+using Arterra.Utils;
 using UnityEngine;
 using Newtonsoft.Json;
 using Arterra.Configuration;
@@ -57,7 +58,7 @@ namespace Arterra.Data.Item{
             display.transform.SetParent(parent, false);
             display.transform.GetComponent<UnityEngine.UI.Image>().sprite = TextureAtlas.Retrieve(ItemInfo.Retrieve(Index).TextureName).self;
             TMPro.TextMeshProUGUI amount = display.GetComponentInChildren<TMPro.TextMeshProUGUI>();
-            amount.text = ((data & 0xFFFF) / (float)UnitSize).ToString();
+            amount.text = CustomUtility.FormatAmount((data & 0xFFFF) / (float)UnitSize);
         }
 
         public void ClearDisplay(Transform parent){
@@ -70,7 +71,7 @@ namespace Arterra.Data.Item{
         private void UpdateDisplay() {
             if (display == null) return;
             TMPro.TextMeshProUGUI amount = display.GetComponentInChildren<TMPro.TextMeshProUGUI>();
-            amount.text = ((data & 0xFFFF) / (float)UnitSize).ToString();
+            amount.text = CustomUtility.FormatAmount((data & 0xFFFF) / (float)UnitSize);
         }
 }
 }

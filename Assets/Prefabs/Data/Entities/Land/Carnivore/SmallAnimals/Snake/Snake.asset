@@ -87,7 +87,7 @@ MonoBehaviour:
           y: 0.5
           z: 1
       BehaviorList:
-        value: 05000000000000000300000006000000ea030000ed03000001000000e8030000e9030000eb030000ec030000102700001a2700002427000038270000422700004c27000056270000602700006a270000742700007e27000088270000f203000007000000
+        value: 05000000000000000300000006000000ea030000ed03000001000000e8030000e9030000eb030000ec030000102700001a2700002427000038270000422700004c27000056270000602700006a270000742700007e270000fa03000088270000f203000007000000
       Settings:
         value:
           value:
@@ -171,11 +171,14 @@ MonoBehaviour:
                 rid: 3097083922518114535
           - value:
               value:
+                rid: 5295427382668427378
+          - value:
+              value:
                 rid: 1481107571315572932
           - value:
               value:
                 rid: 5295427382668427377
-      _prevBehaviorCount: 25
+      _prevBehaviorCount: 26
   references:
     version: 2
     RefIds:
@@ -388,7 +391,6 @@ MonoBehaviour:
       data:
         TaskName: 60000
         OnReviveTask: 0
-        DecompositionTime: 190
     - rid: 3097083922518114545
       type: {class: ConsumeMaterialSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
@@ -408,7 +410,8 @@ MonoBehaviour:
         LootTable:
           value:
           - ItemName: GameMeat
-            DropAmount: 0.021052632
+            DropAmount: 4.000000080
+            DropStdDev: 0.4
     - rid: 3097084098772992147
       type: {class: AnimatedSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
@@ -608,3 +611,9 @@ MonoBehaviour:
               sound: 4003
               chance: 1
         triggerMode: 2
+    - rid: 5295427382668427378
+      type: {class: TimedDecaySettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        DecayTime: 190
+        InteractEvents:
+          value: []

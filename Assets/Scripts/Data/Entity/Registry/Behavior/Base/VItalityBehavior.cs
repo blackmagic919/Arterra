@@ -56,28 +56,39 @@ namespace Arterra.Data.Entity.Behavior {
             };
         }
 
-        public IItem LootItem(Modifier mod, float collectRate, ref Unity.Mathematics.Random random) {
-            if (LootTable.value == null || LootTable.value.Count == 0) return null;
-            int index = random.NextInt(LootTable.value.Count);
-
-            float amount = Modifier.Get(mod, MSettings.DropAmount, LootTable.value[index].DropAmount) * collectRate;
-            Catalogue<Arterra.Data.Item.Authoring> registry = Config.CURRENT.Generation.Items;
-            int itemindex = registry.RetrieveIndex(LootTable.value[index].ItemName);
-            IItem item = registry.Retrieve(itemindex).Item;
-
-            amount *= item.UnitSize;
-            int delta = Mathf.FloorToInt(amount) + (random.NextFloat() < math.frac(amount) ? 1 : 0);
-            if (delta == 0) return null;
-            delta = math.min(delta, item.StackLimit);
-            item.Create(itemindex, delta);
-            return item;
+        public List<IItem> CreateLoot(Modifier mod, ref Unity.Mathematics.Random random) {
+            List<IItem> loot = new();
+            if (LootTable.value == null || LootTable.value.Count == 0) return loot;
+            Catalogue<Item.Authoring> registry = Config.CURRENT.Generation.Items;
+            foreach (LootInfo drop in LootTable.value) {
+                float mean = Modifier.Get(mod, MSettings.DropAmount, drop.DropAmount);
+                float amount = math.max((float)CustomUtility.Sample(ref random, mean, drop.DropStdDev * drop.DropStdDev), 0);
+                int index = registry.RetrieveIndex(drop.ItemName);
+                IItem item = registry.Retrieve(index).Item;
+                amount *= item.UnitSize;
+                int remaining = (int)math.floor(amount) + (random.NextFloat() < math.frac(amount) ? 1 : 0);
+                while (remaining > 0) {
+                    IItem stack = (IItem)item.Clone();
+                    int count = math.min(remaining, item.StackLimit);
+                    stack.Create(index, count);
+                    loot.Add(stack);
+                    remaining -= count;
+                }
+            }
+            //Randomize order
+            for (int i = loot.Count - 1; i > 0; i--) {
+                int index = random.NextInt(i + 1);
+                (loot[i], loot[index]) = (loot[index], loot[i]);
+            }
+            return loot;
         }
         [Serializable]
         public struct LootInfo {
             [RegistryReference("Items")]
             public string ItemName;
-            //The unit amount given per second of decomposition
+            //The total unit amount available from the corpse.
             public float DropAmount;
+            public float DropStdDev;
         }
     }
 
@@ -87,6 +98,8 @@ namespace Arterra.Data.Entity.Behavior {
 
         private BehaviorEntity.Animal self;
         private Modifier mod;
+        private TimedDecayBehavior decay;
+        [JsonProperty] private List<IItem> loot;
 
         [JsonProperty] private NetworkVariable<float> netHealth = new("Health", NetworkPermission.Server);
         [JsonIgnore] public float MaxHealth => Modifier.Get(mod, MSettings.MaxHealth, stats.MaxHealth);
@@ -96,6 +109,7 @@ namespace Arterra.Data.Entity.Behavior {
         [JsonIgnore] public float weight => stats.weight;
         [JsonIgnore] public float healthPercent => health / MaxHealth;
         [JsonIgnore] public bool IsDead => health <= 0;
+        [JsonIgnore] public bool UseDefaultLoot = true;
 
         [JsonIgnore] public float health { get => netHealth.Value; set => netHealth.Value = value; }
         public float invincibility;
@@ -104,19 +118,38 @@ namespace Arterra.Data.Entity.Behavior {
         public const float FallDmgThresh = 10;
 
 
-        public void Collect(object recieverId, object selfId, object ctx) {
-            if (ctx is not float amount) return;
+        private void BindDecay() {
+            if (!self.Is(out decay)) decay = null;
+            if (decay != null) decay.IsDepleted = IsLootDepleted;
+        }
 
-            Entity reciever;
-            if (recieverId is Guid entityId) 
-                EntityManager.TryGetEntity(entityId, out reciever);
-            else reciever = null;
-            
-            IItem collectedItem = null;
-            if (IsDead && Decomposition != null) 
-                collectedItem = Decomposition.LootItem(mod, amount, ref self.random);
+        private bool IsLootDepleted() => UseDefaultLoot && loot != null && loot.Count == 0;
+
+        private void EnsureLoot() {
+            if (loot != null || !UseDefaultLoot) return;
+            loot = Decomposition?.CreateLoot(mod, ref self.random) ?? new List<IItem>();
+        }
+
+        public void Collect(object recieverId, object selfId, object ctx) {
+            if (!self.IsAuthority || !IsDead || ctx is not float amount || amount <= 0) return;
+            if (recieverId is not Guid entityId || !EntityManager.TryGetEntity(entityId, out Entity reciever)
+                || !reciever.active) return;
+
+            EnsureLoot();
+            if (UseDefaultLoot && loot.Count > 0) {
+                IItem item = loot[0];
+                float rawAmount = amount * item.UnitSize;
+                int count = math.min(item.AmountRaw, (int)math.floor(rawAmount)
+                    + (self.random.NextFloat() < math.frac(rawAmount) ? 1 : 0));
+                if (count > 0) {
+                    IItem collected = (IItem)item.Clone();
+                    collected.AmountRaw = count;
+                    item.AmountRaw -= count;
+                    if (item.AmountRaw == 0) loot.RemoveAt(0);
+                    reciever.eventCtrl.EnqueueEvent(GameEvent.Entity_RecieveItem, selfId, recieverId, collected);
+                }
+            }
             self.eventCtrl.RaiseEvent(GameEvent.Entity_Collect, selfId, recieverId, amount);
-            reciever?.eventCtrl.EnqueueEvent(GameEvent.Entity_RecieveItem, selfId, recieverId, collectedItem);
         }
 
         public bool IsKillingBlow(float damage) => MaxAccDamage < health && damage > health;
@@ -145,16 +178,19 @@ namespace Arterra.Data.Entity.Behavior {
 
 
         public override void Update(BehaviorEntity.Animal self) {
-            if (self.context != BehaviorEntity.UpdateContext.Simulation) return;
+            if (!self.IsAuthority || self.context != BehaviorEntity.UpdateContext.Simulation) return;
             TryApplyAccDamage();
 
             if (IsDead) {
+                EnsureLoot();
                 if (TriggeredDeath) return;
-                self.eventCtrl.RaiseEvent(GameEvent.Entity_Death, self.info.rtEntityId, null);
                 TriggeredDeath = true;
+                self.eventCtrl.RaiseEvent(GameEvent.Entity_Death, self.info.rtEntityId, null);
                 return;
             }
 
+            TriggeredDeath = false;
+            loot = null;
             FlushDeltaHealth(NaturalRegen * self.DeltaTime);
         }
 
@@ -191,6 +227,7 @@ namespace Arterra.Data.Entity.Behavior {
             if (self.IsAuthority) self.eventCtrl.AddEventHandler(GameEvent.Apply_Collect, Collect);
 
             this.self = self;
+            BindDecay();
             invincibility = 0;
             MaxAccDamage = 0;
             health = (float)CustomUtility.Sample(
@@ -199,6 +236,7 @@ namespace Arterra.Data.Entity.Behavior {
             health = math.clamp(health, 0, 1);
             health *= MaxHealth;
             TriggeredDeath = false;
+            loot = null;
             self.weight = this.weight;
 
             netHealth.Register(self);
@@ -214,6 +252,7 @@ namespace Arterra.Data.Entity.Behavior {
             if (self.IsAuthority) self.eventCtrl.AddEventHandler(GameEvent.Apply_Collect, Collect);
 
             this.self = self;
+            BindDecay();
             invincibility = 0;
             self.weight = this.weight;
 
@@ -224,6 +263,7 @@ namespace Arterra.Data.Entity.Behavior {
         public override void Disable(BehaviorEntity.Animal self) {
             self.eventCtrl.RemoveEventHandler(GameEvent.Apply_Damage, TakeDamage);
             self.eventCtrl.RemoveEventHandler(GameEvent.Apply_Collect, Collect);
+            if (decay != null && decay.IsDepleted == IsLootDepleted) decay.IsDepleted = null;
             netHealth?.Dispose();
             this.self = null;
         }

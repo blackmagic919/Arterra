@@ -64,7 +64,7 @@ MonoBehaviour:
           y: 0.75
           z: 0.75
       BehaviorList:
-        value: 05000000000000000300000006000000ea030000ed030000e803000001000000e9030000eb030000ec030000102700002427000038270000422700004c27000056270000602700006a270000742700007e27000088270000ee030000ef0300001f270000f0030000832700001b27000002000000
+        value: 05000000000000000300000006000000ea030000ed030000e803000001000000e9030000eb030000ec030000102700002427000038270000422700004c27000056270000602700006a270000742700007e270000fa03000088270000ee030000ef0300001f270000f0030000832700001b27000002000000
       Settings:
         value:
           value:
@@ -145,6 +145,9 @@ MonoBehaviour:
                 rid: 3097083922518114535
           - value:
               value:
+                rid: 5295427382668427446
+          - value:
+              value:
                 rid: 3097084037468258406
           - value:
               value:
@@ -167,7 +170,7 @@ MonoBehaviour:
           - value:
               value:
                 rid: 3097084119023353994
-      _prevBehaviorCount: 29
+      _prevBehaviorCount: 30
   references:
     version: 2
     RefIds:
@@ -356,7 +359,6 @@ MonoBehaviour:
       data:
         TaskName: 60000
         OnReviveTask: 0
-        DecompositionTime: 160
     - rid: 3097083922518114545
       type: {class: ConsumeMaterialSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
@@ -369,7 +371,8 @@ MonoBehaviour:
         LootTable:
           value:
           - ItemName: FishMeat
-            DropAmount: 0.02
+            DropAmount: 3.20
+            DropStdDev: 0.4
     - rid: 3097084037468258406
       type: {class: FeedableBehaviorSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
@@ -796,3 +799,9 @@ MonoBehaviour:
         StepDistance: 1
         TouchState: 1
         entityStepSound: 0
+    - rid: 5295427382668427446
+      type: {class: TimedDecaySettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        DecayTime: 160
+        InteractEvents:
+          value: []

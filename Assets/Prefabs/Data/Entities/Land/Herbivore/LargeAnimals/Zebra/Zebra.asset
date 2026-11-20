@@ -141,7 +141,7 @@ MonoBehaviour:
           y: 2.25
           z: 1.75
       BehaviorList:
-        value: 05000000000000000300000006000000ea030000ed03000001000000e8030000e9030000eb030000ec030000102700001b2700002427000038270000422700004c27000056270000602700006a270000742700007e27000088270000ee030000ef0300001f2700000400000033270000f00300000200000007000000
+        value: 05000000000000000300000006000000ea030000ed03000001000000e8030000e9030000eb030000ec030000102700001b2700002427000038270000422700004c27000056270000602700006a270000742700007e270000fa03000088270000ee030000ef0300001f2700000400000033270000f00300000200000007000000
       Settings:
         value:
           value:
@@ -225,6 +225,9 @@ MonoBehaviour:
                 rid: 3097083922518114535
           - value:
               value:
+                rid: 5295427422029873288
+          - value:
+              value:
                 rid: 3097084037468258413
           - value:
               value:
@@ -247,7 +250,7 @@ MonoBehaviour:
           - value:
               value:
                 rid: 5295427422029873287
-      _prevBehaviorCount: 31
+      _prevBehaviorCount: 32
   references:
     version: 2
     RefIds:
@@ -434,7 +437,6 @@ MonoBehaviour:
       data:
         TaskName: 60000
         OnReviveTask: 0
-        DecompositionTime: 310
     - rid: 3097083922518114545
       type: {class: ConsumeMaterialSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
@@ -454,11 +456,14 @@ MonoBehaviour:
         LootTable:
           value:
           - ItemName: RedMeat
-            DropAmount: 0.048387095
+            DropAmount: 14.999999450
+            DropStdDev: 0.4
           - ItemName: Leather:Solid
-            DropAmount: 0.029032258
+            DropAmount: 8.999999980
+            DropStdDev: 0.4
           - ItemName: Hair
-            DropAmount: 0.016129032
+            DropAmount: 4.999999920
+            DropStdDev: 0.4
     - rid: 3097084037468258413
       type: {class: FeedableBehaviorSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
@@ -830,3 +835,9 @@ MonoBehaviour:
               sound: 4003
               chance: 1
         triggerMode: 2
+    - rid: 5295427422029873288
+      type: {class: TimedDecaySettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        DecayTime: 310
+        InteractEvents:
+          value: []

@@ -163,7 +163,9 @@ public class ArterraRuntime : MonoBehaviour {
             IUpdateSubscriber task = taskQueue.Dequeue();
             if (!task.Active)
                 continue;
-            task.Update(this);
+            try { task.Update(this); } catch (Exception e) {
+                Debug.Log($"Arterra Runtime: Encountered exception {e} when executing update task");
+            }
             taskQueue.Enqueue(task);
         }
     }
@@ -172,7 +174,10 @@ public class ArterraRuntime : MonoBehaviour {
         int UpdateTaskCount = taskQueue.Count;
         for (int i = 0; i < UpdateTaskCount; i++) {
             var task = taskQueue.Dequeue();
-            if (task != null) StartCoroutine(task);
+            if (task == null) continue;
+            try {  StartCoroutine(task); } catch (Exception e) {
+                Debug.Log($"Arterra Runtime: Encountered exception {e} when executing coroutine");
+            }
         }
     }
 
@@ -225,9 +230,10 @@ public class ArterraRuntime : MonoBehaviour {
             if (task.processToken?.Invoke() == false)
                 continue;
 
-
             Profiler.BeginSample("Task Number: " + task.id);
-            task.task?.Invoke();
+            try { task.task?.Invoke(); } catch (Exception e) {
+                Debug.Log($"Arterra Runtime: Encountered exception {e} when executing generation task");
+            } 
             Profiler.EndSample();
 
             EventTaskQueue.Remove(current);

@@ -57,7 +57,7 @@ MonoBehaviour:
           y: 0.8
           z: 0.3
       BehaviorList:
-        value: 05000000000000000300000006000000ea030000ed03000001000000e8030000e9030000eb030000ec030000102700001a2700002427000038270000422700004c27000056270000602700006a270000742700007e27000088270000
+        value: 05000000000000000300000006000000ea030000ed03000001000000e8030000e9030000eb030000ec030000102700001a2700002427000038270000422700004c27000056270000602700006a270000742700007e270000fa03000088270000
       Settings:
         value:
           value:
@@ -141,8 +141,11 @@ MonoBehaviour:
                 rid: 3097083922518114535
           - value:
               value:
+                rid: 5295427349367226876
+          - value:
+              value:
                 rid: 5295427349367226875
-      _prevBehaviorCount: 23
+      _prevBehaviorCount: 24
   references:
     version: 2
     RefIds:
@@ -324,7 +327,6 @@ MonoBehaviour:
       data:
         TaskName: 60000
         OnReviveTask: 0
-        DecompositionTime: 100
     - rid: 3097083922518114545
       type: {class: ConsumeMaterialSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
@@ -344,9 +346,11 @@ MonoBehaviour:
         LootTable:
           value:
           - ItemName: BugMush
-            DropAmount: 0.03
+            DropAmount: 3.00
+            DropStdDev: 0.4
           - ItemName: String
-            DropAmount: 0.025
+            DropAmount: 2.500
+            DropStdDev: 0.4
     - rid: 3097084098772992147
       type: {class: AnimatedSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
@@ -488,3 +492,9 @@ MonoBehaviour:
       type: {class: StepSoundBehaviorSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
         StepDistance: 1.5
+    - rid: 5295427349367226876
+      type: {class: TimedDecaySettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        DecayTime: 100
+        InteractEvents:
+          value: []

@@ -82,6 +82,17 @@ namespace Arterra.Data.Entity.Behavior {
             set => restoredCursor = value;
         }
 
+        [JsonIgnore] public bool HasItems => Primary.EntryDict.Count > 0 || Secondary.EntryDict.Count > 0
+            || (Crafting?.Materials.EntryDict.Count ?? 0) > 0 || (Crafting?.Items.EntryDict.Count ?? 0) > 0
+            || HasArmor() || CursorItem is { AmountRaw: > 0 };
+
+        private bool HasArmor() {
+            if (Armor?.Inventory == null) return false;
+            foreach (IItem item in Armor.Inventory.Info)
+                if (item is { AmountRaw: > 0 }) return true;
+            return false;
+        }
+
         public enum InventoryAction { Select, SelectPartial, DeselectDrag, SelectAll, Clear, Armor, Resource }
 
         public struct InventoryInteraction {
@@ -753,13 +764,13 @@ namespace Arterra.Data.Entity.Behavior {
 
         public void AddItem(IItem item) {
             if (item == null) return;
-            if (Secondary.EntryDict.ContainsKey(item.Index)
-                && !Primary.EntryDict.ContainsKey(item.Index))
-                Secondary.AddStackable(item);
-            if (item.AmountRaw == 0) return;
-            Primary.AddStackable(item);
+            if (Primary.EntryDict.ContainsKey(item.Index)
+                && !Secondary.EntryDict.ContainsKey(item.Index))
+                Primary.AddStackable(item);
             if (item.AmountRaw == 0) return;
             Secondary.AddStackable(item);
+            if (item.AmountRaw == 0) return;
+            Primary.AddStackable(item);
             if (item.AmountRaw != 0) SpawnDrop(item, self.position);
         }
 
@@ -769,19 +780,51 @@ namespace Arterra.Data.Entity.Behavior {
         }
 
 		private void HandleCollect(object actor, object target, object ctx) {
-			if (self == null) return;
-
-			int itemCount = Primary.EntryDict.Count + Secondary.EntryDict.Count;
-			if (itemCount == 0) return;
+			if (self == null || !self.Is(out VitalityBehavior vitality) || !vitality.IsDead) return;
 
 			if (ctx is not float amount || target is not Guid receiverId) return;
 			if (!EntityManager.TryGetEntity(receiverId, out Entity receiver)) return;
 			amount *= RecoverSpeedMultiplier;
+            if (amount <= 0) return;
 
-			if (Primary.EntryDict.Count > 0) receiver.eventCtrl.EnqueueEvent(
-                GameEvent.Entity_RecieveItem, self.info.rtEntityId, receiverId, Primary.LootInventory(amount));
-			if (Secondary.EntryDict.Count > 0) receiver.eventCtrl.EnqueueEvent(
-                GameEvent.Entity_RecieveItem, self.info.rtEntityId, receiverId, Secondary.LootInventory(amount));
+			Loot(Primary);
+            Loot(Secondary);
+            Loot(Crafting?.Materials);
+            Loot(Crafting?.Items);
+            if (Armor?.Inventory is IInventory armor) {
+                for (int slot = 0; slot < armor.Capacity; slot++) {
+                    IItem item = armor.PeekItem(slot);
+                    if (item == null || item.AmountRaw <= 0) continue;
+                    IItem collected = (IItem)item.Clone();
+                    collected.AmountRaw = armor.RemoveStackableSlot(slot, CollectAmount(item));
+                    SetDirty(InventoryKind.Armor, slot);
+                    Give(collected);
+                    break;
+                }
+            }
+            if (CursorItem is IItem cursor && cursor.AmountRaw > 0) {
+                IItem collected = (IItem)cursor.Clone();
+                collected.AmountRaw = math.min(cursor.AmountRaw, CollectAmount(cursor));
+                cursor.AmountRaw -= collected.AmountRaw;
+                if (cursor.AmountRaw == 0) CursorState.ClearCursor();
+                PublishCursor();
+                Give(collected);
+            }
+
+            void Loot(Inventory inventory) {
+                if (inventory == null || inventory.EntryDict.Count == 0) return;
+                Give(inventory.LootInventory(amount));
+            }
+
+            int CollectAmount(IItem item) {
+                float rawAmount = amount * item.UnitSize;
+                return Mathf.FloorToInt(rawAmount) + (self.random.NextFloat() < math.frac(rawAmount) ? 1 : 0);
+            }
+
+            void Give(IItem item) {
+                if (item == null || item.AmountRaw <= 0) return;
+                receiver.eventCtrl.EnqueueEvent(GameEvent.Entity_RecieveItem, self.info.rtEntityId, receiverId, item);
+            }
 		}
 	}
 }

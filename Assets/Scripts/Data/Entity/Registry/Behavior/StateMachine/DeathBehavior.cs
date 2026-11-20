@@ -1,8 +1,5 @@
-
-
 using System;
 using System.Collections.Generic;
-using Arterra.Data.Item;
 using Newtonsoft.Json;
 using Unity.Mathematics;
 
@@ -10,89 +7,48 @@ namespace Arterra.Data.Entity.Behavior {
     public class DeathSettings : IBehaviorSetting {
         public EntitySMTasks TaskName = EntitySMTasks.Death;
         public EntitySMTasks OnReviveTask = EntitySMTasks.Idle;
-        public float DecompositionTime; //~300 seconds
 
         public object Clone() {
             return new DeathSettings {
                 TaskName = TaskName,
                 OnReviveTask = OnReviveTask,
-                DecompositionTime = DecompositionTime
             };
         }
     }
-    public class DeathBehavior : SpeciesBehavior, IDecaying {
+    public class DeathBehavior : SpeciesBehavior {
         [JsonIgnore]
         public DeathSettings settings;
 
         private StateMachineManagerBehavior manager;
         private VitalityBehavior vitality;
-        private Modifier mod;
-
-        [JsonIgnore] public float DecayTime => Modifier.Get(mod, MSettings.DecompositionTime, settings.DecompositionTime);
-        [JsonIgnore] public float DecayedDuration => manager.TaskDuration;
-
-        public void ResetDecay() => manager.TaskDuration = math.max(DecayTime, 0);
-
         public override void Update(BehaviorEntity.Animal self) {
             if (self.context != BehaviorEntity.UpdateContext.Simulation) return;
             
-            if (manager.TaskIndex != settings.TaskName) {
-                if (!vitality.IsDead) return;
-                manager.TaskDuration = DecayTime;
-                manager.Transition(settings.TaskName);
-            };
-            if (!vitality.IsDead) { //Bring back from the dead 
-                manager.Transition(settings.OnReviveTask);
-                return;
-            }
-            //Kill the entity
-            if (manager.TaskDuration <= 0) EntityManager.ReleaseEntity(self.info.rtEntityId);
-        }
-
-        private void OnCollectedFrom(object self, object collector, object cxt) {
-            if (manager.TaskIndex != settings.TaskName) return;
-            if (cxt is not float amount) return;
-            manager.TaskDuration -= amount;
+            if (vitality.IsDead) {
+                if (manager.TaskIndex != settings.TaskName) manager.Transition(settings.TaskName);
+            } else if (manager.TaskIndex == settings.TaskName) manager.Transition(settings.OnReviveTask);
         }
 
         public override void AddBehaviorDependencies(Dictionary<Behaviors, int> heirarchy) {
             heirarchy.TryAdd(Behaviors.StateMachine, heirarchy.Count);
             heirarchy.TryAdd(Behaviors.Vitality, heirarchy.Count);
+            heirarchy.TryAdd(Behaviors.TimedDecay, heirarchy.Count);
         }
 
         public override void AddSettingsDependencies(Dictionary<Type, IBehaviorSetting> heirarchy) {
             heirarchy.TryAdd(typeof(DeathSettings), new DeathSettings());
         }
 
-        public override void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
-            if (!setting.Is(out settings))
-                throw new System.Exception("Entity: Death Behavior Requires AnimalSettings to have DeathSettings");
-            if (!self.Is(out manager))
-                throw new System.Exception("Entity: Death Behavior Requires AnimalInstance to have StateMachineManager");
-            if (!self.Is(out vitality))
-                throw new System.Exception("Entity: Death Behavior Requires AnimalInstance to have PathFinderBehavior");
-            if (!self.Is(out mod)) mod = null;
-            
-            if (self.IsAuthority) self.eventCtrl.AddEventHandler(Core.Events.GameEvent.Entity_Collect, OnCollectedFrom);
-            self.Register<IDecaying>(this);
-        }
+        public override void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) => Bind(self, setting);
+        public override void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) => Bind(self, setting);
 
-        public override void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord){
+        private void Bind(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting) {
             if (!setting.Is(out settings))
-                throw new System.Exception("Entity: Death Behavior Requires AnimalSettings to have DeathSettings");
+                throw new Exception("Entity: DeathBehavior requires DeathSettings");
             if (!self.Is(out manager))
-                throw new System.Exception("Entity: Death Behavior Requires AnimalInstance to have StateMachineManager");
+                throw new Exception("Entity: DeathBehavior requires StateMachineManagerBehavior");
             if (!self.Is(out vitality))
-                throw new System.Exception("Entity: Death Behavior Requires AnimalInstance to have PathFinderBehavior");
-            if (!self.Is(out mod)) mod = null;
-            
-            if (self.IsAuthority) self.eventCtrl.AddEventHandler(Core.Events.GameEvent.Entity_Collect, OnCollectedFrom);
-            self.Register<IDecaying>(this);
-        }
-
-        public override void Disable(BehaviorEntity.Animal self) {
-            self.eventCtrl.RemoveEventHandler(Core.Events.GameEvent.Entity_Collect, OnCollectedFrom);
-            self.Unregister(typeof(IDecaying));
+                throw new Exception("Entity: DeathBehavior requires VitalityBehavior");
         }
     }
 }

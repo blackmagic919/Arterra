@@ -109,7 +109,7 @@ MonoBehaviour:
           y: 0.75
           z: 0.75
       BehaviorList:
-        value: 0500000000000000f10300000300000006000000ea030000ed03000001000000e8030000e9030000eb030000ec030000102700002427000038270000422700004c27000056270000602700006a270000742700007e27000088270000ee030000ef030000f0030000202700001b2700000200000007000000
+        value: 0500000000000000f10300000300000006000000ea030000ed03000001000000e8030000e9030000eb030000ec030000102700002427000038270000422700004c27000056270000602700006a270000742700007e270000fa03000088270000ee030000ef030000f0030000202700001b2700000200000007000000
       Settings:
         value:
           value:
@@ -193,6 +193,9 @@ MonoBehaviour:
                 rid: 3097083922518114535
           - value:
               value:
+                rid: 5295427406491025562
+          - value:
+              value:
                 rid: 3097084037468258406
           - value:
               value:
@@ -215,7 +218,7 @@ MonoBehaviour:
           - value:
               value:
                 rid: 3097084119023353994
-      _prevBehaviorCount: 30
+      _prevBehaviorCount: 31
   references:
     version: 2
     RefIds:
@@ -413,7 +416,6 @@ MonoBehaviour:
       data:
         TaskName: 60000
         OnReviveTask: 0
-        DecompositionTime: 140
     - rid: 3097083922518114545
       type: {class: ConsumeMaterialSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
@@ -426,9 +428,11 @@ MonoBehaviour:
         LootTable:
           value:
           - ItemName: Poultry
-            DropAmount: 0.010714286
+            DropAmount: 1.500000040
+            DropStdDev: 0.4
           - ItemName: Feather
-            DropAmount: 0.021428572
+            DropAmount: 3.000000080
+            DropStdDev: 0.4
     - rid: 3097084037468258406
       type: {class: FeedableBehaviorSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
@@ -910,3 +914,9 @@ MonoBehaviour:
               sound: 3400
               chance: 0.25
         triggerMode: 2
+    - rid: 5295427406491025562
+      type: {class: TimedDecaySettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
+      data:
+        DecayTime: 140
+        InteractEvents:
+          value: []

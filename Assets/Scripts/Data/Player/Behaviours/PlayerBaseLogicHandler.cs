@@ -1,6 +1,9 @@
 using Arterra.Configuration;
 using Arterra.Core.Events;
 using Arterra.GamePlay.UI;
+using Newtonsoft.Json;
+using System;
+using System.Collections.Generic;
 using Unity.Mathematics;
 using UnityEngine;
 
@@ -9,30 +12,53 @@ namespace Arterra.Data.Entity.Behavior {
         private BehaviorEntity.Animal self;
         private InidcatorsBehavior indicator;
         private ColliderUpdateBehavior collider;
-        public override void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
-            if (!self.Is(out collider)) collider = null;
-            if (!self.Is(out indicator)) indicator = null;
-            this.self = self;
-            OnStartup();
+        private VitalityBehavior vitality;
+        private PlayerInventoriesBehavior inventories;
+        private TimedDecayBehavior decay;
+        [JsonProperty] private bool respawned;
+
+        public override void AddBehaviorDependencies(Dictionary<Behaviors, int> hierarchy) {
+            hierarchy.TryAdd(Behaviors.Vitality, hierarchy.Count);
+            hierarchy.TryAdd(Behaviors.PlayerInventories, hierarchy.Count);
+            hierarchy.TryAdd(Behaviors.TimedDecay, hierarchy.Count);
         }
-        public override void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
+
+        public override void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) => Bind(self);
+        public override void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) => Bind(self);
+
+        private void Bind(BehaviorEntity.Animal self) {
+            if (!self.Is(out decay))
+                throw new Exception("Entity: PlayerBaseLogicHandler requires TimedDecayBehavior");
+            if (!self.Is(out vitality))
+                throw new Exception("Entity: PlayerBaseLogicHandler requires VitalityBehavior");
+            if (!self.Is(out inventories))
+                throw new Exception("Entity: PlayerBaseLogicHandler requires PlayerInventoriesBehavior");
             if (!self.Is(out collider)) collider = null;
             if (!self.Is(out indicator)) indicator = null;
             this.self = self;
+            vitality.UseDefaultLoot = false;
+            decay.IsDepleted = () => !inventories.HasItems;
+            decay.CanRelease = () => respawned;
+            self.eventCtrl.AddEventHandler(GameEvent.Entity_Respawn, OnRespawn);
             OnStartup();
         }
 
+        private void OnRespawn(object source, object target, object context) => respawned = true;
+
         public override void Disable(BehaviorEntity.Animal self) {
-            self.eventCtrl.RemoveEventHandler(GameEvent.Entity_Damaged, BlockDamage);
-            Config.CURRENT.System.RemoveHook("Gamemode:Intangibility", ToggleIntangibility);
-            Config.CURRENT.System.RemoveHook("Gamemode:Invulnerability", ToggleInvulnerability);
+            self.eventCtrl.RemoveEventHandler(GameEvent.Entity_Death, OnDeath);
+            self.eventCtrl.RemoveEventHandler(GameEvent.Entity_Respawn, OnRespawn);
+            RemoveHandles();
+            vitality.UseDefaultLoot = true;
+            decay.IsDepleted = null;
+            decay.CanRelease = null;
             this.self = null;
         }
 
-        private readonly System.Collections.Generic.List<GameObject> ownerLayers = new();
+        private readonly List<GameObject> ownerLayers = new();
 
         private void UpdateOwnerLayers() {
-            int layer = LayerMask.NameToLayer(self.IsOwner ? "Self" : "Default");
+            int layer = LayerMask.NameToLayer(self.IsOwner && !vitality.IsDead ? "Self" : "Default");
             foreach (var obj in ownerLayers) if (obj != null) obj.layer = layer;
         }
 
@@ -42,9 +68,10 @@ namespace Arterra.Data.Entity.Behavior {
                 if (child.gameObject.layer == selfLayer) ownerLayers.Add(child.gameObject);
             UpdateOwnerLayers();
 
+            self.eventCtrl.AddEventHandler(GameEvent.Entity_Death, OnDeath);
+            if (vitality.IsDead) return;
             Config.CURRENT.System.AddHook("Gamemode:Intangibility", ToggleIntangibility);
             Config.CURRENT.System.AddHook("Gamemode:Invulnerability", ToggleInvulnerability);
-            if (self.IsAuthority) self.eventCtrl.AddContextlessEventHandler(GameEvent.Entity_Death, (_, _) => self.RemoveBehavior(Id));
             
             object intangibility = Config.CURRENT.GamePlay.Gamemodes.value.Intangiblity;
             object invulnerability = Config.CURRENT.GamePlay.Gamemodes.value.Invulnerability;
@@ -55,13 +82,21 @@ namespace Arterra.Data.Entity.Behavior {
 
         public override void InitializeVisual(BehaviorEntity.Animal self) {
             UpdateOwnerLayers();
-            if (!self.IsOwner || indicator == null) return;
+            if (!self.IsOwner || indicator == null || vitality.IsDead) return;
             Config.CURRENT.System.RemoveHook("Statistics:Display", indicator.ToggleStatDisplay);
             ReMapStatDisplay(!Config.CURRENT.GamePlay.Gamemodes.value.Invulnerability);
         }
 
         public override void DisposeVisual(BehaviorEntity.Animal self) {
             if (self.IsOwner) UnMapStatDisplay();
+        }
+
+        private void OnDeath(object source, object target, object context) {
+            EntityManager.AddHandlerEvent(() => {
+                if (self == null) return;
+                RemoveHandles();
+                if (self.IsOwner) UnMapStatDisplay();
+            });
         }
 
         private void ReMapStatDisplay(bool active) {
@@ -89,13 +124,14 @@ namespace Arterra.Data.Entity.Behavior {
 
         private void ToggleIntangibility(ref object intangibility) {
             if (collider == null || (!self.IsAuthority && !self.IsOwner)) return;
+            if (vitality.IsDead) return;
             bool IsTangible = !(bool)intangibility;
             if (IsTangible) collider.SetInteractionType(ColliderUpdateSettings.InteractType.Regular);
             else collider.SetInteractionType(ColliderUpdateSettings.InteractType.None);
         }
 
         private void ToggleInvulnerability(ref object invulnerability) {
-            bool IsVulnerable = !(bool)invulnerability;
+            bool IsVulnerable = vitality.IsDead || !(bool)invulnerability;
             ReMapStatDisplay(IsVulnerable);
 
             if (!self.IsAuthority) return;
@@ -104,12 +140,20 @@ namespace Arterra.Data.Entity.Behavior {
                 self.eventCtrl.AddEventHandler(GameEvent.Entity_FlushHealthDelta, BlockNegativeDelta, EventHandlePriority.OverridePrimier);
                 self.eventCtrl.AddEventHandler(GameEvent.Entity_ExertHunger, BlockNegativeDelta, EventHandlePriority.OverridePrimier);
                 self.eventCtrl.AddEventHandler(GameEvent.Entity_FlushHungerDelta, BlockNegativeDelta, EventHandlePriority.OverridePrimier);
-            } if (IsVulnerable) {
-                self.eventCtrl.RemoveEventHandler(GameEvent.Entity_Damaged, BlockDamage);
-                self.eventCtrl.RemoveEventHandler(GameEvent.Entity_FlushHealthDelta, BlockNegativeDelta);
-                self.eventCtrl.RemoveEventHandler(GameEvent.Entity_ExertHunger, BlockNegativeDelta);
-                self.eventCtrl.RemoveEventHandler(GameEvent.Entity_FlushHungerDelta, BlockNegativeDelta);
-            }
+            } if (IsVulnerable) RemoveInvulnerability();
+        }
+
+        private void RemoveHandles() {
+            RemoveInvulnerability();
+            Config.CURRENT.System.RemoveHook("Gamemode:Intangibility", ToggleIntangibility);
+            Config.CURRENT.System.RemoveHook("Gamemode:Invulnerability", ToggleInvulnerability);
+        }
+
+        private void RemoveInvulnerability() {
+            self.eventCtrl.RemoveEventHandler(GameEvent.Entity_Damaged, BlockDamage);
+            self.eventCtrl.RemoveEventHandler(GameEvent.Entity_FlushHealthDelta, BlockNegativeDelta);
+            self.eventCtrl.RemoveEventHandler(GameEvent.Entity_ExertHunger, BlockNegativeDelta);
+            self.eventCtrl.RemoveEventHandler(GameEvent.Entity_FlushHungerDelta, BlockNegativeDelta);
         }
 
         private void BlockDamage(object srcId, object _, object cxt) {

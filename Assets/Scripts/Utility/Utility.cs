@@ -6,6 +6,16 @@ using Arterra.Configuration;
 
 namespace Arterra.Utils {
     public static class CustomUtility {
+        public static string FormatAmount(float amount) {
+            if (amount == 0) return "0";
+            float magnitude = Math.Abs(amount);
+            if (magnitude < 0.01f) {
+                int decimals = (int)Math.Ceiling(-Math.Log10(magnitude));
+                return amount.ToString("0." + new string('#', decimals));
+            }
+            return amount.ToString("0.##");
+        }
+
         public readonly static int3[] dP = new int3[6]{
             new (0,1,0),
             new (0,-1,0),
