@@ -1,5 +1,7 @@
 ## [Unreleased]
 
+## [0.2.11] - 2026-11-21
+
 ## Changed
 - Multipedal entities can now rotate their head to better grasp the terrain
 
