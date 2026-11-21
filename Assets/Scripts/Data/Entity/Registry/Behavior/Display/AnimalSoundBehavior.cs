@@ -14,6 +14,7 @@ namespace Arterra.Data.Entity.Behavior {
         public Option<List<EventSound>> EventSounds;
         public Option<List<StateSound>> StateSounds;
         public TriggerMode triggerMode = TriggerMode.CutOff;
+        public bool AliveOnly = true;
 
         [JsonIgnore] [HideInInspector] [UIHidden]
         private Dictionary<GameEvent, LinkedList<SoundEffect>> _eventSounds;
@@ -51,6 +52,7 @@ namespace Arterra.Data.Entity.Behavior {
                 EventSounds = EventSounds,
                 StateSounds = StateSounds,
                 triggerMode = triggerMode,
+                AliveOnly = AliveOnly,
             };
         }
 
@@ -100,6 +102,7 @@ namespace Arterra.Data.Entity.Behavior {
     public class AnimalSoundBehavior : SpeciesBehavior {
         [JsonIgnore] public AnimalSoundBehaviorSettings settings;
 
+        private VitalityBehavior vit;
         private BehaviorEntity.Animal self;
         private StateMachineManagerBehavior manager;
         private readonly Dictionary<GameEvent, RefEventHandler> eventHandlers = new();
@@ -125,6 +128,7 @@ namespace Arterra.Data.Entity.Behavior {
                 throw new Exception("Entity: AnimalSoundBehavior requires AnimalSettings to have AnimalSoundBehaviorSettings");
             if (!self.Is(out manager))
                 throw new Exception("Entity: AnimalSoundBehavior requires AnimalInstance to have StateMachineManagerBehavior");
+            if (!self.Is(out vit)) vit = null;
 
             this.self = self;
             lastState = manager.TaskIndex;
@@ -226,6 +230,7 @@ namespace Arterra.Data.Entity.Behavior {
 
         private bool TryPlayEffect(AnimalSoundBehaviorSettings.SoundEffect effect) {
             if (self == null || !self.active || !self.VisualActive) return false;
+            if (settings.AliveOnly && vit != null && vit.IsDead) return false;
             if (effect.sound == AudioEvents.None) return false;
 
             switch (settings.triggerMode) {

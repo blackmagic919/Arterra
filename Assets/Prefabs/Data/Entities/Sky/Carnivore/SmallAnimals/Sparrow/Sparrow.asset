@@ -918,5 +918,6 @@ MonoBehaviour:
       type: {class: TimedDecaySettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
         DecayTime: 140
+        OrganicDecay: 1
         InteractEvents:
           value: []

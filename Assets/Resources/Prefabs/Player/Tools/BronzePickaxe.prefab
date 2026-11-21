@@ -63,7 +63,7 @@ PrefabInstance:
     - target: {fileID: -7511558181221131132, guid: 735cec4530cea43e0aed6bfa0f006d3b, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
-      objectReference: {fileID: 2100000, guid: 07dbbc9f04818457a8ed51ec5730951e, type: 2}
+      objectReference: {fileID: 2100000, guid: f51eb3634e88c4d94a39f5586a8ec125, type: 2}
     - target: {fileID: 919132149155446097, guid: 735cec4530cea43e0aed6bfa0f006d3b, type: 3}
       propertyPath: m_Name
       value: BronzePickaxeI

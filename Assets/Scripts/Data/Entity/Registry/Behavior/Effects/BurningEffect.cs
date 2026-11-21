@@ -17,7 +17,6 @@ namespace Arterra.Data.Entity.Behavior {
         [JsonIgnore] public string Icon => EffectIcon;
 
         private Modifier mod;
-        private VitalityBehavior vit;
 
         [JsonProperty] private float progress;
         [JsonProperty] private float accDeltaTime;
@@ -37,7 +36,6 @@ namespace Arterra.Data.Entity.Behavior {
         }
 
         public override bool CanApply(BehaviorEntity.Animal self) {
-            if (!self.Is(out vit)) return false;
             if (self.Is(out BurningEffect b)) {
                 b.Strength = math.max(b.Strength, Strength);
                 b.Duration = math.max(b.Duration, Duration);
@@ -47,8 +45,6 @@ namespace Arterra.Data.Entity.Behavior {
         }
 
         public override void Initialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, float3 GCoord) {
-            if (!self.Is(out vit))
-                throw new Exception("Entity: Burning Effect Requires Animal to have Vitality Behavior");
             if (!self.Is(out mod)) mod = null;
             if (self.IsAuthority) self.eventCtrl.AddEventHandler(GameEvent.Entity_Damaged, OnDamaged);
             self.Register(this);
@@ -58,8 +54,6 @@ namespace Arterra.Data.Entity.Behavior {
         }
 
         public override void Deserialize(BehaviorEntity.Animal self, BehaviorEntity.AnimalSetting setting, ref int3 GCoord) {
-            if (!self.Is(out vit))
-                throw new Exception("Entity: Burning Effect Requires Animal to have Vitality Behavior");
             if (!self.Is(out mod)) mod = null;
             if (self.IsAuthority) self.eventCtrl.AddEventHandler(GameEvent.Entity_Damaged, OnDamaged);
             self.Register(this);

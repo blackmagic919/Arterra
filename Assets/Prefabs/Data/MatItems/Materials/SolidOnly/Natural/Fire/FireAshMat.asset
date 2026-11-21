@@ -12,10 +12,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2cb3c737a29ce4a28ae2d74f4ff5e31d, type: 3}
   m_Name: FireAshMat
   m_EditorClassIdentifier: 
-  Name: FireAsh
-  Tags:
-    Reg:
-      value: []
   Names:
     value:
     - Void
@@ -23,25 +19,6 @@ MonoBehaviour:
     - Shell
     - Flames
     - Ash
-  terrainData:
-    Texture: 1
-    textureScale: 3
-    FlipStateRendering: 0
-    GeoShaderIndex:
-      data: 2147614723
-  AtmosphereScatter:
-    InScatterCoeffs: {x: 0.00025, y: 0.00025, z: 0.00025}
-    AbsorptionCoeffs: {x: 0.00475, y: 0.00475, z: 0.00475}
-    LightIntensity: 271
-  liquidData:
-    shallowCol: {r: 0, g: 0, b: 0, a: 0}
-    deepCol: {r: 0, g: 0, b: 0, a: 0}
-    colFalloff: 0
-    waveBlend: 0
-    waveStrength: 0
-    waveScale: {x: 0, y: 0}
-    waveSpeed: {x: 0, y: 0}
-  Roughness: 0.2
   SelfCondition:
     data: 4286643968
   NeighborCondition:
@@ -63,13 +40,14 @@ MonoBehaviour:
     - name: 6
       chance: 1
       behavior:
-        rid: 5778504641502773249
+        value:
+          rid: 7733755242390749199
   references:
     version: 2
     RefIds:
-    - rid: 5778504641502773249
+    - rid: 7733755242390749199
       type: {class: BurningEffect, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
-        Strength: 1
-        Duration: 15
+        Strength: 3
+        Duration: 30
         EffectIcon: BurningIcon

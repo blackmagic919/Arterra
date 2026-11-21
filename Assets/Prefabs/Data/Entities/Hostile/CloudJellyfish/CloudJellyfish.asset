@@ -982,7 +982,7 @@ MonoBehaviour:
         LootTable:
           value:
           - ItemName: BugMush
-            DropAmount: 31.11111200
+            DropAmount: 31.111113
             DropStdDev: 0.4
     - rid: 3097084098772992145
       type: {class: AnimatedSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
@@ -1406,5 +1406,6 @@ MonoBehaviour:
       type: {class: TimedDecaySettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
         DecayTime: 400
+        OrganicDecay: 0
         InteractEvents:
           value: []

@@ -1,5 +1,12 @@
 ## [Unreleased]
 
+## Added
+- Visual indicator of animals rotting
+
+## Fixed
+- Dead animals making noises on attacked
+- Fire not applying burning effect
+
 ## [0.2.10] - 2026-11-20
 
 ## Fixed
