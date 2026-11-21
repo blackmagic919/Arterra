@@ -103,7 +103,9 @@ namespace Arterra.Data.Entity.Behavior {
         public override void Update(BehaviorEntity.Animal self) {
             if (self.context != BehaviorEntity.UpdateContext.Simulation) return;
             BodyCollider.SetGravityState(BodyGravitySyncStateName, TerrainCollider.GravityPriority.Override, HeadCollider.UseGravity);
-            HeadCollider.transform.rotation = BodyCollider.transform.rotation;
+            HeadCollider.transform.rotation = self.Is(out MultiPedalBehavior multiPedal)
+                ? multiPedal.GetRigRotation(self, Rotation)
+                : Rotation;
             switch (BodyCUpdate.settings.interactType) {
                 case ColliderUpdateSettings.InteractType.Regular:
                     HeadCollider.Update(self);

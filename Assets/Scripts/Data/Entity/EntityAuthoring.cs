@@ -43,6 +43,7 @@ public abstract class Entity: IRegistered, IEventControlled{
         && Arterra.GamePlay.PlayerHandler.data != null
         && Arterra.GamePlay.PlayerHandler.data.info.rtEntityId == info.rtEntityId;
     [JsonIgnore] public virtual bool VisualActive => false;
+    [JsonIgnore] public virtual bool ParticipatesInEntityCollisions => true;
     public Guid ActorId => info.rtEntityId;
 
     public virtual void InitializeVisual() { }

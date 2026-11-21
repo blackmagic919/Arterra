@@ -520,9 +520,9 @@ namespace Arterra.GamePlay.Interaction {
             bool soft = Configuration.Config.CURRENT.GamePlay.Environment.value.useSoftCollisions;
             Bounds bounds = new ((float3)transform.position + transform.size / 2, transform.size);
             EntityManager.ESTree.Query(bounds, cEntity => {
-                Bounds cBounds = new (cEntity.position , cEntity.transform.size);
-                if (cEntity.info.rtEntityId == self.info.rtEntityId) return;
+                if (!CanCollideWith(self, cEntity)) return;
                 if (ignores != null && ignores.Contains(cEntity.info.rtEntityId)) return;
+                Bounds cBounds = new(cEntity.position, cEntity.transform.size);
                 if (!TryGetMinimumTranslation(bounds, cBounds, out float3 mtv)) return;
                 float totalWeight = self.weight + cEntity.weight;
                 if (totalWeight == 0) {
@@ -546,25 +546,38 @@ namespace Arterra.GamePlay.Interaction {
                     cEntity.transform.position -= otherFactor * mtv;
                 }
             });
+        }
 
-            static bool TryGetMinimumTranslation(Bounds A, Bounds B, out float3 mtv) {
-                Vector3 delta = A.center - B.center; mtv = default;
-                float dx = (B.extents.x + A.extents.x) - Mathf.Abs(delta.x);
-                float dy = (B.extents.y + A.extents.y) - Mathf.Abs(delta.y);
-                float dz = (B.extents.z + A.extents.z) - Mathf.Abs(delta.z);
+        internal bool HasEntityOverlap(Entity self) {
+            Bounds bounds = new((float3)transform.position + transform.size / 2, transform.size);
+            bool overlaps = false;
+            EntityManager.ESTree.Query(bounds, other => {
+                if (overlaps || !CanCollideWith(self, other)) return;
 
-                if (dx <= 0 || dy <= 0 || dz <= 0)
-                    return false;
+                Bounds otherBounds = new(other.position, other.transform.size);
+                overlaps = TryGetMinimumTranslation(bounds, otherBounds, out _);
+            });
+            return overlaps;
+        }
 
+        private static bool CanCollideWith(Entity self, Entity other) =>
+            other != null && other.ParticipatesInEntityCollisions && other.info.rtEntityId != self.info.rtEntityId;
 
-                if (dx < dy && dx < dz)
-                    mtv = new Vector3(dx * Mathf.Sign(delta.x), 0, 0);
-                else if (dy < dz)
-                    mtv = new Vector3(0, dy * Mathf.Sign(delta.y), 0);
-                else
-                    mtv = new Vector3(0, 0, dz * Mathf.Sign(delta.z));
-                return true;
-            }
+        private static bool TryGetMinimumTranslation(Bounds first, Bounds second, out float3 mtv) {
+            Vector3 delta = first.center - second.center;
+            mtv = default;
+            float dx = first.extents.x + second.extents.x - Mathf.Abs(delta.x);
+            float dy = first.extents.y + second.extents.y - Mathf.Abs(delta.y);
+            float dz = first.extents.z + second.extents.z - Mathf.Abs(delta.z);
+            if (dx <= 0 || dy <= 0 || dz <= 0) return false;
+
+            if (dx < dy && dx < dz)
+                mtv = new Vector3(dx * Mathf.Sign(delta.x), 0, 0);
+            else if (dy < dz)
+                mtv = new Vector3(0, dy * Mathf.Sign(delta.y), 0);
+            else
+                mtv = new Vector3(0, 0, dz * Mathf.Sign(delta.z));
+            return true;
         }
 
         public TerrainCollider(in Settings settings, double3 position, string prefix = null) {

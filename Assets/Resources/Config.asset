@@ -156,7 +156,7 @@ MonoBehaviour:
         Environment:
           value:
             timeMultiplier: 72
-            startHour: 20
+            startHour: 12
             sunriseHour: 7
             sunsetHour: 20.5
             maxSunIntensity: 1.5

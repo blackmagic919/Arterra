@@ -225,10 +225,10 @@ MonoBehaviour:
                 rid: 3097083922518114534
           - value:
               value:
-                rid: 3097083922518114535
+                rid: 5295427349367226868
           - value:
               value:
-                rid: 5295427349367226868
+                rid: 3097083922518114535
           - value:
               value:
                 rid: 5205636901062049865
@@ -355,7 +355,7 @@ MonoBehaviour:
         LootTable:
           value:
           - ItemName: Stone:Solid
-            DropAmount: 30.00000150
+            DropAmount: 30.000002
             DropStdDev: 0.4
     - rid: 3097084098772992145
       type: {class: AnimatedSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
@@ -399,7 +399,7 @@ MonoBehaviour:
         Variants:
           value:
           - TriggerAnim: AttackR
-            AttackChance: 0.007812504
+            AttackChance: 0.006711413
             AttackDuration: 0.25
             AttackDamage: 6
             Knockback: 10
@@ -517,6 +517,10 @@ MonoBehaviour:
             Friction: 0.25
             RubberbandStrength: 3
             OppositeLeg: 2
+        NonRotatingStates:
+          value: 00000000
+        MaxSlopeTilt: 35
+        SlopeTiltResponse: 8
     - rid: 5205636903624769609
       type: {class: ProjectileFireSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:

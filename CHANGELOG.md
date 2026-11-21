@@ -1,11 +1,15 @@
 ## [Unreleased]
 
+## Changed
+- Multipedal entities can now rotate their head to better grasp the terrain
+
 ## Added
 - Visual indicator of animals rotting
 
 ## Fixed
 - Dead animals making noises on attacked
 - Fire not applying burning effect
+- Improved leg recovery for multipedal entities
 
 ## [0.2.10] - 2026-11-20
 

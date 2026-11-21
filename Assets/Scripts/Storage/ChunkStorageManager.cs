@@ -59,7 +59,7 @@ namespace Arterra.Core.Storage {
             while (!chunkFinder.TryGetEntityChunk(CCoord, out fileAdd, AcquireLock: true))
                 await Task.Delay(1).ConfigureAwait(false);
             try { SaveEntityToJson(fileAdd, entities); }
-            finally { chunkFinder.TryAddEntity(CCoord); }
+            finally { chunkFinder.ReleaseEntityChunk(CCoord, File.Exists(fileAdd)); }
         });
 
         /// <summary>Saves offloaded CPU data. The caller retains ownership until this task completes.</summary>
@@ -78,13 +78,17 @@ namespace Arterra.Core.Storage {
         }
 
         private static void SaveEntityToJson(string fileAdd, List<Entity> entities) {
-            using (FileStream fs = File.Create(fileAdd)) {
-                MemoryStream headerStream = ChunkMapCodec.WriteHeader(SerializeEntities(entities));
-                headerStream.Seek(0, SeekOrigin.Begin);
-                headerStream.CopyTo(fs);
-                headerStream.Close();
-                fs.Flush();
-                fs.Close();
+            using MemoryStream headerStream = ChunkMapCodec.WriteHeader(SerializeEntities(entities));
+            headerStream.Position = 0;
+            string temporaryPath = fileAdd + "." + Guid.NewGuid().ToString("N") + ".tmp";
+            try {
+                using (FileStream fs = new FileStream(temporaryPath, FileMode.CreateNew, FileAccess.Write)) {
+                    headerStream.CopyTo(fs);
+                }
+                if (File.Exists(fileAdd)) File.Replace(temporaryPath, fileAdd, null);
+                else File.Move(temporaryPath, fileAdd);
+            } finally {
+                File.Delete(temporaryPath);
             }
         }
 
@@ -159,10 +163,10 @@ namespace Arterra.Core.Storage {
         public static ReadbackInfo.EntityInfo ReadChunkEntities(int3 CCoord) {
             if (!chunkFinder.TryGetEntityChunk(CCoord, out string address, waitForAccess: true)) return default;
             try {
-                var entities = ReadEntityJson(address);
-                if (entities == null) throw new IOException($"Could not read saved entities for {CCoord}.");
-                return new ReadbackInfo.EntityInfo { entities = entities };
-            } finally { chunkFinder.TryAddEntity(CCoord); }
+                return new ReadbackInfo.EntityInfo { entities = ReadEntityJson(address) };
+            } catch (Exception e) {
+                throw new IOException($"Could not read saved entities for {CCoord} from '{address}'.", e);
+            } finally { chunkFinder.ReleaseEntityChunk(CCoord); }
         }
 
         /// <summary>Reads the map data of a chunk at the given address with a certain depth. </summary>
@@ -193,20 +197,16 @@ namespace Arterra.Core.Storage {
         /// </summary>
         /// <param name="fileAdd">The path of the entity file in the file system to be read.  Caller should ensure a 
         /// properly formatted entity file exists at this location. </param>
-        /// <returns>The list containing all entities associated with the chunk.</returns>
+        /// <returns>The list of saved entities, or null for a zero-byte file from an interrupted save.</returns>
         public static List<Entity> ReadEntityJson(string fileAdd) {
-            try {
-                List<Registerable<Entity>> sEntities = null;
-                //Caller has to copy for persistence
-                using (FileStream fs = File.Open(fileAdd, FileMode.Open, FileAccess.Read)) {
-                    //It's automatically deserialized by a custom json rule
-                    ChunkMapCodec.ReadHeader(fs, out sEntities);
-                }
-                return DeserializeEntities(sEntities);
-            } catch (Exception e) {
-                Debug.Log($"Failed on Reading Entity Data for Chunk: {fileAdd} with exception {e}");
+            using FileStream fs = File.Open(fileAdd, FileMode.Open, FileAccess.Read);
+            if (fs.Length == 0) {
+                Debug.LogWarning($"Entity save '{fileAdd}' is empty. The chunk will use generated entities.");
                 return null;
             }
+
+            ChunkMapCodec.ReadHeader(fs, out List<Registerable<Entity>> serializedEntities);
+            return DeserializeEntities(serializedEntities);
         }
 
         /// <summary> If the world has a saved map chunk, finds any saved map chunk and returns
@@ -400,7 +400,7 @@ namespace Arterra.Core.Storage {
                 }
             }
 
-            public void TryAddEntity(int3 CCoord) {
+            public void ReleaseEntityChunk(int3 CCoord, bool exists = true) {
                 if (!IsTrackRegions) return;
                 int3 RCoord = CSToRS(CCoord);
                 int hash = HashCoord(RCoord);
@@ -408,7 +408,8 @@ namespace Arterra.Core.Storage {
                 lock (this) {
                     if (!regions[hash].active || math.any(regions[hash].RCoord != RCoord))
                         ReconstructRegion(RCoord);
-                    regions[hash].EntityChunks[CCoord] = false;
+                    if (exists) regions[hash].EntityChunks[CCoord] = false;
+                    else regions[hash].EntityChunks.Remove(CCoord);
                     System.Threading.Monitor.PulseAll(this);
                 }
             }

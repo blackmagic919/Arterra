@@ -17,6 +17,45 @@ namespace Arterra.Utils
             return (uint)pointInfo.viscosity;
         }
 
+        // From open space, look down for floor. From inside rising ground, find its first surface above.
+        internal static bool TryFindVerticalGround(float3 origin, float minY, float maxY,
+            Func<int3, uint> sample, out float3 hit) {
+            int2 corner = (int2)math.floor(origin.xz);
+            float2 fraction = math.frac(origin.xz);
+            int cellY = (int)math.floor(origin.y);
+            float lowerDensity = SamplePlane(cellY);
+            float upperDensity = SamplePlane(cellY + 1);
+            float density = math.lerp(lowerDensity, upperDensity, math.frac(origin.y));
+            uint isoValue = IsoValue;
+            bool insideGround = density >= isoValue;
+            int direction = insideGround ? 1 : -1;
+            int planeY = insideGround ? cellY + 1 : cellY;
+            float planeDensity = insideGround ? upperDensity : lowerDensity;
+            float previousY = origin.y;
+            hit = origin;
+
+            while (insideGround ? previousY < maxY : previousY > minY) {
+                if ((planeDensity >= isoValue) != insideGround) {
+                    hit.y = math.lerp(previousY, planeY, (isoValue - density) / (planeDensity - density));
+                    return hit.y >= minY && hit.y <= maxY;
+                }
+
+                previousY = planeY;
+                density = planeDensity;
+                planeY += direction;
+                planeDensity = SamplePlane(planeY);
+            }
+
+            return false;
+
+            float SamplePlane(int y) {
+                float near = math.lerp(sample(new int3(corner.x, y, corner.y)),
+                    sample(new int3(corner.x + 1, y, corner.y)), fraction.x);
+                float far = math.lerp(sample(new int3(corner.x, y, corner.y + 1)),
+                    sample(new int3(corner.x + 1, y, corner.y + 1)), fraction.x);
+                return math.lerp(near, far, fraction.y);
+            }
+        }
 
         /// <summary> Performs a precise raycast on the IsoSurface represented through the underlying <i>density</i> information given by
         /// the callback with the specific <see cref="IsoValue"/> specified. A raycast determines whether a ray intersects with the IsoSurface

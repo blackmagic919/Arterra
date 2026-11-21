@@ -533,6 +533,8 @@ MonoBehaviour:
     - rid: 5205636901300338764
       type: {class: MultiPedalSettings, ns: Arterra.Data.Entity.Behavior, asm: Assembly-CSharp}
       data:
+        MaxSlopeTilt: 35
+        SlopeTiltResponse: 8
         AnimControl:
         - AnimName: Idle
           LegControlBitmap: 255
