@@ -559,13 +559,8 @@ namespace Arterra.Data.Entity.Behavior {
                     return;
                 }
 
-                if (grounded && aim.y < 0f) {
-                    // Move across the ledge before trying to descend through it.
-                    float footRadius = math.cmin(collider.transform.size.xz) * 0.5f;
-                    if (math.lengthsq(aim.xz) <= footRadius * footRadius)
-                        aim.xz = bodyPosition.xz - foot.xz;
-                    aim.y = 0f;
-                }
+                // Slide along the ledge toward the leg's rest point before descending.
+                if (grounded && aim.y < 0f) aim.y = 0f;
 
                 collider.transform.velocity += settings.MoveAccel * deltaTime * math.normalizesafe(aim);
             }
@@ -593,13 +588,20 @@ namespace Arterra.Data.Entity.Behavior {
             }
 
             private void UpdateRetraction(BehaviorEntity.Animal self, float3 bodyPosition, float deltaTime) {
-                // Use the collider center so the retracted foot fits inside the body's clearance.
-                float3 centerOffset = new(0f, -LegLength * 0.5f, 0f);
-                retractionOffset = Vector3.MoveTowards(retractionOffset, centerOffset, RetractionSpeed * deltaTime);
-                TargetPosition = bodyPosition + centerOffset;
+                float3 size = collider.transform.size;
+                float2 bodyClearance = (mp.LeadHead.BodyCollider.transform.size.xz + size.xz) * 0.5f;
+                float2 side = math.normalizesafe(retractionOffset.xz);
+                if (math.all(side == float2.zero))
+                    side = math.normalizesafe(RotatedRestOffset.xz, new float2(1f, 0f));
+
+                // Stop along the foot's current side at the edge of the expanded body bounds.
+                float edgeDistance = 1f / math.cmax(math.abs(side) / (bodyClearance + GroundContactDepth));
+                float2 targetXZ = side * edgeDistance;
+                float3 targetOffset = new(targetXZ.x, -size.y * 0.5f, targetXZ.y);
+                retractionOffset = Vector3.MoveTowards(retractionOffset, targetOffset, RetractionSpeed * deltaTime);
+                TargetPosition = bodyPosition + targetOffset;
 
                 float3 foot = bodyPosition + retractionOffset;
-                float3 size = collider.transform.size;
                 float3 colliderOrigin = foot - new float3(size.x, 0f, size.z) * 0.5f;
                 collider.transform.position = colliderOrigin;
                 collider.transform.velocity = float3.zero;
@@ -607,6 +609,7 @@ namespace Arterra.Data.Entity.Behavior {
 
                 float stanceRadius = StanceRadius;
                 if (math.lengthsq(retractionOffset) > stanceRadius * stanceRadius
+                    || math.all(math.abs(retractionOffset.xz) < bodyClearance)
                     || TerrainCollider.SampleCollision(colliderOrigin, size) || collider.HasEntityOverlap(self))
                     return;
 

@@ -88,7 +88,6 @@ void CorrectRemainder(uint3 id : SV_DispatchThreadID) {
         return;
 
     uint index = GetRemainderIndex(id.xy);
-    ScatterData remainder = (ScatterData)0;
     float2 uv = GetAtmospherePixelUV(id.xy);
     float3 viewVector = GetViewVectorWS(uv);
     float rayLength = GetAtmosphereRayLength(_CameraDepthTexture.Load(int3(id.xy, 0)), viewVector);
@@ -97,6 +96,7 @@ void CorrectRemainder(uint3 id : SV_DispatchThreadID) {
     float start = layer * sampleDist;
     float remainderLength = layer > 0u && layer == _NumInScatterPoints - 1u ? 0.0f : rayLength - start;
 
+    ScatterData remainder = (ScatterData)0;
     if(remainderLength <= 0.0f) {
         _RemainderScatter[index] = remainder;
         return;
@@ -120,6 +120,6 @@ void CorrectRemainder(uint3 id : SV_DispatchThreadID) {
 
     AccumulateScatterSegment(_WorldSpaceCameraPos, direction, start, step,
         sampleCount, invIsoScale, prefixExtinction, remainder);
-
+    
     _RemainderScatter[index] = remainder;
 }
