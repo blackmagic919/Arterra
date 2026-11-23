@@ -1,5 +1,7 @@
 ## [Unreleased]
 
+## [0.2.12] - 2026-11-23
+
 ## Changed
 - Liquid materials only update on changes
 - Sun-aligned 3D cache now stores luminance not optical depth
