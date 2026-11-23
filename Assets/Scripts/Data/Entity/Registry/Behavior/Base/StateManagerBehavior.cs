@@ -9,6 +9,7 @@ using TerrainCollider = Arterra.GamePlay.Interaction.TerrainCollider;
 namespace Arterra.Data.Entity.Behavior {
     [Serializable]
     public class StateMachineManagerSettings : IBehaviorSetting {
+        [JsonIgnore] public static string Name => "State Machine";
         public EntitySMTasks StartTask;
         public float AverageStartDuration = 1;
         public float AverageStartDurationVariance = 0;

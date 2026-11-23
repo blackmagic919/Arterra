@@ -11,6 +11,7 @@ using TerrainCollider = Arterra.GamePlay.Interaction.TerrainCollider;
 namespace Arterra.Data.Entity.Behavior {
     [Serializable]
     public class ContactDriveSettings : IBehaviorSetting {
+        [JsonIgnore] public static string Name => "Contact Drive";
         public float GroundSpeed = 1f;
         public float LiquidSpeed = 10f;
         public float Acceleration = 150f;

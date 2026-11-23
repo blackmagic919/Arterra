@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Newtonsoft.Json;
 using Arterra.Configuration;
 using Arterra.Utils;
 using Unity.Mathematics;
@@ -7,6 +8,7 @@ using UnityEngine;
 
 namespace Arterra.Data.Entity.Behavior {
     public class IdleStateSettings : IBehaviorSetting {
+        [JsonIgnore] public static string Name => "Idle";
         public float AverageIdleTime;
         public float AverageIdleVariance;
         public EntitySMTasks TaskName = EntitySMTasks.Idle;

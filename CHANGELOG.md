@@ -1,5 +1,14 @@
 ## [Unreleased]
 
+## Changed
+- Liquid materials only update on changes
+- Sun-aligned 3D cache now stores luminance not optical depth
+- Improved cloud generation 
+- Diminished underwater ground extinction
+
+## Fixed
+- Added names to all behavior settings
+
 ## [0.2.11] - 2026-11-21
 
 ## Changed

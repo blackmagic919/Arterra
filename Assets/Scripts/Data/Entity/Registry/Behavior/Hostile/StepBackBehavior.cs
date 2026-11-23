@@ -1,10 +1,12 @@
 using System;
 using System.Collections.Generic;
+using Newtonsoft.Json;
 using Arterra.Core.Events;
 using Unity.Mathematics;
 
 namespace Arterra.Data.Entity.Behavior {
     public class StepBackSetting : IBehaviorSetting {
+        [JsonIgnore] public static string Name => "Step Back";
         public EntitySMTasks TaskName = EntitySMTasks.StepBackFromEntity;
         public EntitySMTasks TestProximityState = EntitySMTasks.AttackTarget;
         public EntitySMTasks OnLostTarget = EntitySMTasks.RandomPath;

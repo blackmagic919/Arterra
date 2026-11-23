@@ -1,11 +1,13 @@
 using System;
 using System.Collections.Generic;
+using Newtonsoft.Json;
 using Arterra.Core.Events;
 using Unity.Mathematics;
 
 namespace Arterra.Data.Entity.Behavior {
     [Serializable]
     public class ChasePlantSettings : IBehaviorSetting {
+        [JsonIgnore] public static string Name => "Chase Plant";
         public const string AnimationParam = "IsRunning";
         public EntitySMTasks TaskName = EntitySMTasks.ChasePreyPlant;
         public EntitySMTasks OnNotFoundTransition = EntitySMTasks.Idle;

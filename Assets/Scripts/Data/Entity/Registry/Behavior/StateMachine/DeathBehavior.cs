@@ -5,6 +5,7 @@ using Unity.Mathematics;
 
 namespace Arterra.Data.Entity.Behavior {
     public class DeathSettings : IBehaviorSetting {
+        [JsonIgnore] public static string Name => "Death";
         public EntitySMTasks TaskName = EntitySMTasks.Death;
         public EntitySMTasks OnReviveTask = EntitySMTasks.Idle;
 

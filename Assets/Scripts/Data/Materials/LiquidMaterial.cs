@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using Unity.Mathematics;
 using Unity.Burst;
@@ -68,21 +69,21 @@ namespace Arterra.Data.Material{
         /// <param name="GCoord">The coordinate in grid space of a map entry that is this material (a liquid material)</param>
         /// <param name="prng">Optional per-thread pseudo-random seed, to use for randomized behaviors</param>
         public static bool PropogateLiquid(int3 GCoord, Unity.Mathematics.Random prng) {
-            byte ChangeState = (byte)0;
-            MapData cur = SampleMap(GCoord); //Current 
+            const uint ValueMask = 0x7FFFFFFF; // Exclude the dirty bit from change detection.
+            byte ChangeState = 0;
+            MapData cur = SampleMap(GCoord);
             if (cur.IsSolid) return false;
 
+            uint original = cur.data & ValueMask;
             int material = cur.material;
-            MapData[] map = {
-                SampleMap(GCoord + CustomUtility.dP[0]), SampleMap(GCoord + CustomUtility.dP[1]),
-                SampleMap(GCoord + CustomUtility.dP[2]), SampleMap(GCoord + CustomUtility.dP[3]),
-                SampleMap(GCoord + CustomUtility.dP[4]), SampleMap(GCoord + CustomUtility.dP[5])
-            };
-
-
+            Span<MapData> map = stackalloc MapData[6];
+            Span<uint> originalNeighbors = stackalloc uint[6];
             for (int i = 0; i < 6; i++) {
-                ChangeState |= (byte)((map[i].IsLiquid ? 1 : 0) << i);
-                if (map[i].IsSolid) return false;
+                MapData neighbor = SampleMap(GCoord + CustomUtility.dP[i]);
+                if (neighbor.IsSolid) return false;
+                map[i] = neighbor;
+                originalNeighbors[i] = neighbor.data & ValueMask;
+                ChangeState |= (byte)((neighbor.IsLiquid ? 1 : 0) << i);
             }
 
             //If all liquid or all gaseous, ignore
@@ -105,13 +106,15 @@ namespace Arterra.Data.Material{
                 }
             }
 
-            SetMap(cur, GCoord, false);
+            if ((cur.data & ValueMask) != original) SetMap(cur, GCoord, false);
             for (int i = 0; i < 6; i++) {
-                //Update the map
-                SetMap(map[i], GCoord + CustomUtility.dP[i], false);
-                //If state changed, add it to be updated
-                if ((((ChangeState >> i) & 0x1) ^ (map[i].IsLiquid ? 1 : 0)) != 0 || map[i].IsSolid)
-                    TerrainUpdate.AddUpdate(GCoord + CustomUtility.dP[i]);
+                MapData neighbor = map[i];
+                if ((neighbor.data & ValueMask) == originalNeighbors[i]) continue;
+
+                int3 neighborCoord = GCoord + CustomUtility.dP[i];
+                SetMap(neighbor, neighborCoord, false);
+                if (((ChangeState & (1 << i)) != 0) != neighbor.IsLiquid || neighbor.IsSolid)
+                    TerrainUpdate.AddUpdate(neighborCoord);
             }
             return true;
         }

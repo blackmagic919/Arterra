@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Newtonsoft.Json;
 using Arterra.Core.Events;
 using Unity.Mathematics;
 using UnityEngine;
@@ -7,6 +8,7 @@ using UnityEngine;
 namespace Arterra.Data.Entity.Behavior {
     [Serializable]
     public class TestMergeSettings : IBehaviorSetting {
+        [JsonIgnore] public static string Name => "Test Merge";
         public float MergeRadius = 2f;
         public MergeCheck Check = MergeCheck.EntityType;
         public bool ForceNoConsent = false;

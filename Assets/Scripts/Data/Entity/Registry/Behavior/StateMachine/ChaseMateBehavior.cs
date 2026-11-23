@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices.WindowsRuntime;
+using Newtonsoft.Json;
 using Arterra.Configuration;
 using Arterra.Core.Events;
 using Arterra.Editor;
@@ -9,6 +10,7 @@ using Unity.Mathematics;
 namespace Arterra.Data.Entity.Behavior {
     [Serializable]
     public class ChaseMateStateSettings : IBehaviorSetting {
+        [JsonIgnore] public static string Name => "Chase Mate";
         public EntitySMTasks Task1Name = EntitySMTasks.ChaseMate;
         public EntitySMTasks Task2Name = EntitySMTasks.Reproduce;
         public EntitySMTasks OnNotFoundTransition = EntitySMTasks.RandomPath;

@@ -18,6 +18,7 @@ namespace Arterra.Data.Entity.Behavior
 {
 	public class TentacleSettings : IBehaviorSetting
 	{
+		[JsonIgnore] public static string Name => "Tentacles";
 		public int MaxGrabTentacles = 2;
 		public float GrabBreakDist = 2f;
 		public float3 GrabHoldPos = new (0, -10, 0);

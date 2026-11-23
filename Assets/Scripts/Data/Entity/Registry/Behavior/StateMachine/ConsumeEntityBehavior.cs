@@ -12,6 +12,7 @@ using UnityEngine;
 
 namespace Arterra.Data.Entity.Behavior {
     public class ConsumeEntitySettings : IBehaviorSetting {
+        [JsonIgnore] public static string Name => "Consume Entity";
         public EntitySMTasks TaskName = EntitySMTasks.EatEntity;
         public EntitySMTasks OnFinishedEating = EntitySMTasks.Idle;
         public EntitySMTasks OnSeperateTarget = EntitySMTasks.ChaseTarget;

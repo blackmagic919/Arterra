@@ -21,6 +21,7 @@ namespace Arterra.Data.Entity.Behavior {
 
     [Serializable]
     public class MateRecognition : IBehaviorSetting{
+        [JsonIgnore] public static string Name => "Mate Recognition";
         //Mates are entities that can breed with the entity, and the offspring they create
         public Option<List<Mate>> Mates;
         public float MateCost;

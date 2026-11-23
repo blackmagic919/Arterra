@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Newtonsoft.Json;
 using Arterra.Configuration;
 using Arterra.Core.Events;
 using Arterra.Utils;
@@ -8,6 +9,7 @@ using UnityEngine;
 
 namespace Arterra.Data.Entity.Behavior {
     public class RandomWalkStateSettings : IBehaviorSetting {
+        [JsonIgnore] public static string Name => "Random Walk";
         public float AverageWalkTime = 20.0f;
         public float AveragWalkVariance = 0.1f;
 

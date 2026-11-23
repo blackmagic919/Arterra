@@ -8,6 +8,7 @@ using Arterra.Configuration;
 namespace Arterra.Data.Entity.Behavior {
 
     public class GeneticsSettings : IBehaviorSetting {
+        [JsonIgnore] public static string Name => "Genetics";
         [Serializable]
         public struct GeneFeature {
             public MSettings name;

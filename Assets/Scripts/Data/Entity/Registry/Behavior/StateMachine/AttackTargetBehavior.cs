@@ -1,6 +1,7 @@
 
 using System;
 using System.Collections.Generic;
+using Newtonsoft.Json;
 using Arterra.Configuration;
 using Arterra.Data.Entity;
 using Unity.Mathematics;
@@ -9,6 +10,7 @@ using UnityEngine;
 namespace Arterra.Data.Entity.Behavior {
     [Serializable]
     public class AttackTargetSettings : IBehaviorSetting {
+        [JsonIgnore] public static string Name => "Attack Target";
         public EntitySMTasks TaskName = EntitySMTasks.AttackTarget;
         public EntitySMTasks OnTargetPreyDeath = EntitySMTasks.EatEntity;
         public EntitySMTasks OnTargetDeath = EntitySMTasks.Idle;

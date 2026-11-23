@@ -9,6 +9,7 @@ using UnityEngine;
 
 namespace Arterra.Data.Entity.Behavior {
     public class RelationsBehaviorSettings : IBehaviorSetting {
+        [JsonIgnore] public static string Name => "Relations";
         public float OnFedAffection = 8f; 
         public float OnProtectAffection = 8f;
         public float OnSaveAffection = 15f;

@@ -33,6 +33,7 @@ MonoBehaviour:
         - StoneRuins1
         - PotatoFruitingSoil
         - CarrotFruitingSoil
+        - Cloud
       GroundMaterials:
         value:
         - value:

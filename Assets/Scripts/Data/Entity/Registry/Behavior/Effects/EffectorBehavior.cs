@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Newtonsoft.Json;
 using Arterra.Configuration;
 using Arterra.Core.Events;
 using Unity.Mathematics;
@@ -21,6 +22,7 @@ namespace Arterra.Data.Entity.Behavior {
         Shocked
     }
     public class EffectorSettings : IBehaviorSetting {
+        [JsonIgnore] public static string Name => "Effectors";
         public static Dictionary<Effects, Func<TempBehavior>> EffectTemplates = new () {
             { Effects.Poison, () => new PoisonEffect() },
             { Effects.Bleeding, () => new BleedingEffect() },

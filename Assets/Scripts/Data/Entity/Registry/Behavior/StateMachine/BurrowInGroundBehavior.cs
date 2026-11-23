@@ -11,6 +11,7 @@ using UnityEngine;
 namespace Arterra.Data.Entity.Behavior{
 
     public class BurrowInGroundSetting : IBehaviorSetting {
+        [JsonIgnore] public static string Name => "Burrow in Ground";
         public EntitySMTasks Task1Name = EntitySMTasks.Burrow;
         public EntitySMTasks Task2Name = EntitySMTasks.Hide;
         public EntitySMTasks Task3Name = EntitySMTasks.Unburrow;

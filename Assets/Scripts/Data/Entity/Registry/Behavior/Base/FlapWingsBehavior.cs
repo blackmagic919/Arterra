@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Newtonsoft.Json;
 using Arterra.Engine.Audio;
 using FMOD.Studio;
 using Unity.Mathematics;
@@ -7,6 +8,7 @@ using UnityEngine;
 
 namespace Arterra.Data.Entity.Behavior{
     public class FlapWingsBehaviorSettings: IBehaviorSetting {
+        [JsonIgnore] public static string Name => "Flap Wings";
         public string FlyingAnimatorParam = "IsFlying";
         public string FlapWingsAnimatorParam = "IsAscending";
 

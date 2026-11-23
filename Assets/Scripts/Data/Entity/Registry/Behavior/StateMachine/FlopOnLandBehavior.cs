@@ -1,10 +1,12 @@
 using System;
 using System.Collections.Generic;
+using Newtonsoft.Json;
 using Arterra.GamePlay.Interaction;
 using Unity.Mathematics;
 
 namespace Arterra.Data.Entity.Behavior{
     public class FlopOnLandSetting : IBehaviorSetting {
+        [JsonIgnore] public static string Name => "Flop on Land";
         public EntitySMTasks TaskName = EntitySMTasks.FlopOnGround;
         public EntitySMTasks OnEnterWater = EntitySMTasks.Idle;
         public float DryOutTime = 10f;

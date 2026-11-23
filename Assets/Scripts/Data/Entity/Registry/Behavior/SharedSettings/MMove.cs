@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Newtonsoft.Json;
 using Arterra.Configuration;
 using Arterra.Data.Entity;
 using Arterra.Data.Entity.Behavior;
@@ -7,6 +8,7 @@ using Unity.Mathematics;
 using Movement = Arterra.Data.Entity.Behavior.Movement;
 
 public class MMove : IBehaviorSetting {
+    [JsonIgnore] public static string Name => "Movement by State";
     public Option<List<StateMovement>> movements;
     public Option<List<SubProfiles>> profiles;
     public Option<List<float>> customSpeeds;

@@ -16,6 +16,7 @@ public interface IRidable {
 }
 
 public class RideableSettings : IBehaviorSetting {
+    [JsonIgnore] public static string Name => "Rideable";
     public string RideRoot = "Armature/root/base";
 
     public object Clone() {

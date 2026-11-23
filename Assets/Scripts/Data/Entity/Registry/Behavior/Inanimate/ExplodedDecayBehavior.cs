@@ -10,6 +10,7 @@ using UnityEngine;
 namespace Arterra.Data.Entity.Behavior {
     [Serializable]
     public class ExplodedDecaySettings : IBehaviorSetting {
+        [JsonIgnore] public static string Name => "Exploded Decay";
         [RegistryReference("Entities")]
         public string DropEntity = "EntityItem";
 

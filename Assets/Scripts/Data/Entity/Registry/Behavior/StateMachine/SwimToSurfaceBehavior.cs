@@ -8,6 +8,7 @@ using UnityEngine;
 
 namespace Arterra.Data.Entity.Behavior{
     public class SwimToSurfaceSettings : IBehaviorSetting {
+        [JsonIgnore] public static string Name => "Swim to Surface";
         public EntitySMTasks TaskName = EntitySMTasks.ApproachSurface;
         public EntitySMTasks OnReachSurface = EntitySMTasks.Idle;
         public MMove.SubProfiles SurfaceProfile;

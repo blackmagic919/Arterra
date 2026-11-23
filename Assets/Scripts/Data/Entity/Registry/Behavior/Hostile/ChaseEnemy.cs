@@ -10,6 +10,7 @@ using Unity.Mathematics;
 
 namespace Arterra.Data.Entity.Behavior {
     public class ChaseEnemySettings : IBehaviorSetting {
+        [JsonIgnore] public static string Name => "Chase Enemy";
         public EntitySMTasks TaskName = EntitySMTasks.ChasePreyEntity;
         public EntitySMTasks OnNotFoundTransition = EntitySMTasks.Idle;
         public EntitySMTasks OnReachEnemyTransition = EntitySMTasks.AttackTarget;

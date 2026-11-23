@@ -36,16 +36,22 @@ MonoBehaviour:
         value:
         - value:
             Material: 1
-            genSize: 0.65
+            genSize: 0.2
             genShape: 0.5
-            frequency: 2
-            height: 0
+            frequency: 1
+            height: 0.75
         - value:
             Material: 2
             genSize: 0.9
-            genShape: 0.1
-            frequency: 0.95
-            height: 0
+            genShape: 0
+            frequency: 1
+            height: 0.5
+        - value:
+            Material: 1
+            genSize: 1
+            genShape: 0.778
+            frequency: 1
+            height: 0.4
       LiquidMaterials:
         value:
         - value:

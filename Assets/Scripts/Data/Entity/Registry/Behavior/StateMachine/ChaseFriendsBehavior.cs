@@ -1,11 +1,13 @@
 using System;
 using System.Collections.Generic;
+using Newtonsoft.Json;
 using Arterra.Core.Events;
 using Unity.Mathematics;
 
 namespace Arterra.Data.Entity.Behavior {
 
     public class ChaseFriendsSetting : IBehaviorSetting {
+        [JsonIgnore] public static string Name => "Chase Friends";
         public const string AnimationParam = "IsWalking";
         public EntitySMTasks TaskName = EntitySMTasks.ChaseFriends;
         public EntitySMTasks OnReachTransition = EntitySMTasks.RandomPath;

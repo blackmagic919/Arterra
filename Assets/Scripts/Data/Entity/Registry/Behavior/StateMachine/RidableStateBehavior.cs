@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Newtonsoft.Json;
 using Arterra.Core.Events;
 using Arterra.Data.Entity;
 using Arterra.Data.Entity.Behavior;
@@ -8,6 +9,7 @@ using UnityEngine;
 
 namespace Arterra.Data.Entity.Behavior {
 public class RideableStateSettings : IBehaviorSetting {
+    [JsonIgnore] public static string Name => "Riding State";
     public EntitySMTasks TaskName = EntitySMTasks.FollowRider;
     public EntitySMTasks OnDismount = EntitySMTasks.Idle;
     public float AllowRideAffinity = 5f;

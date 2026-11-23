@@ -6,6 +6,7 @@ using Unity.Mathematics;
 namespace Arterra.Data.Entity.Behavior {
     [Serializable]
     public class LimitedFlightSettings : IBehaviorSetting {
+        [JsonIgnore] public static string Name => "Limited Flight";
         public Optional<float> MaxFlightDistance;
         public Optional<float> MaxFlightTime;
         public Optional<float> MinFlightSpeed;

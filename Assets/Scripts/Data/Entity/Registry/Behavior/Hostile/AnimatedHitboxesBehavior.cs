@@ -10,6 +10,7 @@ using TerrainCollider = Arterra.GamePlay.Interaction.TerrainCollider;
 namespace Arterra.Data.Entity.Behavior {
     [Serializable]
     public class AnimatedHitboxesSettings : IBehaviorSetting {
+        [JsonIgnore] public static string Name => "Animated Hitboxes";
         public Option<List<Hitbox>> Hitboxes;
 
         [Serializable]

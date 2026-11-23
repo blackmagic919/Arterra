@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Newtonsoft.Json;
 using Arterra.Configuration;
 using Arterra.Core.Events;
 using Unity.Mathematics;
@@ -7,6 +8,7 @@ using UnityEngine;
 
 namespace Arterra.Data.Entity.Behavior{
     public class LandOnGroundSettings : IBehaviorSetting {
+        [JsonIgnore] public static string Name => "Land on Ground";
         public EntitySMTasks TaskName = EntitySMTasks.ApproachSurface;
         public EntitySMTasks OnReachGround = EntitySMTasks.Idle;
 

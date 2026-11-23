@@ -9,6 +9,7 @@ using TerrainCollider = Arterra.GamePlay.Interaction.TerrainCollider;
 namespace Arterra.Data.Entity.Behavior {
     [Serializable]
     public class ProjectileFlightSettings : IBehaviorSetting {
+        [JsonIgnore] public static string Name => "Projectile Flight";
         public float MinDamagingSpeed;
         // With UseFixedImpact these are absolute damage / knockback, otherwise per-speed multipliers.
         public float DamageMultiplier;

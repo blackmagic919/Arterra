@@ -8,6 +8,7 @@ using Unity.Mathematics;
 namespace Arterra.Data.Entity.Behavior {
     [Serializable]
     public class AttackStats : IBehaviorSetting {
+        [JsonIgnore] public static string Name => "Attack Stats";
         public float AttackDistance;
         public float AttackDamage;
         public float AttackCooldown;

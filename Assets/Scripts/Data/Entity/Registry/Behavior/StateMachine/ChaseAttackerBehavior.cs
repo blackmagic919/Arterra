@@ -9,6 +9,7 @@ using UnityEngine;
 namespace Arterra.Data.Entity.Behavior {
     [Serializable]
     public class ChaseAttackerSettings : IBehaviorSetting {
+        [JsonIgnore] public static string Name => "Chase Attacker";
         public EntitySMTasks TaskName = EntitySMTasks.ChaseTarget;
         public EntitySMTasks OnLostAttacker = EntitySMTasks.Idle;
         public EntitySMTasks OnReachAttacker = EntitySMTasks.AttackTarget;

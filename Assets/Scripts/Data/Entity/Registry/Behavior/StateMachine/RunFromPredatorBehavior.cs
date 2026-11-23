@@ -10,6 +10,7 @@ using Arterra.Utils;
 
 namespace Arterra.Data.Entity.Behavior {
     public class RunFromPredatorSettings : IBehaviorSetting {
+        [JsonIgnore] public static string Name => "Run from Predator";
         public EntitySMTasks TaskName = EntitySMTasks.RunFromPredator;
         public EntitySMTasks OverridableStates = EntitySMTasks.AttackTarget;
         public EntitySMTasks OnFinishRunning = EntitySMTasks.Idle;

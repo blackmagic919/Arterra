@@ -6,6 +6,7 @@ using System.Collections.Generic;
 
 namespace Arterra.Data.Entity.Behavior {
     public class RunFromAttackerSettings : IBehaviorSetting {
+        [JsonIgnore] public static string Name => "Run from Attacker";
         public EntitySMTasks TaskName = EntitySMTasks.RunFromTarget;
         public EntitySMTasks OnLostAttacker = EntitySMTasks.Idle;
 

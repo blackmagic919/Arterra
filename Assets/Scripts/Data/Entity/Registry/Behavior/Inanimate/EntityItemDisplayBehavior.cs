@@ -10,6 +10,7 @@ using UnityEngine;
 namespace Arterra.Data.Entity.Behavior {
     [Serializable]
     public class EntityItemDisplaySettings : IBehaviorSetting {
+        [JsonIgnore] public static string Name => "Entity Item Display";
         public string MeshFilterPath = "";
         public int2 SpriteSampleSize;
         public float AlphaClip;

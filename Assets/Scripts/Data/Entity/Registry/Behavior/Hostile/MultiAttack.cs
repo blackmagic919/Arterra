@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Newtonsoft.Json;
 using Arterra.Configuration;
 using Arterra.Core.Events;
 using Unity.Mathematics;
@@ -7,6 +8,7 @@ using UnityEngine;
 
 namespace Arterra.Data.Entity.Behavior {
     public class MultiAttackSettings : IBehaviorSetting {
+        [JsonIgnore] public static string Name => "Multi Attack";
         public Option<List<AttackVariant>> Variants;
         [Serializable]
         public struct AttackVariant {

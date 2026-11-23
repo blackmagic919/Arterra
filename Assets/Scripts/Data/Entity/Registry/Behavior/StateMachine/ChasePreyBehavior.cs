@@ -12,6 +12,7 @@ using Arterra.Utils;
 
 namespace Arterra.Data.Entity.Behavior {
     public class ChasePreySettings : IBehaviorSetting {
+        [JsonIgnore] public static string Name => "Chase Prey";
         public EntitySMTasks TaskName = EntitySMTasks.ChasePreyEntity;
         public EntitySMTasks OnNotFoundTransition = EntitySMTasks.Idle;
         public EntitySMTasks OnReachPreyTransition = EntitySMTasks.AttackTarget;

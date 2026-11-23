@@ -1,4 +1,5 @@
 using Unity.Mathematics;
+using Newtonsoft.Json;
 using Arterra.Core.Events;
 using UnityEngine;
 using System.Collections.Generic;
@@ -7,6 +8,7 @@ using System;
 namespace Arterra.Data.Entity.Behavior {
 
 public class DefendFriendSetting : IBehaviorSetting {
+    [JsonIgnore] public static string Name => "Defend Friend";
     public float CallFriendRadius;
     public float HelpFriendAffection;
     public EntitySMTasks HelpFriendState = EntitySMTasks.ChaseTarget;

@@ -14,6 +14,7 @@ using Arterra.Utils;
 
 namespace Arterra.Data.Entity.Behavior {
     public class MultiPedalSettings : PASettings, IBehaviorSetting {
+        [JsonIgnore] public static string Name => "Multi Pedal";
         public Option<List<LegSettings>> Legs;
         public Option<List<EntitySMTasks>> NonRotatingStates = new() { value = new() };
         [Range(0f, 60f)] public float MaxSlopeTilt = 35f;

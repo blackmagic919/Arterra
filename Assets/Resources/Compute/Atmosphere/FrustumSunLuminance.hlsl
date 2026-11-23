@@ -17,7 +17,17 @@ inline uint FrustumSunIndex3D(uint sampleX, uint sampleY, uint sampleZ) {
     return sampleX * sunHeight * _NumSunDepthPoints + sampleY * _NumSunDepthPoints + sampleZ;
 }
 
-float3 SampleFrustumSunDepthColumn(uint sampleX, uint sampleY, float fsDepth) {
+float3 InterpolateSunLuminance(float3 a, float3 b, float t) {
+    if(t <= 0.0f) return a;
+    if(t >= 1.0f) return b;
+
+    // Constant extinction produces exponential falloff along the ray.
+    // Preserve black source channels and keep underflowed samples safe to log.
+    float3 value = exp2(lerp(log2(max(a, 1e-30f)), log2(max(b, 1e-30f)), t));
+    return max(a, b) > 0.0f ? value : 0.0f;
+}
+
+float3 SampleFrustumSunLuminanceColumn(uint sampleX, uint sampleY, float fsDepth) {
     uint maxDepth = max(_NumSunDepthPoints, 1u) - 1u;
     float maxDepthF = max((float)_NumSunDepthPoints - 1.0f, 0.0f);
 
@@ -32,11 +42,11 @@ float3 SampleFrustumSunDepthColumn(uint sampleX, uint sampleY, float fsDepth) {
 
     uint index0 = FrustumSunIndex3D(sampleX, sampleY, z0);
     uint index1 = FrustumSunIndex3D(sampleX, sampleY, z1);
-    return lerp(sunLuminance[index0], sunLuminance[index1], zBlend);
+    return InterpolateSunLuminance(sunLuminance[index0], sunLuminance[index1], zBlend);
 }
 
-// Trilinear sample in frustum light-space (z within each XY column first).
-float3 SampleFrustumSunOpticalDepthAtWS(float3 worldPos) {
+// Exponential interpolation along each ray, then linear luminance filtering in XY.
+float3 SampleFrustumSunLuminanceAtWS(float3 worldPos) {
     float3 fsPos = WSPosToFSPos(worldPos);
     uint maxX = max(sunWidth, 1u) - 1u;
     uint maxY = max(sunHeight, 1u) - 1u;
@@ -51,10 +61,10 @@ float3 SampleFrustumSunOpticalDepthAtWS(float3 worldPos) {
     float xBlend = fsScaled.x - fsFloor.x;
     float yBlend = fsScaled.y - fsFloor.y;
 
-    float3 c00 = SampleFrustumSunDepthColumn(x0, y0, fsPos.z);
-    float3 c10 = SampleFrustumSunDepthColumn(x1, y0, fsPos.z);
-    float3 c01 = SampleFrustumSunDepthColumn(x0, y1, fsPos.z);
-    float3 c11 = SampleFrustumSunDepthColumn(x1, y1, fsPos.z);
+    float3 c00 = SampleFrustumSunLuminanceColumn(x0, y0, fsPos.z);
+    float3 c10 = SampleFrustumSunLuminanceColumn(x1, y0, fsPos.z);
+    float3 c01 = SampleFrustumSunLuminanceColumn(x0, y1, fsPos.z);
+    float3 c11 = SampleFrustumSunLuminanceColumn(x1, y1, fsPos.z);
 
     float3 row0 = lerp(c00, c10, xBlend);
     float3 row1 = lerp(c01, c11, xBlend);

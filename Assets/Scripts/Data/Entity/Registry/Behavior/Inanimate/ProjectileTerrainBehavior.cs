@@ -8,6 +8,7 @@ using TerrainCollider = Arterra.GamePlay.Interaction.TerrainCollider;
 namespace Arterra.Data.Entity.Behavior {
     [Serializable]
     public class ProjectileTerrainSettings : IBehaviorSetting {
+        [JsonIgnore] public static string Name => "Projectile Terrain";
         public GroundInteraction terrainInteraction;
 
         public object Clone() {

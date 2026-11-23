@@ -1,6 +1,7 @@
 
 using System;
 using System.Collections.Generic;
+using Newtonsoft.Json;
 using Arterra.Core.Events;
 using Arterra.Data.Item;
 using Arterra.Utils;
@@ -8,6 +9,7 @@ using Unity.Mathematics;
 
 namespace Arterra.Data.Entity.Behavior {
     public class FeedableBehaviorSettings : IBehaviorSetting {
+        [JsonIgnore] public static string Name => "Feeding";
         public EatCondition CanEat = EatCondition.OnlyWhenHungry;
         public float ConsumeRate = 1;
 

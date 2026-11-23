@@ -268,20 +268,18 @@ namespace Arterra.Engine.Terrain{
                     if (!CPUMapManager.TryGetChunkInfo(coordinates[index], out var info) || !info.HasMap) return;
                     Unity.Mathematics.Random prng = new((seed.state ^ (uint)index) | 1u);
                     int3 CCoord = info.CCoord;
-                    for (uint i = 0; i < numUpdatesPerChunk; i++) {
-                        //Generate a random point in the chunk
-                        int3 MCoord = new(
-                            (int)(prng.NextUInt() % mapChunkSize),
-                            (int)(prng.NextUInt() % mapChunkSize),
-                            (int)(prng.NextUInt() % mapChunkSize)
-                        );
-                        int MIndex = MCoord.x * mapChunkSize * mapChunkSize + MCoord.y * mapChunkSize + MCoord.z;
+                int3 chunkOrigin = CCoord * mapChunkSize;
+                for (int i = 0; i < numUpdatesPerChunk; i++) {
+                    int MIndex = (int)prng.NextUInt((uint)numPointsChunk);
                         MapData mapData = info.ChunkData[info.Offset + MIndex];
                         if (!MaterialDictionary.Contains(mapData.material)) {
                             Debug.LogError($"Encountered unknown material {mapData.material} at chunk {CCoord}");
                             return;
                         }
-                        MaterialDictionary.Retrieve(mapData.material).RandomMaterialUpdate(CCoord * mapChunkSize + MCoord, prng);
+
+                    int column = MIndex / mapChunkSize;
+                    int3 MCoord = new(column / mapChunkSize, column % mapChunkSize, MIndex % mapChunkSize);
+                    MaterialDictionary.Retrieve(mapData.material).RandomMaterialUpdate(chunkOrigin + MCoord, prng);
                     }
                 }
             }

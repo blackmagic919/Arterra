@@ -74,7 +74,7 @@ void Bake (uint3 id : SV_DispatchThreadID)
 
     for(uint depth = 0; depth < _NumSunDepthPoints; depth++){
         uint texelIndex = indexFromCoordIrregular(viewX, viewY, depth, sunHeight, _NumSunDepthPoints);
-        luminance[texelIndex] = cumulativeDepth;
+        luminance[texelIndex] = _MainLightColor.rgb * exp(-cumulativeDepth);
 
         if(depth + 1u >= _NumSunDepthPoints)
             break;

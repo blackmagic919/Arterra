@@ -11,6 +11,7 @@ using UnityEngine;
 namespace Arterra.Data.Entity.Behavior {
     [Serializable]
     public class ConsumeBehaviorSettings : IBehaviorSetting {
+        [JsonIgnore] public static string Name => "Consumption";
         public Option<RangeMap<Consumable>> Edibles;
         public float ConsumptionRate;
 

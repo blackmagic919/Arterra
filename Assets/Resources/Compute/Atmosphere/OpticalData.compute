@@ -19,6 +19,16 @@ Texture2D<float> _CameraDepthTexture;
 uint _NumOpticalDepthPoints;
 uint _NumRemainderOpticalDepthPoints;
 
+float3 IntegratedTransmittance(float3 opticalDepth) {
+    // Average transmittance within a constant-extinction substep. Use its
+    // Taylor expansion near zero to avoid cancellation and division by zero.
+    bool3 nearZero = abs(opticalDepth) < 0.01f;
+    float3 taylor = 1.0f + opticalDepth * (-0.5f + opticalDepth * (1.0f / 6.0f - opticalDepth / 24.0f));
+    float3 denominator = nearZero ? 1.0f : opticalDepth;
+    float3 integrated = (1.0f - exp(-opticalDepth)) / denominator;
+    return nearZero ? taylor : integrated;
+}
+
 void AccumulateScatterSegment(
     float3 rayOrigin,
     float3 direction,
@@ -34,16 +44,17 @@ void AccumulateScatterSegment(
         float3 samplePoint = rayOrigin + direction * (start + (i + 0.5f) * step);
         OpticalInfo opticalInfo = SampleMapData(samplePoint);
         float3 extinctionStep = opticalInfo.extinctionCoeff * opticalStep;
-        float3 viewTransmittance = exp(-(prefixExtinction + scatter.extinction + 0.5f * extinctionStep));
-        float3 sunTransmittance = exp(-SampleFrustumSunOpticalDepthAtWS(samplePoint));
+        float3 viewTransmittance = exp(-(prefixExtinction + scatter.extinction));
+        float3 segmentTransmittance = IntegratedTransmittance(extinctionStep);
+        float3 sunLight = SampleFrustumSunLuminanceAtWS(samplePoint);
 
         uint light = SampleLightFast(samplePoint);
         float3 bakedLight = float3(light & 0x3FFu, (light >> 10) & 0x3FFu, (light >> 20) & 0x3FFu) / 1023.0f;
         float sunVisibility = 1.0f - ((light >> 30) & 0x3u) / 3.0f;
-        float3 sunScatter = _MainLightColor.xyz * sunTransmittance * sunVisibility * opticalInfo.scatterCoeffs;
-        float3 bakedScatter = bakedLight * StaticLightIntensity * opticalInfo.opticalDensity;
+        float3 sunScatter = sunLight * sunVisibility * opticalInfo.scatterCoeffs;
+        float3 bakedScatter = bakedLight * StaticLightIntensity * opticalInfo.scatterCoeffs;
 
-        scatter.inScatteredLight += (sunScatter + bakedScatter) * viewTransmittance * opticalStep;
+        scatter.inScatteredLight += (sunScatter + bakedScatter) * viewTransmittance * segmentTransmittance * opticalStep;
         scatter.extinction += extinctionStep;
     }
 }

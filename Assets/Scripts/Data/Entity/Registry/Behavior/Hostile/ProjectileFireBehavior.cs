@@ -9,6 +9,7 @@ using UnityEngine;
 
 namespace Arterra.Data.Entity.Behavior {
     public class ProjectileFireSettings : IBehaviorSetting {
+        [JsonIgnore] public static string Name => "Projectile Fire";
         public Option<List<AttackingState>> AttackingStates = new () {value = new () {
             new() { State = EntitySMTasks.ChaseTarget },
             new() { State = EntitySMTasks.ChasePreyEntity }

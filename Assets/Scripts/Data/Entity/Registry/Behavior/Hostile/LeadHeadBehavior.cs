@@ -25,6 +25,7 @@ namespace Arterra.Data.Entity.Behavior {
     }
 
     public class LeadHeadSettings : IBehaviorSetting {
+        [JsonIgnore] public static string Name => "Lead Head";
         public float3 Offset = new (0, 5, 0);
         public TerrainCollider.Settings Collider;
         public float HeadRubberBand = 5.0f;

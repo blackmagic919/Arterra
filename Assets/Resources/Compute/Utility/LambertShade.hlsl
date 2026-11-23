@@ -15,7 +15,12 @@ float3 AddUnityBaseLights(float3 baseAlbedo, float3 normal, float3 positionWS){
     // Add main directional light
     float NdotL = saturate(dot(normal, _LightDirection));
     NdotL = NdotL * (1 - MinBrightness) + MinBrightness;
-    float3 color = NdotL * _MainLightColor * baseAlbedo;
+#ifdef ATMOSPHERE_DEFERRED
+    float3 lightColor = SampleFrustumSunLuminanceAtWS(positionWS);
+#else
+    float3 lightColor = _MainLightColor.rgb;
+#endif
+    float3 color = NdotL * lightColor * baseAlbedo;
     // Add additional lights
     /*uint lightsCount = GetAdditionalLightsCount();
     for (uint i = 1u; i < lightsCount; ++i) //first additional light is the moon
@@ -40,10 +45,6 @@ float4 LambertShadeInternal(float3 baseAlbedo, float3 positionWS, uint light, fl
     float3 MinShadow = baseAlbedo * MinBrightness;
     float3 DynamicLight = BaseIllumination * shadow + MinShadow * (1-shadow);
 
-#ifdef ATMOSPHERE_DEFERRED
-    float3 sunDepth = SampleFrustumSunOpticalDepthAtWS(positionWS);
-    DynamicLight *= exp(-sunDepth);
-#endif
     
     return float4(max(DynamicLight, ObjectLight), 1);
 }

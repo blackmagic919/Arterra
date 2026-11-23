@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Newtonsoft.Json;
 using Arterra.Configuration;
 using Arterra.Core.Events;
 using Arterra.Utils;
@@ -8,6 +9,7 @@ using UnityEngine;
 
 namespace Arterra.Data.Entity.Behavior {
     public class RandomFlyStateSettings : IBehaviorSetting {
+        [JsonIgnore] public static string Name => "Random Flight";
         public float AverageFlightTime = 75.0f;
         public float AverageFlightVariance = 0.1f;
         public float VerticalFlightFreedom = 0.3f;

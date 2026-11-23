@@ -1,4 +1,5 @@
 using System;
+using Newtonsoft.Json;
 using Arterra.Core.Events;
 using Unity.Mathematics;
 using UnityEngine;
@@ -17,6 +18,7 @@ namespace Arterra.Data.Entity.Behavior {
 
     [Serializable]
     public class Movement : IBehaviorSetting {
+        [JsonIgnore] public static string Name => "Movement";
 
         public enum FollowType {
             Planar = 0,

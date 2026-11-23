@@ -12,6 +12,7 @@ using Arterra.Core.Storage;
 namespace Arterra.Data.Entity.Behavior {
     [Serializable]
     public class EntityItemSettings : IBehaviorSetting {
+        [JsonIgnore] public static string Name => "Entity Item";
         public float DecayTime;
         public float MergeRadius;
         [RegistryReference("Items")]

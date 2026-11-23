@@ -10,6 +10,7 @@ using UnityEngine;
 namespace Arterra.Data.Entity.Behavior {
     [Serializable]
     public class TimedDecaySettings : IBehaviorSetting {
+        [JsonIgnore] public static string Name => "Timed Decay";
         public float DecayTime = 300f;
         public bool OrganicDecay = true;
         public Option<List<InteractEvent>> InteractEvents;

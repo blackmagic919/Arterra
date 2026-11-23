@@ -11,6 +11,7 @@ using UnityEngine;
 namespace Arterra.Data.Entity.Behavior {
 
     public class AnimatedSettings : IBehaviorSetting {
+        [JsonIgnore] public static string Name => "Animation";
         public string AnimatorPath = "";
         public Option<List<StateAnimation>> StateAnimations = new () {
             value = new () {

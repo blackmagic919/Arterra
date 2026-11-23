@@ -16,6 +16,7 @@ using Arterra.Utils;
 namespace Arterra.Data.Entity.Behavior {
     [Serializable]
     public class FindPlantBehaviorSettings : IBehaviorSetting {
+        [JsonIgnore] public static string Name => "Find Plant";
         public Option<RangeMap<Plant>> Prey;
         public static bool HasPrey(FindPlantBehaviorSettings val) => !(val == null 
         || val.Prey.value == null || val.Prey.value.AllowList.value == null

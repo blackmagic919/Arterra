@@ -1,11 +1,13 @@
 using System;
 using System.Collections.Generic;
+using Newtonsoft.Json;
 using Unity.Mathematics;
 using UnityEngine;
 
 namespace Arterra.Data.Entity.Behavior {
     [Serializable]
     public class DriveAnimationSettings : IBehaviorSetting {
+        [JsonIgnore] public static string Name => "Drive Animation";
         public string AnimatorPath = "";
         public string MovingParameter = "Moving";
         public string SteeringParameter = "Steering";

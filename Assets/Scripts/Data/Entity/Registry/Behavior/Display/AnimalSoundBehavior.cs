@@ -11,6 +11,7 @@ using UnityEngine;
 namespace Arterra.Data.Entity.Behavior {
     [Serializable]
     public class AnimalSoundBehaviorSettings : IBehaviorSetting {
+        [JsonIgnore] public static string Name => "Animal Sounds";
         public Option<List<EventSound>> EventSounds;
         public Option<List<StateSound>> StateSounds;
         public TriggerMode triggerMode = TriggerMode.CutOff;

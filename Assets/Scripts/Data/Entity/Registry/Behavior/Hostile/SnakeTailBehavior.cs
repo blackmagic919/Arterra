@@ -17,6 +17,7 @@ namespace Arterra.Data.Entity.Behavior
 {
     public class SnakeTailSettings : PASettings, IBehaviorSetting
     {
+        [JsonIgnore] public static string Name => "Snake Tail";
         public Option<List<SegmentSettings>> Segments;
         public Option<AnimationCurve> SlitherX;
         public Option<AnimationCurve> SlitherY;

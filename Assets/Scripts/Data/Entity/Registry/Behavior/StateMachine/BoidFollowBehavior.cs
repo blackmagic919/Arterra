@@ -11,6 +11,7 @@ using UnityEngine;
 namespace Arterra.Data.Entity.Behavior {
 
     public class BoidFollowSetting : IBehaviorSetting {
+        [JsonIgnore] public static string Name => "Boid Follow";
         public EntitySMTasks TaskName = EntitySMTasks.RandomPath;
         public EntitySMTasks OnStopWalkTransition = EntitySMTasks.Idle;
         public EntitySMTasks OnPackAttackTransition = EntitySMTasks.ChaseTarget;

@@ -9,6 +9,7 @@ using UnityEngine;
 namespace Arterra.Data.Entity.Behavior {
     [Serializable]
     public class ProjectileEffectsSettings : IBehaviorSetting {
+        [JsonIgnore] public static string Name => "Projectile Effects";
         public AudioEvents FlybySound;
         public AudioEvents HitSound;
 

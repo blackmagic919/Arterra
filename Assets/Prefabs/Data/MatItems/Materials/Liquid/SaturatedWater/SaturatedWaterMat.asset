@@ -30,12 +30,12 @@ MonoBehaviour:
       data: 0
   AtmosphereScatter:
     InScatterCoeffs: {x: 0.00025, y: 0.0005, z: 0.00025}
-    AbsorptionCoeffs: {x: 0.00275, y: 0.00325, z: 0.00275}
+    AbsorptionCoeffs: {x: 0.001375, y: 0.001625, z: 0.001375}
     LightIntensity: 0
   liquidData:
-    shallowCol: {r: 0.60784316, g: 1, b: 0.92156863, a: 0.15686275}
-    deepCol: {r: 0, g: 0.3254902, b: 0.50980395, a: 0.88235295}
-    colFalloff: 0.05
+    shallowCol: {r: 0.60784316, g: 1, b: 0.92156863, a: 0.78431374}
+    deepCol: {r: 0, g: 0.3254902, b: 0.50980395, a: 1}
+    colFalloff: 0.025
     waveBlend: 0.5
     waveStrength: 0.05
     waveScale: {x: 0.2, y: 0.045}

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using Newtonsoft.Json;
 using Arterra.Data.Item;
 using Arterra.Data.Structure;
 using Arterra.Editor;
@@ -8,6 +9,7 @@ using UnityEngine;
 
 namespace Arterra.Data.Entity.Behavior {
     public class ConsumeMaterialSettings : IBehaviorSetting {
+        [JsonIgnore] public static string Name => "Consume Material";
         public EntitySMTasks TaskName = EntitySMTasks.EatPlant;
         public EntitySMTasks OnFinishedEating = EntitySMTasks.Idle;
         public EntitySMTasks OnLostTarget = EntitySMTasks.ChasePreyPlant;
